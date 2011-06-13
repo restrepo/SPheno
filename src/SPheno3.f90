@@ -227,6 +227,12 @@ Use SugraRuns
       & , BR_Z_mu_tau                       &
       & , Rho_parameter, Ecms, Pm, Pp, ISR, SigSup, SigSdown, SigSle      &
       & , SigSn, SigChi0, SigC, SigS0, SigSP, SigHp)
+  !------------------------------------------------------------
+  ! programs like micrOmegas do not yet use flavour mixing, in
+  ! this case a modified SLHA file is needed
+  !------------------------------------------------------------
+  If (Write_SLHA1) Call WriteSPhenoOutputLHA1(35, M_GUT)
+
 ! End If
 
  Call closing() ! closes the files

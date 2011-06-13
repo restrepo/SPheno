@@ -2,7 +2,7 @@
 # SPheno v3beta45
 # W. Porod, Comput. Phys. Commun. 153 (2003) 275-315, hep-ph/0301101
 # in case of problems send email to porod@physik.uni-wuerzburg.de
-# Created: 12.02.2010,  11:59
+# Created: 13.02.2010,  17:41
 Block SPINFO         # Program information
      1   SPheno      # spectrum calculator
      2   v3beta45    # version number
@@ -519,7 +519,7 @@ Block SPhenoLowEnergy  # low energy observables
     3    4.73569310E-05   # BR(b -> s nu nu)
     4    5.30800478E-09   # BR(Bs -> mu+ mu-)
     5    9.82155889E-05   # BR(B_u -> tau nu)
-    6    2.72224317E-01   # |Delta(M_Bd)| [ps^-1] 
+    6    2.72224316E-01   # |Delta(M_Bd)| [ps^-1] 
     7    1.87572562E+01   # |Delta(M_Bs)| [ps^-1] 
    10    5.17082022E-14   # Delta(g-2)_electron
    11    2.59684572E-09   # Delta(g-2)_muon
