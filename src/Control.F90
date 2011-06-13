@@ -170,7 +170,7 @@ Integer, Parameter :: qp = Selected_real_kind(25,450)
   & ,  "Routine TreeMassesMSSM3: negative sneutrino mass squared    "    &
   & ,  "Routine TreeMassesNMSSM: negative sneutrino mass squared    "    &
   & /)
- Character(len=60) :: InOut_Error(12) =                                  &
+ Character(len=60) :: InOut_Error(13) =                                  &
   & (/ "Routine LesHouches_Input: unknown error occured:            "    &
   & ,  "Routine LesHouches_Input: Unknown entry for Block MODSEL    "    &
   & ,  "LesHouches_Input: model must be specified before parameters "    &
@@ -183,6 +183,7 @@ Integer, Parameter :: qp = Selected_real_kind(25,450)
   & ,  "ReadVectorC: index exceeds the given boundaries             "    &
   & ,  "ReadVectorR: index exceeds the given boundaries             "    &
   & ,  "ReadTensorC: indices exceed the given boundaries            "    &
+  & ,  "Routine LesHouches_Input, GMSB: Lambda < M_M                "    &
   & /)
  Character(len=60) :: Sugra_Error(14) =                                  &
   & (/ "Routine BoundaryEW: negative scalar mass as input           "    &
@@ -312,6 +313,31 @@ Real(dp), Parameter :: &
     &                      0, 0, 0, 0, 1, 0, &
     &                      0, 0, 0, 0, 0, 1 /), shape = (/6, 6/) )
  Complex(dp), Parameter :: Zero33C(3,3) = ZeroC
+
+ !--------------------------------
+ ! needed for the type definition
+ !--------------------------------
+ Integer, Parameter, Private :: n2=200, n3=600
+
+ Type particle2
+  Real(dp) :: m, m2 ! mass
+  Real(dp) :: g  ! total width
+  Integer  :: id ! internal particle identity code
+  Integer  :: id2(n2,2) ! particle codes for the 2-body final states
+  Real(dp) :: gi2(n2) ! partial widths for 2-body final states
+  Real(dp) :: bi2(n2) ! branching ratios for 2--body decays
+ End Type particle2 ! still missing are names
+
+ Type particle23
+  Real(dp) :: m, m2  ! mass + mass squared
+  Real(dp) :: g  ! total width
+  Integer  :: id ! internal particle identity code
+  Integer  :: id2(n2,2) ! particle codes for the 2-body final states
+  Integer  :: id3(n3,3) ! particle codes for the 2-body final states
+  Real(dp) :: gi2(n2), gi3(n3) ! partial widths for 2- and 3-body final states
+  Real(dp) :: bi2(n2), bi3(n3) ! branching ratios for 2- and 3-body decays
+ End Type particle23 ! still missing are names
+
 ! global variables
 
 Contains 

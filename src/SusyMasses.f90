@@ -752,8 +752,7 @@ Contains
   Integer, Optional, Intent(in) :: NoSymmetryBreaking
 
   Integer :: i1, i2, i3, ierr
-  Complex(Dp) :: mat8(8,8), vec(3), yukA(3,3), yuk2p(3,3) &
-      & , yukV(3,3), yukVA(3,3)
+  Complex(Dp) :: mat8(8,8), vec(3), yukA(3,3), yukV(3,3), yukVA(3,3)
   Real(Dp) :: gZ,v12,v22,v32,v42,v52,DTerm,g2,gp2, test(2)
 
   Iname = Iname + 1
@@ -763,7 +762,6 @@ Contains
   g2 = g**2
   gZ = 0.25_dp * g2
   Call Adjungate(yuk,yukA)
-  yuk2p = Matmul( Conjg(yuk), Transpose(yuk) )
   yukV = vevSM(1) * yuk
   Do i1=1,3
    Do i2=1,3
@@ -3121,7 +3119,7 @@ Contains
 
   Integer :: ierr
   Logical :: LoopHiggs_l
-  Real(Dp) :: dmst, dmsb, Q2, sin2b, sinb2, cosb2, cos2b, higdel
+  Real(Dp) :: dmst, dmsb, sin2b, sinb2, cosb2, higdel
   Real(Dp) :: fakt1, fakt2, abmutb, atmucb, delmat(2,2), mat(2,2)
   Real(Dp) :: amtop4, ambot4, E2(2), S2(2,2), test(2)
 
@@ -3136,12 +3134,10 @@ Contains
 
   dmst = mstop2(1) - mstop2(2)
   dmsb = msbot2(1) - msbot2(2)
-  Q2 = mz2
 
   cosb2 = 1._dp / (1._dp + tanb**2)
   sin2b = 2._dp * tanb * cosb2
   sinb2 = tanb**2 * cosb2
-  cos2b = cosb2 - sinb2
 
   higdel = mA2 * sin2b
 
@@ -3539,7 +3535,7 @@ Contains
  !   Trig. functions of beta
   cb = 1./Sqrt(1.+tanbq**2)
   sb = tanbq*cb
-  s2 = 2.*sb*cb
+  s2 = 2._dp*sb*cb
 
   nu = k/l*mu
   B = Al+nu
@@ -3609,17 +3605,17 @@ Contains
 
   mdia(1) = g*h1q**2 + mu*B/tanbq
   mdia(2) = g*h2q**2 + mu*B*tanbq
-  mdia(3) = 4.*nu**2 + L**2*Alshift*h1q*h2q/mu + Ak*nu
-  moff(1) = (2.*L**2-g)*h1q*h2q - mu*B
-  moff(2) = L*(2.*mu*h1q - (B+nu)*h2q)
-  moff(3) = L*(2.*mu*h2q - (B+nu)*h1q)
+  mdia(3) = 4._dp*nu**2 + L**2*Alshift*h1q*h2q/mu + Ak*nu
+  moff(1) = (2._dp*L**2-g)*h1q*h2q - mu*B
+  moff(2) = L*(2._dp*mu*h1q - (B+nu)*h2q)
+  moff(3) = L*(2._dp*mu*h2q - (B+nu)*h1q)
 
  !   1-loop radiative corrections
   rdia(1) = - At**2*gmt + 4._dp*At*emt &
         &  + 4._dp*mtopq**2*Log(mStop2(1)*mStop2(2)/mtopq**4)
   rdia(2) = - mu**2*gmt 
   rdia(3) = -l**2*h2q**2*gmt
-  roff(1) = mu*(At*gmt - 2._dp*emt)	
+  roff(1) = mu*(At*gmt - 2._dp*emt)
   roff(2) = l*h2q*(At*gmt - 2._dp*emt)
   roff(3) = - l*h2q*mu*gmt + 4._dp*l*h2q*mu*fmt
 
@@ -3629,8 +3625,8 @@ Contains
   rdia(1) = - mu**2*gmb
   rdia(2) = - Ab**2*gmb + 4._dp*Ab*emb &
         & + 4._dp*mbotq**2*Log(mSbot2(1)*mSbot2(2)/mbotq**4)
-  rdia(3) = -l**2*h1q**2*gmb	
-  roff(1) = mu*(Ab*gmb - 2._dp*emb)	
+  rdia(3) = -l**2*h1q**2*gmb
+  roff(1) = mu*(Ab*gmb - 2._dp*emb)
   roff(2) = - l*h1q*mu*gmb + 4._dp*l*h1q*mu*fmb
   roff(3) = l*h1q*(Ab*gmb - 2._dp*emb)
   
@@ -3650,9 +3646,9 @@ Contains
   moff(2) =  moff(2) - l*h2q*D1
   moff(3) =  moff(3) + l*h2q/tanbq*D1
 
-  gb =  g/2._dp - 2._dp * g1/3.
+  gb =  g/2._dp - 2._dp * g1/3._dp
   Xb = At - mu * tanbq
-  Db = (M2_Q-M2_D+gb*(h1q**2-h2q**2))/2.
+  Db = (M2_Q-M2_D+gb*(h1q**2-h2q**2))/2._dp
   D1 = oo16pi2 * 3._dp * (-g/4._dp*emb + gb/2._dp*Db/Xb*gmb)
   D2 = oo16pi2 * 3._dp * (-gb*Db/Xb*emb &
      &                   -g/2._dp*mbotq**2*Log(mSbot2(1)*mSbot2(2)/QSTSB**2))
@@ -4779,8 +4775,8 @@ Contains
 
   Integer :: i1
   Real(dp) :: D_sneut, T3, Yl, Yr, Ml, Mr, msf(2), msf2(2)
-  Real(dp) :: mStop2(2), mSbottom2(2), mT, mB, Yukl, v3(1)
-  Complex(dp) :: A, Y, Rsf(2,2), Ap, mat3(3,3)
+  Real(dp) :: mStop2(2), mSbottom2(2), mT, Yukl
+  Complex(dp) :: A, Y, Rsf(2,2)
 
   Iname = Iname + 1
   NameOfUnit(Iname) = 'TreeMassesEps1'
@@ -4794,7 +4790,6 @@ Contains
   !-------------------------------
   ! charginos + neutralinos
   !-------------------------------
-  v3(1) = vevL
   Call CharginoMass(M2, mu, vevSM, vevL, g, mf_l(3), mC, U, V, Yukl, kont)
   mC2 = mC**2
   call NeutralinoMass(M1,M2,mu,vevSM,vevL,g,gp,mN,N,kont)
@@ -4926,24 +4921,11 @@ Contains
    Call SfermionMass(Ml, Mr, A, mu, vevSM, vevL, Y, T3, Yl, Yr, g, gp, kont &
                      &, msf, msf2, Rsf)
    mStop2 = msf2
-   T3 = -0.5_dp
-   Yl = 1._dp / 3._dp
-   Yr = 2._dp / 3._dp
-   Ml = M2_Q(3,3)
-   Mr = M2_D(3,3)
-   A = A_d(3,3)
-   Y = Y_d(3,3)
-   Call SfermionMass(Ml, Mr, A, mu, vevSM, vevL, Y, T3, Yl, Yr, g, gp, kont &
-                     &, msf, msf2, Rsf)
-   mSbottom2 = msf2
   Else
    mStop2 = mSup2(5:6) 
-   mSbottom2 = mSdown2(5:6) 
   End If
-  mB = Y_d(3,3) * vevSM(1) * oosqrt2
-  mT = Y_u(3,3) * vevSM(2) * oosqrt2
+  mT = Abs(Y_u(3,3)) * vevSM(2) * oosqrt2
   A = A_u(3,3)
-  Ap = A_d(3,3)
   Call ScalarMass(mu, B, vevSM, vevL, gp, g, mStop2, mT**2 &
                 &, mS0, mS02, RS0, kont)
 
@@ -4981,8 +4963,8 @@ Contains
 
   Integer :: i1
   Real(dp) :: T3, Yl, Yr, Ml, Mr, msf(2), msf2(2)
-  Real(dp) :: mStop2(2), mSbottom2(2), mT, mB, Yukl(3)
-  Complex(dp) :: A, Y, Rsf(2,2), Ap
+  Real(dp) :: mStop2(2), mT, Yukl(3)
+  Complex(dp) :: A, Y, Rsf(2,2)
 
   Iname = Iname + 1
   NameOfUnit(Iname) = 'TreeMassesEps3'
@@ -5085,24 +5067,11 @@ Contains
    Call SfermionMass(Ml, Mr, A, mu, vevSM, vevL, Y, T3, Yl, Yr, g, gp, kont &
                      &, msf, msf2, Rsf)
    mStop2 = msf2
-   T3 = -0.5_dp
-   Yl = 1._dp / 3._dp
-   Yr = 2._dp / 3._dp
-   Ml = M2_Q(3,3)
-   Mr = M2_D(3,3)
-   A = A_d(3,3)
-   Y = Y_d(3,3)
-   Call SfermionMass(Ml, Mr, A, mu, vevSM, vevL, Y, T3, Yl, Yr, g, gp, kont &
-                     &, msf, msf2, Rsf)
-   mSbottom2 = msf2
   Else
    mStop2 = mSup2(5:6) 
-   mSbottom2 = mSdown2(5:6) 
   End If
-  mB = Y_d(3,3) * vevSM(1) * oosqrt2
-  mT = Y_u(3,3) * vevSM(2) * oosqrt2
+  mT = Abs(Y_u(3,3)) * vevSM(2) * oosqrt2
   A = A_u(3,3)
-  Ap = A_d(3,3)
   Call ScalarMass(M2_L, mu, B, vevSM, vevL, gp, g, mStop2, mT**2 &
                 &, mS0, mS02, RS0, kont)
 
@@ -5143,8 +5112,8 @@ Contains
 
   Integer :: i1
   Real(dp) :: T3, Yl, Yr, Ml, Mr, msf(2), msf2(2)
-  Real(dp) :: mStop2(2), mSbottom2(2), mT, mB, Yukl(3)
-  Complex(dp) :: A, Y, Rsf(2,2), Ap, mat3(3,3)
+  Real(dp) :: mStop2(2), mT
+  Complex(dp) :: A, Y, Rsf(2,2)
 
   Iname = Iname + 1
   NameOfUnit(Iname) = 'TreeMassesLam3'
@@ -5244,24 +5213,11 @@ Contains
    Call SfermionMass(Ml, Mr, A, mu, vevSM, vevL, Y, T3, Yl, Yr, g, gp, kont &
                      &, msf, msf2, Rsf)
    mStop2 = msf2
-   T3 = -0.5_dp
-   Yl = 1._dp / 3._dp
-   Yr = 2._dp / 3._dp
-   Ml = M2_Q(3,3)
-   Mr = M2_D(3,3)
-   A = A_d(3,3)
-   Y = Y_d(3,3)
-   Call SfermionMass(Ml, Mr, A, mu, vevSM, vevL, Y, T3, Yl, Yr, g, gp, kont &
-                     &, msf, msf2, Rsf)
-   mSbottom2 = msf2
   Else
    mStop2 = mSup2(5:6) 
-   mSbottom2 = mSdown2(5:6) 
   End If
-  mB = Y_d(3,3) * vevSM(1) * oosqrt2
-  mT = Y_u(3,3) * vevSM(2) * oosqrt2
+  mT = Abs(Y_u(3,3)) * vevSM(2) * oosqrt2
   A = A_u(3,3)
-  Ap = A_d(3,3)
   Call ScalarMass(M2_L, mu, B, vevSM, vevL, gp, g, mStop2, mT**2 &
                  &, mS0, mS02, RS0, kont)
 
@@ -5621,8 +5577,8 @@ Contains
    mStop2 = mSup2(5:6) 
    mSbottom2 = mSdown2(5:6) 
   End If
-  mB = Y_d(3,3) * vevSM(1) * oosqrt2
-  mT = Y_u(3,3) * vevSM(2) * oosqrt2
+  mB = Abs(Y_d(3,3)) * vevSM(1) * oosqrt2
+  mT = Abs(Y_u(3,3)) * vevSM(2) * oosqrt2
   A = A_u(3,3) / Y_u(3,3)
   Ap = A_d(3,3) / Y_d(3,3)
   Call ScalarMassMSSMeff(mP02(2), mZ2, tanb, vevSM               &
@@ -5641,7 +5597,7 @@ Contains
                          &, RSlepton, mSdown, mSdown2, RSdown, mSup, mSup2    &
                          &, RSup, mP0, mP02, RP0, mS0, mS02, RS0, mSpm, mSpm2 &
                          &, RSpm, mZ2, mW2                                    &
-                         &, GenerationMixing, kont, Slopy, loophiggs)
+                         &, GenerationMixing, kont, Slopy, loophiggs, mf_u_Q)
  !-----------------------------------------------------------------
  ! calculates all SusyMasses in the MSSM
  ! written by Werner Porod, 24.03.2001 
@@ -5672,6 +5628,7 @@ Contains
   Complex(dp), Intent(out) :: PhaseGlu, U(2,2), V(2,2), N(4,4), Rsneut(3,3) &
        &  , RSlepton(6,6), RSdown(6,6), RSup(6,6), RSpm(2,2)                &
        &  , uU_L(3,3), uU_R(3,3) ,uD_L(3,3), uD_R(3,3), uL_L(3,3), uL_R(3,3)
+  Real(dp), Intent(out), optional :: mf_u_Q(3)
 
   Integer :: i1, ierr
   Real(dp) :: D_sneut, T3, Yl, Yr, Ml, Mr, msf(2), msf2(2), cosb, sinb
@@ -5689,6 +5646,7 @@ Contains
    Call FermionMass(Y_l,vevSM(1),mf_t,uL_L,uL_R,kont)
    Call FermionMass(Y_d,vevSM(1),mf_t,uD_L,uD_R,kont)
    Call FermionMass(Y_u,vevSM(2),mf_t,uU_L,uU_R,kont)
+   If (Present(mf_u_Q)) mf_u_Q = mf_t
   Else
    uL_L = id3C
    uL_R = id3C

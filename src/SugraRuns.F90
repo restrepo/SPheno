@@ -60,9 +60,9 @@ Contains
 
  Subroutine BoundaryEW(i_run, vevSM, mC, U, V, mN, N, mS02, RS0, mP02, RP0    &
     & , mSpm, mSpm2, RSpm, mDsquark, mDsquark2, RDsquark, mUsquark, mUsquark2 &
-    & , RUsquark, mSlepton, mSlepton2, RSlepton, mSneutrino2 , RSneutrino     &
-    & , uU_L, uU_R, uD_L, uD_R, uL_L, uL_R, mGlu, phase_glu, mZ2_run, mW2_run &
-    & , delta0, g1, kont)
+    & , RUsquark, mSlepton, mSlepton2, RSlepton, mSneutrino2, RSneutrino      &
+    & , uU_L, uU_R, uD_L, uD_R, uL_L, uL_R, Unu_L, mGlu, phase_glu, mZ2_run   &
+    & , mW2_run, delta0, g1, kont)
  !-----------------------------------------------------------------------
  ! Calculates gauge and yukawa couplings at m_Z in the DRbar scheme
  ! written by Werner Porod
@@ -86,8 +86,9 @@ Contains
   Complex(dp), Intent(in) :: U(:,:), V(:,:), N(:,:), RSpm(:,:)           &
     & , RDsquark(:,:), RUsquark(:,:), RSlepton(:,:), RSneutrino(:,:)     &
     & , phase_glu
-  Complex(dp), Intent(inout) :: uU_L(3,3), uU_R(3,3), uD_L(3,3), uD_R(3,3) &
-    & , uL_L(3,3), uL_R(3,3)
+  Complex(dp), Intent(in) :: Unu_L(3,3)
+  Complex(dp), Intent(inout), Dimension(3,3) :: uU_L, uU_R, uD_L, uD_R   &
+    & , uL_L, uL_R
   Real(dp), Intent(out) :: g1(57), mW2_run, mZ2_run
   Integer, Intent(inout) :: kont
 
@@ -151,7 +152,8 @@ Contains
    mf_l2 = mf_l_mZ**2
    mf_d2 = mf_d_mZ**2
    mf_u2 = mf_u_mZ**2
- 
+   uL_L_T = id3C
+   uL_R_T = id3C
   Else
    sinW2_DR = sinW2_DR_mZ
    sinW2_old = sinW2_DR
@@ -244,7 +246,8 @@ Contains
 
    CosW2SinW2 = (1._dp - sinW2_DR) * sinW2_DR
    Call delta_VB(gSU2, sinW2, sinW2_DR, rho, mC, mC2, U, V, mN, mN2, N &
-                &, Y_l, mSlepton2, Rslepton, mSneutrino2, RSneutrino, delta)
+        & , Y_l, UL_L_T, UL_R_T, mSlepton2, Rslepton, mSneutrino2      &
+        & , RSneutrino, UNu_L, delta)
    delta_r = rho*Real(dmW2_0,dp)/mW2 - Real(dmZ2,dp) / mZ2 + delta
    rho = 1._dp /  (1._dp - delta_rho - fac(2) / sinW2_DR - xt2)
    delta_r = rho*Real(dmW2_0,dp)/mW2 - Real(dmZ2,dp) / mZ2 + delta   &
@@ -637,7 +640,7 @@ Contains
    rho_2 = 19._dp - 16.5_dp * r + 43._dp * r2 / 12._dp             &
        & + 7._dp * r3 / 120._dp                                    &
        & - Pi * Sqrt(r) * (4._dp - 1.5_dp * r + 3._dp * r2/32._dp  &
-       &                  + r3/256._dp)                             &
+       &                  + r3/256._dp)                            &
        & - Pi2 * (2._dp - 2._dp * r + 0.5_dp * r2)                 &
        & - Log(r) * (3._dp * r - 0.5_dp * r2) 
   End  Function rho_2
@@ -847,7 +850,7 @@ Contains
          & , CKM, mZ2_mZ, mW2_run, dmW2)
 
    Call PiWWT1_SM(0._dp, gSU2, sinW2_DR, mH2, vev, mf_l2, mf_u2, mf_d2 &
-         & , CKM, mZ2_mZ, mW2_run, dmW2)
+         & , CKM, mZ2_mZ, mW2_run, dmW2_0)
 
    rho = (1._dp + Real(dmZ2,dp)/mZ2) / (1._dp + Real(dmW2,dp) / mW2)
    delta_rho = 1._dp - 1._dp / rho 
@@ -1371,7 +1374,7 @@ Contains
                     & , d1, d2, M15)
 
 ! Florian Staub Seesaw II+III
-# ifdef SARAH
+# ifdef SEESAWIII
   Else If (Size(g1).Eq.117) Then ! Seesaw II (SARAH)
    Call GToParameters117(g1, g10_H15,g20_H15,g30_H15, Yu0_H15, Yd0_H15, Ye0_H15 &
      & , Yt_H15,Ys_H15,Yz_H15,Lambda1,Lambda2,MTM)
@@ -1392,7 +1395,7 @@ Contains
    Y_l_0 = Ye0_H24
    Y_d_0 = Yd0_H24
    Y_u_0 = Yu0_H24
-# endif SARAH
+# endif SEESAWIII
 ! Florian Staub Seesaw II+III
 
   Else
@@ -2105,7 +2108,7 @@ Contains
     & Call Switch_from_superCKM(Y_d_0, Y_u_0, Ad_sckm, Au_sckm, M2D_sckm   &
                       &, M2Q_sckm, M2U_sckm, Ad, Au, M2D, M2Q, M2U, .True. )
 
-   If (.Not.l_Ad) A_l_0 = AoY_l_0 * Y_l_0
+   If (.Not.l_Al) A_l_0 = AoY_l_0 * Y_l_0
    If (l_Ad) Then
     A_d_0 = Ad
    Else
@@ -2163,7 +2166,7 @@ Contains
 
 
 ! Florian Staub Seesaw II+III
-# ifdef SARAH
+# ifdef SEESAWIII
   Else If (Size(g2).Eq.353) Then
    MTM = MTM_GUT
    MSM = MTM
@@ -2218,7 +2221,7 @@ Contains
       & ,AYb3_H24,AYw3_H24,AYx3_H24, B_0,AMXM3,AMWM3,AMGM3,AMBM3,M2_Q_0,M2_L_0 &
       & ,M2_H_0(1),M2_H_0(2),M2_D_0, M2_U_0,M2_E_0,mHw32,mHg32,mHb32,mHx32     & 
       & ,mHxb32,Mi_0(1),Mi_0(2),Mi_0(3),zero33c,g2)
-# endif SARAH
+# endif SEESAWIII
 ! Florian Staub Seesaw II+III
 
   Else 
@@ -2697,8 +2700,7 @@ Contains
    Real(dp), Intent(out) :: mf(3)
    Complex(dp), Intent(out) :: uL(3,3), uR(3,3)
 
-   Integer :: i1
-   Complex(dp), Dimension(3,3) :: Y, mass, uLa, uRa, f, invf, invY
+   Complex(dp), Dimension(3,3) :: Y, mass, f, invY
 
    !-------------------------------------
    ! first the mass matrix in DR scheme
@@ -3070,6 +3072,7 @@ Contains
    gauge(3) = Sqrt( 4._dp*pi*alphas_mZ / k_fac)
 
    vev =  2._dp * mW / gauge(2)
+
    vevs(1) = vev / Sqrt(1._dp + tanb**2)
    vevs(2) = tanb * vevs(1)
 
@@ -3344,14 +3347,14 @@ Contains
    FoundUnification = .True.
 
 ! Florian Staub Seesaw II+III
-# ifdef SARAH
+# ifdef SEESAWIII
   Else If (HighScaleModel.Eq.'SEESAW_III_3G') Then
    m_lo = Abs(MWM30(1,1))
    FoundUnification = .False.
   Else If (HighScaleModel.Eq.'SEESAW_II_SARAH') Then
    m_lo = Abs(MTM_GUT)
    FoundUnification = .False.
-# endif SARAH
+# endif SEESAWIII
 ! Florian Staub Seesaw II+III
 
   Else If (UseFixedGUTScale) Then ! GUT scale is fixed
@@ -3374,7 +3377,7 @@ Contains
   !--------------------------
   ! check for perturbativity
   !--------------------------
-  If ( (oo4pi*Maxval(g1**2)).Gt.1._dp) Then
+  If ( (oo4pi*Maxval(g1**2)).gt.0.5_dp) Then
    Write(ErrCan,*) "Non perturbative regime at high scale"
    If (ErrorLevel.Ge.2) Call TerminateProgram
 !   Do i1=1,57
@@ -3786,7 +3789,7 @@ Contains
 
 
 ! Florian Staub Seesaw II+III
-# ifdef SARAH
+# ifdef SEESAWIII
   Else If (HighScaleModel.Eq.'SEESAW_III_3G') Then
 
    If (g1(1).Gt.g1(2)) Then ! already above the GUT scale
@@ -3848,7 +3851,7 @@ Contains
                   &                  * 5._dp/2._dp*Log(MassMXM3(1)/MWM30(1,1)) )
      gauge_h24(2) = gauge_h24(2) * (1._dp - oo16pi2 * gauge_h24(2)**2          &
                 &                     *( 1.5_dp *Log(MassMXM3(1)/MWM30(1,1))   &
-		&                      + 2._dp *Log(MassMWM3(1)/MWM30(1,1))) )
+                &                      + 2._dp *Log(MassMWM3(1)/MWM30(1,1))) )
      gauge_h24(3) = gauge_h24(3) * (1._dp - oo16pi2 * gauge_h24(3)**2          &
                 &                       * (Log(MassMXM3(1)/MWM30(1,1)) &
                 &                         + 3._dp*Log(MassMGM3(1)/MWM30(1,1)) ) )
@@ -3928,7 +3931,7 @@ Contains
                 &                     * 5._dp/2._dp*Log(MassMXM3(2)/MWM30(2,2)) )
       gauge_h24(2) = gauge_h24(2) * (1._dp - oo16pi2 * gauge_h24(2)**2         &
                 &                       *( 1.5_dp *Log(MassMXM3(2)/MWM30(2,2)) + &
-		&			2._dp *Log(MassMWM3(2)/MWM30(2,2))) )
+                &                    2._dp *Log(MassMWM3(2)/MWM30(2,2))) )
       gauge_h24(3) = gauge_h24(3) * (1._dp - oo16pi2 * gauge_h24(3)**2         &
                 &                       * (Log(MassMXM3(2)/MWM30(2,2)) &
                 &                         + 3._dp*Log(MassMGM3(2)/MWM30(2,2)) ) )
@@ -4019,7 +4022,7 @@ Contains
                 &                     * 5._dp/2._dp*Log(MassMXM3(3)/MWM30(3,3)) )
        gauge_h24(2) = gauge_h24(2) * (1._dp - oo16pi2 * gauge_h24(2)**2        &
                 &                       *( 1.5_dp *Log(MassMXM3(3)/MWM30(3,3)) + &
-		&			2._dp *Log(MassMWM3(3)/MWM30(3,3))) )
+                &                     2._dp *Log(MassMWM3(3)/MWM30(3,3))) )
        gauge_h24(3) = gauge_h24(3) * (1._dp - oo16pi2 * gauge_h24(3)**2        &
                 &                       * (Log(MassMXM3(3)/MWM30(3,3)) &
                 &                         + 3._dp*Log(MassMGM3(3)/MWM30(3,3)) ) )
@@ -4198,7 +4201,7 @@ Contains
 
 
    End If ! check if below or above GUT scale
-# endif SARAH
+# endif SEESAWIII
 ! Florian Staub Seesaw II+III
 
   End If
@@ -4254,13 +4257,13 @@ Contains
    g5_b(180) = M2_H_0(1)                    ! Higgs 24-plet
 
 ! Florian Staub Seesaw II+III
-# ifdef SARAH
+# ifdef SEESAWIII
  Else If (HighScaleModel.Eq.'SEESAW_III_3G') Then
    Call BoundaryHS(g1f,g2f)
 
   Else If (HighScaleModel.Eq.'SEESAW_II_SARAH') Then
    Call BoundaryHS(g1g,g2g)
-# endif SARAH
+# endif SEESAWIII
 ! Florian Staub Seesaw II+III
   Else
    Call BoundaryHS(g1,g2)
@@ -4489,7 +4492,7 @@ Contains
 
   Else If ((HighScaleModel.Eq.'SEESAW_II').And.Fifteen_plet) Then
 
-   If ( (oo4pi*Maxval(g2d(1:115)**2)).Gt.1._dp) Then
+   If ( (oo4pi*Maxval(g2d(1:115)**2)).gt.0.5_dp) Then
     Write(ErrCan,*) "Non perturbative regime at M_GUT"
     If (ErrorLevel.Ge.2) Call TerminateProgram
     Write(errcan,*) " "
@@ -4513,7 +4516,7 @@ Contains
     dt = tz / 50._dp
     Call odeint(g2d, 356 , 0._dp, tz, delta, dt, 0._dp, rge356, kont)
     m_lo = M_H3(1)
-    If ( (oo4pi*Maxval(g2d(1:115)**2)).Gt.1._dp) Then
+    If ( (oo4pi*Maxval(g2d(1:115)**2)).gt.0.5_dp) Then
      Write(ErrCan,*) "Non perturbative regime at M_H3"
      If (ErrorLevel.Ge.2) Call TerminateProgram
      Write(errcan,*) " "
@@ -4587,7 +4590,7 @@ Contains
 
   Else If (HighScaleModel.Eq.'SEESAW_II') Then
 
-   If ( (oo4pi*Maxval(g2c(1:79)**2)).Gt.1._dp) Then
+   If ( (oo4pi*Maxval(g2c(1:79)**2)).gt.0.5_dp) Then
     Write(ErrCan,*) "Non perturbative regime at M_GUT"
     If (ErrorLevel.Ge.2) Call TerminateProgram
     Write(errcan,*) " "
@@ -4610,7 +4613,7 @@ Contains
      m_lo = mGUT
    End If
 
-   If ( (oo4pi*Maxval(g2c(1:79)**2)).Gt.1._dp) Then
+   If ( (oo4pi*Maxval(g2c(1:79)**2)).gt.0.5_dp) Then
     Write(ErrCan,*) "Non perturbative regime at M_H3"
     If (ErrorLevel.Ge.2) Call TerminateProgram
     Write(errcan,*) " "
@@ -4651,7 +4654,7 @@ Contains
       & , M2_D, M2_Q, M2_U, M2_H, mu, B, g2)
 
 ! Florian Staub Seesaw II+III
-# ifdef SARAH
+# ifdef SEESAWIII
   Else If (HighScaleModel.Eq.'SEESAW_III_3G') Then 
    !---------------
    ! GUT -> 3
@@ -4718,7 +4721,7 @@ Contains
                 &                      * 5._dp/2._dp*Log(MassMXM3(3)/MWM30(3,3)) )
      g2_h24 = g2_h24 * (1._dp + oo16pi2 * g2_h24**2           &
                 &                      *( 1.5_dp *Log(MassMXM3(3)/MWM30(3,3)) + &
-			&		2._dp *Log(MassMWM3(3)/MWM30(3,3))) )
+                &                      2._dp *Log(MassMWM3(3)/MWM30(3,3))) )
      g3_h24 = g3_h24 * (1._dp + oo16pi2 * g3_h24**2           &
                 &                       * (Log(MassMXM3(3)/MWM30(3,3)) &
                 &                         + 3._dp*Log(MassMGM3(3)/MWM30(3,3)) ) )
@@ -4727,7 +4730,7 @@ Contains
                 &                      * 5._dp/2._dp*Log(MassMXM3(3)/MWM30(3,3)) )
      MassWB_h24 = MassWB_h24 * (1._dp + oo16pi2 * g2_h24**2           &
                 &                      *( 1.5_dp *Log(MassMXM3(3)/MWM30(3,3)) + &
-		&			2._dp *Log(MassMWM3(3)/MWM30(3,3))) )
+                &                     2._dp *Log(MassMWM3(3)/MWM30(3,3))) )
      MassG_h24 = MassG_h24 * (1._dp + oo16pi2 * g3_h24**2           &
                 &                       * (Log(MassMXM3(3)/MWM30(3,3)) &
                 &                         + 3._dp*Log(MassMGM3(3)/MWM30(3,3)) ) )
@@ -4875,7 +4878,7 @@ Contains
                 &                     * 5._dp/2._dp*Log( MassMXM3(2)/MWM30(2,2)) )
      g2_h24 = g2_h24 * (1._dp + oo16pi2 * g2_h24**2           &
                 &                     *( 1.5_dp *Log(MassMXM3(2)/MWM30(2,2)) + & 
-		&			2._dp *Log(MassMWM3(2)/MWM30(2,2))) )
+                &                      2._dp *Log(MassMWM3(2)/MWM30(2,2))) )
      g3_h24 = g3_h24 * (1._dp + oo16pi2 * g3_h24**2           &
                 &                     * (Log( MassMXM3(2)/MWM30(2,2)) &
                 &                       + 3._dp*Log( MassMGM3(2)/MWM30(2,2)) ) )
@@ -4884,7 +4887,7 @@ Contains
                  &                     * 5._dp/2._dp*Log( MassMXM3(2)/MWM30(2,2)) )
      MassWB_h24 = MassWB_h24 * (1._dp + oo16pi2 * g2_h24**2           &
                  &                      *( 1.5_dp *Log(MassMXM3(2)/MWM30(2,2)) + &
-	 	&			2._dp *Log(MassMWM3(2)/MWM30(2,2))) )
+                 &                       2._dp *Log(MassMWM3(2)/MWM30(2,2))) )
      MassG_h24 = MassG_h24 * (1._dp + oo16pi2 * g3_h24**2           &
                 &                      * (Log( MassMXM3(2)/MWM30(2,2)) &
                 &                        + 3._dp*Log( MassMGM3(2)/MWM30(2,2)) ) )
@@ -4989,7 +4992,7 @@ Contains
                 &                      * 5._dp/12._dp*Log( MassMXM3(1)/MWM30(1,1)) )
      g2_h24 = g2_h24 * (1._dp + oo16pi2 * g2_h24**2           &
                 &                      *( 0.5_dp *Log(MassMXM3(1)/MWM30(1,1)) + &
-		&			2._dp *Log(MassMWM3(1)/MWM30(1,1))) )
+                &                       2._dp *Log(MassMWM3(1)/MWM30(1,1))) )
      g3_h24 = g3_h24 * (1._dp + oo16pi2 * g3_h24**2           &
                 &                      * (0.5_dp*Log( MassMXM3(1)/MWM30(1,1)) &
                 &                        + 3._dp*Log( MassMGM3(1)/MWM30(1,1)) ) )
@@ -4998,7 +5001,7 @@ Contains
                 &                      * 5._dp/12._dp*Log( MassMXM3(1)/MWM30(1,1)) )
      MassWB_h24 = MassWB_h24 * (1._dp + oo16pi2 * g2_h24**2           &
                  &                      *( 0.5_dp *Log(MassMXM3(1)/MWM30(1,1)) + &
-		&			2._dp *Log(MassMWM3(1)/MWM30(1,1))) )
+                 &                       2._dp *Log(MassMWM3(1)/MWM30(1,1))) )
      MassG_h24 = MassG_h24 * (1._dp + oo16pi2 * g3_h24**2           &
                 &                      * (0.5_dp*Log( MassMXM3(1)/MWM30(1,1)) &
                 &                        + 3._dp*Log( MassMGM3(1)/MWM30(1,1)) ) )
@@ -5048,7 +5051,7 @@ Contains
 
  Else If (HighScaleModel.Eq.'SEESAW_II_SARAH') Then
 
-   If ( (oo4pi*Maxval(g2g(1:115)**2)).Gt.1._dp) Then
+   If ( (oo4pi*Maxval(g2g(1:115)**2)).gt.0.5_dp) Then
     Write(ErrCan,*) "Non perturbative regime at M_GUT"
     If (ErrorLevel.Ge.2) Call TerminateProgram
     Write(errcan,*) " "
@@ -5074,7 +5077,7 @@ Contains
     Call odeint(g2g, 353 , 0._dp, tz, delta, dt, 0._dp, rge353, kont)
     m_lo = Abs(MTM_GUT)
 
-    If ( (oo4pi*Maxval(g2g(1:115)**2)).Gt.1._dp) Then
+    If ( (oo4pi*Maxval(g2g(1:115)**2)).gt.0.5_dp) Then
      Write(ErrCan,*) "Non perturbative regime at M_H3"
      If (ErrorLevel.Ge.2) Call TerminateProgram
      Write(errcan,*) " "
@@ -5155,7 +5158,7 @@ Contains
    Call ParametersToG(gauge, y_l, y_d, y_u, Mi, A_l, A_d, A_u, M2_E, M2_L  &
       & , M2_D, M2_Q, M2_U, M2_H, mu, B, g2)
 
-# endif SARAH
+# endif SEESAWIII
 ! Florian Staub Seesaw II+III
 
   Else
@@ -5489,10 +5492,11 @@ Contains
   Real(dp) :: mC_T(2), mN_T(4), mS0_T(2), mP0_T(2), mSpm_T(2)              &
     & , mUsquark_T(6), mDsquark_T(6), mSlepton_T(6), mSneutrino_T(3)       &
     & , mUsquark2_T(6), mDsquark2_T(6), mSlepton2_T(6), mSneutrino2_T(3)   &
-    & , mS02_T(2), mP02_T(2), mSpm2_T(2), RP0_T(2,2), RS0_T(2,2), mglu_T
+    & , mS02_T(2), mP02_T(2), mSpm2_T(2), RP0_T(2,2), RS0_T(2,2), mglu_T   &
+    & , mf_nu(3)
   Complex(dp) :: U_T(2,2), V_T(2,2), N_T(4,4), RSpm_T(2,2)                    &
     & , RDsquark_T(6,6), RUsquark_T(6,6), RSlepton_T(6,6), RSneutrino_T(3,3)  &
-    & , phase_Glu_T
+    & , phase_Glu_T, Unu(3,3)
 
   Logical :: FoundResult
   Real(dp), Allocatable :: mass_new(:), mass_old(:), diff_m(:)
@@ -5567,14 +5571,24 @@ Contains
    !-------------------------------------
    If (WriteComment) Write(*,*) "Sugra",j
    Call Cpu_time(t1)
-   !---------------------------------------------------
-   ! the use of the Yukawas of the previous run works
-   ! currently only in case of no generation mixing
-   !---------------------------------------------------
-   Call BoundaryEW(j, vevSM, mC, U, V, mN, N, mS02, RS0, mP02, RP0, mSpm, mSpm2 &
-    & , RSpm, mDsquark, mDsquark2, RDsquark, mUsquark, mUsquark2, RUsquark    &
-    & , mSlepton, mSlepton2, RSlepton, mSneutrino2, RSneutrino                &
-    & , uU_L, uU_R, uD_L, uD_R, uL_L, uL_R, mGlu, phase_glu, mZ2_run, mW2_run &
+
+  !--------------------------------------------------------------
+  ! neutrino mixings, if the dim-5 operator has non-zero entries
+  !--------------------------------------------------------------
+  If (Maxval(Abs(MnuL5)).Gt.0._dp) Then
+   Call NeutrinoMasses(MnuL5, mf_nu, Unu, kont)
+   If (kont.ne.0) then
+    Iname = Iname - 1
+    Return
+   end If
+  Else 
+   Unu = id3C
+  End If
+
+   Call BoundaryEW(j, vevSM, mC, U, V, mN, N, mS02, RS0, mP02, RP0, mSpm, mSpm2&
+    & , RSpm, mDsquark, mDsquark2, RDsquark, mUsquark, mUsquark2, RUsquark     &
+    & , mSlepton, mSlepton2, RSlepton, mSneutrino2, RSneutrino, uU_L, uU_R     &
+    & , uD_L, uD_R, uL_L, uL_R, Unu, mGlu, phase_glu, mZ2_run, mW2_run         &
     & , delta, g1, kont)
 
    If (kont.Ne.0) Then

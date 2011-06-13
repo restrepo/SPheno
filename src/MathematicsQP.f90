@@ -73,7 +73,7 @@ Contains
   ! local variables
   !-----------------
   Integer :: i1,N1,N2,N3, i2, i3, i4, nrot
-  Real(qp) :: AbsAi, AbsTest
+  Real(qp) :: AbsAi
   Real(qp), Allocatable :: AR(:,:),AI(:,:), WR(:), ZR(:,:),  WORK(:) &
           & , ZR_in(:,:), testR(:,:), Ar2(:,:), Ai2(:,:)
   Complex(qp), Allocatable ::  ctest(:,:), Rot(:,:)
@@ -737,7 +737,7 @@ Contains
   Real(qp), Dimension(:,:), Intent(INOUT) :: a
   Real(qp), Dimension(:), Intent(OUT) :: d, e
   
-  Integer :: i, j, k, l, n, i1, i2
+  Integer :: i, j, k, l, n
   Real(qp) :: f, g, h, hh, scale
 !  Real(qp), Dimension(Size(a,1),Size(a,1)) :: aa1
 
@@ -824,7 +824,7 @@ Contains
   Real(qp), Dimension(:,:), Intent(INOUT) :: z
   Real(qp), Dimension(:), Intent(OUT) :: d, e
 
-  Integer :: I,J,K,L,N,II,NM,JP1
+  Integer :: I,J,K,L,N,II,JP1
    Real(qp) ::  F,G,H,HH,SCALEI
 
   n = Size(z,1)
@@ -914,10 +914,8 @@ Contains
   Real(qp), Dimension(:), Intent(OUT) :: d, e
   Logical, Optional, Intent(IN) :: novectors
 
-  Integer :: i, j, l, n, i1, i2
+  Integer :: i, j, l, n, i1
   Real(qp) :: f, g, h, hh, scale
-  Real(qp), Dimension(Size(a,1)) :: gg
-  Real(qp), Dimension(Size(a,1),Size(a,1)) :: aa1
   Logical, Save :: yesvec=.True.
 
   n = Size(a,1)
@@ -1119,9 +1117,8 @@ Contains
    Integer, Intent(inout) :: kont
    Real(qp), Dimension(:), Intent(INOUT) :: d, e
    Real(qp), Dimension(:,:), Optional, Intent(INOUT) :: z
-   Integer :: i,iter,l,m,n,ndum, i1
+   Integer :: i,iter,l,m,n,ndum
    Real(qp) :: b,c,dd,f,g,p,r,s
-   Real(qp), Dimension(Size(e)) :: ff
 
   n = Size(d)
 

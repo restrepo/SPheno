@@ -1,3 +1,4 @@
+
 Module Model_Data
 !-------------------------------------------------------------
 ! This module contains global definition of MSSM parameters,
@@ -126,7 +127,7 @@ Use StandardModel
  ! scalar masses (h,H), masses squared, corresponding mixing matrix, 
  ! total decay widths, partial decay widths, branching ratios
  !------------------------------------------------------------------
- Real(dp) :: mS0(2), mS02(2), RS0(2,2), gT_S0(2), gP_S0(2,200), BR_S0(2,200)
+ Real(dp) :: mS0(2), mS02(2), gT_S0(2), gP_S0(2,200), BR_S0(2,200)
  !------------------------------------------------------------------------
  ! pseudoscalar masses (G,A), masses squared, corresponding mixing matrix 
  ! total decay widths, partial decay widths, branching ratios
@@ -895,3 +896,1022 @@ Contains
 
 End Module Model_Data
 
+Module MSSM_data
+!-----------------------------------------------------------
+! in this modul all basic information concerning the MSSM are 
+! stored
+! by Werner Porod, 15.09.2010
+!-----------------------------------------------------------
+Use Control
+
+ !-------------------------------------------------------------
+ ! number of different particle species, can be changed using
+ ! the initialisation routine for other SUSY models
+ !-------------------------------------------------------------
+ Integer :: n_nu=3, n_l=3, n_d=3, n_u=3 ! generation of SM fermions
+ Integer :: n_Z=1, n_W=1                ! number of vector bosons
+ Integer :: n_snu=3, n_sle=6, n_sd=6, n_su = 6 ! number of sfermions
+ Integer :: n_n=4, n_c=2, n_g=1         ! number of neutralinos, charginos
+                                        ! and gluinos
+ Integer :: n_s0=2, n_P0=2, n_Spm=2     ! number of scalar Higgs bosons, 
+                                        ! pseudoscalars and charged scalars
+                                        ! including Goldstone bosons
+ !------------------------------------------------------------------
+ ! scalar masses (h,H), masses squared, corresponding mixing matrix, 
+ ! total decay widths, partial decay widths, branching ratios
+ !------------------------------------------------------------------
+ Real(dp) :: RS0(2,2)
+ Type(particle23) :: S0(2)
+ !------------------------------------------------------------------------
+ ! pseudoscalar masses (G,A), masses squared, corresponding mixing matrix 
+ ! total decay widths, partial decay widths, branching ratios
+ !------------------------------------------------------------------------
+! Real(dp) :: RP0(2,2)
+ Type(particle2) :: P0(2)
+ !---------------------------------------------------------------------------
+ ! charged scalar masses (G+,H+), masses squared, corresponding mixing matrix 
+ ! total decay widths, partial decay widths, branching ratios
+ !---------------------------------------------------------------------------
+! Complex(dp) :: RSpm(2,2)
+ Type(particle2) :: Spm(2)
+ !---------------------------------------------------------------------------
+ ! chargino masses, masses squared, corresponding mixing matrices
+ ! total decay widths, partial decay widths, branching ratios
+ !---------------------------------------------------------------------------
+! Complex(dp) :: U(2,2), V(2,2)
+ Type(particle23) :: ChiPM(2)
+ !---------------------------------------------------------------------------
+ ! neutralino masses, masses squared, corresponding mixing matrix
+ ! total decay widths, partial decay widths, branching ratios
+ !---------------------------------------------------------------------------
+! Complex(dp) :: N(4,4)
+ Type(particle23) :: Chi0(4)
+ !---------------------------------------------------------------------------
+ ! gluino mass, phase of the parameter M_3 (=Mi(3))
+ ! total decay width, partial decay widths, branching ratios
+ !---------------------------------------------------------------------------
+! Complex(dp) :: PhaseGlu
+ Type(particle23) :: Glu
+ !---------------------------------------------------------------------------
+ ! sneutrino masses, masses squared, corresponding mixing matrix
+ ! total decay widths, partial decay widths, branching ratios
+ !---------------------------------------------------------------------------
+! Complex(dp) :: Rsneut(3,3)
+ Type(particle2) :: Sneut(3)
+ !---------------------------------------------------------------------------
+ ! charged slepton masses, masses squared, corresponding mixing matrix
+ ! total decay widths, partial decay widths, branching ratios
+ !---------------------------------------------------------------------------
+! Complex(dp) :: RSlepton(6,6)
+ Type(particle2) :: Slepton(6)
+ !---------------------------------------------------------------------------
+ ! d-squark masses, masses squared, corresponding mixing matrix
+ ! total decay widths, partial decay widths, branching ratios
+ !---------------------------------------------------------------------------
+! Complex(dp) :: RSdown(6,6)
+ Type(particle2) :: Sdown(6)
+ !---------------------------------------------------------------------------
+ ! u-squark masses, masses squared, corresponding mixing matrix
+ ! total decay widths, partial decay widths, branching ratios
+ !---------------------------------------------------------------------------
+! Complex(dp) :: RSup(6,6)
+ Type(particle23) :: Sup(6)
+ !------------
+ ! PDG codes
+ !------------
+ Integer, Parameter ::id_A0 = 36, id_Hp = 37, id_h0(2) = (/25, 35 /)          &
+      & , id_Wboson = 24, id_Zboson = 23, id_photon = 22, id_gluon = 21       &
+      & , id_lept(3) = (/ 11, 13, 15 /), id_neut(3) = (/ 12, 14, 16 /)        &
+      & , id_u_quark(3) = (/ 2, 4, 6 /), id_d_quark(3) = (/ 1, 3, 5 /)        &
+      & , id_gravitino = 1000039, id_gluino = 1000021                         &
+      & , id_sneut(3) = (/ 1000012, 1000014, 1000016 /)                       &
+      & , id_slept(6) = (/1000011,2000011, 1000013,2000013, 1000015,2000015/) &
+      & , id_u_sq(6) = (/1000002,2000002, 1000004,2000004, 1000006,2000006/)  &
+      & , id_d_sq(6) = (/1000001,2000001, 1000003,2000003, 1000005,2000005/)  &
+      & , id_neutralino(4) = (/1000022, 1000023, 1000025, 1000035 /)          &
+      & , id_chargino(2) = (/1000024, 1000037 /)
+
+ !---------------------------------------------
+ ! internal particle codes + name for output
+ !---------------------------------------------
+ Integer, Save :: id_p(89)
+ Character(len=12) :: c_name(89)
+
+Contains
+
+ Subroutine Check_Charge(id_m, id_d)
+ Implicit None
+  Integer, Intent(in) :: id_m, id_d(:,:)
+
+  Integer :: e_m, e_d1, e_d2, len1, i1, sum_e, len2, e_d3
+
+  Iname = Iname + 1
+  NameOfUnit(Iname) = "Check_Charge"
+
+  len1 = Size(id_d, dim=1)
+  len2 = Size(id_d, dim=2)
+
+  e_m = find_charge(id_p(id_m))
+  If (len2.Eq.2) Then
+   Do i1=1,len1
+    If ((id_d(i1,1).Eq.0).And.(id_d(i1,2).Eq.0)) Exit
+    e_d1 = find_charge(id_p(id_d(i1,1)))
+    e_d2 = find_charge(id_p(id_d(i1,2)))
+    sum_e = e_m-e_d1-e_d2
+    If (sum_e.Ne.0) Then
+     Write(ErrCan,*) "charge not conserved",id_p(id_m),id_p(id_d(i1,1)) &
+                   &                       ,id_p(id_d(i1,2))
+     Write(ErrCan,*) e_m,e_d1,e_d2,sum_e
+     Call TerminateProgram()
+    End If
+   End Do
+
+  Else If (len2.Eq.3) Then
+   Do i1=1,len1
+    If ((id_d(i1,1).Eq.0).And.(id_d(i1,2).Eq.0).And.(id_d(i1,3).Eq.0)) Exit
+    e_d1 = find_charge(id_p(id_d(i1,1)))
+    e_d2 = find_charge(id_p(id_d(i1,2)))
+    e_d3 = find_charge(id_p(id_d(i1,3)))
+    sum_e = e_m-e_d1-e_d2-e_d3
+    If (sum_e.Ne.0) Then
+     Write(ErrCan,*) "charge not conserved",id_p(id_m),id_p(id_d(i1,1)) &
+                   &                       ,id_p(id_d(i1,2)),id_p(id_d(i1,3))
+     Write(ErrCan,*) e_m,e_d1,e_d2,e_d3,sum_e
+     Call TerminateProgram()
+    End If
+   End Do
+
+  End If
+  
+  Iname = Iname - 1
+
+ End Subroutine Check_Charge
+
+ Integer Function Find_Charge(id)
+ Implicit None
+  Integer, Intent(in) :: id
+
+  Iname = Iname + 1
+  NameOfUnit(Iname) = "Find_Charge"
+
+  Select Case(id)
+   ! W-, H-,~e_L,~e_R,~mu_L,~mu_R,~tau_i,~chi+_i, e, mu, tau
+   Case(24,37,-1000011,-2000011,-1000013,-2000013,-1000015,-2000015,1000024,1000037,-11,-13,-15) 
+    find_charge = 3
+   Case(-24,-37,1000011,2000011,1000013,2000013,1000015,2000015,-1000024,-1000037,11,13,15) 
+    find_charge = -3
+
+   ! ~d_L,~d_R,~s_L,~s_R,~b_1,~b_2, d,s,b
+   Case(1000001,2000001,1000003,2000003,1000005,2000005,1,3,5)
+    find_charge = -1
+   Case(-1000001,-2000001,-1000003,-2000003,-1000005,-2000005,-1,-3,-5)
+    find_charge = 1
+
+   ! ~u_L,~u_R,~c_L,~c_R,~t_1,~t_2, u, c, t
+   Case(1000002,2000002,1000004,2000004,1000006,2000006,2,4,6)
+    find_charge = 2
+   Case(-1000002,-2000002,-1000004,-2000004,-1000006,-2000006,-2,-4,-6)
+    find_charge = -2
+
+   ! nu_i, ~nu_i, g, ~g, ~chi^0_1, gamma,Z, h0, H0, A0
+   Case(12,-12,14,-14,16,-16,1000012,-1000012,1000014,-1000014,1000016 &
+       & ,-1000016,21,1000021,1000022,1000023,1000025,1000035,22,23,25,35,36)
+    find_charge = 0
+
+   ! scalar/pseudoscalars for MSSM extensions
+   Case(1000017, 1000018, 1000019, 45, 46)
+    find_charge = 0
+
+  Case default
+   Write(Errcan,*) "Routine find_charge: unknown id",id
+   Call TerminateProgram
+  End Select
+
+  Iname = Iname - 1
+
+ End Function Find_Charge
+
+
+ Subroutine Initialize_MSSM(GenerationMixing, id_gl, id_ph, id_Z, id_Wp &
+               & , id_nu, id_l, id_d, id_u, id_grav)
+ !------------------------------------------------------------------------------
+ ! intializes particle content and internal particle numbers
+ ! gives relationship to PDG and output information
+ ! Note: in case of an anti-particle one has to add 1 to the particle id
+ !------------------------------------------------------------------------------
+ Implicit None
+  Logical, Intent(in) :: GenerationMixing
+  Integer, Intent(out) :: id_gl, id_ph, id_grav
+  Integer, Intent(out), Dimension(1) :: id_Z, id_Wp
+  Integer, Intent(out), Dimension(3) :: id_nu, id_l, id_d, id_u
+
+  Integer :: i1
+  !---------------------------------------
+  ! gauge and vector bosons
+  !---------------------------------------
+  c_name(1) = "g"
+  id_gl = 1 
+  id_p(1) = id_gluon
+  c_name(2) = "photon"
+  id_ph = 2
+  id_p(2) = id_photon
+  c_name(3) = "Z"
+  id_Z = 3
+  id_p(3) = id_Zboson
+  c_name(4) = "W^+"
+  id_Wp = 4
+  id_p(4) = id_Wboson
+  c_name(5) = "W^-"
+  id_p(5) = -id_Wboson
+  !--------------------------
+  ! neutrinos 
+  !--------------------------
+  id_nu = (/6,8,10/)
+  Do i1=1,3
+   id_p(4+2*i1) = id_neut(i1)
+   id_p(5+2*i1) = -id_neut(i1)
+  End Do
+  If (GenerationMixing) Then
+   c_name(6) = "nu_1"
+   c_name(7) = "nu_bar_1"
+   c_name(8) = "nu_2"
+   c_name(9) = "nu_bar_2"
+   c_name(10) = "nu_3"
+   c_name(11) = "nu_bar_3"
+  Else
+   c_name(6) = "nu_e"
+   c_name(7) = "nu_bar_e"
+   c_name(8) = "nu_mu"
+   c_name(9) = "nu_bar_mu"
+   c_name(10) = "nu_tau"
+   c_name(11) = "nu_bar_tau"
+  End If
+  !--------------------------
+  ! leptons
+  !--------------------------
+  id_l = (/12,14,16/)
+  Do i1=1,3
+   id_p(10+2*i1) = id_lept(i1)
+   id_p(11+2*i1) = -id_lept(i1)
+  End Do
+  c_name(12) = "e^-"
+  c_name(13) = "e^+"
+  c_name(14) = "mu^-"
+  c_name(15) = "mu^+"
+  c_name(16) = "tau^-"
+  c_name(17) = "tau^+"
+  !--------------------------
+  ! u-quarks
+  !--------------------------
+  id_u = (/18,20,22/)
+  Do i1=1,3
+   id_p(16+2*i1) = id_u_quark(i1)
+   id_p(17+2*i1) = -id_u_quark(i1)
+  End Do
+  c_name(18) = "u"
+  c_name(19) = "u_bar"
+  c_name(20) = "c"
+  c_name(21) = "c_bar"
+  c_name(22) = "t"
+  c_name(23) = "t_bar"
+  !--------------------------
+  ! d-quarks
+  !--------------------------
+  id_d = (/24,26,28/)
+  Do i1=1,3
+   id_p(22+2*i1) = id_d_quark(i1)
+   id_p(23+2*i1) = -id_d_quark(i1)
+  End Do
+  c_name(24) = "d"
+  c_name(25) = "d_bar"
+  c_name(26) = "s"
+  c_name(27) = "s_bar"
+  c_name(28) = "b"
+  c_name(29) = "b_bar"
+  !--------------------------
+  ! sneutrinos 
+  !--------------------------
+  Sneut%id = (/30,32,34/)
+  Do i1=1,3
+   id_p(28+2*i1) = id_Sneut(i1)
+   id_p(29+2*i1) = -id_Sneut(i1)
+  End Do
+  If (GenerationMixing) Then
+   c_name(30) = "~nu_1"
+   c_name(31) = "~nu^*_1"
+   c_name(32) = "~nu_2"
+   c_name(33) = "~nu^*_2"
+   c_name(34) = "~nu_3"
+   c_name(35) = "~nu^*_3"
+  Else
+   c_name(30) = "~nu_e"
+   c_name(31) = "~nu^*_e"
+   c_name(32) = "~nu_mu"
+   c_name(33) = "~nu^*_mu"
+   c_name(34) = "~nu_tau"
+   c_name(35) = "~nu^*_tau"
+  End If
+  !--------------------------
+  ! sleptons
+  !--------------------------
+  Slepton%id = (/36,38,40,42,44,46/)
+  If (GenerationMixing) Then
+   Do i1=1,3
+    id_p(34+2*i1) = id_Slept(2*i1-1)
+    id_p(40+2*i1) = id_Slept(2*i1)
+   End Do
+   Do i1=1,6
+    id_p(35+2*i1) = -id_p(34+2*i1)
+    c_name(34+2*i1) = "~l^-_"//Bu(i1)
+    c_name(35+2*i1) = "~l^+_"//Bu(i1)
+   End Do
+  Else
+   Do i1=1,6
+    id_p(34+2*i1) = id_Slept(i1)
+    id_p(35+2*i1) = -id_Slept(i1)
+   End Do
+   c_name(36) = "~e^-_L"
+   c_name(37) = "~e^+_L"
+   c_name(38) = "~e^-_R"
+   c_name(39) = "~e^+_R"
+   c_name(40) = "~mu^-_L"
+   c_name(41) = "~mu^+_L"
+   c_name(42) = "~mu^-_R"
+   c_name(43) = "~mu^+_R"
+   c_name(44) = "~tau^-_1"
+   c_name(45) = "~tau^+_1"
+   c_name(46) = "~tau^-_2"
+   c_name(47) = "~tau^+_2"
+  End If
+  !--------------------------
+  ! u-squarks
+  !--------------------------
+  Sup%id = (/48,50,52,54,56,58/)
+  If (GenerationMixing) Then
+   Do i1=1,3
+    id_p(46+2*i1) = id_u_sq(2*i1-1)
+    id_p(52+2*i1) = id_u_sq(2*i1)
+   End Do
+   Do i1=1,6
+    id_p(47+2*i1) = -id_p(46+2*i1)
+    c_name(46+2*i1) = "~u_"//Bu(i1)
+    c_name(47+2*i1) = "~u^*_"//Bu(i1)
+   End Do
+  Else
+   Do i1=1,6
+    id_p(46+2*i1) = id_u_sq(i1)
+    id_p(47+2*i1) = -id_u_sq(i1)
+   End Do
+   c_name(48) = "~u_L"
+   c_name(49) = "~u^*_L"
+   c_name(50) = "~u_R"
+   c_name(51) = "~u^*_R"
+   c_name(52) = "~c_L"
+   c_name(53) = "~c^*_L"
+   c_name(54) = "~c_R"
+   c_name(55) = "~c^*_R"
+   c_name(56) = "~t_1"
+   c_name(57) = "~t^*_1"
+   c_name(58) = "~t_2"
+   c_name(59) = "~t^*_2"
+  End If
+  !--------------------------
+  ! d-squarks
+  !--------------------------
+  Sdown%id = (/60,62,64,66,68,70/)
+  If (GenerationMixing) Then
+   Do i1=1,3
+    id_p(58+2*i1) = id_d_sq(2*i1-1)
+    id_p(64+2*i1) = id_d_sq(2*i1)
+   End Do
+   Do i1=1,6
+    id_p(59+2*i1) = -id_p(58+2*i1)
+    c_name(58+2*i1) = "~d_"//Bu(i1)
+    c_name(59+2*i1) = "~d^*_"//Bu(i1)
+   End Do
+  Else
+   Do i1=1,6
+    id_p(58+2*i1) = id_d_sq(i1)
+    id_p(59+2*i1) = -id_d_sq(i1)
+   End Do
+   c_name(60) = "~d_L"
+   c_name(61) = "~d^*_L"
+   c_name(62) = "~d_R"
+   c_name(63) = "~d^*_R"
+   c_name(64) = "~s_L"
+   c_name(65) = "~s^*_L"
+   c_name(66) = "~s_R"
+   c_name(67) = "~s^*_R"
+   c_name(68) = "~b_1"
+   c_name(69) = "~b^*_1"
+   c_name(70) = "~b_2"
+   c_name(71) = "~b^*_2"
+  End If
+  !-----------------------------
+  ! neutral Higgs bosons
+  !-----------------------------
+  S0%id = (/ 72,73 /)
+  id_p(72:73) = id_h0
+  c_name(72) = "h^0"
+  c_name(73) = "H^0"
+  !-----------------------------
+  ! pseudoscalar Higgs boson
+  !-----------------------------
+  P0%id = 74
+  id_p(74) = id_A0
+  c_name(74) = "A^0"
+  !-----------------------------
+  ! charged Higgs boson
+  !-----------------------------
+  Spm%id = 75
+  id_p(75:76) = (/ id_Hp, -id_Hp /)
+  c_name(75) = "H^+"
+  c_name(76) = "H^-"
+  !-----------------------------
+  ! neutralinos
+  !-----------------------------
+  Chi0%id = (/ 77, 78, 79, 80 /)
+  id_p(77:80) = id_neutralino
+  Do i1=1,4
+   c_name(76+i1) = "chi^0_"//Bu(i1)
+  End Do
+  !-----------------------------
+  ! charginos
+  !-----------------------------
+  ChiPm%id = (/ 81, 83 /) 
+  Do i1=1,2
+   id_p(79+2*i1) = id_chargino(i1)
+   id_p(80+2*i1) = - id_chargino(i1)
+   c_name(79+2*i1) = "chi^+_"//Bu(i1)
+   c_name(80+2*i1) = "chi^-_"//Bu(i1)
+  End Do
+  !-----------------------------
+  ! gluino
+  !-----------------------------
+  Glu%id = 85
+  id_p(85) = id_gluino
+  c_name(85) = "~g"
+  !-----------------------------
+  ! Gravitino
+  !-----------------------------
+  id_grav = 86
+  id_p(id_grav) = id_gravitino
+  c_name(id_grav) = "~G"
+
+ End Subroutine Initialize_MSSM
+
+End Module MSSM_data
+Module NMSSM_data
+!---------------------------------------------------------------------
+! in this modul all basic information concerning the NMSSM are 
+! stored, using MSSM_data and give only the additional information
+! by Werner Porod, 23.09.2010
+!---------------------------------------------------------------------
+Use Control
+Use MSSM_data ! most of the paramters are the same
+ !------------------------------------------------------------------
+ ! scalar masses (h,H,Re(S)), masses squared, corresponding mixing matrix, 
+ ! total decay widths, partial decay widths, branching ratios
+ !------------------------------------------------------------------
+! Real(dp) :: RS03(3,3)
+ Type(particle23) :: S03(3)
+ !------------------------------------------------------------------------
+ ! pseudoscalar masses (G,A,Im(S)), masses squared, corresponding mixing matrix 
+ ! total decay widths, partial decay widths, branching ratios
+ !------------------------------------------------------------------------
+! Real(dp) :: RP03(3,3)
+ Type(particle2) :: P03(3)
+ !---------------------------------------------------------------------------
+ ! neutralino masses, masses squared, corresponding mixing matrix
+ ! total decay widths, partial decay widths, branching ratios
+ !---------------------------------------------------------------------------
+! Complex(dp) :: N5(5,5)
+ Type(particle23) :: Chi05(5)
+ !------------
+ ! PDG codes
+ !------------
+ Integer, Parameter ::id_A02(2) = (/ id_A0, 46 /), id_h03(3) = (/ id_h0, 45 /) &
+    & , id_neutralino5(5) = (/id_neutralino, 1000045 /) 
+Contains
+
+ Subroutine Initialize_NMSSM(GenerationMixing, id_gl, id_ph, id_Z, id_Wp &
+               & , id_nu, id_l, id_d, id_u, id_grav)
+ !------------------------------------------------------------------------------
+ ! intializes particle content and internal particle numbers
+ ! gives relationship to PDG and output information
+ ! Note: in case of an anti-particle one has to add 1 to the particle id
+ !------------------------------------------------------------------------------
+ Implicit None
+  Logical, Intent(in) :: GenerationMixing
+  Integer, Intent(out) :: id_gl, id_ph, id_grav
+  Integer, Intent(out), Dimension(1) :: id_Z, id_Wp
+  Integer, Intent(out), Dimension(3) :: id_nu, id_l, id_d, id_u
+
+  Integer :: i1
+  !---------------------------------------
+  ! gauge and vector bosons
+  !---------------------------------------
+  c_name(1) = "g"
+  id_gl = 1 
+  id_p(1) = id_gluon
+  c_name(2) = "photon"
+  id_ph = 2
+  id_p(2) = id_photon
+  c_name(3) = "Z"
+  id_Z = 3
+  id_p(3) = id_Zboson
+  c_name(4) = "W^+"
+  id_Wp = 4
+  id_p(4) = id_Wboson
+  c_name(5) = "W^-"
+  id_p(5) = -id_Wboson
+  !--------------------------
+  ! neutrinos 
+  !--------------------------
+  id_nu = (/6,8,10/)
+  Do i1=1,3
+   id_p(4+2*i1) = id_neut(i1)
+   id_p(5+2*i1) = -id_neut(i1)
+  End Do
+  If (GenerationMixing) Then
+   c_name(6) = "nu_1"
+   c_name(7) = "nu_bar_1"
+   c_name(8) = "nu_2"
+   c_name(9) = "nu_bar_2"
+   c_name(10) = "nu_3"
+   c_name(11) = "nu_bar_3"
+  Else
+   c_name(6) = "nu_e"
+   c_name(7) = "nu_bar_e"
+   c_name(8) = "nu_mu"
+   c_name(9) = "nu_bar_mu"
+   c_name(10) = "nu_tau"
+   c_name(11) = "nu_bar_tau"
+  End If
+  !--------------------------
+  ! leptons
+  !--------------------------
+  id_l = (/12,14,16/)
+  Do i1=1,3
+   id_p(10+2*i1) = id_lept(i1)
+   id_p(11+2*i1) = -id_lept(i1)
+  End Do
+  c_name(12) = "e^-"
+  c_name(13) = "e^+"
+  c_name(14) = "mu^-"
+  c_name(15) = "mu^+"
+  c_name(16) = "tau^-"
+  c_name(17) = "tau^+"
+  !--------------------------
+  ! u-quarks
+  !--------------------------
+  id_u = (/18,20,22/)
+  Do i1=1,3
+   id_p(16+2*i1) = id_u_quark(i1)
+   id_p(17+2*i1) = -id_u_quark(i1)
+  End Do
+  c_name(18) = "u"
+  c_name(19) = "u_bar"
+  c_name(20) = "c"
+  c_name(21) = "c_bar"
+  c_name(22) = "t"
+  c_name(23) = "t_bar"
+  !--------------------------
+  ! d-quarks
+  !--------------------------
+  id_d = (/24,26,28/)
+  Do i1=1,3
+   id_p(22+2*i1) = id_d_quark(i1)
+   id_p(23+2*i1) = -id_d_quark(i1)
+  End Do
+  c_name(24) = "d"
+  c_name(25) = "d_bar"
+  c_name(26) = "s"
+  c_name(27) = "s_bar"
+  c_name(28) = "b"
+  c_name(29) = "b_bar"
+  !--------------------------
+  ! sneutrinos 
+  !--------------------------
+  Sneut%id = (/30,32,34/)
+  Do i1=1,3
+   id_p(28+2*i1) = id_Sneut(i1)
+   id_p(29+2*i1) = -id_Sneut(i1)
+  End Do
+  If (GenerationMixing) Then
+   c_name(30) = "~nu_1"
+   c_name(31) = "~nu^*_1"
+   c_name(32) = "~nu_2"
+   c_name(33) = "~nu^*_2"
+   c_name(34) = "~nu_3"
+   c_name(35) = "~nu^*_3"
+  Else
+   c_name(30) = "~nu_e"
+   c_name(31) = "~nu^*_e"
+   c_name(32) = "~nu_mu"
+   c_name(33) = "~nu^*_mu"
+   c_name(34) = "~nu_tau"
+   c_name(35) = "~nu^*_tau"
+  End If
+  !--------------------------
+  ! sleptons
+  !--------------------------
+  Slepton%id = (/36,38,40,42,44,46/)
+  If (GenerationMixing) Then
+   Do i1=1,3
+    id_p(34+2*i1) = id_Slept(2*i1-1)
+    id_p(40+2*i1) = id_Slept(2*i1)
+   End Do
+   Do i1=1,6
+    id_p(35+2*i1) = -id_p(34+2*i1)
+    c_name(34+2*i1) = "~l^-_"//Bu(i1)
+    c_name(35+2*i1) = "~l^+_"//Bu(i1)
+   End Do
+  Else
+   Do i1=1,6
+    id_p(34+2*i1) = id_Slept(i1)
+    id_p(35+2*i1) = -id_Slept(i1)
+   End Do
+   c_name(36) = "~e^-_L"
+   c_name(37) = "~e^+_L"
+   c_name(38) = "~e^-_R"
+   c_name(39) = "~e^+_R"
+   c_name(40) = "~mu^-_L"
+   c_name(41) = "~mu^+_L"
+   c_name(42) = "~mu^-_R"
+   c_name(43) = "~mu^+_R"
+   c_name(44) = "~tau^-_1"
+   c_name(45) = "~tau^+_1"
+   c_name(46) = "~tau^-_2"
+   c_name(47) = "~tau^+_2"
+  End If
+  !--------------------------
+  ! u-squarks
+  !--------------------------
+  Sup%id = (/48,50,52,54,56,58/)
+  If (GenerationMixing) Then
+   Do i1=1,3
+    id_p(46+2*i1) = id_u_sq(2*i1-1)
+    id_p(52+2*i1) = id_u_sq(2*i1)
+   End Do
+   Do i1=1,6
+    id_p(47+2*i1) = -id_p(46+2*i1)
+    c_name(46+2*i1) = "~u_"//Bu(i1)
+    c_name(47+2*i1) = "~u^*_"//Bu(i1)
+   End Do
+  Else
+   Do i1=1,6
+    id_p(46+2*i1) = id_u_sq(i1)
+    id_p(47+2*i1) = -id_u_sq(i1)
+   End Do
+   c_name(48) = "~u_L"
+   c_name(49) = "~u^*_L"
+   c_name(50) = "~u_R"
+   c_name(51) = "~u^*_R"
+   c_name(52) = "~c_L"
+   c_name(53) = "~c^*_L"
+   c_name(54) = "~c_R"
+   c_name(55) = "~c^*_R"
+   c_name(56) = "~t_1"
+   c_name(57) = "~t^*_1"
+   c_name(58) = "~t_2"
+   c_name(59) = "~t^*_2"
+  End If
+  !--------------------------
+  ! d-squarks
+  !--------------------------
+  Sdown%id = (/60,62,64,66,68,70/)
+  If (GenerationMixing) Then
+   Do i1=1,3
+    id_p(58+2*i1) = id_d_sq(2*i1-1)
+    id_p(64+2*i1) = id_d_sq(2*i1)
+   End Do
+   Do i1=1,6
+    id_p(59+2*i1) = -id_p(58+2*i1)
+    c_name(58+2*i1) = "~d_"//Bu(i1)
+    c_name(59+2*i1) = "~d^*_"//Bu(i1)
+   End Do
+  Else
+   Do i1=1,6
+    id_p(58+2*i1) = id_d_sq(i1)
+    id_p(59+2*i1) = -id_d_sq(i1)
+   End Do
+   c_name(60) = "~d_L"
+   c_name(61) = "~d^*_L"
+   c_name(62) = "~d_R"
+   c_name(63) = "~d^*_R"
+   c_name(64) = "~s_L"
+   c_name(65) = "~s^*_L"
+   c_name(66) = "~s_R"
+   c_name(67) = "~s^*_R"
+   c_name(68) = "~b_1"
+   c_name(69) = "~b^*_1"
+   c_name(70) = "~b_2"
+   c_name(71) = "~b^*_2"
+  End If
+  !-----------------------------
+  ! neutral Higgs bosons
+  !-----------------------------
+  S03%id = (/ 72,73, 74 /)
+  id_p(72:74) = id_h03
+  c_name(72) = "H^0_1"
+  c_name(73) = "H^0_2"
+  c_name(74) = "H^0_2"
+  !-----------------------------
+  ! pseudoscalar Higgs boson
+  !-----------------------------
+  P03%id = (/ 75, 75, 76 /)
+  id_p(75:76) = id_A02
+  c_name(75) = "A^0_1"
+  c_name(76) = "A^0_2"
+  !-----------------------------
+  ! charged Higgs boson
+  !-----------------------------
+  Spm%id = 77
+  id_p(77:78) = (/ id_Hp, -id_Hp /)
+  c_name(77) = "H^+"
+  c_name(78) = "H^-"
+  !-----------------------------
+  ! neutralinos
+  !-----------------------------
+  Chi05%id = (/ 79, 80, 81, 82, 83 /)
+  id_p(79:83) = id_neutralino5
+  Do i1=1,5
+   c_name(78+i1) = "chi^0_"//Bu(i1)
+  End Do
+  !-----------------------------
+  ! charginos
+  !-----------------------------
+  ChiPm%id = (/ 84, 86 /) 
+  Do i1=1,2
+   id_p(83+2*i1) = id_chargino(i1)
+   id_p(84+2*i1) = - id_chargino(i1)
+   c_name(83+2*i1) = "chi^+_"//Bu(i1)
+   c_name(84+2*i1) = "chi^-_"//Bu(i1)
+  End Do
+  !-----------------------------
+  ! gluino
+  !-----------------------------
+  Glu%id = 88
+  id_p(88) = id_gluino
+  c_name(88) = "~g"
+  !-----------------------------
+  ! Gravitino
+  !-----------------------------
+  id_grav = 89
+  id_p(id_grav) = id_gravitino
+  c_name(id_grav) = "~G"
+
+ End Subroutine Initialize_NMSSM
+
+End Module NMSSM_data
+Module RP_data
+!---------------------------------------------------------------------
+! in this modul all basic information concerning the NMSSM are 
+! stored, using MSSM_data and give only the additional information
+! by Werner Porod, 23.09.2010
+!---------------------------------------------------------------------
+Use Control
+Use MSSM_data ! most of the paramters are the same
+ !------------------------------------------------------------------
+ ! scalar masses (h,H), masses squared, corresponding mixing matrix, 
+ ! total decay widths, partial decay widths, branching ratios
+ !------------------------------------------------------------------
+! Real(dp) :: RS05(5,5)
+ Type(particle23) :: S05(5)
+ !------------------------------------------------------------------------
+ ! pseudoscalar masses (G,A), masses squared, corresponding mixing matrix 
+ ! total decay widths, partial decay widths, branching ratios
+ !------------------------------------------------------------------------
+! Real(dp) :: RP05(5,5)
+ Type(particle2) :: P05(5)
+ !---------------------------------------------------------------------------
+ ! charged scalar masses (G+,H+.~l_L,~l_R), masses squared,
+ ! corresponding mixing matrix 
+ ! total decay widths, partial decay widths, branching ratios
+ !---------------------------------------------------------------------------
+! Complex(dp) :: RSpm8(8,8)
+ Type(particle2) :: Spm8(8)
+ !---------------------------------------------------------------------------
+ ! neutralino masses, masses squared, corresponding mixing matrix
+ ! total decay widths, partial decay widths, branching ratios
+ !---------------------------------------------------------------------------
+! Complex(dp) :: N7(7,7)
+ Type(particle23) :: Chi07(7)
+ !---------------------------------------------------------------------------
+ ! lepton/chargino masses, masses squared, corresponding mixing matrices
+ ! total decay widths, partial decay widths, branching ratios
+ !---------------------------------------------------------------------------
+! Complex(dp) :: U5(5,5), V5(5,5)
+ Type(particle23) :: ChiPM5(5)
+ !------------
+ ! PDG codes
+ !------------
+ Integer, Parameter :: id_sleptp(6) = -id_slept , id_leptp(3) = -id_lept
+ Integer, Parameter :: id_P05(4) = (/ id_A0, 1000017, 1000018, 1000019 /)      &
+    & , id_S05(5) = (/ id_h0, id_sneut /), id_Spm8(7) = (/ id_hp, id_sleptp /) &
+    & , id_neutralino7(7) = (/id_neut, id_neutralino /)                        &
+    & , id_chargino5(5) = (/id_leptp, id_chargino /)
+Contains
+
+ Subroutine Initialize_RPexplicit(GenerationMixing, id_gl, id_ph, id_Z, id_Wp &
+               & , id_nu, id_l, id_d, id_u, id_grav)
+ !------------------------------------------------------------------------------
+ ! intializes particle content and internal particle numbers
+ ! gives relationship to PDG and output information
+ ! Note: in case of an anti-particle one has to add 1 to the particle id
+ !------------------------------------------------------------------------------
+ Implicit None
+  Logical, Intent(in) :: GenerationMixing
+  Integer, Intent(out) :: id_gl, id_ph, id_grav
+  Integer, Intent(out), Dimension(1) :: id_Z, id_Wp
+  Integer, Intent(out), Dimension(3) :: id_nu, id_l, id_d, id_u
+
+  Integer :: i1
+  id_p = 0
+  Do i1=1,6
+   Sup(i1)%id2 = 0
+   Sup(i1)%id3 = 0
+  End Do
+  !---------------------------------------
+  ! gauge and vector bosons
+  !---------------------------------------
+  c_name(1) = "g"
+  id_gl = 1 
+  id_p(1) = id_gluon
+  c_name(2) = "photon"
+  id_ph = 2
+  id_p(2) = id_photon
+  c_name(3) = "Z"
+  id_Z = 3
+  id_p(3) = id_Zboson
+  c_name(4) = "W^+"
+  id_Wp = 4
+  id_p(4) = id_Wboson
+  c_name(5) = "W^-"
+  id_p(5) = -id_Wboson
+  !--------------------------
+  ! u-quarks
+  !--------------------------
+  id_u = (/6,8,10/)
+  Do i1=1,3
+   id_p(4+2*i1) = id_u_quark(i1)
+   id_p(5+2*i1) = -id_u_quark(i1)
+  End Do
+  c_name(6) = "u"
+  c_name(7) = "u_bar"
+  c_name(8) = "c"
+  c_name(9) = "c_bar"
+  c_name(10) = "t"
+  c_name(11) = "t_bar"
+  !--------------------------
+  ! d-quarks
+  !--------------------------
+  id_d = (/12,14,16/)
+  Do i1=1,3
+   id_p(10+2*i1) = id_d_quark(i1)
+   id_p(11+2*i1) = -id_d_quark(i1)
+  End Do
+  c_name(12) = "d"
+  c_name(13) = "d_bar"
+  c_name(14) = "s"
+  c_name(15) = "s_bar"
+  c_name(16) = "b"
+  c_name(17) = "b_bar"
+  !--------------------------
+  ! u-squarks
+  !--------------------------
+  Sup%id = (/18,20,22,24,26,28/)
+  If (GenerationMixing) Then
+   Do i1=1,3
+    id_p(16+2*i1) = id_u_sq(2*i1-1)
+    id_p(522+2*i1) = id_u_sq(2*i1)
+   End Do
+   Do i1=1,6
+    id_p(17+2*i1) = -id_p(16+2*i1)
+    c_name(16+2*i1) = "~u_"//Bu(i1)
+    c_name(17+2*i1) = "~u^*_"//Bu(i1)
+   End Do
+  Else
+   Do i1=1,6
+    id_p(16+2*i1) = id_u_sq(i1)
+    id_p(17+2*i1) = -id_u_sq(i1)
+   End Do
+   c_name(18) = "~u_L"
+   c_name(19) = "~u^*_L"
+   c_name(20) = "~u_R"
+   c_name(21) = "~u^*_R"
+   c_name(22) = "~c_L"
+   c_name(23) = "~c^*_L"
+   c_name(24) = "~c_R"
+   c_name(25) = "~c^*_R"
+   c_name(26) = "~t_1"
+   c_name(27) = "~t^*_1"
+   c_name(28) = "~t_2"
+   c_name(29) = "~t^*_2"
+  End If
+  !--------------------------
+  ! d-squarks
+  !--------------------------
+  Sdown%id = (/30,32,34,36,38,40/)
+  If (GenerationMixing) Then
+   Do i1=1,3
+    id_p(28+2*i1) = id_d_sq(2*i1-1)
+    id_p(34+2*i1) = id_d_sq(2*i1)
+   End Do
+   Do i1=1,6
+    id_p(29+2*i1) = -id_p(28+2*i1)
+    c_name(28+2*i1) = "~d_"//Bu(i1)
+    c_name(29+2*i1) = "~d^*_"//Bu(i1)
+   End Do
+  Else
+   Do i1=1,6
+    id_p(28+2*i1) = id_d_sq(i1)
+    id_p(29+2*i1) = -id_d_sq(i1)
+   End Do
+   c_name(30) = "~d_L"
+   c_name(31) = "~d^*_L"
+   c_name(32) = "~d_R"
+   c_name(33) = "~d^*_R"
+   c_name(34) = "~s_L"
+   c_name(35) = "~s^*_L"
+   c_name(36) = "~s_R"
+   c_name(37) = "~s^*_R"
+   c_name(38) = "~b_1"
+   c_name(39) = "~b^*_1"
+   c_name(40) = "~b_2"
+   c_name(41) = "~b^*_2"
+  End If
+  !----------------------------------------
+  ! neutral Higgs bosons/ Real(sneutrinos)
+  !----------------------------------------
+  S05%id = (/ 42, 43, 44, 45, 46 /)
+  id_p(42:46) = id_S05
+  Do i1=1,5
+   c_name(41+i1) = "S^0_"//Bu(i1)
+  End Do
+  !----------------------------------------
+  ! pseudoscalar Higgs boson/ Im(sneutrinos)
+  !----------------------------------------
+  P05%id = (/ 47, 47, 48, 49, 50 /)
+  id_p(47:50) = id_P05
+  Do i1=1,4
+   c_name(46+i1) = "P^0_"//Bu(i1)
+  End Do
+  !-----------------------------
+  ! charged Higgs boson/sleptons
+  !-----------------------------
+  Spm8%id = (/51, 51, 53, 55, 57, 59, 61, 63/)
+  Do i1=1,7
+   id_p(49+2*i1) = id_Spm8(i1)
+   id_p(50+2*i1) = -id_Spm8(i1)
+   c_name(49+2*i1) = "S^+_"//Bu(i1)
+   c_name(50+2*i1) = "S^-_"//Bu(i1)
+  End Do
+  !-----------------------------
+  ! neutrinos/neutralinos
+  !-----------------------------
+  Chi07%id = (/ 65, 66, 67, 68, 69, 70, 71 /)
+  id_nu = Chi07(1:3)%id
+  id_p(65:71) = id_neutralino7
+  Do i1=1,3
+   c_name(64+i1) = "nu_"//Bu(i1)
+  End Do
+  Do i1=1,4
+   c_name(67+i1) = "chi^0_"//Bu(i1)
+  End Do
+  !-----------------------------
+  ! leptons/charginos
+  !-----------------------------
+  ChiPm5%id = (/ 72, 74, 76, 78, 80 /) 
+  id_l = ChiPm5(1:3)%id
+  c_name(73) = "e^-"
+  c_name(72) = "e^+"
+  c_name(75) = "mu^-"
+  c_name(74) = "mu^+"
+  c_name(77) = "tau^-"
+  c_name(76) = "tau^+"
+  Do i1=1,5
+   id_p(70+2*i1) = id_chargino5(i1)
+   id_p(71+2*i1) = - id_chargino5(i1)
+   if (i1.gt.3) then
+    c_name(70+2*i1) = "chi^+_"//Bu(i1-3)
+    c_name(71+2*i1) = "chi^-_"//Bu(i1-3)
+   End If
+  End Do
+  !-----------------------------
+  ! gluino
+  !-----------------------------
+  Glu%id = 88
+  id_p(88) = id_gluino
+  c_name(88) = "~g"
+  !-----------------------------
+  ! Gravitino
+  !-----------------------------
+  id_grav = 89
+  id_p(id_grav) = id_gravitino
+  c_name(id_grav) = "~G"
+
+ End Subroutine Initialize_RPexplicit
+
+End Module RP_data

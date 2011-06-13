@@ -698,7 +698,7 @@ Contains
    & , SigS0(5), SigSP(5,4), SigHp(7,7)
 
   Integer :: i1, i2, i3
-  Real(dp) :: Emax2, mSf(2), mSne, Rsn2
+  Real(dp) :: Emax2, mSf(2), mSne
   Complex(dp) :: Rsf(2,2), id3C(3,3)
   character(len=9) :: specie
   ! for later implementatio of beamstrahlung
@@ -2582,7 +2582,7 @@ Contains
   Character (Len=*), Optional, Intent(in) :: Design
 
   Integer :: i1, init, itmx, ncall, nprn, n_c
-  Real(dp) :: erg, chi2a, sd, region(8), Ebeam, fac(2), testC
+  Real(dp) :: erg, region(8), Ebeam, fac(2), testC
   Real(dp) :: Le, Re, sinW2, cosW2
 
   Iname = Iname + 1
@@ -3156,10 +3156,8 @@ Contains
   Logical, Intent(in) :: ISR, Beam
   Character (Len=*), Optional, Intent(in) :: Design
 
-  Integer :: i1, i2, init, itmx, ncall, nprn
-  Real(dp) :: Le, Re, tanW, ProdPmPp(2)
-  Complex(dp) :: coup
-  Real(dp) :: erg, chi2a, sd, region(8), Ebeam, sinW2, cosW2
+  Integer :: init, itmx, ncall, nprn
+  Real(dp) :: erg, chi2a, sd, region(8), Ebeam
 
   Iname = Iname + 1
   NameOfUnit(Iname) = 'EpEmToSleptonsMSSM'
@@ -4525,7 +4523,7 @@ Contains
   Character (Len=*), Optional, Intent(in) :: Design
 
   Integer :: init, itmx, ncall, nprn
-  Real(dp) :: erg, chi2a, sd, region(8), Ebeam, sinW2
+  Real(dp) :: erg, region(8), Ebeam, sinW2
   Real(dp) :: Le, Re
 
   Iname = Iname + 1
@@ -4786,7 +4784,7 @@ Contains
   Character (Len=*), Optional, Intent(in) :: Design
 
   Integer :: init, itmx, ncall, nprn
-  Real(dp) :: erg, chi2a, sd, region(8), Ebeam, sinW2
+  Real(dp) :: erg, region(8), Ebeam, sinW2
   Real(dp) :: Le, Re, Lt, Rt, eT
 
   Iname = Iname + 1
@@ -5064,7 +5062,7 @@ Contains
   Character (Len=*), Optional, Intent(in) :: Design
 
   Integer :: init, itmx, ncall, nprn
-  Real(dp) :: erg, chi2a, sd, region(8), Ebeam, sinW2
+  Real(dp) :: erg, region(8), Ebeam, sinW2
 
   Iname = Iname + 1
   NameOfUnit(Iname) = 'EpEmToWpWm'

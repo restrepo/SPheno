@@ -8,23 +8,19 @@ Use ThreeBodyPhaseSpace
 Contains
 
 
- Subroutine CharginoThreeBodyDecays(n_in, mC, mZ, gZ, L_nu, R_nu          &
-    & , mf_l, L_e, R_e, mf_u, L_u, R_u, mf_d, L_d, R_d, cpl_CCZ_L, cpl_CCZ_R &
-    & , mN, mW, gW, cpl_NuLW, cpl_UDW, cpl_NNZ_L, cpl_NNZ_R, cpl_CNW_L       &
-    & , cpl_CNW_R, mSpm, gSpm, cpl_SmpCN_L, cpl_SmpCN_R, cpl_SmpLNu_L        &
-    & , cpl_SmpLNu_R, cpl_SmpDU_L, cpl_SmpDU_R, mS0, gS0, cpl_NNS0_L         &
-    & , cpl_NNS0_R, cpl_CCS0_L, cpl_CCS0_R, cpl_DDS0_L, cpl_DDS0_R           &
-    & , cpl_LLS0_L, cpl_LLS0_R, cpl_UUS0_L, cpl_UUS0_R, mP0, gP0, cpl_NNP0_L &
-    & , cpl_NNP0_R, cpl_CCP0_L, cpl_CCP0_R, cpl_DDP0_L, cpl_DDP0_R           &
-    & , cpl_LLP0_L, cpl_LLP0_R, cpl_UUP0_L, cpl_UUP0_R, mUSquark, gUSquark   &
-    & , cpl_UNSu_L, cpl_UNSu_R, cpl_CDSu_L, cpl_CDSu_R, mGlu, cpl_UGSu_L     &
-    & , cpl_UGSu_R, mDSquark, gDSquark, cpl_DNSd_L, cpl_DNSd_R, cpl_CUSd_L   &
-    & , cpl_CUSd_R, cpl_DGSd_L, cpl_DGSd_R, mSneutrino, gSneutrino           &
-    & , cpl_NuNSn_L, cpl_NuNSn_R, cpl_CLSn_L, cpl_CLSn_R, mSlepton, gSlepton &
-    & , cpl_LNSl_L, cpl_LNSl_R, cpl_CNuSl_L, cpl_CNuSl_R                     &
-    & , GenerationMixing, k_neut, epsI, deltaM, Check_Real_States            &
-    & , gMajaron, gCnunu, gCll, gCdd, gCuu, gNln, gNDU, gCgdu &
-    & , gCCCC, GCCNN, gT, gP, BR)
+ Subroutine CharginoThreeBodyDecays(n_in, n_l, id_l, n_nu, id_nu, n_d, id_d    &
+    & , n_u, id_u, n_c, n_n, n_W, id_W, n_Z, id_Z, n_Sle, n_Snu, n_Sd, n_Su    &
+    & , n_S0, n_P0, n_Spm, ChiPm, mZ, gZ, L_nu, R_nu, mf_l, L_e, R_e, mf_u     &
+    & , L_u, R_u, mf_d, L_d, R_d, c_CCZ_L, c_CCZ_R, Chi0, mW, gW, c_NuLW       &
+    & , c_UDW, c_NNZ_L, c_NNZ_R, c_CNW_L, c_CNW_R, Spm, c_SmpCN_L, c_SmpCN_R   &
+    & , c_SmpLNu_L, c_SmpLNu_R, c_SmpDU_L, c_SmpDU_R, S0, c_NNS0_L, c_NNS0_R   &
+    & , c_CCS0_L, c_CCS0_R, c_DDS0_L, c_DDS0_R, c_LLS0_L, c_LLS0_R, c_UUS0_L   &
+    & , c_UUS0_R, P0, c_NNP0_L, c_NNP0_R, c_CCP0_L, c_CCP0_R, c_DDP0_L         &
+    & , c_DDP0_R, c_LLP0_L, c_LLP0_R, c_UUP0_L, c_UUP0_R, Sup, c_UNSu_L        &
+    & , c_UNSu_R, c_CDSu_L, c_CDSu_R, Glu, c_UGSu_L, c_UGSu_R, Sdown, c_DNSd_L &
+    & , c_DNSd_R, c_CUSd_L, c_CUSd_R, c_DGSd_L, c_DGSd_R, Sneut, c_NuNSn_L     &
+    & , c_NuNSn_R, c_CLSn_L, c_CLSn_R, Slept, c_LNSl_L, c_LNSl_R, c_CNuSl_L    &
+    & , c_CNuSl_R, GenerationMixing, k_neut, epsI, deltaM, Check_Real_States)
  !------------------------------------------------------------------
  ! calculates all 3-body decays of a chargino into fermions 
  ! in case of spontaneous R-parity
@@ -67,46 +63,45 @@ Contains
  !------------------------------------------------------------------
  Implicit None
 
-  Integer, Intent(in) :: n_in, k_neut
-  Real(dp), Intent(in) :: mN(:), mZ, gZ, L_nu, R_nu, mf_l(3), L_e, R_e      &
-     &, mf_u(3), L_u, R_u, mf_d(3), L_d, R_d, mC(:), mW, gW                 &
-     &, mSpm(:), gSpm(:), mS0(:), gS0(:), mP0(:), gP0(:), mUSquark(6)       &
-     &, gUSquark(6), mGlu, mDSquark(6), gDSquark(6), mSneutrino(:)          &
-     &, gSneutrino(:), mSlepton(:), gSlepton(:), epsI, deltaM
-  Real(dp), Intent(inout) :: gMajaron(:,:), gT(:), gCnunu(:,:,:,:) &
-     & , gCll(:,:,:,:), gCdd(:,:,:,:), gCuu(:,:,:,:), gNln(:,:,:,:)           &
-     & , gNDU(:,:,:,:), gCCNN(:,:,:,:), gCCCC(:,:,:,:), gCgdu(:,:,:)
-  Real(dp), Intent(inout), Optional :: BR(:,:), gP(:,:)
-  Complex(dp), Intent(in) :: cpl_NNZ_L(:,:), cpl_NNZ_R(:,:), cpl_CCZ_L(:,:)  &
-     & , cpl_CCZ_R(:,:), cpl_CNW_L(:,:), cpl_CNW_R(:,:), cpl_UDW(:,:)        &
-     & , cpl_SmpCN_L(:,:,:), cpl_SmpCN_R(:,:,:), cpl_SmpLNu_L(:,:,:)         &
-     & , cpl_SmpLNu_R(:,:,:), cpl_SmpDU_L(:,:,:), cpl_SmpDU_R(:,:,:)         &
-     & , cpl_NNS0_L(:,:,:), cpl_NNS0_R(:,:,:), cpl_CCS0_L(:,:,:)             &
-     & , cpl_CCS0_R(:,:,:), cpl_DDS0_L(:,:,:), cpl_DDS0_R(:,:,:)             &
-     & , cpl_LLS0_L(:,:,:), cpl_LLS0_R(:,:,:), cpl_UUS0_L(:,:,:)             &
-     & , cpl_UUS0_R(:,:,:), cpl_NNP0_L(:,:,:), cpl_NNP0_R(:,:,:)             &
-     & , cpl_CCP0_L(:,:,:), cpl_CCP0_R(:,:,:), cpl_DDP0_L(:,:,:)             &
-     & , cpl_DDP0_R(:,:,:), cpl_LLP0_L(:,:,:), cpl_LLP0_R(:,:,:)             &
-     & , cpl_UUP0_L(:,:,:), cpl_UUP0_R(:,:,:), cpl_UNSu_L(:,:,:)             &
-     & , cpl_UNSu_R(:,:,:), cpl_CDSu_L(:,:,:), cpl_CDSu_R(:,:,:)             &
-     & , cpl_UGSu_L(:,:), cpl_UGSu_R(:,:), cpl_DNSd_L(:,:,:)                 &
-     & , cpl_DNSd_R(:,:,:), cpl_CUSd_L(:,:,:), cpl_CUSd_R(:,:,:)             &
-     & , cpl_DGSd_L(:,:), cpl_DGSd_R(:,:), cpl_NuNSn_L(:,:,:)                &
-     & , cpl_NuNSn_R(:,:,:), cpl_CLSn_L(:,:,:), cpl_CLSn_R(:,:,:)            &
-     & , cpl_LNSl_L(:,:,:), cpl_LNSl_R(:,:,:), cpl_CNuSl_L(:,:,:)            &
-     & , cpl_CNuSl_R(:,:,:), cpl_NuLW(:,:)
+  Integer, Intent(in) :: n_in, k_neut, n_nu, n_l, n_d, n_u, n_Z, n_W, n_snu  &
+       & , n_sle, n_Sd, n_su, n_n, n_c, n_s0, n_p0, n_Spm
+  Integer, Intent(in) :: id_nu(:), id_l(:), id_d(:), id_u(:), id_Z(:), id_W(:)
+  Real(dp), Intent(in) :: mZ, gZ, L_nu, R_nu, mf_l(3), L_e, R_e      &
+     &, mf_u(3), L_u, R_u, mf_d(3), L_d, R_d, mW, gW                 &
+     &, epsI, deltaM
+  Complex(dp), Intent(in) :: c_NNZ_L(:,:), c_NNZ_R(:,:), c_CCZ_L(:,:)  &
+     & , c_CCZ_R(:,:), c_CNW_L(:,:), c_CNW_R(:,:), c_UDW(:,:)        &
+     & , c_SmpCN_L(:,:,:), c_SmpCN_R(:,:,:), c_SmpLNu_L(:,:,:)         &
+     & , c_SmpLNu_R(:,:,:), c_SmpDU_L(:,:,:), c_SmpDU_R(:,:,:)         &
+     & , c_NNS0_L(:,:,:), c_NNS0_R(:,:,:), c_CCS0_L(:,:,:)             &
+     & , c_CCS0_R(:,:,:), c_DDS0_L(:,:,:), c_DDS0_R(:,:,:)             &
+     & , c_LLS0_L(:,:,:), c_LLS0_R(:,:,:), c_UUS0_L(:,:,:)             &
+     & , c_UUS0_R(:,:,:), c_NNP0_L(:,:,:), c_NNP0_R(:,:,:)             &
+     & , c_CCP0_L(:,:,:), c_CCP0_R(:,:,:), c_DDP0_L(:,:,:)             &
+     & , c_DDP0_R(:,:,:), c_LLP0_L(:,:,:), c_LLP0_R(:,:,:)             &
+     & , c_UUP0_L(:,:,:), c_UUP0_R(:,:,:), c_UNSu_L(:,:,:)             &
+     & , c_UNSu_R(:,:,:), c_CDSu_L(:,:,:), c_CDSu_R(:,:,:)             &
+     & , c_UGSu_L(:,:), c_UGSu_R(:,:), c_DNSd_L(:,:,:)                 &
+     & , c_DNSd_R(:,:,:), c_CUSd_L(:,:,:), c_CUSd_R(:,:,:)             &
+     & , c_DGSd_L(:,:), c_DGSd_R(:,:), c_NuNSn_L(:,:,:)                &
+     & , c_NuNSn_R(:,:,:), c_CLSn_L(:,:,:), c_CLSn_R(:,:,:)            &
+     & , c_LNSl_L(:,:,:), c_LNSl_R(:,:,:), c_CNuSl_L(:,:,:)            &
+     & , c_CNuSl_R(:,:,:), c_NuLW(:,:)
   Logical, Intent(in) :: GenerationMixing, Check_Real_States
+  Type(particle2), Intent(in) :: Slept(:), Sneut(:), Sdown(:), Spm(:), P0(:)
+  Type(particle23), Intent(in) :: Sup(:), Chi0(:), S0(:), Glu
+  Type(particle23), Intent(inout) :: ChiPm(:)
 
-  Integer :: n_neut, n_char, n_S0, n_P0, n_Spm, i_start, i_end, i_run       &
-     &, i1, i2, i3, i4, n_length, n_Z4, n_S04, n_Sf4, n_ZS04, n_ZSf8 &
-     & , n_S0P04, n_S0Sf8, n_CSf4, n_Sf8, nf, n_W4, n_WSpm, n_WSf8, n_Z8    &
-     & , n_ZS08, n_S0P08, n_W8, n_ZW8, n_WSpm8, n_WSpm4, n_Sl, n_Sd, n_Su   &
-     & , n_Sn
+  Real(dp) :: mN(n_n), mSlepton(n_sle), mSneutrino(n_snu), mC(n_c), mS0(n_S0) &
+     & , mSpm(n_Spm), mP0(n_P0), mUSquark(n_su), mGlu, mDSquark(n_sd)
+  Integer :: i_start, i_end, i_run, i1, i2, i3, n_Z4, n_S04, n_Sf4, n_ZS04   &
+     & , n_ZSf8, n_S0P04, n_S0Sf8, n_CSf4, n_Sf8, n_W4, n_WSpm, n_WSf8, n_Z8 &
+     & , n_ZS08, n_S0P08, n_W8, n_ZW8, n_WSpm8, n_WSpm4, i_c
   Real(dp) :: factor(3), m_nu(3),  gCff(3,3), gNffp(3,3), gCCC, gCNN, diffM &
-     & , gW_in, gZ_in
+     & , gW_in, gZ_in, gS0_in(n_s0), gP0_in(n_P0)  &
+     & , gSpm_in(n_Spm), g_Su(n_su), g_Sd(n_sd), g_Sl(n_sle), g_Sn(n_snu)
   Real(dp), Allocatable :: IntegralsZ4(:,:), IntegralsS04(:,:)      &
-     & , IntegralsSf4(:,:), IntegralsW4(:,:), gS0_in(:), gP0_in(:)  &
-     & , gSpm_in(:), g_Su(:), g_Sd(:), g_Sl(:), g_Sn(:)
+     & , IntegralsSf4(:,:), IntegralsW4(:,:)
   Complex(dp), Allocatable :: IntegralsZS04(:,:), IntegralsZSf8(:,:)     &
       & , IntegralsS0P04(:,:), IntegralsS0Sf8(:,:), IntegralsCSf4(:,:)   &
       & , IntegralsSf8(:,:), IntegralsWSpm4(:,:), IntegralsWSf8(:,:)     &
@@ -117,108 +112,91 @@ Contains
   Iname = Iname + 1
   NameOfUnit(Iname) = 'CharginoThreeBodyDecays'
 
-  !--------------------
-  ! checking for model 
-  !--------------------
-  n_neut = Size( mN )
-  n_char = Size( mC )
-  n_S0 = Size( mS0 )
-  n_P0 = Size( mP0 )
-  n_Spm = Size( mSpm )
-  n_Su = Size( gUSquark )
-  n_Sd = Size( gDSquark )
-  n_Sl = Size( gSlepton )
-  n_Sn = Size( gSneutrino )
-
-  allocate( gS0_in(n_S0) )
-  allocate( gP0_in(n_P0) )
-  allocate( gSpm_in(n_Spm) )
-  allocate( g_Su(n_Su) )
-  allocate( g_Sd(n_Sd) )
-  allocate( g_Sn(n_Sn) )
-  allocate( g_Sl(n_Sl) )
-
-   Allocate( IntegralsZ4(200,8) )
-   Allocate( IntegralsZ8(200,12) )
-   Allocate( IntegralsW4(200,8) )
-   Allocate( IntegralsW8(200,12) )
-   Allocate( IntegralsZW8(200,12) )
-   Allocate( IntegralsS04(5000,10) )
-   Allocate( IntegralsSf4(5000,10) )
-   Allocate( IntegralsZS04(5000,12) )
-   Allocate( IntegralsZS08(5000,16) )
-   Allocate( IntegralsWSpm4(5000,12) )
-   Allocate( IntegralsWSpm8(5000,16) )
-   Allocate( IntegralsZSf8(5000,16) )
-   Allocate( IntegralsWSf8(5000,16) )
-   Allocate( IntegralsS0P04(5000,12) )
-   Allocate( IntegralsS0P08(5000,16) )
-   Allocate( IntegralsS0Sf8(5000,16) )
-   Allocate( IntegralsCSf4(5000,12) )
-   Allocate( IntegralsSf8(5000,16) )
+  Allocate( IntegralsZ4(200,8) )
+  Allocate( IntegralsZ8(200,12) )
+  Allocate( IntegralsW4(200,8) )
+  Allocate( IntegralsW8(200,12) )
+  Allocate( IntegralsZW8(200,12) )
+  Allocate( IntegralsS04(5000,10) )
+  Allocate( IntegralsSf4(5000,10) )
+  Allocate( IntegralsZS04(5000,12) )
+  Allocate( IntegralsZS08(5000,16) )
+  Allocate( IntegralsWSpm4(5000,12) )
+  Allocate( IntegralsWSpm8(5000,16) )
+  Allocate( IntegralsZSf8(5000,16) )
+  Allocate( IntegralsWSf8(5000,16) )
+  Allocate( IntegralsS0P04(5000,12) )
+  Allocate( IntegralsS0P08(5000,16) )
+  Allocate( IntegralsS0Sf8(5000,16) )
+  Allocate( IntegralsCSf4(5000,12) )
+  Allocate( IntegralsSf8(5000,16) )
 
   If (n_in.Lt.0) Then
    i_start = 1
-   i_end = n_char
+   i_end = n_c
+   Do i1=1,n_c
+    ChiPm(i1)%gi3 = 0._dp
+    ChiPm(i1)%bi3 = 0._dp
+   End Do
 
-  Else If ( (n_in.Ge.1).And.(n_in.Le.n_char) ) Then 
+  Else If ( (n_in.Ge.1).And.(n_in.Le.n_c) ) Then 
    i_start = n_in 
    i_end = n_in
+   ChiPm(n_in)%gi3 = 0._dp
+   ChiPm(n_in)%bi3 = 0._dp
 
   Else
    If (ErrorLevel.Ge.-1) Then
     Write (ErrCan,*) 'Problem in subroutine '//NameOfUnit(Iname)
-    Write (ErrCan,*) 'Value of n_in out of range, (n_in,n_char) = ',n_in,n_char
+    Write (ErrCan,*) 'Value of n_in out of range, (n_in,n_c) = ',n_in,n_c
    End If
 
    If (ErrorLevel.Gt.0) Call TerminateProgram
 
-   If (Present(BR)) BR = 0._dp
    Iname = Iname - 1
    Return
   End If
 
   m_nu = 0._dp
 
-   If (Check_Real_States) Then
-    gZ_in = 0._dp
-    gW_in = 0._dp
-    gS0_in = 0._dp
-    gP0_in = 0._dp
-    gSpm_in = 0._dp
-    g_Su = 0._dp
-    g_Sd = 0._dp 
-    g_Sl = 0._dp 
-    g_Sn =  0._dp
-   Else
-    gZ_in = gZ
-    gW_in = gW
-    gS0_in = gS0
-    gP0_in = gP0
-    gSpm_in = gSpm
-    g_Su = gUSquark
-    g_Sd = gDSquark
-    g_Sl = gSlepton
-    g_Sn = gSneutrino
-   End If
-   check = Check_Real_States
+  mC = ChiPm%m
+  mN = Chi0%m
+  mSlepton = Slept%m
+  mSneutrino = Sneut%m
+  mDsquark = Sdown%m
+  mUSquark = Sup%m
+  mP0 = P0%m
+  mS0 = S0%m
+  mSpm = Spm%m
+  mGlu = Glu%m
+
+  If (Check_Real_States) Then
+   gZ_in = 0._dp
+   gW_in = 0._dp
+   gS0_in = 0._dp
+   gP0_in = 0._dp
+   gSpm_in = 0._dp
+   g_Su = 0._dp
+   g_Sd = 0._dp 
+   g_Sl = 0._dp 
+   g_Sn =  0._dp
+  Else
+   gZ_in = gZ
+   gW_in = gW
+   gS0_in = S0%g
+   gP0_in = P0%g
+   gSpm_in = Spm%g
+   g_Su = Sup%g
+   g_Sd = Sdown%g
+   g_Sl = Slept%g
+   g_Sn = Sneut%g
+  End If
+  check = Check_Real_States
 
   Do i_run = i_start, i_end
    !-----------------
    ! intitialisation
    !-----------------
-   gT(i_run) = 0._dp
-   gMajaron(i_run,:) = 0._dp
-   gCnunu(i_run,:,:,:) = 0._dp
-   gCdd(i_run,:,:,:) = 0._dp
-   gCuu(i_run,:,:,:) = 0._dp
-   gCgdu(i_run,:,:) = 0._dp
-   gCll(i_run,:,:,:) = 0._dp
-   gCCNN(i_run,:,:,:) = 0._dp
-   gCCCC(i_run,:,:,:) = 0._dp
-   gNln(i_run,:,:,:) = 0._dp
-   gNDU(i_run,:,:,:) = 0._dp
-
    IntegralsZ4 = 0._dp
    IntegralsW4 = 0._dp
    IntegralsS04 = 0._dp
@@ -256,59 +234,115 @@ Contains
    factor(1) = oo512pi3 / Abs(mC(i_run))**3   ! for 3-body decays
    factor(2) = 3._dp * factor(1)            ! including color factor
    factor(3) = 4._dp * factor(1)            ! for decays into gluinos
+   ChiPm(i_run)%gi3 = 0._dp
    !--------------------------------------
    ! decays into a chargino + 2 fermions
    !--------------------------------------
+   i_c = 1
    Do i1 = 1, i_run - 1
-    gCuu(i_run, i1,:,:) = 0._dp
-    gCdd(i_run, i1,:,:) = 0._dp
-    gCll(i_run, i1,:,:) = 0._dp
-    gCnunu(i_run,i1,:,:) = 0._dp
-
-    Call ChimToChimff(i_run, i1, ' u u ', mC, mZ, gZ_in, Cpl_CCZ_L, Cpl_CCZ_R &
-     & , 3, mf_u, L_u, R_u, IntegralsZ4, n_Z4, mS0, gS0_in, cpl_CCS0_L        &
-     & , cpl_CCS0_R, cpl_UUS0_L, cpl_UUS0_R, IntegralsS04, n_S04, mP0, gP0_in &
-     & , cpl_CCP0_L, cpl_CCP0_R, cpl_UUP0_L, cpl_UUP0_R, mDSquark, g_Sd       &
-     & , cpl_CUSd_L, cpl_CUSd_R, IntegralsSf4, n_Sf4, IntegralsZS04, n_ZS04   &
-     & , IntegralsZSf8, n_ZSf8, IntegralsS0P04, n_S0P04, IntegralsS0Sf8       &
-     & , n_S0Sf8, IntegralsCSf4, n_CSf4, deltaM, epsI, GenerationMixing       &
+    Call ChimToChimff(i_run, i1, ' u u ', mC, mZ, gZ_in, C_CCZ_L, C_CCZ_R &
+     & , n_u, mf_u, L_u, R_u, IntegralsZ4, n_Z4, mS0, gS0_in, c_CCS0_L    &
+     & , c_CCS0_R, c_UUS0_L, c_UUS0_R, IntegralsS04, n_S04, mP0, gP0_in   &
+     & , c_CCP0_L, c_CCP0_R, c_UUP0_L, c_UUP0_R, mDSquark, g_Sd           &
+     & , c_CUSd_L, c_CUSd_R, IntegralsSf4, n_Sf4, IntegralsZS04, n_ZS04   &
+     & , IntegralsZSf8, n_ZSf8, IntegralsS0P04, n_S0P04, IntegralsS0Sf8   &
+     & , n_S0Sf8, IntegralsCSf4, n_CSf4, deltaM, epsI, GenerationMixing   &
      & , check, factor(2), gCff)
-    gCuu(i_run, i1,:,:) = gCff
-    gT(i_run) = gT(i_run) + Sum( gCff )
+    Do i2=1,n_u
+     Do i3=i2,n_u
+      If (i2.eq.i3) then
+       ChiPm(i_run)%gi3(i_c) = gCff(i2,i3)
+       ChiPm(i_run)%id3(i_c,1) = ChiPm(i1)%id
+       ChiPm(i_run)%id3(i_c,2) = id_u(i2)
+       ChiPm(i_run)%id3(i_c,3) = id_u(i2) + 1
+       i_c = i_c +1
+      Else
+       ChiPm(i_run)%gi3(i_c) = gCff(i2,i3)
+       ChiPm(i_run)%id3(i_c,1) = ChiPm(i1)%id
+       ChiPm(i_run)%id3(i_c,2) = id_u(i2)
+       ChiPm(i_run)%id3(i_c,3) = id_u(i3) + 1
+       ChiPm(i_run)%gi3(i_c+1) = gCff(i3,i2)
+       ChiPm(i_run)%id3(i_c+1,1) = ChiPm(i1)%id
+       ChiPm(i_run)%id3(i_c+1,2) = id_u(i3)
+       ChiPm(i_run)%id3(i_c+1,3) = id_u(i2) + 1
+       i_c = i_c +2
+      End If
+     End Do
+    End Do
 
-    Call ChimToChimff(i_run, i1, ' d d ', mC, mZ, gZ_in, Cpl_CCZ_L, Cpl_CCZ_R &
-     & , 3, mf_d, L_d, R_d, IntegralsZ4, n_Z4, mS0, gS0_in, cpl_CCS0_L        &
-     & , cpl_CCS0_R, cpl_DDS0_L, cpl_DDS0_R, IntegralsS04, n_S04, mP0, gP0_in &
-     & , cpl_CCP0_L, cpl_CCP0_R, cpl_DDP0_L, cpl_DDP0_R, mUSquark, g_Su       &
-     & , cpl_CDSu_L, cpl_CDSu_R, IntegralsSf4, n_Sf4, IntegralsZS04, n_ZS04   &
-     & , IntegralsZSf8, n_ZSf8, IntegralsS0P04, n_S0P04, IntegralsS0Sf8       &
-     & , n_S0Sf8, IntegralsCSf4, n_CSf4, deltaM, epsI, GenerationMixing       &
+    Call ChimToChimff(i_run, i1, ' d d ', mC, mZ, gZ_in, C_CCZ_L, C_CCZ_R &
+     & , n_d, mf_d, L_d, R_d, IntegralsZ4, n_Z4, mS0, gS0_in, c_CCS0_L    &
+     & , c_CCS0_R, c_DDS0_L, c_DDS0_R, IntegralsS04, n_S04, mP0, gP0_in   &
+     & , c_CCP0_L, c_CCP0_R, c_DDP0_L, c_DDP0_R, mUSquark, g_Su           &
+     & , c_CDSu_L, c_CDSu_R, IntegralsSf4, n_Sf4, IntegralsZS04, n_ZS04   &
+     & , IntegralsZSf8, n_ZSf8, IntegralsS0P04, n_S0P04, IntegralsS0Sf8   &
+     & , n_S0Sf8, IntegralsCSf4, n_CSf4, deltaM, epsI, GenerationMixing   &
      & , check, factor(2), gCff)
-    gCdd(i_run, i1,:,:) = gCff
-    gT(i_run) = gT(i_run) + Sum( gCff )
+    Do i2=1,n_d
+     Do i3=i2,n_d
+      If (i2.eq.i3) then
+       ChiPm(i_run)%gi3(i_c) = gCff(i2,i3)
+       ChiPm(i_run)%id3(i_c,1) = ChiPm(i1)%id
+       ChiPm(i_run)%id3(i_c,2) = id_d(i2)
+       ChiPm(i_run)%id3(i_c,3) = id_d(i2) + 1
+       i_c = i_c +1
+      Else
+       ChiPm(i_run)%gi3(i_c) = gCff(i2,i3)
+       ChiPm(i_run)%id3(i_c,1) = ChiPm(i1)%id
+       ChiPm(i_run)%id3(i_c,2) = id_d(i2)
+       ChiPm(i_run)%id3(i_c,3) = id_d(i3) + 1
+       ChiPm(i_run)%gi3(i_c+1) = gCff(i3,i2)
+       ChiPm(i_run)%id3(i_c+1,1) = ChiPm(i1)%id
+       ChiPm(i_run)%id3(i_c+1,2) = id_d(i3)
+       ChiPm(i_run)%id3(i_c+1,3) = id_d(i2) + 1
+       i_c = i_c +2
+      End If
+     End Do
+    End Do
 
-    If (n_char.Lt.5) Then
-     nf = 5 - n_char
-
-     Call ChimToChimff(i_run, i1, ' l l ', mC, mZ, gZ_in, Cpl_CCZ_L           &
-      & , Cpl_CCZ_R, nf, mf_l, L_e, R_e, IntegralsZ4, n_Z4, mS0, gS0_in       &
-      & , cpl_CCS0_L, cpl_CCS0_R, cpl_LLS0_L, cpl_LLS0_R, IntegralsS04, n_S04 &
-      & , mP0, gP0_in, cpl_CCP0_L, cpl_CCP0_R, cpl_LLP0_L, cpl_LLP0_R         &
-      & , mSneutrino, g_Sn, cpl_CLSn_L, cpl_CLSn_R, IntegralsSf4, n_Sf4       &
-      & , IntegralsZS04, n_ZS04, IntegralsZSf8, n_ZSf8, IntegralsS0P04        &
-      & , n_S0P04, IntegralsS0Sf8, n_S0Sf8, IntegralsCSf4, n_CSf4             &
+    If (n_l.ge.1) Then
+     Call ChimToChimff(i_run, i1, ' l l ', mC, mZ, gZ_in, C_CCZ_L      &
+      & , C_CCZ_R, n_l, mf_l, L_e, R_e, IntegralsZ4, n_Z4, mS0, gS0_in &
+      & , c_CCS0_L, c_CCS0_R, c_LLS0_L, c_LLS0_R, IntegralsS04, n_S04  &
+      & , mP0, gP0_in, c_CCP0_L, c_CCP0_R, c_LLP0_L, c_LLP0_R          &
+      & , mSneutrino, g_Sn, c_CLSn_L, c_CLSn_R, IntegralsSf4, n_Sf4    &
+      & , IntegralsZS04, n_ZS04, IntegralsZSf8, n_ZSf8, IntegralsS0P04 &
+      & , n_S0P04, IntegralsS0Sf8, n_S0Sf8, IntegralsCSf4, n_CSf4      &
       & , deltaM, epsI, GenerationMixing, check, factor(1), gCff)
-     gT(i_run) = gT(i_run) + Sum( gCff )
-     gCll(i_run, i1,:,:) = gCff
+     Do i2=1,n_l
+      Do i3=i2,n_l
+       If (i2.eq.i3) then
+        ChiPm(i_run)%gi3(i_c) = gCff(i2,i3)
+        ChiPm(i_run)%id3(i_c,1) = ChiPm(i1)%id
+        ChiPm(i_run)%id3(i_c,2) = id_l(i2)
+        ChiPm(i_run)%id3(i_c,3) = id_l(i2) + 1
+        i_c = i_c +1
+       Else
+        ChiPm(i_run)%gi3(i_c) = gCff(i2,i3)
+        ChiPm(i_run)%id3(i_c,1) = ChiPm(i1)%id
+        ChiPm(i_run)%id3(i_c,2) = id_l(i2)
+        ChiPm(i_run)%id3(i_c,3) = id_l(i3) + 1
+        ChiPm(i_run)%gi3(i_c+1) = gCff(i3,i2)
+        ChiPm(i_run)%id3(i_c+1,1) = ChiPm(i1)%id
+        ChiPm(i_run)%id3(i_c+1,2) = id_l(i3)
+        ChiPm(i_run)%id3(i_c+1,3) = id_l(i2) + 1
+        i_c = i_c +2
+       End If
+      End Do
+     End Do
+    End If
 
-     Call  ChimToChimNuNu(i_run, i1, mC, mZ, gZ_in, Cpl_CCZ_L, Cpl_CCZ_R, nf  &
-      & , L_nu, R_nu, IntegralsZ4, n_Z4, mSlepton, g_Sl, cpl_CNuSl_L          &
-      & , cpl_CNuSl_R, IntegralsSf4, n_Sf4, IntegralsZSf8, n_ZSf8             &
-      & , IntegralsCSf4, n_CSf4, deltaM, epsI, GenerationMixing, check        &
+    If (n_nu.ge.1) Then
+     Call  ChimToChimNuNu(i_run, i1, mC, mZ, gZ_in, C_CCZ_L, C_CCZ_R, n_nu &
+      & , L_nu, R_nu, IntegralsZ4, n_Z4, mSlepton, g_Sl, c_CNuSl_L         &
+      & , c_CNuSl_R, IntegralsSf4, n_Sf4, IntegralsZSf8, n_ZSf8            &
+      & , IntegralsCSf4, n_CSf4, deltaM, epsI, GenerationMixing, check     &
       & , factor(1), gCff)
-     gCnunu(i_run, i1,:,:) = gCff
-     gT(i_run) = gT(i_run) +  Sum(gCff)
-
+     ChiPm(i_run)%gi3(i_c) = Sum(gCff)
+     ChiPm(i_run)%id3(i_c,1) = ChiPm(i1)%id
+     ChiPm(i_run)%id3(i_c,2) = id_nu(1)
+     ChiPm(i_run)%id3(i_c,3) = id_nu(1) + 1
+     i_c = i_c +1
     End If
 
    End Do
@@ -316,37 +350,48 @@ Contains
    !--------------------------------------
    ! decay into neutralinos + 2 SM fermions
    !--------------------------------------
-   Do i1=1,n_neut
-    gNDU(i_run,i1,:,:) = 0._dp
-    gNln(i_run,i1,:,:) = 0._dp
+   Do i1=1,n_n
     If (Abs(mC(i_run)).Gt.Abs(mN(i1))) Then
-     Call ChimToChi0ffp(i_run, i1, mC, mN, 3, mf_d, mf_u, mW, gW_in          &
-      & , Cpl_CNW_L, Cpl_CNW_R, Cpl_UDW, mSpm, gSpm_in, Cpl_SmpCN_L          &
-      & , Cpl_SmpCN_R, Cpl_SmpDU_L, Cpl_SmpDU_R, mDSquark, g_Sd, cpl_DNSd_L  &
-      & , cpl_DNSD_R, cpl_CUSd_L, cpl_CUSd_R, mUSquark, g_Su, cpl_UNSu_L     &
-      & , cpl_UNSu_R, cpl_CDSu_L, cpl_CDSu_R, IntegralsW4, n_W4              &
-      & , IntegralsS04, n_S04, IntegralsSf4, n_Sf4, IntegralsWSpm4, n_WSpm   &
-      & , IntegralsWSf8, n_WSf8, IntegralsS0P04, n_S0P04, IntegralsS0Sf8     &
-      & , n_S0Sf8, IntegralsCSf4, n_CSf4, IntegralsSf8, n_Sf8, deltaM, epsI  &
+     Call ChimToChi0ffp(i_run, i1, mC, mN, 3, mf_d, mf_u, mW, gW_in         &
+      & , C_CNW_L, C_CNW_R, C_UDW, mSpm, gSpm_in, C_SmpCN_L                 &
+      & , C_SmpCN_R, C_SmpDU_L, C_SmpDU_R, mDSquark, g_Sd, c_DNSd_L         &
+      & , c_DNSD_R, c_CUSd_L, c_CUSd_R, mUSquark, g_Su, c_UNSu_L            &
+      & , c_UNSu_R, c_CDSu_L, c_CDSu_R, IntegralsW4, n_W4                   &
+      & , IntegralsS04, n_S04, IntegralsSf4, n_Sf4, IntegralsWSpm4, n_WSpm  &
+      & , IntegralsWSf8, n_WSf8, IntegralsS0P04, n_S0P04, IntegralsS0Sf8    &
+      & , n_S0Sf8, IntegralsCSf4, n_CSf4, IntegralsSf8, n_Sf8, deltaM, epsI &
       & , GenerationMixing, check, factor(2), gNffp)
-     gNDU(i_run,i1,:,:) = gNffp
-     gT(i_run) = gT(i_run) + Sum( gNffp )
+     Do i2=1,n_d
+      Do i3=1,n_u
+       ChiPm(i_run)%gi3(i_c) = gNffp(i2,i3)
+       ChiPm(i_run)%id3(i_c,1) = Chi0(i1)%id
+       ChiPm(i_run)%id3(i_c,2) = id_d(i2) + 1
+       ChiPm(i_run)%id3(i_c,3) = id_u(i3)
+       i_c = i_c +1
+      End Do
+     End Do
 
-     nf = 5 - n_char
-     If (nf.Gt.0) Then
-      Call ChimToChi0ffp(i_run, i1, mC, mN, nf, mf_l, m_nu, mW, gW_in        &
-       & , Cpl_CNW_L, Cpl_CNW_R, Cpl_NuLW, mSpm, gSpm_in, Cpl_SmpCN_L        &
-       & , Cpl_SmpCN_R, Cpl_SmpLNu_L, Cpl_SmpLNu_R, mSlepton, g_Sl           &
-       & , cpl_LNSl_L, cpl_LNSl_R, cpl_CNuSl_L, cpl_CNuSl_R, mSneutrino      &
-       & , g_Sn, cpl_NuNSn_L, cpl_NuNSn_R, cpl_CLSn_L, cpl_CLSn_R            &
-       & , IntegralsW4, n_W4, IntegralsS04, n_S04, IntegralsSf4, n_Sf4       &
-       & , IntegralsWSpm4, n_WSpm, IntegralsWSf8, n_WSf8, IntegralsS0P04     &
-       & , n_S0P04, IntegralsS0Sf8, n_S0Sf8, IntegralsCSf4, n_CSf4           &
-       & , IntegralsSf8, n_Sf8, deltaM, epsI, GenerationMixing, check        &
+     If ((n_nu.Gt.0).and.(n_l.gt.0)) Then
+      Call ChimToChi0ffp(i_run, i1, mC, mN, n_l, mf_l, m_nu, mW, gW_in   &
+       & , C_CNW_L, C_CNW_R, C_NuLW, mSpm, gSpm_in, C_SmpCN_L            &
+       & , C_SmpCN_R, C_SmpLNu_L, C_SmpLNu_R, mSlepton, g_Sl             &
+       & , c_LNSl_L, c_LNSl_R, c_CNuSl_L, c_CNuSl_R, mSneutrino          &
+       & , g_Sn, c_NuNSn_L, c_NuNSn_R, c_CLSn_L, c_CLSn_R                &
+       & , IntegralsW4, n_W4, IntegralsS04, n_S04, IntegralsSf4, n_Sf4   &
+       & , IntegralsWSpm4, n_WSpm, IntegralsWSf8, n_WSf8, IntegralsS0P04 &
+       & , n_S0P04, IntegralsS0Sf8, n_S0Sf8, IntegralsCSf4, n_CSf4       &
+       & , IntegralsSf8, n_Sf8, deltaM, epsI, GenerationMixing, check    &
        & , factor(1), gNffp)
 
-      gNln(i_run,i1,:,:) = gNffp
-      gT(i_run) = gT(i_run) + Sum( gNffp )
+      Do i2=1,n_l
+       Do i3=1,n_nu
+        ChiPm(i_run)%gi3(i_c) = gNffp(i2,i3)
+        ChiPm(i_run)%id3(i_c,1) = Chi0(i1)%id
+        ChiPm(i_run)%id3(i_c,2) = id_l(i2) + 1
+        ChiPm(i_run)%id3(i_c,3) = id_nu(i3)
+        i_c = i_c +1
+       End Do
+      End Do
      End If
     End If
    End Do
@@ -354,176 +399,93 @@ Contains
    !--------------------------------------
    ! decay into a gluino + 2 quarks
    !--------------------------------------
-   gCGDU(i_run,:,:) = 0._dp
    If (Abs(mC(i_run)).Gt.Abs(mglu)) Then
     Call ChimToGffp(i_run, mC, mGlu, mf_d, mf_u, mDSquark, g_Sd       &
-    & , cpl_DGSd_L, cpl_DGSD_R, cpl_CUSd_L, cpl_CUSd_R, mUSquark, g_Su &
-    & , cpl_UGSu_L, cpl_UGSu_R, cpl_CDSu_L, cpl_CDSu_R                     &
+    & , c_DGSd_L, c_DGSD_R, c_CUSd_L, c_CUSd_R, mUSquark, g_Su &
+    & , c_UGSu_L, c_UGSu_R, c_CDSu_L, c_CDSu_R                     &
     & , IntegralsSf4, n_Sf4, IntegralsCSf4, n_CSf4, IntegralsSf8, n_Sf8 &
     & , deltaM, epsI, GenerationMixing, check, factor(3), gNffp)
-     gCGDU(i_run,:,:) = gNffp
-     gT(i_run) = gT(i_run) + Sum( gNffp )
+    Do i2=1,n_d
+     Do i3=1,n_u
+      ChiPm(i_run)%gi3(i_c) = gNffp(i2,i3)
+      ChiPm(i_run)%id3(i_c,1) = Glu%id
+      ChiPm(i_run)%id3(i_c,2) = id_d(i2) + 1
+      ChiPm(i_run)%id3(i_c,3) = id_u(i3)
+      i_c = i_c +1
+     End Do
+    End Do
    End If
 
    If (k_neut.Ne.0) Then
-   !-------------------------------
-   ! decay into 3 charginos
-   !-------------------------------  
-   Do i1=1,i_run-1
-    Do i2=1,i1
-     Do i3=1,i2
-      diffM = Abs(mC(i_run)) - Abs(mC(i1)) - Abs(mC(i2)) - Abs(mC(i3))
-      If (diffM.Gt.0._dp) Then
-       Call ChimToChimChipChim(i_run, i1, i2, i3, mC, mZ, gZ_in, cpl_CCZ_L   &
-        & , cpl_CCZ_R, mS0, gS0_in, cpl_CCS0_L, cpl_CCS0_R, mP0, gP0_in      &
-        & , cpl_CCP0_L, cpl_CCP0_R, IntegralsZ4, n_Z4, IntegralsS04, n_S04   &
-        & , IntegralsZ8, n_Z8, IntegralsZS04, n_ZS04, IntegralsZS08, n_ZS08  &
-        & , IntegralsS0P04, n_S0P04, IntegralsS0P08, n_S0P08, deltaM, epsI   &
-        & , check, factor(1), gCCC)
-       gCCCC(i_run,i1,i2,i3) = gCCC
-       gT(i_run) = gT(i_run) + gCCC
-      End If
+    !-------------------------------
+    ! decay into 3 charginos
+    !-------------------------------  
+    Do i1=1,i_run-1
+     Do i2=1,i1
+      Do i3=1,i2
+       diffM = Abs(mC(i_run)) - Abs(mC(i1)) - Abs(mC(i2)) - Abs(mC(i3))
+       If (diffM.Gt.0._dp) Then
+        Call ChimToChimChipChim(i_run, i1, i2, i3, mC, mZ, gZ_in, c_CCZ_L    &
+         & , c_CCZ_R, mS0, gS0_in, c_CCS0_L, c_CCS0_R, mP0, gP0_in           &
+         & , c_CCP0_L, c_CCP0_R, IntegralsZ4, n_Z4, IntegralsS04, n_S04      &
+         & , IntegralsZ8, n_Z8, IntegralsZS04, n_ZS04, IntegralsZS08, n_ZS08 &
+         & , IntegralsS0P04, n_S0P04, IntegralsS0P08, n_S0P08, deltaM, epsI  &
+         & , check, factor(1), gCCC)
+        ChiPm(i_run)%gi3(i_c) = gCCC
+        ChiPm(i_run)%id3(i_c,1) = ChiPm(i1)%id
+        ChiPm(i_run)%id3(i_c,2) = ChiPm(i2)%id + 1
+        ChiPm(i_run)%id3(i_c,3) = ChiPm(i3)%id
+        i_c = i_c +1
+       End If
+      End Do
      End Do
     End Do
-   End Do
-   !-------------------------------------
-   ! decay into chargino + 2 neutralinos
-   !-------------------------------------
-   Do i1=1,i_run-1
-    Do i2=1,n_neut
-     Do i3=1,i2
-      diffM = Abs(mC(i_run)) - Abs(mC(i1)) - Abs(mN(i2)) - Abs(mN(i3))
-      If (diffM.Gt.0._dp) Then
-       Call ChimToChim2Chi0(i_run, i1, i2, i3, mC, mN, mZ, gZ_in, cpl_CCZ_L  &
-        & , cpl_CCZ_R, cpl_NNZ_L, cpl_NNZ_R, mW, gW_in, cpl_CNW_L, cpl_CNW_R &
-        & , mSpm, gSpm_in, cpl_SmpCN_L, cpl_SmpCN_R, mS0, gS0_in, cpl_CCS0_L &
-        & , cpl_CCS0_R, cpl_NNS0_L, cpl_NNS0_R, mP0, gP0_in, cpl_CCP0_L      &
-        & , cpl_CCP0_R, cpl_NNP0_L, cpl_NNP0_R, IntegralsZ4, n_Z4            &
-        & , IntegralsW4, n_W4, IntegralsS04, n_S04, IntegralsZW8, n_ZW8      &
-        & , IntegralsZS04, n_ZS04, IntegralsZS08, n_ZS08, IntegralsW8, n_W8  &
-        & , IntegralsWSpm4, n_WSpm4, IntegralsWSpm8, n_WSpm8, IntegralsS0P04 &
-        & , n_S0P04, IntegralsS0P08, n_S0P08, deltaM, epsI, check, factor(1) &
-        & , gCNN)
-       gCCNN(i_run,i1,i2,i3) = gCNN
-       gT(i_run) = gT(i_run) + gCNN
-      End If
+    !-------------------------------------
+    ! decay into chargino + 2 neutralinos
+    !-------------------------------------
+    Do i1=1,i_run-1
+     Do i2=1,n_n
+      Do i3=1,i2
+       diffM = Abs(mC(i_run)) - Abs(mC(i1)) - Abs(mN(i2)) - Abs(mN(i3))
+       If (diffM.Gt.0._dp) Then
+        Call ChimToChim2Chi0(i_run, i1, i2, i3, mC, mN, mZ, gZ_in, c_CCZ_L    &
+         & , c_CCZ_R, c_NNZ_L, c_NNZ_R, mW, gW_in, c_CNW_L, c_CNW_R           &
+         & , mSpm, gSpm_in, c_SmpCN_L, c_SmpCN_R, mS0, gS0_in, c_CCS0_L       &
+         & , c_CCS0_R, c_NNS0_L, c_NNS0_R, mP0, gP0_in, c_CCP0_L              &
+         & , c_CCP0_R, c_NNP0_L, c_NNP0_R, IntegralsZ4, n_Z4                  &
+         & , IntegralsW4, n_W4, IntegralsS04, n_S04, IntegralsZW8, n_ZW8      &
+         & , IntegralsZS04, n_ZS04, IntegralsZS08, n_ZS08, IntegralsW8, n_W8  &
+         & , IntegralsWSpm4, n_WSpm4, IntegralsWSpm8, n_WSpm8, IntegralsS0P04 &
+         & , n_S0P04, IntegralsS0P08, n_S0P08, deltaM, epsI, check, factor(1) &
+         & , gCNN)
+        ChiPm(i_run)%gi3(i_c) = gCNN
+        ChiPm(i_run)%id3(i_c,1) = ChiPm(i1)%id
+        ChiPm(i_run)%id3(i_c,2) = Chi0(i2)%id
+        ChiPm(i_run)%id3(i_c,3) = Chi0(i3)%id
+       End If
+      End Do
      End Do
     End Do
-   End Do
-  End If ! k_neut
+   End If ! k_neut
+
+   ChiPm(i_run)%g = Sum(ChiPm(i_run)%gi2) + Sum(ChiPm(i_run)%gi3)
+   If (ChiPm(i_run)%g.ne.0._dp) then
+    ChiPm(i_run)%bi2 = ChiPm(i_run)%gi2 / ChiPm(i_run)%g
+    ChiPm(i_run)%bi3 = ChiPm(i_run)%gi3 / ChiPm(i_run)%g
+   End If
 
   End Do ! i_run
-
-  If (Present(gP)) Then
-   Do i1=i_start,i_end
-    gP(i1,:) = 0._dp
-    If (GenerationMixing) Then
-     n_length = 1
-     Do i2=1,n_Neut
-      Do i3=1,3
-       Do i4=1,3  
-        gP(i1,n_length) = gNDU(i1,i2,i3,i4)
-        n_length = n_length + 1
-       End Do
-      End Do
-      Do i3=1,5 - n_char
-       gP(i1,n_length) = Sum(gNln(i1,i2,i3,:))
-       n_length = n_length + 1
-      End Do
-     End Do
-
-     Do i3=1,3
-      Do i4=1,3  
-       gP(i1,n_length) = gCGDU(i1,i3,i4)
-       n_length = n_length + 1
-      End Do
-     End Do
-
-     Do i2=1,i1-1
-      Do i3=1,3
-       Do i4=1,3  
-        gP(i1,n_length) = gCuu(i1,i2,i3,i4)
-        n_length = n_length + 1
-       End Do
-      End Do
-      Do i3=1,3
-       Do i4=1,3  
-        gP(i1,n_length) = gCdd(i1,i2,i3,i4)
-        n_length = n_length + 1
-       End Do
-      End Do
-      Do i3=1,5-n_char
-       Do i4=1,5-n_char
-        gP(i1,n_length) = gCll(i1,i2,i3,i4)
-        n_length = n_length + 1
-       End Do
-      End Do
-      if (n_char.lt.5) then
-       gP(i1,n_length+9) = sum(gCnunu(i1,i2,:,:))
-       n_length = n_length + 1
-      end if
-
-     End Do
-
-    Else ! .not.GenerationMixing
-
-     n_length = 1
-     Do i2=1,n_Neut
-      Do i3=1,3
-       gP(i1,n_length) = gNDU(i1,i2,i3,i3)
-       n_length = n_length + 1
-      End Do
-
-      Do i3=1,5-n_char
-       gP(i1,n_length) = gNln(i1,i2,i3,i3)
-       n_length = n_length + 1
-      End Do
-     End Do
-
-     Do i3=1,3
-      gP(i1,n_length) = gCGDU(i1,i3,i3)
-      n_length = n_length + 1
-     End Do
-
-     Do i2=1,i1-1
-      Do i3=1,3
-       gP(i1,n_length) = gCuu(i1,i2,i3,i3)
-       n_length = n_length + 1
-      End Do
-      Do i3=1,3
-       gP(i1,n_length) = gCdd(i1,i2,i3,i3)
-       n_length = n_length + 1
-      End Do
-      Do i3=1,5-n_char
-       gP(i1,n_length) = gCll(i1,i2,i3,i3)
-       n_length = n_length + 1
-      End Do
-      if (n_char.lt.5) then
-       gP(i1,n_length+9) = sum(gCnunu(i1,i2,:,:))
-       n_length = n_length + 1
-      end if
-     End Do
-
-    End If
-
-    If (Present(BR).And.(gT(i1).Gt.0._dp)) Then
-     BR(i1,:) = gP(i1,:) / gT(i1)
-    Else If (Present(BR)) Then
-     BR(i1,:) = 0._dp
-    End If
-   End Do
-  End If
 
   Deallocate( IntegralsZ4, IntegralsZ8, IntegralsW4, IntegralsW8      &
     & , IntegralsZW8, IntegralsS04, IntegralsSf4, IntegralsZS04       &
     & , IntegralsZS08, IntegralsWSpm4, IntegralsWSpm8, IntegralsZSf8  &
     & , IntegralsWSf8, IntegralsS0P04, IntegralsS0P08, IntegralsS0Sf8 &
     & , IntegralsCSf4, IntegralsSf8 )
-  Deallocate( gS0_in, gP0_in, gSpm_in, g_Su, g_Sd, g_Sn, g_Sl)
 
   Iname = Iname - 1
 
  End Subroutine CharginoThreeBodyDecays
+
 
  Subroutine ChimToChimff(i_in, i_out, state, mC, mZ, gZ, Cpl_CCZ_L, Cpl_CCZ_R &
     & , n_f, mf, L_f, R_f, IntegralsZ4, n_Z4, mS0, gS0, cpl_CCS0_L, cpl_CCS0_R&
@@ -1258,7 +1220,6 @@ Contains
 
  End Subroutine ChimToChimff
 
-
  Subroutine ChimToChimNuNu(i_in, i_out, mC, mZ, gZ, Cpl_CCZ_L, Cpl_CCZ_R, n_f &
     & , L_f, R_f, IntegralsZ4, n_Z4, mSfp, gSfp, cpl_CFSfp_L, cpl_CFSfp_R     &
     & , IntegralsSf4, n_Sf4, IntegralsZSf8, n_ZSf8, IntegralsCSf4, n_CSf4     &
@@ -1350,19 +1311,33 @@ Contains
    End Do   ! i2 sfermions
 
   Else
-   Do i2=1,n_f  ! fermion generation
-    Isum = Isum + 1
+   Isum = Isum + 1
+   Do i1=1,n_f  ! fermion generation
+    i2 = 2*i1-1
     Boson2(1) = mSfp(i2)
     Boson2(2) = gSfp(i2)
-    coup1(1) = cpl_CFSfp_L(i_in,i2,i2)
-    coup1(2) = cpl_CFSfp_R(i_in,i2,i2)
-    coup1(3) = Conjg(cpl_CFSfp_R(i_out,i2,i2))
-    coup1(4) = Conjg(cpl_CFSfp_L(i_out,i2,i2))
+    coup1(1) = cpl_CFSfp_L(i_in,i1,i2)
+    coup1(2) = cpl_CFSfp_R(i_in,i1,i2)
+    coup1(3) = Conjg(cpl_CFSfp_R(i_out,i1,i2))
+    coup1(4) = Conjg(cpl_CFSfp_L(i_out,i1,i2))
     Call IntegrateScalarSS(Boson2, mass, coup1, deltaM, epsI &
                          &, IntegralsSf4, n_Sf4, resR, check)
-    gCffSum(i2,i2,Isum) = resR
-    Contribution(i2,i2,Isum) = 'Sf^2_'//Bu(i2)//' f_'//Bu(i2)//' f_'//Bu(i2)
+    gCffSum(i1,i1,Isum) = resR
+    Contribution(i1,i1,Isum) = 'Sf^2_'//Bu(i2)//' f_'//Bu(i1)//' f_'//Bu(i1)
+
+    i2 = 2*i1
+    Boson2(1) = mSfp(i2)
+    Boson2(2) = gSfp(i2)
+    coup1(1) = cpl_CFSfp_L(i_in,i1,i2)
+    coup1(2) = cpl_CFSfp_R(i_in,i1,i2)
+    coup1(3) = Conjg(cpl_CFSfp_R(i_out,i1,i2))
+    coup1(4) = Conjg(cpl_CFSfp_L(i_out,i1,i2))
+    Call IntegrateScalarSS(Boson2, mass, coup1, deltaM, epsI &
+                         &, IntegralsSf4, n_Sf4, resR, check)
+    gCffSum(i1,i1,Isum+1) = resR
+    Contribution(i1,i1,Isum+1) = 'Sf^2_'//Bu(i2)//' f_'//Bu(i1)//' f_'//Bu(i1)
    End Do
+   Isum = Isum + 1
   End If    ! GenerationMixing
 
   !--------------------------
@@ -1452,10 +1427,10 @@ Contains
 
   Else
 
+   Isum = Isum + 1
    Do i1 = 1,n_f
     i2 = 2*i1 - 1
     i3 = 2*i1
-    Isum = Isum + 1
     Boson4(1) = mSfp(i2)
     Boson4(2) = gSfp(i2)
     Boson4(3) = mSfp(i3)

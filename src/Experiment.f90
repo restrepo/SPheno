@@ -3,6 +3,7 @@ Module Experiment
 Use Control
 Use Couplings
 Use Model_Data
+Use MSSM_Data
 Use StandardModel
 
 Integer, Public :: check_exp(11)      
@@ -11,22 +12,22 @@ Real(dp), Public, Dimension(2) ::  m_sq_atm, tan_sq_atm, m_sq_sol, tan_sq_sol &
  & , Ue3_sq
 
 ! neutrino data taken from T.~Schwetz, M.~Tortola and J.~W.~F.~Valle
-!                          arXiv:0808.2016
-! correspond to 3 sigma
+!                          arXiv:1103.0734
+! correspond to 1 sigma but for U^2_e3 which is at 90% CL
 ! Min/Max of atm. mass squared
-Real(dp), Public :: m2_atm_min = 2.07e-21_dp, m2_atm_max = 2.75e-21_dp
+Real(dp), Public :: m2_atm_min = 2.36e-21_dp, m2_atm_max = 2.54e-21_dp
 ! best fit for atm. mass squared
-Real(dp), Public :: m2_atm = 2.40e-21_dp
+Real(dp), Public :: m2_atm = 2.45e-21_dp
 ! Min/Max of tan^2(theta_atm)
-Real(dp), Public :: tan2_atm_min = 0.5625_dp , tan2_atm_max = 2.0303_dp
+Real(dp), Public :: tan2_atm_min = 0.8182_dp , tan2_atm_max = 1.3256_dp
 ! Min/Max of solar mass squared
-Real(dp), Public :: m2_sol_min = 7.05e-23_dp, m2_sol_max = 8.27e-23_dp
+Real(dp), Public :: m2_sol_min = 7.46e-23_dp, m2_sol_max = 7.83e-23_dp
 ! best fit for solar mass squared    
-Real(dp), Public :: m2_sol = 7.59e-23_dp 
+Real(dp), Public :: m2_sol = 7.64e-23_dp 
 ! Min/Max of tan^2(theta_sol)
-Real(dp), Public :: tan2_sol_min = 0.3699_dp, tan2_sol_max = 0.6129_dp
+Real(dp), Public :: tan2_sol_min = 0.4286_dp, tan2_sol_max = 0.4970_dp
 ! Min/Max (U_e3)^2
-Real(dp), Public :: Ue32_min = 0._dp, Ue32_max = 0.053_dp
+Real(dp), Public :: Ue32_min = 0._dp, Ue32_max = 0.035_dp
 Real(dp), Public :: mC_min, mGlu_min           ! lower bound on chargino, gluinos
 Real(dp), Public :: mSquark_min, mStop_min     ! lower bound on 1st gen. ~q, ~t_1
 

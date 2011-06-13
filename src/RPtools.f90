@@ -6,6 +6,8 @@ Use EplusEminusProduction
 Use Experiment
 Use LoopCouplings
 Use LoopMasses
+Use MSSM_data
+Use RP_data
 Use StandardModel
 Use SugraRuns
 
@@ -73,21 +75,17 @@ Contains
   Real(dp) :: g0(213), mudim, tz, dt, gauge_mZ(3), M2H_mZ(3)
   Complex(dp), Dimension(3,3) :: y_l_mZ,  y_d_mZ, y_u_mZ , Al_mZ, Ad_mZ &
            &, Au_mZ,M2E_mZ, M2L_mZ, M2D_mZ, M2Q_mZ, M2U_mZ
-  Complex(dp) :: Mi_mZ(3), mu_mZ, B_mZ, B_4(4), bi(4)
+  Complex(dp) :: Mi_mZ(3), B_mZ, B_4(4), bi(4)
  ! neutrino constraints
   Real(dp) :: Lam_Sq, m_sq, m2_atm_rp, m2_sol_rp, tan2_sol, tan2_atm &
-   & , Ue32, eps_sq
+   & , Ue32, tan2_sol_opt, tan2_atm_opt, epsT12, epsT22
   Logical :: check
  ! RP-masses + mixing
   Real(dp) :: mGlu, mC(5), mC2(5), mSdown(6), mSdown2(6), mSup(6), mSup2(6)   &
     & , mP0(5), mP02(5), mS0(5), mS02(5), mSpm(8), mSpm2(8) &
     & , mN(7), mN1L(7), mN2(7), mN1L2(7)
- Complex(dp) :: PhaseGlu, RSdown(6,6), RSup(6,6), N(7,7), N1L(7,7)
+  Complex(dp) :: PhaseGlu, RSdown(6,6), RSup(6,6), N(7,7), N1L(7,7), lam(3), epst(3)
 
-  Real(dp) :: sqrt_eps_sqmu = 3.e-4_dp, epsT12, epsT22
-  Logical :: epsfix=.false., L_mini, L_large
-
-  Integer :: ii
  !-------------------------------------------------
  ! evolve the parameters down to m_Z if necessary 
  !-------------------------------------------------
@@ -95,24 +93,20 @@ Contains
   Call ParametersToG(gauge, Y_l, Y_d, Y_u, Mi, A_l, A_d, A_u &
                     &,M2_E, M2_L, M2_D, M2_Q, M2_U, M2_H, mu, B, g0)
 
-   If (mudim.Ne.mZ2) Then
+  If (mudim.Ne.mZ2) Then
  
-    tz = 0.5_dp * Log(mZ2/mudim)
-    dt = tz / 100._dp
-    g0(1) = Sqrt(5._dp / 3._dp ) * g0(1)
+   tz = 0.5_dp * Log(mZ2/mudim)
+   dt = tz / 100._dp
+   g0(1) = Sqrt(5._dp / 3._dp ) * g0(1)
  
-    Call odeint(g0, 213, 0._dp, tz, delta, dt, 0._dp, rge213, kont)
-    g0(1) = Sqrt(3._dp / 5._dp ) * g0(1)
+   Call odeint(g0, 213, 0._dp, tz, delta, dt, 0._dp, rge213, kont)
+   g0(1) = Sqrt(3._dp / 5._dp ) * g0(1)
  
-   End If
+  End If
   
   Call GToParameters(g0,gauge_mZ, y_l_mZ,  y_d_mZ, y_u_mZ, Mi_mZ, Al_mZ, Ad_mZ &
           &, Au_mZ,M2E_mZ, M2L_mZ, M2D_mZ, M2Q_mZ, M2U_mZ, M2H_mZ, mu_mZ, B_mZ)
 
-  l_mini = .False.
-  If (kont.Eq.-1) l_mini = .True.
-  l_large = .False.
-  If (kont.Eq.1) l_large = .True.
   kont = 0
 
   !--------------------------------------------
@@ -123,13 +117,16 @@ Contains
   ! first set of masses to start with
   ! needed to get a first estimate of RP parameters
   !-------------------------------------------------
+  tan2_atm_opt = 0.5_dp * (tan2_atm_min + tan2_atm_max)
+  tan2_sol_opt = 0.5_dp * (tan2_sol_min + tan2_sol_max)
+
+  eps = 1.e-4_dp * abs(mu_mZ)
+  eps(2) = -eps(2)
+
   bi(1) = mu_mZ
-  eps_sq=sqrt_eps_sqmu**2*abs(mu_mZ**2)
-!  Write(*,*)'Searching for neutrino solutions ...'
-  eps = Sqrt(eps_sq/3._dp)
-  eps(2) = - eps(2)
   bi(2:4) = eps
   b_4 = B_mZ
+
   Lam_sq = 4._dp * Sqrt(m2_atm)                                               &
          & * Real(Mi_mZ(1)*Mi_mZ(2)*mu_mZ**2                                  &
          &    -0.5*vevSM(1)*vevSM(2)*Mi_mZ(2)*mu_mZ*(g0(1)**2+g0(2)**2),dp)   &
@@ -137,21 +134,22 @@ Contains
   Lam_Sq = Abs(Lam_Sq)
   Lambda(2:3) = Sqrt(0.4995*Lam_sq)
   Lambda(1) = Sqrt(Lam_sq-2._dp*Lambda(2)**2)
-!Write(*,*) "|Lambda|^2",Lam_sq,Dot_product(lambda,lambda)
+
   vevL = (Lambda - eps*vevSM(1)) / mu_mZ
   !--------------------------------------
   ! tree level masses
   !--------------------------------------
   Call Calculate_Bi(mu_mZ, eps, vevL, vevSM, g0(1), g0(2), M2L_mZ, B_4(2:4) )
-   Call TreeMassesEps3(g0(1), g0(2), vevSM, vevL, Mi_mZ(1), Mi_mZ(2), Mi_mZ(3) &
-                    &, bi, B_4, M2E_mZ, M2L_mZ, Al_mZ, Y_l_mZ                  &
-                    &, M2D_mZ, M2U_mZ, M2Q_mZ, Ad_mZ, Au_mZ, Y_d_mZ, Y_u_mZ    &
-                    &, mGlu, PhaseGlu, mC, mC2, U, V, mN, mN2, N               &
-                    &, mSdown, mSdown2, RSdown, mSup, mSup2, RSup              &
-                    &, mP0, mP02, RP0, mS0, mS02, RS0, mSpm, mSpm2, RSpm       &
+
+  Call TreeMassesEps3(g0(1), g0(2), vevSM, vevL, Mi_mZ(1), Mi_mZ(2), Mi_mZ(3) &
+                    &, bi, B_4, M2E_mZ, M2L_mZ, Al_mZ, Y_l_mZ                 &
+                    &, M2D_mZ, M2U_mZ, M2Q_mZ, Ad_mZ, Au_mZ, Y_d_mZ, Y_u_mZ   &
+                    &, mGlu, PhaseGlu, mC, mC2, U, V, mN, mN2, N              &
+                    &, mSdown, mSdown2, RSdown, mSup, mSup2, RSup             &
+                    &, mP0, mP02, RP0, mS0, mS02, RS0, mSpm, mSpm2, RSpm      &
                     &, GenerationMixing, kont)
   !----------------------------
-  ! analytic squared solar mass
+  ! approx. squared solar mass
   !-----------------------------
    epsT12 = ( eps(1) * (lambda(2)**2 + lambda(3)**2)                 &
           & - lambda(1) * (lambda(2)*eps(2)+lambda(3)*eps(3)) )**2   &
@@ -159,18 +157,18 @@ Contains
           &   *(lambda(1)**2+lambda(2)**2 + lambda(3)**2))
    epsT22 = (lambda(3)*eps(2)-eps(3)*lambda(2))**2  &
           & /  (lambda(2)**2 + lambda(3)**2)
+
    m_Sq = 2._dp * oo16pi2 * (epsT12+epsT22) / Abs(mu_mZ)**2                   &
         &       * ( 3._dp*mf_d_mZ(3)*Rsdown(5,5)*Rsdown(5,6)*Y_d(3,3)**2      &
         &                *Log(mSdown2(6)/mSdown2(5))                          &
         &         + mf_l_mZ(3)* Rslepton(5,5)*Rslepton(5,6)*Y_l(3,3)**2       &
-        &                     * Log(mSlepton2(6)/mSlepton2(5)))
+        &                     * Log(Slepton(6)%m2/Slepton(5)%m2))
 
    m_Sq = m_Sq**2
-   If(.Not.epsfix)Then
-      If (m_Sq.Lt.m2_sol_min) eps = Sqrt(m2_sol_min/m_sq) * eps
-      If (m_Sq.Gt.m2_sol_max) eps = Sqrt(m2_sol_max/m_sq) * eps
-      eps_sq = Sum(Abs(eps)**2)
-   Endif
+
+   If (m_Sq.Lt.m2_sol_min) eps = (m2_sol/m_sq)**0.25_dp * eps
+   If (m_Sq.Gt.m2_sol_max) eps = (m2_sol/m_sq)**0.25_dp * eps
+
    bi(2:4) = eps
    vevL = (Lambda - eps*vevSM(1)) / mu_mZ 
    !-------------------------------------------------------------
@@ -178,9 +176,6 @@ Contains
    !-------------------------------------------------------------
    Call Calculate_Bi(mu_mZ, eps, vevL, vevSM, g0(1), g0(2), M2L_mZ, B_4(2:4) )
 
-!Write(*,*) "eps",real(eps),m_sq
-!LoopContributions(6:7) = .False.
-!LoopContributions(1) = .True.
   !--------------------------------------
   !recalculation of tree level masses
   !--------------------------------------
@@ -196,86 +191,40 @@ Contains
   !-----------------------------------------------------
   isol=100
   Do count = 0,isol
+
    Call NeutralinoMass_Loop_RP(g0(1), g0(2), Y_d_mZ, Y_l_mZ, Y_u_mZ, vevSM     &
           & , vevL, Mi_mZ(1), Mi_mZ(2), mu_mZ, eps, mC, mC2, U, V, mSup2, RSup &
           & , mSdown2, RSdown, mS02, RS0, mP02, RP0, mSpm2, RSpm, uD_L, uD_R   &
           & , uU_L, uU_R, mN, mN2, N, mN1L, mN1L2, N1L, kont, .False.)
+
    m2_sol_rp = mN1L2(2)-mN1L2(1)
-   m2_atm_rp = mN1L2(3)-mN1L2(2)
+   m2_atm_rp = mN1L2(3)-mN1L2(1)
+
    !------------------------------------------------
    ! checking experimental data, first the masses
    !------------------------------------------------
    check = .True. 
-   If (m2_atm_rp.Lt.m2_atm_min) Then
+   If ((m2_atm_rp.Lt.m2_atm_min).or.(m2_atm_rp.Gt.m2_atm_max)) Then
     check = .False.
-    Lam_Sq = Lam_Sq * Sqrt(m2_atm_min/m2_atm_rp)
-    Lambda(2:3) = Sqrt(0.4995*Lam_sq)
-    Lambda(1) = Sqrt(Lam_sq-2._dp*Lambda(2)**2)
-    vevL = (Lambda - eps*vevSM(1)) / mu_mZ 
-    Call Calculate_Bi(mu_mZ, eps, vevL, vevSM, g0(1), g0(2), M2L_mZ, B_4(2:4))
-   Else If (m2_atm_rp.Gt.m2_atm_max) Then
-    check = .False.
-    Lam_Sq = Lam_Sq * Sqrt(m2_atm_max/m2_atm_rp)
-    Lambda(2:3) = Sqrt(0.4995*Lam_sq)
-    Lambda(1) = Sqrt(Lam_sq-2._dp*Lambda(2)**2)
-    vevL = (Lambda - eps*vevSM(1)) / mu_mZ 
-    Call Calculate_Bi(mu_mZ, eps, vevL, vevSM, g0(1), g0(2), M2L_mZ, B_4(2:4))
+    Lambda = (m2_atm/m2_atm_rp)**0.25_dp * Lambda
    End If
 
-   If (m2_sol_rp.Lt.m2_sol_min) Then
+   If ((m2_sol_rp.Lt.m2_sol_min).or.(m2_sol_rp.Gt.m2_sol_max)) Then
     check = .False.
-    eps_sq = Sum(Abs(eps)**2)
-    If(epsfix)Then
-          eps(1)=Sign(1._dp,Real(eps(1),dp))*Sqrt(eps(1)**2+0.01_dp*eps(3)**2)
-          eps(2)=Sign(1._dp,Real(eps(2),dp))*Sqrt(eps(2)**2+0.01_dp*eps(3)**2)
-          eps(3)=Sqrt(0.98_dp)*eps(3)
-       If(Real(eps(3)).Lt.1d-6)Then
-          Write(*,*)'impossible to find solution with eps^2/mu',&
-               &Sqrt(eps_sq/Abs(mu_mZ**2)),count
-          epsfix=.False.
-          Exit
-!          stop
-       Endif
-    Else
-       eps = Sqrt(m2_sol_min/m2_sol_rp) * eps
-       eps_sq = Sum(Abs(eps)**2)
-    Endif
+    eps = (m2_sol/m2_sol_rp)**0.25_dp * eps
     bi(2:4) = eps
-    vevL = (Lambda - eps*vevSM(1)) / mu_mZ 
-    Call Calculate_Bi(mu_mZ, eps, vevL, vevSM, g0(1), g0(2), M2L_mZ, B_4(2:4))
-   Else If (m2_sol_rp.Gt.m2_sol_max) Then
-    check = .False.
-    eps_sq = Sum(Abs(eps)**2)
-    If(epsfix)Then
-!       write(*,*)'epsi',real(eps),eps_sq
-          eps(1)=Sign(1._dp,Real(eps(1),dp))*Sqrt(eps(1)**2-0.01_dp*eps(3)**2)
-          eps(2)=Sign(1._dp,Real(eps(2),dp))*Sqrt(eps(2)**2-0.01_dp*eps(3)**2)
-          eps(3)=Sqrt(1.02_dp)*eps(3)
-!       write(*,*)'epsi',real(eps),Sum(Abs(eps)**2)
-       If(Real(eps(1)).Lt.1d-6)Then
-          Write(*,*)'impossible to find solution with eps/mu',&
-               &Sqrt(eps_sq/Abs(mu_mZ**2)),count
-!          stop
-          epsfix=.False.
-          Exit
-       Endif
-    Else
-       eps = Sqrt(m2_sol_max/m2_sol_rp) * eps
-       eps_sq = Sum(Abs(eps)**2)
-    Endif
-    bi(2:4) = eps
-    vevL = (Lambda - eps*vevSM(1)) / mu_mZ
-    Call Calculate_Bi(mu_mZ, eps, vevL, vevSM, g0(1), g0(2), M2L_mZ, B_4(2:4))
    End If
 
    If (.Not.check) Then
-   Call TreeMassesEps3(g0(1), g0(2), vevSM, vevL, Mi_mZ(1), Mi_mZ(2), Mi_mZ(3) &
-                    &, bi, B_4, M2E_mZ, M2L_mZ, Al_mZ, Y_l_mZ                  &
-                    &, M2D_mZ, M2U_mZ, M2Q_mZ, Ad_mZ, Au_mZ, Y_d_mZ, Y_u_mZ    &
-                    &, mGlu, PhaseGlu, mC, mC2, U, V, mN, mN2, N               &
-                    &, mSdown, mSdown2, RSdown, mSup, mSup2, RSup              &
-                    &, mP0, mP02, RP0, mS0, mS02, RS0, mSpm, mSpm2, RSpm       &
-                    &, GenerationMixing, kont)
+    vevL = (Lambda - eps*vevSM(1)) / mu_mZ 
+    Call Calculate_Bi(mu_mZ, eps, vevL, vevSM, g0(1), g0(2), M2L_mZ, B_4(2:4))
+    Call TreeMassesEps3(g0(1), g0(2), vevSM, vevL, Mi_mZ(1), Mi_mZ(2), Mi_mZ(3) &
+                     &, bi, B_4, M2E_mZ, M2L_mZ, Al_mZ, Y_l_mZ                  &
+                     &, M2D_mZ, M2U_mZ, M2Q_mZ, Ad_mZ, Au_mZ, Y_d_mZ, Y_u_mZ    &
+                     &, mGlu, PhaseGlu, mC, mC2, U, V, mN, mN2, N               &
+                     &, mSdown, mSdown2, RSdown, mSup, mSup2, RSup              &
+                     &, mP0, mP02, RP0, mS0, mS02, RS0, mSpm, mSpm2, RSpm       &
+                     &, GenerationMixing, kont)
     Cycle  !stop here and try the next iteration
    End If
    !-------------------------------------
@@ -283,65 +232,48 @@ Contains
    !-------------------------------------
    tan2_atm = Abs(N1L(3,6)/N1L(3,7))**2
    tan2_sol = Abs(N1L(2,5)/N1L(1,5))**2
-   If (tan2_atm.Lt.tan2_atm_min) Then
+
+   If ((tan2_atm.Lt.tan2_atm_min).or.(tan2_atm.Gt.tan2_atm_max)) Then
     check = .False.
-    Lambda(3) = 0.8_dp * Lambda(3)
-    Lambda(2) = Sign(1._dp,lambda(2))*Sqrt(Lam_Sq - Lambda(3)**2 - Lambda(1)**2)
-    vevL = (Lambda - eps*vevSM(1)) / mu_mZ 
-    Call Calculate_Bi(mu_mZ, eps, vevL, vevSM, g0(1), g0(2), M2L_mZ, B_4(2:4))
-   Else If (tan2_atm.Gt.tan2_atm_max) Then
-    check = .False.
-    Lambda(2) = 0.8_dp * Lambda(2)
-    Lambda(3) = Sign(1._dp,lambda(3))*Sqrt(Lam_Sq - Lambda(2)**2 - Lambda(1)**2)
-    vevL = (Lambda - eps*vevSM(1)) / mu_mZ 
-    Call Calculate_Bi(mu_mZ, eps, vevL, vevSM, g0(1), g0(2), M2L_mZ, B_4(2:4))
+    Lambda(2) = Sqrt(tan2_atm/(tan2_atm+tan2_atm_opt)) * Lambda(2)
+    Lambda(3) = Sqrt(tan2_atm_opt/(tan2_atm+tan2_atm_opt)) * Lambda(3)
    End If
 
-   If (tan2_sol.Lt.tan2_sol_min) Then
+   If ((tan2_sol.Lt.tan2_sol_min).or.(tan2_sol.Gt.tan2_sol_max)) Then
     check = .False.
-    eps_sq = Sum(Abs(eps)**2)
-    eps(2) = 0.8_dp * eps(2)
-    eps(1) = Sign(1._dp,Real(eps(1),dp))*Sqrt(eps_Sq - eps(2)**2 - eps(3)**2)
+
+    lam = Cmplx(lambda,0._dp,dp)
+    Call CalculateEpsTilde_from_Eps(epsT,eps,lam)
+
+    epsT(1) = Sqrt(tan2_sol_opt/(tan2_sol+tan2_sol_opt)) * epsT(1)
+    epsT(2) = Sqrt(tan2_sol/(tan2_sol+tan2_sol_opt)) * epsT(2)
+    Call CalculateEps_from_EpsTilde(eps,epsT,lam)
+
     bi(2:4) = eps
-    vevL = (Lambda - eps*vevSM(1)) / mu_mZ 
-    Call Calculate_Bi(mu_mZ, eps, vevL, vevSM, g0(1), g0(2), M2L_mZ, B_4(2:4))
-   Else If (tan2_sol.Gt.tan2_sol_max) Then
-    check = .False.
-    eps_sq = Sum(Abs(eps)**2)
-    eps(1) = 0.8_dp * eps(1)
-    eps(2) = Sign(1._dp,Real(eps(2),dp))*Sqrt(eps_Sq - eps(1)**2 - eps(3)**2)
-    bi(2:4) = eps
-    vevL = (Lambda - eps*vevSM(1)) / mu_mZ 
-    Call Calculate_Bi(mu_mZ, eps, vevL, vevSM, g0(1), g0(2), M2L_mZ, B_4(2:4))
    End If
 
    If (.Not.check) Then
-   Call TreeMassesEps3(g0(1), g0(2), vevSM, vevL, Mi_mZ(1), Mi_mZ(2), Mi_mZ(3) &
-                    &, bi, B_4, M2E_mZ, M2L_mZ, Al_mZ, Y_l_mZ                  &
-                    &, M2D_mZ, M2U_mZ, M2Q_mZ, Ad_mZ, Au_mZ, Y_d_mZ, Y_u_mZ    &
-                    &, mGlu, PhaseGlu, mC, mC2, U, V, mN, mN2, N               &
-                    &, mSdown, mSdown2, RSdown, mSup, mSup2, RSup              &
-                    &, mP0, mP02, RP0, mS0, mS02, RS0, mSpm, mSpm2, RSpm       &
-                    &, GenerationMixing, kont)
+    vevL = (Lambda - eps*vevSM(1)) / mu_mZ 
+    Call Calculate_Bi(mu_mZ, eps, vevL, vevSM, g0(1), g0(2), M2L_mZ, B_4(2:4))
+    Call TreeMassesEps3(g0(1), g0(2), vevSM, vevL, Mi_mZ(1), Mi_mZ(2), Mi_mZ(3) &
+                     &, bi, B_4, M2E_mZ, M2L_mZ, Al_mZ, Y_l_mZ                  &
+                     &, M2D_mZ, M2U_mZ, M2Q_mZ, Ad_mZ, Au_mZ, Y_d_mZ, Y_u_mZ    &
+                     &, mGlu, PhaseGlu, mC, mC2, U, V, mN, mN2, N               &
+                     &, mSdown, mSdown2, RSdown, mSup, mSup2, RSup              &
+                     &, mP0, mP02, RP0, mS0, mS02, RS0, mSpm, mSpm2, RSpm       &
+                     &, GenerationMixing, kont)
     Cycle
    End If
    !-----------------------------------
    ! and now the reactor constraint
    !-----------------------------------
    Ue32 = Abs(N1l(3,5))**2
+
    If (Ue32.Gt.Ue32_max) Then
     check = .False.
-    If(.Not.epsfix)Then
-       If (eps_sq.Gt.5._dp*Sqrt(Lam_Sq)) Then
-          eps(3) = 2._dp * eps(3)
-          eps = eps_sq * eps / Sum(Abs(eps)**2)
-          eps_sq = Sum(Abs(eps)**2)
-          Write(*,*)'Ue3 too big, eps^2 Changed',count
-       Endif
-    Else
-     Lambda(1) = Lambda(1) / 2._dp
-     Lam_Sq = Dot_product(Lambda, lambda)
-    End If
+    Lambda(1) = Lambda(1) / 2._dp
+    Lam_Sq = Dot_product(Lambda, lambda)
+
     vevL = (Lambda - eps*vevSM(1)) / mu_mZ 
     Call Calculate_Bi(mu_mZ, eps, vevL, vevSM, g0(1), g0(2), M2L_mZ, B_4(2:4))
    End If
@@ -363,43 +295,62 @@ Contains
   End Do
 
   If(.Not.check)Then 
-    Write(*,*)'ERROR, NO SOLUTION FOUND',isol
+    Write(ErrCan,*)'Error, no solution found',isol
+!    Write(*,*)'Error, no solution found',isol
 !  Else
-!    Write(*,*)'solution found after:',count,Sqrt(eps_sq)/Real(mu_mZ,dp) 
+!    Write(*,*)'solution found after:',count,Sqrt(Sum(Abs(eps)**2))/Real(mu_mZ,dp) 
   End If
 
-  If (l_mini.Or.l_large) Then
-   If (l_mini) Then
-    eps =  eps / 1.e10_dp
-    bi(2:4) = eps
-    vevL = vevL / 1.e10_dp
-    lambda = lambda  / 1.e10_dp
-   Else
-    eps =  eps *1000._dp 
-    bi(2:4) = eps
-    vevL = vevL * 1000._dp 
-    lambda = lambda  * 1000._dp 
-   End If
-   Call Calculate_Bi(mu_mZ, eps, vevL, vevSM, g0(1), g0(2), M2L_mZ, B_4(2:4))
-
-   Call TreeMassesEps3(g0(1), g0(2), vevSM, vevL, Mi_mZ(1), Mi_mZ(2), Mi_mZ(3) &
-                    &, bi, B_4, M2E_mZ, M2L_mZ, Al_mZ, Y_l_mZ                  &
-                    &, M2D_mZ, M2U_mZ, M2Q_mZ, Ad_mZ, Au_mZ, Y_d_mZ, Y_u_mZ    &
-                    &, mGlu, PhaseGlu, mC, mC2, U, V, mN, mN2, N               &
-                    &, mSdown, mSdown2, RSdown, mSup, mSup2, RSup              &
-                    &, mP0, mP02, RP0, mS0, mS02, RS0, mSpm, mSpm2, RSpm       &
-                    &, GenerationMixing, kont)
-
-   Call NeutralinoMass_Loop_RP(g0(1), g0(2), Y_d_mZ, Y_l_mZ, Y_u_mZ, vevSM     &
-          & , vevL, Mi_mZ(1), Mi_mZ(2), mu_mZ, eps, mC, mC2, U, V, mSup2, RSup &
-          & , mSdown2, RSdown, mS02, RS0, mP02, RP0, mSpm2, RSpm, uD_L, uD_R   &
-          & , uU_L, uU_R, mN, mN2, N, mN1L, mN1L2, N1L, kont, .False.)
-  End If 
   mN7 = mN1L
   N7 = N1L
   B_i = B_4(2:4)
-  
+
  End Subroutine Calculate_RP_Parameters
+
+ Subroutine CalculateEpsTilde_from_Eps(epsT, eps, Lambda)
+ Implicit None
+  Complex(dp), Intent(in), Dimension(3) :: eps, Lambda 
+  Complex(dp), Intent(out), Dimension(3) :: epsT
+
+  Real(dp) :: AbsLam2, Abs23, AbsLam22, Abs232
+
+
+  Abs232 = Abs(Lambda(2))**2 + Abs(Lambda(3))**2
+  AbsLam22 = Abs232 + Abs(Lambda(1))**2
+
+  Abs23 = Sqrt(Abs232)
+  AbsLam2 = Sqrt(AbsLam22)
+
+  epsT(1) = ( eps(1) * Abs232                                   &
+          & - Lambda(1) * (Lambda(2)*eps(2)+Lambda(3)*eps(3))   &
+          & ) / (Abs23*AbsLam2)
+  epsT(2) = (Lambda(3)*eps(2)-Lambda(2)*eps(3)) / Abs23
+  epsT(3) = (Lambda(1)*eps(1)+Lambda(2)*eps(2)+Lambda(3)*eps(3)) / AbsLam2
+
+ End Subroutine CalculateEpsTilde_from_Eps
+
+ Subroutine CalculateEps_from_EpsTilde(eps, epsT, Lambda)
+ Implicit None
+  Complex(dp), Intent(in), Dimension(3) :: epsT, Lambda 
+  Complex(dp), Intent(out), Dimension(3) :: eps
+
+  Real(dp) :: AbsLam2, Abs23, AbsLam22, Abs232
+
+  Abs232 = Abs(Lambda(2))**2 + Abs(Lambda(3))**2
+  AbsLam22 = Abs232 + Abs(Lambda(1))**2
+
+  Abs23 = Sqrt(Abs232)
+  AbsLam2 = Sqrt(AbsLam22)
+
+  eps(1) = ( epsT(3) * Lambda(1) + epsT(1) * Abs23  )  / AbsLam2
+
+  eps(2) = (-epsT(1) * Lambda(1) * Lambda(2) + epsT(3) * Lambda(2) * Abs23  &
+         & + epsT(2) * Lambda(3) * AbsLam2 ) / (Abs23 * AbsLam2)
+
+  eps(3) = (-epsT(1) * Lambda(1) * Lambda(3) + epsT(3) * Lambda(3) * Abs23  &
+         & - epsT(2) * Lambda(2) * AbsLam2 ) / (Abs23 * AbsLam2)
+
+ End Subroutine CalculateEps_from_EpsTilde
 
   
  Subroutine Fit_Neutrino_Data_sp(Nfit, m2_atm_min, m2_atm_max, tan2_atm_min   &
@@ -439,7 +390,7 @@ Contains
 
    Real(dp) :: epssq, lambda, eps(3), lam(3), mptot, mRtot, mphot, x1, x2, x3 &
        & , det7, c1, c2, c3, vu, vd, sgnc
-   Real(dp) :: vec8(8), vec12(12), vec13(13) ! vectors of random numbers
+   Real(dp) :: vec8(8), vec13(13) ! vectors of random numbers
    integer :: i1
    !----------------------------------------------
    ! no adjustment if Nfit < 0
@@ -551,8 +502,8 @@ Contains
  End Subroutine Fit_Neutrino_Data_sp
 
 
- Subroutine Model_bilinear_Rparity(add_Rparity, HighScaleModel, delta, epsI     &
-       & , deltaM, ratioWoM, m32, grav_fac, CalcTBD, Ecms, Pm, Pp, ISR, Beam    &
+ Subroutine Model_bilinear_Rparity(add_Rparity, HighScaleModel, delta, epsI   &
+       & , deltaM, ratioWoM, m32, grav_fac, CalcTBD, Ecms, Pm, Pp, ISR, Beam  &
        & , SigSup , SigSdown, SigC, SigChi0, SigS0, SigSP, SigHp, M_GUT, kont)
   Implicit None
 
@@ -575,8 +526,8 @@ Contains
  !--------------------------------
   Real(dp), Intent(in) :: Ecms(:), Pm(:), Pp(:)
   Logical, Intent(in) :: ISR(:), Beam(:)
-  Real(dp), Intent(out) :: SigSup(:,:,:) , SigSdown(:,:,:), SigC(:,:,:), SigChi0(:,:,:) &
-         & , SigS0(:,:), SigSP(:,:,:), SigHp(:,:,:)
+  Real(dp), Intent(out) :: SigSup(:,:,:) , SigSdown(:,:,:), SigC(:,:,:)   &
+     & , SigChi0(:,:,:), SigS0(:,:), SigSP(:,:,:), SigHp(:,:,:)
 
   !-----------------------------------------------------------
   ! local variables
@@ -584,32 +535,45 @@ Contains
   Integer :: i1, i_min(3)
   Real(dp) :: sinW2, gp, g,vev
   Real(dp) :: g0(213), mudim, tz, dt, gauge_mZ(3), M2H_mZ(3), mN1L(7), mN1L2(7)
+  Real(dp) :: mGlu_T, mSdown_T(6), mSdown2_T(6), mSup_T(6), mSup2_T(6)
   Complex(dp), Dimension(3,3) :: y_l_mZ,  y_d_mZ, y_u_mZ , Al_mZ, Ad_mZ &
            &, Au_mZ,M2E_mZ, M2L_mZ, M2D_mZ, M2Q_mZ, M2U_mZ
-  Complex(dp) :: Mi_mZ(3), mu_mZ, B_mZ, bi(4), BiEpsi(4), N1L(7,7)
+  Complex(dp) :: Mi_mZ(3), B_mZ, bi(4), BiEpsi(4), N1L(7,7), PhaseGlu_T &
+           & , RSdown_T(6,6), RSup_T(6,6)
   !--------------------------------
   ! cross section calculation
   !--------------------------------
   Integer :: p_max
+
+ !------------------------------------------------------
+ ! internal information on particle identities
+ !------------------------------------------------------
+  Integer :: id_gl, id_ph, id_grav
+  Integer, Dimension(1) :: id_Z, id_W
+  Integer, Dimension(3) :: id_nu, id_l, id_d, id_u
 
   Iname = Iname + 1
   NameOfUnit(Iname) = "Model_bilinear_Rparity"
 
   kont = 0
 
+  Call Initialize_RPexplicit(GenerationMixing, id_gl, id_ph, id_Z, id_W &
+               & , id_nu, id_l, id_d, id_u, id_grav)
+
   If (add_Rparity) Then ! calculate parameters from a high scale model
                        ! assuming conserved R-parity
 
-   Call FirstGuess(phase_mu, tanb, Mi, M2_E, M2_L, A_l, M2_D   &
-           & , M2_Q, M2_U, A_d, A_u, mu, B, M2_H, gp, g, Y_l  &
-           & , Y_d, Y_u, vevSM, mP02, mP0, kont)
+   Call FirstGuess(phase_mu, tanb, Mi, M2_E, M2_L, A_l, M2_D, M2_Q, M2_U, A_d &
+           & , A_u, mu, B, M2_H, gp, g, Y_l, Y_d, Y_u, vevSM, mP02, mP0, kont)
+   
+   If (kont.Ne.0) Return
 
-   Call TreeMasses(gp, g, vevSM, Mi(1), Mi(2), Mi(3), mu, B        &
-        &, tanb, M2_E, M2_L, A_l, Y_l, M2_D, M2_U, M2_Q, A_d       &
-        &, A_u, Y_d, Y_u, mGlu, PhaseGlu, mC, mC2, U, V, mN        &
-        &, mN2, N, mSneut, mSneut2, Rsneut, mSlepton, mSlepton2    &
-        &, RSlepton, mSdown, mSdown2, RSdown, mSup, mSup2, RSup    &
-        &, mP0, mP02, RP0, mS0, mS02, RS0, mSpm, mSpm2, RSpm       &
+   Call TreeMasses(gp, g, vevSM, Mi(1), Mi(2), Mi(3), mu, B                &
+        &, tanb, M2_E, M2_L, A_l, Y_l, M2_D, M2_U, M2_Q, A_d               &
+        &, A_u, Y_d, Y_u, Glu%m, PhaseGlu, ChiPm%m, ChiPm%m2, U, V, Chi0%m &
+        &, Chi0%m2, N, Sneut%m, Sneut%m2, Rsneut, Slepton%m, Slepton%m2    &
+        &, RSlepton, Sdown%m, Sdown%m2, RSdown, Sup%m, Sup%m2, RSup        &
+        &, P0%m, P0%m2, RP0, S0%m, S0%m2, RS0, Spm%m, Spm%m2, RSpm         &
         &, GenerationMixing, kont, .False.) ! tree-level Higgs mass
 
    If (kont.Ne.0) Return
@@ -625,21 +589,19 @@ Contains
    ! In the SPA convention the the renormalization scale is fixed with 1 TeV
    If (SPA_Convention) Call SetRGEScale(1.e3_dp**2) ! 
 
-   Call Sugra(delta, vevSM, mC, U, V, mN, N, mS0, mS02, RS0 &
-     & , mP0, mP02, RP0, mSpm, mSpm2, RSpm, mSdown, mSdown2 &
-     & , RSdown, mSup, mSup2, RSup, mSlepton, mSlepton2     &
-     & , RSlepton, mSneut, mSneut2, RSneut, mGlu, PhaseGlu  &
-     & , gauge, uL_L, uL_R, uD_L, uD_R, uU_L, uU_R, Y_l     &
-     & , Y_d, Y_u, Mi, A_l, A_d, A_u, M2_E, M2_L, M2_D      &
+   Call Sugra(delta, vevSM, ChiPm%m, U, V, Chi0%m, N, S0%m, S0%m2, RS0    &
+     & , P0%m, P0%m2, RP0, Spm%m, Spm%m2, RSpm, Sdown%m, Sdown%m2, RSdown &
+     & , Sup%m, Sup%m2, RSup, Slepton%m, Slepton%m2, RSlepton, Sneut%m    &
+     & , Sneut%m2, RSneut, Glu%m, PhaseGlu, gauge, uL_L, uL_R, uD_L, uD_R &
+     & , uU_L, uU_R, Y_l, Y_d, Y_u, Mi, A_l, A_d, A_u, M2_E, M2_L, M2_D   &
      & , M2_Q, M2_U, M2_H, mu, B, m_GUT, kont, WriteOut, n_run)
 
    If (l_fit_RP_parameters) Then
 
     Call Calculate_RP_Parameters(delta_mass, eps, vevL, Beps, Lam_ex, RSpm8 &
-                            & , RS05, RP05, U5, V5, mN7, N7, kont)
+                     & , RS05, RP05, U5, V5, Chi07%m, N7, kont)
 
    Else ! .not.l_fit_RP_parameters
-
    !-------------------------------------------------
    ! evolve the parameters down to m_Z if necessary 
    !-------------------------------------------------
@@ -649,7 +611,7 @@ Contains
 
     If (mudim.Ne.mZ2) Then
  
-     tz = 0.5_dp * Log(mZ/mudim)
+     tz = 0.5_dp * Log(mZ2/mudim)
      dt = tz / 100._dp
      g0(1) = Sqrt(5._dp / 3._dp ) * g0(1)
  
@@ -669,24 +631,26 @@ Contains
     bi(2:4) = eps
  
     Call TreeMassesEps3(g0(1), g0(2), vevSM, vevL, Mi_mZ(1), Mi_mZ(2)        &
-           & , Mi_mZ(3), bi, BiEpsi, M2E_mZ, M2L_mZ, Al_mZ, Y_l_mZ        &
-           & , M2D_mZ, M2U_mZ, M2Q_mZ, Ad_mZ, Au_mZ, Y_d_mZ, Y_u_mZ       &
-           & , mGlu, PhaseGlu, mC5, mC52, U5, V5, mN7, mN72, N7           &
-           & , mSdown, mSdown2, RSdown, mSup, mSup2, RSup, mP05, mP052, RP05 &
-           & , mS05, mS052, RS05, mSpm8, mSpm82, RSpm8, GenerationMixing, kont)
+           & , Mi_mZ(3), bi, BiEpsi, M2E_mZ, M2L_mZ, Al_mZ, Y_l_mZ           &
+           & , M2D_mZ, M2U_mZ, M2Q_mZ, Ad_mZ, Au_mZ, Y_d_mZ, Y_u_mZ          &
+           & , mGlu_T, PhaseGlu_T, ChiPm5%m, ChiPm5%m2, U5, V5, Chi07%m      &
+           & , Chi07%m2, N7, mSdown_T, mSdown2_T, RSdown_T, mSup_T, mSup2_T  &
+           & , RSup_T, P05%m, P05%m2, RP05, S05%m, S05%m2, RS05              &
+           & , Spm8%m, Spm8%m2, RSpm8, GenerationMixing, kont)
 
     If (kont.Ne.0) Then
      Iname = Iname - 1
      Return
     End If
   
-    Call NeutralinoMass_Loop_RP(g0(1), g0(2), Y_d_mZ, Y_l_mZ, Y_u_mZ, vevSM   &
-         & , vevL, Mi_mZ(1), Mi_mZ(2), mu_mZ, eps, mC5, mC52, U5, V5          &
-         & , mSup2, RSup, mSdown2, RSdown, mS052, RS05, mP052, RP05, mSpm82   &
-         & , RSpm8, uD_L, uD_R, uU_L, uU_R, mN7, mN72, N7, mN1L, mN1L2, N1L   &
-         & , kont, .False.)
+    Call NeutralinoMass_Loop_RP(g0(1), g0(2), Y_d_mZ, Y_l_mZ, Y_u_mZ, vevSM    &
+         & , vevL, Mi_mZ(1), Mi_mZ(2), mu_mZ, eps, ChiPm5%m, ChiPm5%m2, U5, V5 &
+         & , mSup2_T, RSup_T, mSdown2_T, RSdown_T, S05%m2, RS05, P05%m2, RP05  &
+         & , Spm8%m2, RSpm8, uD_L, uD_R, uU_L, uU_R, Chi07%m, Chi07%m2, N7     &
+         & , mN1L, mN1L2, N1L, kont, .False.)
 
-    mN7 = mN1L
+    Chi07%m = mN1L
+    Chi07%m2 = mN1L2
     N7 = N1L
 
    End If  ! l_fit_RP_parameters
@@ -697,47 +661,50 @@ Contains
    ! this is justified in the region of parameter space where neutrino
    ! data are correctely explained
    !-------------------------------------------------------------------
-    mC5(1:3) = mf_l
-    mC5(4:5) = mC
-    mN7(4:7) = mN
-    mP05(1) = mZ
+    ChiPm5(1:3)%m = mf_l
+    ChiPm5(4:5)%m = ChiPm%m
+    Chi07(4:7)%m = Chi0%m
+
+    P05(1)%m = mZ
     Do i1=2,5
-     If ( (RP05(i1,1)**2 +RP05(i1,2)**2).Gt.0.5_dp) mP05(i1) = mP0(2)
-     If ( RP05(i1,3)**2.Gt.0.5_dp) mP05(i1) = mSneut(1)
-     If ( RP05(i1,4)**2.Gt.0.5_dp) mP05(i1) = mSneut(2)
-     If ( RP05(i1,5)**2.Gt.0.5_dp) mP05(i1) = mSneut(3)
+     If ( (RP05(i1,1)**2 +RP05(i1,2)**2).Gt.0.5_dp) P05(i1)%m = P0(2)%m
+     If ( RP05(i1,3)**2.Gt.0.5_dp) P05(i1)%m = Sneut(1)%m
+     If ( RP05(i1,4)**2.Gt.0.5_dp) P05(i1)%m = Sneut(2)%m
+     If ( RP05(i1,5)**2.Gt.0.5_dp) P05(i1)%m = Sneut(3)%m
     End Do
-    mP052 = mP05**2
+    P05%m2 = P05%m**2
+
     i_min = 0
     Do i1=1,5
      If ( (RS05(i1,1)**2 +RS05(i1,2)**2).Gt.0.5_dp) Then
-      mS05(i1) = mS0(1 + i_min(1) )
+      S05(i1)%m = S0(1 + i_min(1) )%m
       i_min(1) = i_min(1) + 1
      End If
-     If ( RS05(i1,3)**2.Gt.0.5_dp) mS05(i1) = mSneut(1)
-     If ( RS05(i1,4)**2.Gt.0.5_dp) mS05(i1) = mSneut(2)
-     If ( RS05(i1,5)**2.Gt.0.5_dp) mS05(i1) = mSneut(3)
+     If ( RS05(i1,3)**2.Gt.0.5_dp) S05(i1)%m = Sneut(1)%m
+     If ( RS05(i1,4)**2.Gt.0.5_dp) S05(i1)%m = Sneut(2)%m
+     If ( RS05(i1,5)**2.Gt.0.5_dp) S05(i1)%m = Sneut(3)%m
     End Do
-    mS052 = mS05**2
-    mSpm8(1) = mW
+    S05%m2 = S05%m**2
+
+    Spm8(1)%m = mW
     i_min = 0
     Do i1=2,8
      If ( (Abs(RSpm8(i1,1))**2 +Abs(RSpm8(i1,2))**2).Gt.0.5_dp) &
-        &  mSpm8(i1) = mSpm(2)
+        &  Spm8(i1)%m = Spm(2)%m
      If ( (Abs(RSpm8(i1,3))**2 +Abs(RSpm8(i1,6))**2).Gt.0.5_dp) Then
-      mSpm8(i1) = mSlepton(1 + i_min(1) )
+      Spm8(i1)%m = Slepton(1 + i_min(1) )%m
       i_min(1) = i_min(1) + 1
      End If
      If ( (Abs(RSpm8(i1,4))**2 +Abs(RSpm8(i1,7))**2).Gt.0.5_dp) Then
-      mSpm8(i1) = mSlepton(3 + i_min(2) )
+      Spm8(i1)%m = Slepton(3 + i_min(2) )%m
       i_min(2) = i_min(2) + 1
      End If
      If ( (Abs(RSpm8(i1,5))**2 +Abs(RSpm8(i1,8))**2).Gt.0.5_dp) Then
-      mSpm8(i1) = mSlepton(5 + i_min(3) )
+      Spm8(i1)%m = Slepton(5 + i_min(3) )%m
       i_min(3) = i_min(3) + 1
      End If
     End Do
-    mSpm82 = mSpm8**2
+    Spm8%m2 = Spm8%m**2
 
    HighScaleModel = "RPexplicit"
 
@@ -777,14 +744,23 @@ Contains
    bi(2:4) = eps
    BiEpsi(1) = B * mu
    BiEpsi(2:4) = Beps * eps 
-   Call TreeMassesEps3(gp, g, vevSM, vevL, Mi(1), Mi(2), Mi(3), bi, BiEpsi  &
-      & , M2_E, M2_L, A_l, Y_l, M2_D, M2_U, M2_Q, A_d, A_u, Y_d, Y_u        &
-      & , mGlu, PhaseGlu, mC5, mC52, U5, V5, mN7, mN72, N7, mSdown, mSdown2 &
-      & , RSdown, mSup, mSup2, RSup, mP05, mP052, RP05, mS05, mS052, RS05   &
-      & , mSpm8, mSpm82, RSpm8, GenerationMixing, kont)
+   Call TreeMassesEps3(gp, g, vevSM, vevL, Mi(1), Mi(2), Mi(3), bi, BiEpsi    &
+      & , M2_E, M2_L, A_l, Y_l, M2_D, M2_U, M2_Q, A_d, A_u, Y_d, Y_u          &
+      & , Glu%m, PhaseGlu, ChiPm5%m, ChiPm5%m2, U5, V5, Chi07%m, Chi07%m2, N7 &
+      & , Sdown%m, Sdown%m2, RSdown, Sup%m, Sup%m2, RSup, P05%m, P05%m2, RP05 &
+      & , S05%m, S05%m2, RS05, Spm8%m, Spm8%m2, RSpm8, GenerationMixing, kont)
 
   End If ! add_Rparity
 
+   !----------------------------------------------
+   ! reorder state identification if necessary
+   !----------------------------------------------
+   If (.Not.GenerationMixing) Then
+    Call Swap_Order_Sf(RSdown(1,1), Sdown(1)%id, Sdown(2)%id, id_p, c_name)    
+    Call Swap_Order_Sf(RSdown(3,3), Sdown(3)%id, Sdown(4)%id, id_p, c_name)    
+    Call Swap_Order_Sf(RSup(1,1), Sup(1)%id, Sup(2)%id, id_p, c_name)    
+    Call Swap_Order_Sf(RSup(3,3), Sup(3)%id, Sup(4)%id, id_p, c_name)    
+   End If
   !-----------------------------------------------------------------------
   ! as there is a large hierachy between m_nu and m_chi, there might have
   ! been numerical problems. However, in all known cases this has been
@@ -797,15 +773,12 @@ Contains
   
   If ((L_BR).And.(kont.Eq.0)) Then
 
-   Call CalculateBR(gauge, mGlu, PhaseGlu, mC5, U5, V5, mN7, N7, mSup, RSup  &
-     & , mSdown, RSdown, uD_L, uD_R, uU_L, uU_R, mS05, RS05, mP05, RP05      &
-     & , mSpm8, RSpm8, epsI, deltaM, CalcTBD, kont, ratioWoM, Y_d, A_d, Y_l  &
-     & , A_l, Y_u, A_u, mu, eps, vevSM, vevL, F_Gmsb, m32, grav_fac          &
-     & , gP_Sd, gT_Sd, BR_Sd, gP_Su, gT_Su, BR_Su                            &
-     & , gT_C, gP_C2, BR_C2, gP_C3, BR_C3                                    &
-     & , gT_N, gP_N4_2, BR_N4_2, gP_N4_3, BR_N4_3                            &
-     & , gP_Glu, gT_Glu, BR_Glu, gP_P05, gT_P05, BR_P05                      &
-     & , gP_S05, gT_S05, BR_S05, gP_Spm8, gT_Spm8, BR_Spm8)
+   Call CalculateBR(0, id_nu, 0, id_l, 3, id_d, 3, id_u, 1, id_Z, 1, id_W, 0   &
+    & , 0, 6, 6, 7, 5, 1, 5, 5, 8, id_grav, id_gl, id_ph, gauge, Glu, PhaseGlu &
+    & , ChiPm5, U5, V5, Chi07, N7, Sup, RSup, Sdown, RSdown, uD_L, uD_R, uU_L  &
+    & , uU_R, S05, RS05, P05, RP05, Spm8, RSpm8, epsI, deltaM, CalcTBD         &
+    & , ratioWoM, Y_d, A_d, Y_l, A_l, Y_u, A_u, mu, eps, vevSM, vevL, F_Gmsb   &
+    & , m32, grav_fac)
 
   End If
 
@@ -830,19 +803,48 @@ Contains
 
    Do i1=1,p_max
     If (Ecms(i1).Eq.0._dp) Exit
-    Call CalculateCrossSections(Ecms(i1), Pm(i1), Pp(i1), ISR(i1), Beam(i1) &
-           & , "Tesla800", mSup, RSup, mf_u, mSdown, RSdown, mf_d, mglu     &
-           & , SigSup(i1,:,:), SigSdown(i1,:,:), mC5, U5, V5, mN7, N7       &
-           & , SigC(i1,:,:), SigChi0(i1,:,:), mS05, RS05, vevSM, vevL       &
-           & , mP05, RP05, mSpm8, RSpm8, SigS0(i1,:), SigSP(i1,:,:)         &
+    Call CalculateCrossSections(Ecms(i1), Pm(i1), Pp(i1), ISR(i1), Beam(i1)    &
+           & , "Tesla800", Sup%m, RSup, mf_u, Sdown%m, RSdown, mf_d, Glu%m     &
+           & , SigSup(i1,:,:), SigSdown(i1,:,:), ChiPm5%m, U5, V5, Chi07%m, N7 &
+           & , SigC(i1,:,:), SigChi0(i1,:,:), S05%m, RS05, vevSM, vevL         &
+           & , P05%m, RP05, Spm8%m, RSpm8, SigS0(i1,:), SigSP(i1,:,:)          &
            & , SigHp(i1,:,:) )
    End Do
 
   End If
 
-  lam_ex = mu * vevL + vevSM(1) * eps
+  lam_ex = mu_mZ * vevL + vevSM(1) * eps
+  mf_nu = Chi07(1:3)%m
 
   Iname = Iname - 1
+
+ Contains
+
+  Subroutine Swap_Order_Sf(Rij, id1, id2, id_p, names)
+  Implicit None
+   Complex(dp), Intent(in) :: Rij
+   Integer, Intent(in) :: id1, id2
+   Integer, Intent(inout) :: id_p(:)
+   Character(len=12), Intent(inout) :: names(:)
+
+   Integer :: k(2)
+   Character(len=12) :: nam(2)
+   !--------------------------------------------------------------------
+   ! changes name and particle id, in case that the lighter of two
+   ! sfermions is a right-sfermion
+   !--------------------------------------------------------------------
+   If (Abs(Rij).Lt.0.5_dp) Then
+    k = id_p(id1:id1+1)
+    id_p(id1:id1+1) = id_p(id2:id2+1)
+    id_p(id2:id2+1) = k
+
+    nam = names(id1:id1+1)
+    names(id1:id1+1) = names(id2:id2+1)
+    names(id2:id2+1) = nam
+   End If
+
+  End Subroutine Swap_Order_Sf
+
 
  End Subroutine Model_bilinear_Rparity
 

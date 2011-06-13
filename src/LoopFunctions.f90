@@ -82,13 +82,14 @@ Real(dp), Private :: mudim2=1._dp, divergence=0._dp, lambda2 = 1._dp
 !       fidl4i: ier of dl4i (is not included in F0)
 !
 Real(dp), Private :: xloss = 0.125_dp, precx,precc,xalogm,xclogm,xalog2 &
- & ,xclog2, &
- &  reqprc=1.e-8_dp,bf(20), xninv(30),xn2inv(30),xinfac(30), &
- &  fpij2(3,3),fpij3(6,6),fpij4(10,10),fpij5(15,15), &
- &  fpij6(21,21),fdel2,fdel3,fdel4s,fdel4,fdl3i(5), &
- &  fdl4si(5),fdl3ij(6,6),fd4sij(6,6),fdl4i(6),fodel2, &
- &  fodel3,fodel4,fodl3i(5),fod3ij(6,6),fodl4i(6), xlg2
-Integer, Private :: fidel3,fidel4,fidl3i(5),fid3ij(6,6),fidl4i(6)
+ & ,xclog2,bf(20), xninv(30),xn2inv(30),xinfac(30), &
+ &  fpij2(3,3),fpij3(6,6),fdel2, xlg2
+! Real(dp), Private ::  reqprc=1.e-8_dp,fpij4(10,10),fpij5(15,15), &
+! &  fpij6(21,21),fdel3,fdel4s,fdel4,fdl3i(5), &
+! &  fdl4si(5),fdl3ij(6,6),fd4sij(6,6),fdl4i(6),fodel2, &
+! &  fodel3,fodel4,fodl3i(5),fod3ij(6,6),fodl4i(6)
+! Integer, Private :: fidel3,fidel4,fidl3i(5),fid3ij(6,6),fidl4i(6)
+
 !
 !	c[zero1]:0,1 complex
 !	c2ipi:	2*i*pi
@@ -100,9 +101,10 @@ Integer, Private :: fidel3,fidel4,fidl3i(5),fid3ij(6,6),fidl4i(6)
 !	ca1:	(internal only) complex A1
 !	csdl2p: (internal only) complex transformed sqrt(del2)
 !
-Complex(dp), Private :: czero,cone,c2ipi,cipi2, cfpij2(3,3),cfpij3(6,6),     &
-  & cfpij4(10,10),cfpij5(15,15), cfpij6(21,21),cmipj(3,3),c2sisj(4,4),cfdl4s &
-  & ,ca1
+Complex(dp), Private :: czero,cone,c2ipi,cipi2,cmipj(3,3)
+! Complex(dp), Private :: ,ca1,cfdl4s,c2sisj(4,4), cfpij6(21,21), cfpij2(3,3) &
+!  & , cfpij3(6,6), cfpij4(10,10),cfpij5(15,15)
+
 ! error control
 Integer, Private, Parameter :: N_err = 50
 Logical, Private :: PrintToScreen = .False.
@@ -124,8 +126,8 @@ Integer, Private :: ErrorOccur(N_err) = 0
 !    	  IR routines in the C0 (ff internal only)
 !	lnasty: internal use
 !
-Logical, Private :: l4also = .False., ldc3c4 = .False. ,lmem = .False.  &
-     & , ldot = .False., onshel = .True. ,lsmug = .False. , lnasty
+Logical, Private :: l4also = .False., ldot = .False. ,lsmug = .False.
+! Logical, Private ::  , lnasty, onshel = .True. ,lmem = .False., ldc3c4 = .False.
 !
 !       nwidth: number of widths within which the complex mass is used
 !         in some schemes, for onshel=.FALSE.,
@@ -174,30 +176,30 @@ Complex(dp), Private, Save :: ca0i(2), cb0, cb1
 !	irota5:	same for the E0
 !	irota6:	same for the F0
 !
-Integer, Private :: nevent = 0,ner,id,idsub,inx(4,4),isgn(4,4),inx5(5,5)  &
-        & , isgn5(5,5),inx6(6,6),isgn6(6,6),isgn34=1,isgnal=1  &
-        & , irota3,irota4,irota5,irota6
-Integer, Private ::  iold(13,12)  = Reshape(  Source = (/ &
-  & 1,2,3,4, 5,6,7,8,9,10, 11,12,13, 4,1,2,3, 8,5,6,7,10,9, 11,13,12,  &
-  & 3,4,1,2, 7,8,5,6,9,10, 11,12,13, 2,3,4,1, 6,7,8,5,10,9, 11,13,12,  &
-  & 4,2,3,1, 10,6,9,8,7,5, 12,11,13, 1,3,2,4, 9,6,10,8,5,7, 12,11,13,  &
-  & 1,2,4,3, 5,10,7,9,8,6, 13,12,11, 1,4,3,2, 8,7,6,5,9,10, 11,13,12,  &
-  & 3,4,2,1, 7,10,5,9,6,8, 13,12,11, 2,3,1,4, 6,9,8,10,5,7, 12,13,11,  &
-  & 4,2,1,3, 10,5,9,7,8,6, 13,11,12, 1,3,4,2, 9,7,10,5,8,6, 13,11,12/) &
-  & , Shape = (/13, 12/) )
-Integer, Private :: isgrot(10,12) =  Reshape(  Source = (/ &
-  &  +1,+1,+1,+1, +1,+1,+1,+1, +1,+1, +1,+1,+1,+1, +1,+1,+1,+1, -1,+1, &
-  &  +1,+1,+1,+1, +1,+1,+1,+1, -1,-1, +1,+1,+1,+1, +1,+1,+1,+1, +1,-1, &
-  &  +1,+1,+1,+1, -1,+1,+1,-1, +1,-1, +1,+1,+1,+1, -1,-1,+1,+1, -1,+1, &
-  &  +1,+1,+1,+1, +1,+1,-1,+1, +1,+1, +1,+1,+1,+1, -1,-1,-1,-1, +1,-1, &
-  &  +1,+1,+1,+1, -1,+1,+1,+1, -1,-1, +1,+1,+1,+1, +1,+1,+1,-1, +1,-1, &
-  &  +1,+1,+1,+1, -1,+1,+1,-1, -1,-1, +1,+1,+1,+1, -1,-1,+1,+1, -1,-1/) &
-  & , Shape = (/10, 12/) )
+Integer, Private :: id,idsub,inx(4,4),isgn(4,4),inx5(5,5)  &
+        & , isgn5(5,5),inx6(6,6),isgn6(6,6),isgnal=1  &
+        & , irota3 !,nevent = 0,ner,isgn34=1,irota4,irota5,irota6
+!Integer, Private ::  iold(13,12)  = Reshape(  Source = (/ &
+!  & 1,2,3,4, 5,6,7,8,9,10, 11,12,13, 4,1,2,3, 8,5,6,7,10,9, 11,13,12,  &
+!  & 3,4,1,2, 7,8,5,6,9,10, 11,12,13, 2,3,4,1, 6,7,8,5,10,9, 11,13,12,  &
+!  & 4,2,3,1, 10,6,9,8,7,5, 12,11,13, 1,3,2,4, 9,6,10,8,5,7, 12,11,13,  &
+!  & 1,2,4,3, 5,10,7,9,8,6, 13,12,11, 1,4,3,2, 8,7,6,5,9,10, 11,13,12,  &
+!  & 3,4,2,1, 7,10,5,9,6,8, 13,12,11, 2,3,1,4, 6,9,8,10,5,7, 12,13,11,  &
+!  & 4,2,1,3, 10,5,9,7,8,6, 13,11,12, 1,3,4,2, 9,7,10,5,8,6, 13,11,12/) &
+!  & , Shape = (/13, 12/) )
+!Integer, Private :: isgrot(10,12) =  Reshape(  Source = (/ &
+!  &  +1,+1,+1,+1, +1,+1,+1,+1, +1,+1, +1,+1,+1,+1, +1,+1,+1,+1, -1,+1, &
+!  &  +1,+1,+1,+1, +1,+1,+1,+1, -1,-1, +1,+1,+1,+1, +1,+1,+1,+1, +1,-1, &
+!  &  +1,+1,+1,+1, -1,+1,+1,-1, +1,-1, +1,+1,+1,+1, -1,-1,+1,+1, -1,+1, &
+!  &  +1,+1,+1,+1, +1,+1,-1,+1, +1,+1, +1,+1,+1,+1, -1,-1,-1,-1, +1,-1, &
+!  &  +1,+1,+1,+1, -1,+1,+1,+1, -1,-1, +1,+1,+1,+1, +1,+1,+1,-1, +1,-1, &
+!  &  +1,+1,+1,+1, -1,+1,+1,-1, -1,-1, +1,+1,+1,+1, -1,-1,+1,+1, -1,-1/) &
+!  & , Shape = (/10, 12/) )
 Integer :: idum93(2)
 ! constants
 
 !  functions and subroutines
-Private :: AbsC, FindBound, Rot3, WriteLFerror
+Private :: AbsC, FindBound, ffRot3, WriteLFerror
 
 ! now my definitions
 Logical, Private :: l_look_up_cache = .False. ! .True.
@@ -264,6 +266,31 @@ Contains
  End Function A_onehalf
 
 
+ Complex(dp) Function AP_onehalf(x)
+ !----------------------------------------------------------------------------
+ ! calculates the spin 1/2 loop function for the radiative decay of a 
+ ! pseudoscalar to two photons
+ ! based on the formulas of M.Spira et al., Nucl. Phys. B 453 (1995) 17
+ ! based on A_onehalf by Werner Porod
+ ! written by Florian Staub, 18.06.2010
+ !----------------------------------------------------------------------------
+ Implicit None
+  Real(dp), Intent(in) :: x
+
+!  If (x.Eq.1._dp) Then
+!   A_onehalf = 2._dp 
+!  Else If (x.Lt.1._dp) Then
+  If (x.LE.1._dp) Then
+   AP_onehalf = Asin(Sqrt(x))**2  / x
+  Else
+   AP_onehalf = - 0.25_dp * ( Log( (1._dp + Sqrt(1._dp - 1._dp/x))      &
+       &                  / (1._dp - Sqrt(1._dp - 1._dp/x)) )    &
+       &             - Cmplx(0._dp, Pi, dp) )**2
+   AP_onehalf = AP_onehalf  / x
+  End If
+
+ End Function AP_onehalf
+
  Complex(dp) Function A_zero(x)
  !----------------------------------------------------------------------------
  ! calculates the spin 0 loop function for the radiative decay of a scalar
@@ -315,14 +342,9 @@ Contains
  Real(dp) Function AbsC(z)
  Implicit None
   Complex(dp), Intent(in) :: z
-!Write(*,*) z
-!Write(*,*)  Real(z,dp) 
-!Write(*,*) Abs( Real(z,dp) )
-!Write(*,*)  Aimag(z)
-!Write(*,*) Abs( Aimag(z) )
-  absC = Sqrt(Real(z,dp)**2) + Sqrt( Aimag(z)**2 )
-!  AbsC = Abs( Real(z,dp) ) + Abs( Aimag(z) )
-!Write(*,*) "hier"
+
+  AbsC = Abs( Real(z,dp) ) + Abs( Aimag(z) )
+
  End Function AbsC
 
 
@@ -7485,8 +7507,6 @@ outer:  Do i=1,itime
  !  #] sdel2<0!:
  End Subroutine ffxc0j
 
-
-
  Subroutine ffxc0p(cs3,ipi12,isoort,clogi,ilogi,xpi,dpipj,piDpj, &
                   sdel2,del2s,etalam,etami,delpsi,alph,npoin)
  !------------------------------------------------------------------------
@@ -7547,6 +7567,7 @@ outer:  Do i=1,itime
  !	but only the off-shell regulator case - the log(lam) has been
  !	caught before
  !
+  ier = 0
   If ( lsmug ) Then
     Do i=1,3
       If ( xpi(i) == 0 ) Then
@@ -9960,11 +9981,10 @@ Goto 200
    !     auxiliary variables
    u = x/z
    v = y/z
-   
    If(u<=1.e-8_dp) Then
      
      If(v/=1._dp) Then
-       myphi = (Log(u)*Log(v)+2d0*Li2(1._dp-v))/(1._dp-v)
+       myphi = (Log(u)*Log(v)+2._dp*Li2(1._dp-v))/(1._dp-v)
      Else
        myphi = 2._dp-Log(u)
      Endif
@@ -9982,7 +10002,6 @@ Goto 200
     Else
       clam = Cmplx(0._dp,Sqrt(4._dp*u*v - (1._dp-u-v)**2),dp)
     Endif
-       
     cxp = (1._dp+(u-v)-clam)/2._dp
     cxm = (1._dp-(u-v)-clam)/2._dp
        

@@ -520,30 +520,35 @@ Contains
 
  End Function stbWchi
 
- Subroutine StopDecays3(mStop, mStop2, RStop, YukB, tanb, mSbottom2, g_sb     &
-        & , A_b, mu, mP02, mN, mN2, g, c_UNSu_L, c_UNSu_R, c_DNSd_L, c_DNSd_R &
-        & , c_SdSuW, mSneut2, mC, mC2, g_C, c_CLSn_L, c_CLSn_R, c_CDSu_L      &
-        & , c_CDSu_R, c_CNW_L, c_CNW_R, mSlept2, c_CNuSl_R, prec              &
-        & , gstCneu, gStWBNeu, gStBSnL, gStBSlN, kont, Check_Real_States)
+ Subroutine StopDecays3(n_l, id_l, n_nu, id_nu, n_su, n_sd, n_sle, n_snu, n_d &
+        & , id_d, id_W, n_n, n_c, Sup, Sdown, Chi0, g, c_UNSu_L, c_UNSu_R     &
+        & , c_DNSd_L, c_DNSd_R, c_SdSuW, Sneut, ChiPm, c_CLSn_L, c_CLSn_R     &
+        & , c_CDSu_L, c_CDSu_R, c_CNW_L, c_CNW_R, Slept, c_CNuSl_R, prec      &
+        & , Check_Real_States)
  !-----------------------------------------------------------------------
  ! calculates the 3-body stop decays
  ! written by Werner Porod, 08.01.02
  ! 22.09.03: including the possiblity to check for real intermediates states
+ ! 20.09.10: adapting to new variable types
  !-----------------------------------------------------------------------
  Implicit None
-  Integer, Intent(inout) :: kont
-  Real(dp), Intent(in) :: mStop(6), mStop2(6), tanb, mSbottom2(6), mP02(2) &
-     & , mN(4), mN2(4), mSneut2(3), mC(2), mC2(2), prec, g_C(2)  &
-     & , mSlept2(6), g_sb(6), g
-  Complex(dp), Intent(in) :: YukB, RStop(6,6), A_b, mu                       &
-     & , c_CLSn_L(:,:,:), c_CLSn_R(:,:,:), c_CDSu_L(:,:,:), c_CDSu_R (:,:,:) &
-     & , c_CNuSl_R(:,:,:), c_UNSu_L(:,:,:), c_UNSu_R(:,:,:), c_CNW_L(:,:)    &
-     & , c_CNW_R(:,:), c_DNSd_L(:,:,:), c_DNSd_R(:,:,:), c_SdSuW(:,:)
+  Integer, Intent(in) :: n_l, id_l(:), n_nu, id_nu(:), n_su, n_sd, n_sle  &
+     & , n_snu, n_d, id_d(:), id_W(:), n_n, n_c
+  Real(dp), Intent(in) :: prec, g
+  Complex(dp), Intent(in) :: c_CLSn_L(:,:,:), c_CLSn_R(:,:,:), c_CDSu_L(:,:,:) &
+     & , c_CDSu_R (:,:,:), c_CNuSl_R(:,:,:), c_UNSu_L(:,:,:), c_UNSu_R(:,:,:)  &
+     & , c_CNW_L(:,:), c_CNW_R(:,:), c_DNSd_L(:,:,:), c_DNSd_R(:,:,:)          &
+     & , c_SdSuW(:,:)
   Logical, Intent(in) :: Check_Real_States
-  Real(dp), Intent(out) :: gStCNeu(2), gStWBNeu, gStBSnL(3,3,3), gStBSlN(3,6,3)
+  Type(particle2), Intent(in) :: Sdown(:), Sneut(:), Slept(:)
+  Type(particle23), Intent(in) :: Chi0(:), ChiPm(:)
+  Type(particle23), Intent(inout) :: Sup(:)
 
-  Integer :: i1, i2, i3, i, j, k
-  Real(dp) :: cosb2, sinb2, cos2b, fakt16pi, mass2(3),test(2), kl2kt2, kl2lt2 &
+  Integer :: i1, i2, i3, i, j, k, i_c
+  Real(dp) ::  mStop(n_su), mStop2(n_su), mSbottom2(n_sd) &
+     & , mN(n_n), mN2(n_n), mSneut2(n_snu), mC(n_c), mC2(n_c), g_C(n_c)  &
+     & , mSlept2(n_sle), g_sb(n_sd)
+  Real(dp) :: kl2kt2, kl2lt2 &
      & , kll2, ktl2, mbmcha, mtaumc, mbmtau, mbmcha1                          &
      & , mbmcha2, smin, smax, Abslt11Sq, Abskt11Sq, AbslL11Sq, mSl4, f_stop   &
      & , qlqr, ql2qr2, kl, k2l2, lqlkqr, kqllqr,  mbchp1, mchp1chi, mbchi     &
@@ -551,89 +556,51 @@ Contains
      & , mb2chi2, mb2st2, mchi2st2, oomw, mbomw, mbtomw, mbchiomw, mchitomw   &
      & , mstomw, mchiomw, kt1l1CQliCQri, kt1Cl1QliCQri, mbchp2, mchp2chi      &
      & , mchp1t, mbchp1omw, mchp1chiomw, ft2, ht2, fht, mSb(2)
-  Complex(dp) :: mat3(3,3), deltal, deltar, Rsf(3,3), coupL(2), lt11, kt11  &
+  Complex(dp) :: lt11, kt11  &
      & , lt12C, kt12C, lL11C, kL11C, lL12, kL12, mcha1mcha2, kt11C, lt11C   &
      & , l1l2Ql2Qr1, k1l2Ql2Qr1, k2l1Ql2Qr1, k1k2Ql2Qr1, l1l2Ql1Ql2         &
      & , k1l2Ql1Ql2, k2l1Ql1Ql2, k1k2Ql1Ql2, fltQl1, fktQl1, fltQr1, fktQr1 &
      & , hltQl1, hktQl1, hltQr1, hktQr1, hbltQl1, fbltQl1, hbktQl1, fbktQl1 &
      & , ffb1, fhb1, hfb1, hhb1
-  logical :: calc
+  Logical :: calc
 
   Iname = Iname + 1
   NameOfUnit(Iname) = "StopDecays3"
 
-  kont = 0
+  mStop = Sup%m
+  mStop2 = Sup%m2
+  mSbottom2 = Sdown%m2
+  g_sb = Sdown%g
+  mSneut2 = Sneut%m2
+  mSlept2 = Slept%m2
+  mN = Chi0%m
+  mN2 = Chi0%m2
+  mC = ChiPm%m
+  mC2 = ChiPm%m2
+  g_C = ChiPm%g
+
+  Do i1=1,6
+   Sup(i1)%gi3 = 0._dp
+   Sup(i1)%bi3 = 0._dp
+  End Do
+
   amc2 = mC2
   MSbot2 = mSbottom2(5:6)
-  if (Check_Real_States) then
+  If (Check_Real_States) Then
    GamMSB2 = 0._dp
    gammc = 0._dp
    gamtmt2 = 0._dp
-  else
+  Else
    GamMSB2 = mSbottom2(5:6) * g_sb(5:6)**2
    gammc = mC * g_C
    gamtmt2 = 2737.37816_dp
-  end if
+  End If
   gammc2 = gammc**2
   gamtmt = Sqrt(gamtmt2)
   GamMSB = Sqrt( GamMSB2 )
 !  Write(*,*) "hier",mc,g_c,gammc
-  !-----------------------------------------------------------------
-  ! in case that generation mixing is not included one should first
-  ! calculate the decay stop_1 -> c neutralino_i
-  !-----------------------------------------------------------------
-  gstCneu = 0._dp
-  If (.Not.GenerationMixing) Then
-   cosb2 = 1._dp / (1._dp + tanb**2)
-   sinb2 = tanb**2 * cosb2
-   cos2b = cosb2 - sinb2
 
-   fakt16pi = Abs(YukB)**2 *oo16pi2 * CKM(2,3) * CKM(3,3) * Log(1.e32_dp/Mz2) &
-          & / cosb2
-
-
-   ! corrected version with electroweak symmetry breaking
-   deltal = - fakt16pi * (Sum(mSbottom2) + sinb2 * mP02(2) - Abs(mu)**2   &
-          &              - 0.5_dp * cos2b * Mz2 + Abs(A_b/yukB)**2 )
-   deltar = fakt16pi * A_b * mf_u(3) / yukB ! other convention than Hikasa
-
-   mat3(1,1) = mstop2(5)
-   mat3(1,2) = 0._dp
-   mat3(1,3) = deltal * Rstop(5,5) + deltar * Rstop(5,6)
-   mat3(2,1) = Conjg(mat3(1,2))
-   mat3(2,2) = mstop2(6)
-   mat3(2,3) = - deltal * Rstop(6,5) + deltar * Rstop(6,6)
-   mat3(3,1) = Conjg( mat3(1,3) )
-   mat3(3,2) = Conjg( mat3(2,3) )
-   mat3(3,3) = mstop2(4)
-
-   Call EigenSystem(mat3, mass2, Rsf, kont, test)
-   If ((kont.Eq.-14).Or.(kont.Eq.-16)) Then
-    Write(ErrCan,*) "Possible numerical problem in "//NameOfUnit(Iname)
-    Write(ErrCan,*) "test =",test
-    Write(ErrCan,*) " "
-    If (ErrorLevel.Eq.2) Call TerminateProgram
-    kont = 0
-   End If
-   If ((kont.Ne.0).And.(ErrorLevel.Ge.0)) Then
-!   call AddNOW() 
-    Write(ErrCan,*) "Warning, in subroutine "//NameOfUnit(Iname)
-    Write(ErrCan,*) "Diagonalization of mat3 has failed",kont
-    If (ErrorLevel.Eq.2) Call TerminateProgram
-   End If
-
-   test(1) = Maxval( Abs(Rsf(3,:) ) )
-   If (test(1).Eq.Abs(Rsf(3,1))) Then
-    coupL = Rsf(3,2) * c_UNSu_R(2,1:2,4)
-   Else
-    coupL = Rsf(3,1) *  c_UNSu_R(2,1:2,4)
-   End If
-   Do i1=1,2
-    Call ScalarToTwoFermions(mStop(5), mN(i1), mF_u(2), coupL(i1), ZeroC &
-                            &, gstCneu(i1) )
-   End Do
-  End If
-
+  i_c = 1
   If (GenerationMixing) Then
   Else
    f_stop = 2._dp * oo512pi3 / mStop(5)**3
@@ -643,9 +610,10 @@ Contains
   !---------------------------------------------
   istosle = 1 ! needed for integration routine
 
-  gStBSnL = 0._dp
   If (GenerationMixing) Then
   Else
+   Sup(5)%gi3 = 0._dp
+
    lt11 = c_CDSu_R(1,3,5)
    kt11 = c_CDSu_L(1,3,5)
    lt12C = Conjg(c_CDSu_R(2,3,5))
@@ -740,16 +708,22 @@ Contains
     smax = (mstop(5) - mf_d(3))**2
 
     calc = .True.
-    if (Check_Real_States) then
-     If (mStop(5).Gt.(mC(2)+mf_d(3))) then  ! all intermediate states are real
+    If (Check_Real_States) Then
+     If (mStop(5).Gt.(mC(2)+mf_d(3))) Then  ! all intermediate states are real
       calc = .False.           
      Else If (mStop(5).Gt.(mC(1)+mf_d(3))) Then ! only chi^+_2 contributes
       CoeffSl(1,:) = 0._dp
       CoeffSl(3,:) = 0._dp
-     end if
-    end if
+     End If
+    End If
 
-    if (calc) gStBSnL(3,i1,i1) =  f_stop * Dgauss(stoslep,smin,smax,prec)
+    If (calc) Then
+      Sup(5)%gi3(i_c) = f_stop * Dgauss(stoslep,smin,smax,prec)
+      Sup(5)%id3(i_c,1) = Sneut(i1)%id
+      Sup(5)%id3(i_c,2) = id_l(i1) + 1
+      Sup(5)%id3(i_c,3) = id_d(3) 
+      i_c = i_c +1
+    End If
     
    End Do
   End If
@@ -759,7 +733,6 @@ Contains
   !---------------------------------------------
   istosle = 2 ! needed for integration routine
 
-  gStBSlN = 0._dp
   If (GenerationMixing) Then
   Else
    mb2 = mf_d2(3)
@@ -846,17 +819,22 @@ Contains
      smax = (mstop(5) - mf_d(3))**2
 
      calc = .True.
-     if (Check_Real_States) then
-      If (mStop(5).Gt.(mC(2)+mf_d(3))) then  ! all intermediate states are real
+     If (Check_Real_States) Then
+      If (mStop(5).Gt.(mC(2)+mf_d(3))) Then  ! all intermediate states are real
        calc = .False.           
       Else If (mStop(5).Gt.(mC(1)+mf_d(3))) Then ! only chi^+_2 contributes
        CoeffSl(1,:) = 0._dp
        CoeffSl(3,:) = 0._dp
-      end if
-     end if
+      End If
+     End If
 
-    if (calc) &
-      &   gStBSlN(3,2*(i1-1)+i2,i1) =  f_stop * Dgauss(stoslep,smin,smax,prec)
+     If (calc) Then
+      Sup(5)%gi3(i_c) = f_stop * Dgauss(stoslep,smin,smax,prec)
+      Sup(5)%id3(i_c,1) = Slept(2*(i1-1)+i2)%id + 1
+      Sup(5)%id3(i_c,2) = id_nu(i1)
+      Sup(5)%id3(i_c,3) = id_d(3) 
+      i_c = i_c +1
+     End If
     End Do
    End Do
   End If
@@ -864,7 +842,6 @@ Contains
   !---------------------------
   ! stop_1 -> b + W + chi^0_j
   !---------------------------
-  gstWbneu = 0._dp
   If (GenerationMixing) Then
   Else ! .not.GenerationMixing
    j = 1 ! lightest neutralino
@@ -1251,12 +1228,12 @@ Contains
      smax = (mstop(5) - mW)**2
 
      calc = .True.
-     if (Check_Real_States) then
+     If (Check_Real_States) Then
       mSb = Sqrt(MSbot2)
 
       If (mStop(5).Gt.Max(mC(2)+mf_d(3),mf_u(3)+mN(j),mW+mSb(2))) Then
        calc = .False.   ! all intermediate states are real 
-      else ! check now for intermediate real states          
+      Else ! check now for intermediate real states          
        If (mStop(5).Gt.(mC(2)+mf_d(3))) Then ! no chargino contribution
         ca = 0._dp
         cb = 0._dp
@@ -1266,12 +1243,12 @@ Contains
         ca(3,:) = 0._dp
         cb(1,:) = 0._dp
         cc(1,:,:) = 0._dp
-       end if
+       End If
 
        If (mStop(5).Gt.(mN(j)+mf_u(3))) Then ! no top contribution
         cb = 0._dp
         cd = 0._dp
-       end if
+       End If
 
        If (mStop(5).Gt.(mSb(2)+mW)) Then ! no sbottom contribution
         cc = 0._dp
@@ -1283,19 +1260,30 @@ Contains
         cd(2,:) = 0._dp
         ce(1,:) = 0._dp
         ce(3,:) = 0._dp
-       end if
+       End If
 
-      end if
-     end if
+      End If
+     End If
 
-    if (calc)  gstWbneu = f_stop * dgauss(stbWchi, smin, smax, prec)
- 
+    If (calc)  Then
+      Sup(5)%gi3(i_c) = f_stop * dgauss(stbWchi, smin, smax, prec)
+      Sup(5)%id3(i_c,1) = Chi0(1)%id
+      Sup(5)%id3(i_c,2) = id_W(1)
+      Sup(5)%id3(i_c,3) = id_d(3) 
+      i_c = i_c +1
+    End If
    End If ! kinematic check
+  End If
+  Sup(5)%g = Sum(Sup(5)%gi2) + Sum(Sup(5)%gi3)
+  If (Sup(5)%g.Ne.0._dp) Then
+   Sup(5)%bi2 = Sup(5)%gi2 / Sup(5)%g
+   Sup(5)%bi3 = Sup(5)%gi3 / Sup(5)%g
   End If
 
   Iname = Iname - 1
 
  End Subroutine StopDecays3
+
 
  Real(dp) Function  stoslep(s)
  !----------------------------------------------------------------------

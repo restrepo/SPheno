@@ -192,6 +192,425 @@ Contains
 
  End Function AlphaSDR
 
+ Subroutine Coup_DDA_1Leff(i, j, k, e, yuk_f, RP0, vevSM, mSf2, mglu, mN, mSfp2 &
+    & , mC, c_CDSu_L, c_CDSu_R, c_DGSd_L, c_DGSd_R, c_DNSd_L, c_DNSd_R          &
+    & , cpl_CCP0_L, cpl_CCP0_R, cpl_NNP0_L, cpl_NNP0_R, cpl_P0SdSd, cpl_P0SuSu  &
+    & , coupL, coupR)
+ !-----------------------------------------------------------------------
+ ! -calculates the coupling between fermions and the pseudoscalars
+ !  at 1-loop level, valid for 3-generation MSSM
+ ! - based on the formulas of A.Buras et al., NPB 659, 3 (2003)
+ ! - here it is assumed that this is an effective coupling, setting the outer
+ !   momenta zero
+ ! input: 
+ !  i,j ........ generation index of the fermions
+ !  k .......... index of pseudoscalar boson
+ !  e .......... charge of the fermions
+ !  Yuk_f ...... fermion yukawa couplings (3*3 matrix)
+ !  RP0(i,j) ... mixing matrix of the pseudoscalar bosons
+ !  vevSM(i) ... MSSM vevs (v_d, v_u)
+ !  mSf2(i) .... sfermion masses squared
+ !  RSF(i,j) ... sfermion mixing matrix
+ !  mglu ....... mass of the mu parameter
+ !  mu ......... mu parameter of the superpotential
+ !  mN(i) ...... neutralino masses
+ !  mSfp2(i) ... sfermion' masses squared
+ !  mC(i) ...... chargino masses
+ ! output
+ !  coupL ...... the left coupling(i,j,k)
+ !  coupR ...... the right coupling(i,j,k)
+ ! the lagrangian is given by
+ !  \bar{f}(i) (coupL P_L + coupR P_R) f(j) P0(k)
+ ! written by Werner Porod
+ !  22.06.2003: taking  CoupFermionScalar3 as starting point
+ !  10.07.03: C0 function in Buras is defined with a relative minus sign
+ !-----------------------------------------------------------------------
+ Implicit None
+  Real(dp), Intent(in) :: e, RP0(2,2), vevSM(2), mglu, mSf2(6), mN(:)   &
+      & , mC(:), mSfp2(6)
+  Complex(dp), Intent(in) :: yuk_f(3,3), c_CDSu_L(:,:,:), c_CDSu_R(:,:,:) &
+      & , c_DGSd_L(:,:), c_DGSd_R(:,:), c_DNSd_L(:,:,:), c_DNSd_R(:,:,:)  &
+      & , cpl_CCP0_L(:,:,:), cpl_CCP0_R(:,:,:), cpl_NNP0_L(:,:,:)         &
+      & , cpl_NNP0_R(:,:,:), cpl_P0SdSd(:,:,:), cpl_P0SuSu(:,:,:)
+  Complex(dp), Intent(out) :: coupL, coupR
+  Integer, Intent(in) :: i, j, k
+ 
+  Integer :: i1, i2, i3, i4, n_fp, n_char, n_neut
+  Complex(dp) :: dc_L, dc_R, sigL(3,3), sigR(3,3), sigS(3,3) &
+     & , DeltaM(3,3), YukR_L(3,3), YukR_R(3,3), Mass(3,3)
+  Real(dp) :: C0m, mglu2, mN2(Size(mN)), C2m, mC2(Size(mC)), B0m2, B1m2
+  logical :: l_QCD
+
+  coupL = ZeroC
+  coupR = ZeroC
+
+  l_QCD = .False. ! check if gluino part is calculated
+  If ((abs(e).lt.1._dp).and.(abs(e).gt.0._dp)) l_QCD = .True.
+  n_char = Size(mC)
+  n_neut = Size(mN)
+
+  !------------------------------
+  ! 1-loop part, 2-point function
+  ! p^2=0
+  !------------------------------
+  sigS = ZeroC 
+  sigL = ZeroC 
+  sigR = ZeroC 
+  !------------------------------
+  ! gluino part
+  !------------------------------
+  if (l_QCD) then
+   mglu2 = mglu**2
+   Do i1=1,6
+    B1m2 = -8._dp * B1(0._dp, mglu2, mSf2(i1)) / 3._dp
+    B0m2 = 16._dp * mglu * B0(0._dp, mglu2, mSf2(i1)) / 3._dp
+    Do i3=1,3
+     Do i4=1,3
+      SigL(i3,i4) = SigL(i3,i4) &
+                & + Conjg( c_DGSd_R(i4,i1) ) * c_DGSd_R(i3,i1) * B1m2
+      SigR(i3,i4) = SigR(i3,i4) &
+                & + Conjg( c_DGSd_L(i4,i1) ) * c_DGSd_L(i3,i1) * B1m2
+      SigS(i3,i4) = SigS(i3,i4) &
+                & + Conjg( c_DGSd_R(i4,i1) ) * c_DGSd_L(i3,i1) * B0m2
+     End Do
+    End Do
+   End Do
+  end if
+  !--------------
+  ! charginos 
+  !--------------
+  mC2 = mC**2
+  n_fp = 6 ! number of sfermions'
+  If (e.Eq.-1._dp) n_fp = 3  ! sneutrinos
+
+  Do i1=1,n_char
+   Do i2=1,n_fp
+    B1m2 = - 0.5_dp * B1(0._dp,mC2(i1), mSfp2(i2))
+    B0m2 = mC(i1) * B0(0._dp,mC2(i1), mSfp2(i2))
+    Do i3=1,3
+     Do i4=1,3
+      SigL(i3,i4) = SigL(i3,i4) &
+                & + Conjg( c_CDSu_R(i1,i4,i2) ) * c_CDSu_R(i1,i3,i2) * B1m2
+      SigR(i3,i4) = SigR(i3,i4) &
+                & + Conjg( c_CDSu_L(i1,i4,i2) ) * c_CDSu_L(i1,i3,i2) * B1m2
+      SigS(i3,i4) = SigS(i3,i4) &
+                & + Conjg( c_CDSu_R(i1,i4,i2) ) * c_CDSu_L(i1,i3,i2) * B0m2
+     End Do
+    End Do
+  End Do
+  End Do
+  !-------------
+  ! neutralinos
+  !-------------
+  mN2 = mN**2
+
+  Do i1=1,n_neut
+   Do i2=1,6
+    B0m2 = mN(i1) * B0(0._dp,mN2(i1), mSf2(i2))
+    B1m2 = - 0.5_dp * B1(0._dp,mN2(i1), mSf2(i2))
+    Do i3=1,3
+     Do i4=1,3
+      SigL(i3,i4) = SigL(i3,i4) &
+                & + Conjg( c_DNSd_R(i4,i1,i2) ) * c_DNSd_R(i3,i1,i2) * B1m2
+      SigR(i3,i4) = SigR(i3,i4) &
+                & + Conjg( c_DNSd_L(i4,i1,i2) ) * c_DNSd_L(i3,i1,i2) * B1m2
+      SigS(i3,i4) = SigS(i3,i4) &
+                & + Conjg( c_DNSd_R(i4,i1,i2) ) * c_DNSd_L(i3,i1,i2) * B0m2
+     End Do
+    End Do
+   End Do
+  End Do
+
+  !------------------------------
+  ! 1-loop part, 3-point function
+  !------------------------------
+  dc_L = 0._dp
+  dc_R = 0._dp
+  !---------
+  ! gluinos
+  !---------
+  If (l_QCD) then
+   Do i1=1,6
+    Do i2=1,6
+     C0m = - cpl_P0SdSd(k,i1,i2) * C0_3m(mglu2, mSf2(i1), mSf2(i2)) 
+     dc_L = dc_L - Conjg(c_DGSd_R(j,i2)) * c_DGSd_L(i,i1) * C0m
+     dc_R = dc_R - Conjg(c_DGSd_L(j,i2)) * c_DGSd_R(i,i1) * C0m
+    End Do
+   End Do
+   dc_L = 16._dp * mglu * dc_L / 3._dp
+   dc_R = 16._dp * mglu * dc_R / 3._dp
+  end if
+
+  !--------------
+  ! charginos 
+  !--------------
+  Do i1=1,n_char
+   Do i2=1,6
+    Do i3=1,6
+     C0m = -mC(i1) * cpl_P0SuSu(k,i2,i3) * C0_3m(mC2(i1), mSfp2(i2), mSfp2(i3)) 
+     dc_L = dc_L - Conjg(c_CDSu_R(i1,j,i3) ) * c_CDSu_L(i1,i,i2) * C0m
+     dc_R = dc_R - Conjg(c_CDSu_L(i1,j,i3) ) * c_CDSu_R(i1,i,i2) * C0m
+    End Do
+    Do i3=1,n_char
+     C0m = - mC(i1) *mC(i3) * C0_3m(mSfp2(i2), mC2(i1) , mC2(i3))
+     C2m = C_2(mSfp2(i2), mC2(i1) , mC2(i3)) 
+     dc_L = dc_L - Conjg(c_CDSu_R(i3,j,i2) ) * c_CDSu_L(i1,i,i2)               &
+          &      * ( cpl_CCP0_R(i1, i3, k) * C2m + cpl_CCP0_L(i1, i3, k) * C0m )
+     dc_R = dc_R - Conjg(c_CDSu_L(i3,j,i2) ) * c_CDSu_R(i1,i,i2)               &
+          &      * ( cpl_CCP0_L(i1, i3, k) * C2m + cpl_CCP0_R(i1, i3, k) * C0m )
+    End Do
+   End Do
+  End Do
+
+  !--------------
+  ! neutralinos 
+  !--------------
+  mN2 = mN**2
+  Do i1=1,n_neut
+   Do i2=1,6
+    Do i3=1,6
+     C0m = - mN(i1) * cpl_P0SdSd(k,i2,i3) * C0_3m(mN2(i1), mSf2(i2), mSf2(i3)) 
+     dc_L = dc_L - Conjg(c_DNSd_R(j,i1,i3)) * c_DNSd_L(i,i1,i2) * C0m
+     dc_R = dc_R - Conjg(c_DNSd_L(j,i1,i3)) * c_DNSd_R(i,i1,i2) * C0m
+    End Do
+    Do i3=1,n_neut
+     C0m = - mN(i1)*mN(i3) * C0_3m(mSf2(i2), mN2(i1) , mN2(i3)) 
+     C2m = C_2(mSf2(i2), mN2(i1) , mN2(i3)) 
+     dc_L = dc_L - Conjg(c_DNSd_R(j,i3,i2)) * c_DNSd_L(i,i1,i2)               &
+          &      * ( cpl_NNP0_R(i1, i3, k) * C2m + cpl_NNP0_L(i1, i3, k) * C0m )
+     dc_R = dc_R - Conjg(c_DNSd_L(j,i3,i2)) * c_DNSd_R(i,i1,i2)               &
+          &      * ( cpl_NNP0_L(i1, i3, k) * C2m + cpl_NNP0_R(i1, i3, k) * C0m )
+    End Do
+   End Do
+  End Do
+
+  coupL = oo16pi2 * dc_L
+  coupR = oo16pi2 * dc_R
+
+  DeltaM = oo16pi2 * (SigS + vevSM(1) * oosqrt2 &
+         &                   * (Matmul(SigL,Yuk_f) + Matmul(Yuk_f,SigR) ) )
+  Mass = oosqrt2 * yuk_f * vevSM(1) - DeltaM
+  YukR_L = Matmul(SigL,Yuk_f) + Matmul(Yuk_f,SigR)
+  YukR_R = Matmul(SigL,Conjg(Yuk_f)) + Matmul(Conjg(Yuk_f),SigR)
+  YukR_L = oo16pi2 * RP0(k,1) * YukR_L
+  YukR_R = oo16pi2 * RP0(k,1) * YukR_R
+
+  coupL = coupL + YukR_L(i,j) &
+      & - Cmplx(0._dp,RP0(k,1),dp) * DeltaM(i,j) / (vevSM(1)-sqrt2*DeltaM(i,i)/yuk_f(i,i)) 
+  coupR = coupR + YukR_R(j,i) &
+      & -  Cmplx(0._dp,RP0(k,1),dp) * DeltaM(j,i) / (vevSM(1)-sqrt2*DeltaM(i,i)/yuk_f(i,i)) 
+
+ End Subroutine Coup_DDA_1Leff
+
+
+ Subroutine Coup_DDH_1Leff(i, j, k, e, yuk_f, RS0, vevSM, mSf2, mglu, mN       &
+    & , mSfp2, mC, c_CDSu_L, c_CDSu_R, c_DGSd_L, c_DGSd_R, c_DNSd_L, c_DNSd_R  &
+    & , cpl_CCS0_L, cpl_CCS0_R, cpl_NNS0_L, cpl_NNS0_R, cpl_S0SdSd, cpl_S0SuSu &
+    & , coupL, coupR)
+ !-----------------------------------------------------------------------
+ ! -calculates the coupling between fermions and the scalars
+ !  at 1-loop level, valid for 3-generation MSSM
+ ! - based on the formulas of A.Buras et al., NPB 659, 3 (2003)
+ ! - here it is assumed that this is an effective coupling at low energies,
+ !   setting the outer momenta zero
+ ! input: 
+ !  i,j ........ generation index of the fermions
+ !  k .......... index of scalar boson
+ !  e .......... charge of the fermions
+ !  vevSM(i) ... MSSM vevs (v_d, v_u)
+ !  mSf2(i) .... sfermion masses squared
+ !  mglu ....... mass of the mu parameter
+ !  mN(i) ...... neutralino masses
+ !  N(i,j) ..... neutralino mixing matrix
+ !  mSfp2(i) ... sfermion' masses squared
+ !  mC(i) ...... chargino masses
+ ! output
+ !  coupL ...... the left coupling(i,j,k)
+ !  coupR ...... the right coupling(i,j,k)
+ ! the lagrangian is given by
+ !  \bar{f}(i) (coupL P_L + coupR P_R) f(j) S0(k)
+ ! written by Werner Porod
+ !  22.06.2003: taking  CoupFermionScalar3 as starting point
+ !  10.07.03: C0 function in Buras is defined with a relative minus sign
+ !-----------------------------------------------------------------------
+ Implicit None
+
+  Real(dp), Intent(in) :: e, RS0(2,2), vevSM(2), mglu, mSf2(6), mN(:)   &
+      & , mC(:), mSfp2(6)
+  Complex(dp), Intent(in) :: yuk_f(3,3), c_CDSu_L(:,:,:), c_CDSu_R(:,:,:) &
+      & , c_DGSd_L(:,:), c_DGSd_R(:,:), c_DNSd_L(:,:,:), c_DNSd_R(:,:,:)  &
+      & , cpl_CCS0_L(:,:,:), cpl_CCS0_R(:,:,:), cpl_NNS0_L(:,:,:)         &
+      & , cpl_NNS0_R(:,:,:), cpl_S0SdSd(:,:,:), cpl_S0SuSu(:,:,:)
+  Complex(dp), Intent(out) :: coupL, coupR
+  Integer, Intent(in) :: i, j, k
+ 
+  Integer :: i1, i2, i3, i4, n_fp, n_char, n_neut
+  Complex(dp) :: dc_L, dc_R, sigL(3,3), sigR(3,3), sigS(3,3) &
+     & , DeltaM(3,3), YukR_L(3,3), YukR_R(3,3), Mass(3,3)
+  Real(dp) :: C0m, mglu2, mN2(Size(mN)), C2m, mC2(Size(mC)), B0m2, B1m2
+  logical :: l_QCD
+
+  coupL = ZeroC
+  coupR = ZeroC
+
+  l_QCD = .False. ! check if gluino part is calculated
+  If ((abs(e).lt.1._dp).and.(abs(e).gt.0._dp)) l_QCD = .True.
+  n_char = Size(mC)
+  n_neut = Size(mN)
+
+  !------------------------------
+  ! 1-loop part, 2-point function
+  ! p^2=0
+  !------------------------------
+  sigS = ZeroC 
+  sigL = ZeroC 
+  sigR = ZeroC 
+  !------------------------------
+  ! gluino part
+  !------------------------------
+  if (l_QCD) then
+   mglu2 = mglu**2
+   Do i1=1,6
+    B1m2 = -8._dp * B1(0._dp, mglu2, mSf2(i1)) / 3._dp
+    B0m2 = 16._dp * mglu * B0(0._dp, mglu2, mSf2(i1)) / 3._dp
+    Do i3=1,3
+     Do i4=1,3
+      SigL(i3,i4) = SigL(i3,i4) &
+                & + Conjg( c_DGSd_R(i4,i1) ) * c_DGSd_R(i3,i1) * B1m2
+      SigR(i3,i4) = SigR(i3,i4) &
+                & + Conjg( c_DGSd_L(i4,i1) ) * c_DGSd_L(i3,i1) * B1m2
+      SigS(i3,i4) = SigS(i3,i4) &
+                & + Conjg( c_DGSd_R(i4,i1) ) * c_DGSd_L(i3,i1) * B0m2
+     End Do
+    End Do
+   End Do
+  end if
+  !--------------
+  ! charginos 
+  !--------------
+  mC2 = mC**2
+  n_fp = 6 ! number of sfermions'
+  If (e.Eq.-1._dp) n_fp = 3  ! sneutrinos
+
+  Do i1=1,n_char
+   Do i2=1,n_fp
+    B1m2 = - 0.5_dp * B1(0._dp,mC2(i1), mSfp2(i2))
+    B0m2 = mC(i1) * B0(0._dp,mC2(i1), mSfp2(i2))
+    Do i3=1,3
+     Do i4=1,3
+      SigL(i3,i4) = SigL(i3,i4) &
+                & + Conjg( c_CDSu_R(i1,i4,i2) ) * c_CDSu_R(i1,i3,i2) * B1m2
+      SigR(i3,i4) = SigR(i3,i4) &
+                & + Conjg( c_CDSu_L(i1,i4,i2) ) * c_CDSu_L(i1,i3,i2) * B1m2
+      SigS(i3,i4) = SigS(i3,i4) &
+                & + Conjg( c_CDSu_R(i1,i4,i2) ) * c_CDSu_L(i1,i3,i2) * B0m2
+     End Do
+    End Do
+  End Do
+  End Do
+  !-------------
+  ! neutralinos
+  !-------------
+  mN2 = mN**2
+
+  Do i1=1,n_neut
+   Do i2=1,6
+    B0m2 = mN(i1) * B0(0._dp,mN2(i1), mSf2(i2))
+    B1m2 = - 0.5_dp * B1(0._dp,mN2(i1), mSf2(i2))
+    Do i3=1,3
+     Do i4=1,3
+      SigL(i3,i4) = SigL(i3,i4) &
+                & + Conjg( c_DNSd_R(i4,i1,i2) ) * c_DNSd_R(i3,i1,i2) * B1m2
+      SigR(i3,i4) = SigR(i3,i4) &
+                & + Conjg( c_DNSd_L(i4,i1,i2) ) * c_DNSd_L(i3,i1,i2) * B1m2
+      SigS(i3,i4) = SigS(i3,i4) &
+                & + Conjg( c_DNSd_R(i4,i1,i2) ) * c_DNSd_L(i3,i1,i2) * B0m2
+     End Do
+    End Do
+   End Do
+  End Do
+
+  !------------------------------
+  ! 1-loop part, 3-point function
+  !------------------------------
+  dc_L = 0._dp
+  dc_R = 0._dp
+  !---------
+  ! gluinos
+  !---------
+  If (l_QCD) then
+   Do i1=1,6
+    Do i2=1,6
+     C0m = - cpl_S0SdSd(k,i1,i2) * C0_3m(mglu2, mSf2(i1), mSf2(i2)) 
+     dc_L = dc_L - Conjg(c_DGSd_R(j,i2)) * c_DGSd_L(i,i1) * C0m
+     dc_R = dc_R - Conjg(c_DGSd_L(j,i2)) * c_DGSd_R(i,i1) * C0m
+    End Do
+   End Do
+   dc_L = 16._dp * mglu * dc_L / 3._dp
+   dc_R = 16._dp * mglu * dc_R / 3._dp
+  end if
+  !--------------
+  ! charginos 
+  !--------------
+  Do i1=1,n_char
+   Do i2=1,6
+    Do i3=1,6
+     C0m = -mC(i1) * cpl_S0SuSu(k,i2,i3) * C0_3m(mC2(i1), mSfp2(i2), mSfp2(i3))
+     dc_L = dc_L - Conjg(c_CDSu_R(i1,j,i3) ) * c_CDSu_L(i1,i,i2) * C0m
+     dc_R = dc_R - Conjg(c_CDSu_L(i1,j,i3) ) * c_CDSu_R(i1,i,i2) * C0m
+    End Do
+    Do i3=1,n_char
+     C0m = - mC(i1)*mC(i3) * C0_3m(mSfp2(i2), mC2(i1) , mC2(i3))
+     C2m = C_2(mSfp2(i2), mC2(i1) , mC2(i3)) 
+     dc_L = dc_L - Conjg(c_CDSu_R(i3,j,i2) ) * c_CDSu_L(i1,i,i2)               &
+          &      * ( cpl_CCS0_R(i1, i3, k) * C2m + cpl_CCS0_L(i1, i3, k) * C0m )
+     dc_R = dc_R - Conjg(c_CDSu_L(i3,j,i2) ) * c_CDSu_R(i1,i,i2)               &
+          &      * ( cpl_CCS0_L(i1, i3, k) * C2m + cpl_CCS0_R(i1, i3, k) * C0m )
+    End Do
+   End Do
+  End Do
+
+  !--------------
+  ! neutralinos 
+  !--------------
+  mN2 = mN**2
+  Do i1=1,n_neut
+   Do i2=1,6
+    Do i3=1,6
+     C0m = - mN(i1) * cpl_S0SdSd(k,i2,i3) * C0_3m(mN2(i1), mSf2(i2), mSf2(i3)) 
+     dc_L = dc_L - Conjg(c_DNSd_R(j,i1,i3)) * c_DNSd_L(i,i1,i2) * C0m
+     dc_R = dc_R - Conjg(c_DNSd_L(j,i1,i3)) * c_DNSd_R(i,i1,i2) * C0m
+    End Do
+    Do i3=1,n_neut
+     C0m = - mN(i1)*mN(i3) * C0_3m(mSf2(i2), mN2(i1) , mN2(i3)) 
+     C2m = C_2(mSf2(i2), mN2(i1) , mN2(i3)) 
+     dc_L = dc_L - Conjg(c_DNSd_R(j,i3,i2)) * c_DNSd_L(i,i1,i2)               &
+          &      * ( cpl_NNS0_R(i1, i3, k) * C2m + cpl_NNS0_L(i1, i3, k) * C0m )
+     dc_R = dc_R - Conjg(c_DNSd_L(j,i3,i2)) * c_DNSd_R(i,i1,i2)               &
+          &      * ( cpl_NNS0_L(i1, i3, k) * C2m + cpl_NNS0_R(i1, i3, k) * C0m )
+    End Do
+   End Do
+  End Do
+
+  coupL = oo16pi2 * dc_L
+  coupR = oo16pi2 * dc_R
+
+  DeltaM = oo16pi2 * (SigS + vevSM(1) * oosqrt2 &
+         &                   * (Matmul(SigL,Yuk_f) + Matmul(Yuk_f,SigR) ) )
+  Mass = oosqrt2 * yuk_f * vevSM(1) - DeltaM
+  YukR_L = Matmul(SigL,Yuk_f) + Matmul(Yuk_f,SigR)
+  YukR_R = Matmul(SigL,Conjg(Yuk_f)) + Matmul(Conjg(Yuk_f),SigR)
+  YukR_L = oo16pi2 * RS0(k,1) * YukR_L
+  YukR_R = oo16pi2 * RS0(k,1) * YukR_R
+
+  coupL = coupL + YukR_L(i,j) &
+      & + RS0(k,1) * DeltaM(i,j) / (vevSM(1)-sqrt2*DeltaM(i,i)/yuk_f(i,i)) 
+  coupR = coupR + YukR_R(j,i) &
+      & + RS0(k,1) * DeltaM(j,i) / (vevSM(1)-sqrt2*DeltaM(i,i)/yuk_f(i,i)) 
+
+ End Subroutine Coup_DDH_1Leff
+
+
  Subroutine CoupFermionPseudoScalar31L_eff(i, j, k, T3, e, g, yuk_f, Rfl, Rfr &
     & , RP0, vevSM, mSf2, RSf, A_f, phi_glu, mglu, mu, mN, N, mSfp2, RSfp     &
     & , Yuk_fp, A_fp, mC, U, V, coupL, coupR)
@@ -247,7 +666,7 @@ Contains
  
   Integer :: i1, i2, i3, n_fp, n_char, n_neut
   Complex(dp) :: dc_L, dc_R, coupC, coupRC1, coupLC1, coupRC2, coupLC2     &
-      & , coupRC3, coupLC3, yu(3,3), yd(3,3), t1(3,3), sigLR, sigRL, bi(1)
+      & , coupRC3, coupLC3, sigLR, sigRL, bi(1)
   Real(dp) :: C0m, mglu2, mN2(4), C2m, mC2(2), e_u, B0m2
   logical :: l_QCD
 
@@ -533,7 +952,7 @@ Contains
  
   Integer :: i1, i2, i3, n_fp, n_char, n_neut
   Complex(dp) :: dc_L, dc_R, coupC, coupRC1, coupLC1, coupRC2, coupLC2     &
-      & , coupRC3, coupLC3, yu(3,3), yd(3,3), t1(3,3), sigLR, sigRL
+      & , coupRC3, coupLC3, sigLR, sigRL
   Real(dp) :: C0m, mglu2, mN2(4), C2m, mC2(2), e_u, B0m2
   logical :: l_QCD
 
@@ -759,6 +1178,105 @@ Contains
   coupR = coupR + oo16pi2 * dc_R
 
  End Subroutine CoupFermionScalar31L_eff
+
+
+ Subroutine CoupPseudoScalarGluon(m_H2, mf_u2, g_u, mf_d2, g_d, coup, coupSM)
+ !----------------------------------------------------------------------------
+ ! calculates the lowest order coupling for the radiative decay of a pseudoscalar
+ ! to two gluons
+ ! based on the formulas of M.Spira et al., Nucl. Phys. B 453 (1995) 17
+ ! based on  CoupScalarGluon by Werner Porod
+ ! written by Florian Staub, 18.06.2010
+ !----------------------------------------------------------------------------
+ Implicit None
+  Real(dp), Intent(in) :: m_H2, mf_u2(3), mf_d2(3)
+  Complex(dp), Intent(in) :: g_u(3), g_d(3)
+  Complex(dp), Intent(out) :: coup
+  Complex(dp), Optional, Intent(out) :: coupSM
+ 
+  Integer :: i1
+  Real(dp) :: Mh2p
+  !--------------------------------------
+  ! W-boson contribution
+  !--------------------------------------
+  mH2p = 0.25_dp * m_H2
+
+  If (Present(coupSM)) Then
+   coupSM = 0._dp
+  !--------------------------------------
+  ! SM-Fermion contributions
+  !--------------------------------------
+   Do i1=1,3
+    coupSM = coupSM + AP_onehalf(mH2p/ mf_d2(i1))+ AP_onehalf(mH2p/ mf_u2(i1))
+   End Do
+   coupSM = 0.75_dp * coupSM
+  End If
+
+  coup = 0._dp
+  !--------------------------------------
+  ! SM-Fermion contributions
+  !--------------------------------------
+   Do i1=1,3
+    coup = coup + g_d(i1) * AP_onehalf(mH2p/ mf_d2(i1))  &
+         &      + g_u(i1) * AP_onehalf(mH2p/ mf_u2(i1))
+   End Do
+  
+  coup = 0.75_dp * coup
+ 
+ End Subroutine CoupPseudoScalarGluon
+
+
+ Subroutine CoupPseudoScalarPhoton(m_H2,mf_u2, g_u, mf_d2, g_d, mf_l2    &
+    & , g_l, mC2, g_C, coup, coupSM)
+ !----------------------------------------------------------------------------
+ ! calculates the lowest order coupling for the radiative decay of a pseudoscalar
+ ! to two photons
+ ! based on the formulas of M.Spira et al., Nucl. Phys. B 453 (1995) 17
+ ! based on  CoupScalarPhoton by Werner Porod
+ ! written by Florian Staub, 18.06.2010
+ !----------------------------------------------------------------------------
+ Implicit None
+  Real(dp), Intent(in) :: m_H2,  mf_u2(3), mf_d2(3), mf_l2(3), mC2(2)
+  Complex(dp), Intent(in) :: g_u(3), g_d(3), g_l(3), g_C(2)
+  Complex(dp), Intent(out) :: coup
+  Complex(dp), Optional, Intent(out) :: coupSM
+ 
+  Integer :: i1
+  Real(dp) :: Mh2p
+  !--------------------------------------
+  ! W-boson contribution
+  !--------------------------------------
+  mH2p = 0.25_dp * m_H2
+
+  If (Present(coupSM)) Then
+   coupSM = A_one(mH2p / mW2)
+  !--------------------------------------
+  ! SM-Fermion contributions
+  !--------------------------------------
+   Do i1=1,3
+    coupSM = coupSM + AP_onehalf(mH2p/ mf_l2(i1)) + (AP_onehalf(mH2p/ mf_d2(i1)) &
+                                + 4._dp * AP_onehalf(mH2p/ mf_u2(i1)) ) / 3._dp
+   End Do
+  End If
+
+  coup = 0._dp
+  !--------------------------------------
+  ! SM-Fermion contributions
+  !--------------------------------------
+   Do i1=1,3
+    coup = coup + g_l(i1) * AP_onehalf(mH2p/ mf_l2(i1))    &
+         &      + ( g_d(i1) * AP_onehalf(mH2p/ mf_d2(i1))  &
+         &        + 4._dp * g_u(i1) * AP_onehalf(mH2p/ mf_u2(i1)) ) / 3._dp
+   End Do
+  !--------------------------------------
+  ! chargino contributions
+  !--------------------------------------
+  Do i1=1,2
+   coup = coup + g_C(i1) * AP_onehalf(mH2p/ mC2(i1))
+  End Do
+  
+  
+ End Subroutine CoupPseudoScalarPhoton
 
 
  Subroutine CoupScalarGluon(m_H2, mf_u2, g_u, mf_d2, g_d, mSup2, g_su &

@@ -7,6 +7,11 @@ Module DecayFunctions
 Use Control
 ! load modules
 
+! interfaces
+ Interface VectorBosonToTwoFermions
+  Module Procedure VectorBosonToTwoFermionsC, VectorBosonToTwoFermionsR
+ End Interface
+
 Contains
 
 
@@ -232,6 +237,59 @@ Contains
 
  End Subroutine ScalarToTwoFermions
 
+ Subroutine ScalarToFermionGravitino(mS,mF1,m32,F,kL,kR,width)
+ !-----------------------------------------------------------------------
+ ! using the formula of 
+ ! ScalarToTwoFermions calculates the two body decay width of a scalar
+ ! decaying to 2 fermions. mS is the mass of the decaying scalar and
+ ! mF1 (m32) are the masses of the fermion (gravitino).
+ ! F is the SUSY breaking F-term.
+ ! kL and kR are the left and right couplings respectively. All
+ ! couplings can be complex.
+ ! written by Werner Porod, 3.11.1999
+ !-----------------------------------------------------------------------
+ Implicit None
+  Real(dp), Intent(in) :: mS,mF1,m32,F
+  Real(dp), Intent(out) ::width
+  Complex(dp), Intent(in) :: kL,kR
+
+  Real(dp) :: mSsq,mF1sq,m32sq,kappa
+
+  width = 0._dp
+  If ( Abs(mS).Le.( Abs(mF1) + Abs(m32) ) ) Then
+   Return
+
+  Elseif ((Abs(kL).Eq.0._dp).And.(Abs(kR).Eq.0._dp)) Then
+   Return
+
+  Elseif (mF1.Eq.0._dp) Then
+   mSsq = mS * mS
+   m32sq = m32 * m32
+   width = (Abs(kL)**2 + Abs(kR)**2) * (mSsq - m32sq)**4 / mSsq**2
+
+  Elseif (mF1.Eq.m32) Then
+   mSsq = mS * mS
+   mF1sq = mF1 * mF1
+   kappa = Sqrt( mSsq**2 - 4._dp * mSsq * mF1sq )
+   width = kappa**3                                               &
+     &   *  ( (Abs(kL)**2 + Abs(kR)**2) * (mSsq - 2._dp * mF1sq)  &
+     &      - 4._dp * Real( Conjg(kL) * kR,dp ) * mF1sq )  / mSsq**2
+
+  Else
+   mSsq = mS * mS
+   mF1sq = mF1 * mF1
+   m32sq = m32 * m32
+   kappa = Sqrt( (mSsq-mF1sq-m32sq)**2 - 4._dp * mF1sq*m32sq )
+   width = kappa**3                                                  &
+     &   * ( (Abs(kL)**2 + Abs(kR)**2) * (mSsq - mF1sq - m32sq)      &
+     &     - 4._dp * Real( Conjg(kL) * kR,dp ) * m32 * mF1 ) / mSsq**2
+
+  Endif
+
+  width = oo16Pi * mS * width / F**2
+
+ End Subroutine ScalarToFermionGravitino
+
 
  Subroutine ScalarToTwoScalars(mS,mS1,mS2,coup,width)
  !-----------------------------------------------------------------------
@@ -351,6 +409,160 @@ Contains
 
  End Subroutine ScalarToVectorbosonsVR
 
+
+
+  Subroutine VectorBosonToTwoFermionsC(mV,mF1,mF2,Nc,cL,cR,width)
+  !-----------------------------------------------------------------------
+  ! VectorBosonToTwoScalars calculates the two body decay 
+  ! width of a vector poson decaying to two fermionss. mV is the
+  ! mass of the decaying vector boson, mF2 and mF2 are the masses of the fermions
+  ! in the final state. cL and cR are complex couplings and Nc a color factor
+  ! written by Werner Porod, 03.09.2010
+  !-----------------------------------------------------------------------
+  Implicit None
+   Integer :: Nc ! color factor
+   Real(dp), Intent(in) :: mF2,mF1,mV
+   Real(dp), Intent(out) :: width
+   Complex(dp), Intent(in) :: cL, cR
+
+   Real(dp) :: mF1sq, mF2sq, mVsq, kappa, r
+
+   If (     ( mV.Le.( Abs(mF1) + Abs(mF2) ) ) &
+      & .Or.((Abs(cL)+Abs(cR)).Eq.0._dp) ) Then
+    width = 0._dp
+    Return
+
+   Else If ((mF1.Eq.0._dp).And.(mF2.Eq.0._dp)) Then
+    width = 2._dp * (Abs(cL)**2 + Abs(cR)**2) * mV
+
+   Else If (mF1.Eq.0._dp) Then
+    r = (mF2 / mV)**2 
+    width = (Abs(cL)**2 + Abs(cR)**2) * (1._dp-r) &
+        &   * (2._dp + r**2 - r) * mV
+
+   Else If (mF2.Eq.0._dp) Then
+    r = (mF1 / mV)**2 
+    width = (Abs(cL)**2 + Abs(cR)**2) * (1._dp-r) &
+        &   * (2._dp + r**2 - r) * mV
+
+   Else If (mF1.Eq.mF2) Then
+    r = (mF1 / mV)**2 
+    width = ( 2._dp * (Abs(cL)**2 + Abs(cR)**2) * (1._dp-r)   &
+        &   + 12._dp * Real(cL*Conjg(cR),dp) * r )            &
+        &   * Sqrt(1._dp - 4._dp * r) * mV
+
+   Else
+    mF1sq = mF1 * mF1
+    mF2sq = mF2 * mF2
+    mVsq = mV * mV
+    kappa = (mVsq-mF1sq-mF2sq)**2 - 4._dp * mF1sq*mF2sq 
+    width = 0.5_dp * (Abs(cL)**2 + Abs(cR)**2)              &
+        &   * (kappa + 3 * mVsq**2 + (mF1sq-mF2sq)**2 )     &
+        & + 12._dp * Real(cL*Conjg(cR),dp) * mF1 * mF2 * mVsq
+    width = width * Sqrt(kappa) / mVsq**3
+
+   End If
+
+   width = Nc * oo48Pi * width
+
+  End Subroutine VectorBosonToTwoFermionsC
+
+
+  Subroutine VectorBosonToTwoFermionsR(mV,mF1,mF2,Nc,cL,cR,width)
+  !-----------------------------------------------------------------------
+  ! VectorBosonToTwoScalars calculates the two body decay 
+  ! width of a vector poson decaying to two fermionss. mV is the
+  ! mass of the decaying vector boson, mF2 and mF2 are the masses of the fermions
+  ! in the final state. cL and cR are complex couplings and Nc a color factor
+  ! written by Werner Porod, 03.09.2010
+  !-----------------------------------------------------------------------
+  Implicit None
+   Integer :: Nc ! color factor
+   Real(dp), Intent(in) :: mF2,mF1,mV, cL, cR
+   Real(dp), Intent(out) :: width
+
+   Real(dp) :: mF1sq, mF2sq, mVsq, kappa, r
+
+   If (( mV.Le.( mF1 + mF2 ) ).Or.((Abs(cL)+Abs(cR)).Eq.0._dp) ) Then
+    width = 0._dp
+    Return
+
+   Else If ((mF1.Eq.0._dp).And.(mF2.Eq.0._dp)) Then
+    width = 2._dp * (cL**2 + cR**2) * mV
+
+   Elseif (mF1.Eq.0._dp) Then
+    r = (mF2 / mV)**2 
+    width = (cL**2 + cR**2) * (1._dp-r) &
+        &   * (2._dp + r**2 - r) * mV
+
+   Elseif (mF2.Eq.0._dp) Then
+    r = (mF1 / mV)**2 
+    width = (cL**2 + cR**2) * (1._dp-r) &
+        &   * (2._dp + r**2 - r) * mV
+
+   Elseif (mF1.Eq.mF2) Then
+    r = (mF1 / mV)**2 
+    width = ( 2._dp * (cL**2 + cR**2) * (1._dp-r) + 12._dp * cL * cR * r )   &
+        &   * Sqrt(1._dp - 4._dp * r) * mV
+
+   Else
+    mF1sq = mF1 * mF1
+    mF2sq = mF2 * mF2
+    mVsq = mV * mV
+    kappa = (mVsq-mF1sq-mF2sq)**2 - 4._dp * mF1sq*mF2sq 
+    width = 0.5_dp * (cL**2 + cR**2)                       &
+        &   * (kappa + 3 * mVsq**2 + (mF1sq-mF2sq)**2 )    &
+        & + 12._dp * cL * cR  * mF1 * mF2 * mVsq
+    width = width * Sqrt(kappa) / mVsq**3
+
+   Endif
+
+   width = Nc * oo48Pi * width
+
+  End Subroutine VectorBosonToTwoFermionsR
+
+  Subroutine VectorBosonToTwoScalars(mV,mS1,mS2,Nc,coup,width)
+  !-----------------------------------------------------------------------
+  ! ScalarToScalarVectorBoson calculates the two body decay 
+  ! width of a vector poson decaying to two scalars. mV is the
+  ! mass of the decaying vector boson, mS and mS1 are the masses of the scalars
+  ! in the final state. coup is a complex coupling and Nc a color factor
+  ! written by Werner Porod, 03.09.2010
+  !-----------------------------------------------------------------------
+  Implicit None
+   Integer :: Nc ! color factor
+   Real(dp), Intent(in) :: mS2,mS1,mV
+   Real(dp), Intent(out) :: width
+   Complex(dp), Intent(in) :: coup
+
+   Real(dp) :: r, r2
+
+   If (( mV.Le.( mS1 + mS2 ) ).Or.(Abs(coup).Eq.0._dp) ) Then
+    width = 0._dp
+    Return
+
+   Else If (mS1.Eq.0._dp) Then
+    r = (mS2/mV)**2    
+    width = (1._dp - r )**3
+
+   Else If (mS2.Eq.0._dp) Then
+    r = (mS1/mV)**2    
+    width = (1._dp - r )**3
+
+   Else If (mS1.Eq.mS2) Then
+    r = (mS1/mV)**2    
+    width = (1._dp - 4._dp * r )**1.5_dp
+
+   Else
+    r = (mS1/mV)**2    
+    r2 = (mS2/mV)**2
+    width = ( 1._dp - 2._dp*(r+r2) + (r-r2)**2 )**1.5_dp    
+
+   End If
+
+   width = Nc * oo48Pi * Abs(coup)**2  * width * mV
+
+  End Subroutine VectorBosonToTwoScalars
 
 End Module DecayFunctions
 

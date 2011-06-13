@@ -9,23 +9,22 @@ Use ThreeBodyPhaseSpace
 Contains
 
 
- Subroutine NeutralinoThreeBodyDecays(n_in, mN, mZ, gZ, L_nu, R_nu           &
-    & , mf_l, L_e, R_e, mf_u, L_u, R_u, mf_d, L_d, R_d, cpl_NNZ_L, cpl_NNZ_R &
-    & , mC, mW, gW, cpl_NuLW, cpl_UDW, cpl_CCZ_L, cpl_CCZ_R, cpl_CNW_L       &
-    & , cpl_CNW_R, mSpm, gSpm, cpl_SmpCN_L, cpl_SmpCN_R, cpl_SmpLNu_L        &
-    & , cpl_SmpLNu_R, cpl_SmpDU_L, cpl_SmpDU_R, mS0, gS0, cpl_NNS0_L         &
-    & , cpl_NNS0_R, cpl_CCS0_L, cpl_CCS0_R, cpl_DDS0_L, cpl_DDS0_R           &
-    & , cpl_LLS0_L, cpl_LLS0_R, cpl_UUS0_L, cpl_UUS0_R, mP0, gP0, cpl_NNP0_L &
-    & , cpl_NNP0_R, cpl_CCP0_L, cpl_CCP0_R, cpl_DDP0_L, cpl_DDP0_R           &
-    & , cpl_LLP0_L, cpl_LLP0_R, cpl_UUP0_L, cpl_UUP0_R, mUSquark, gUSquark   &
-    & , cpl_UNSu_L, cpl_UNSu_R, cpl_CDSu_L, cpl_CDSu_R, mGlu, cpl_UGSu_L     &
-    & , cpl_UGSu_R, mDSquark, gDSquark, cpl_DNSd_L, cpl_DNSd_R, cpl_CUSd_L   &
-    & , cpl_CUSd_R, cpl_DGSd_L, cpl_DGSd_R, mSneutrino, gSneutrino           &
-    & , cpl_NuNSn_L, cpl_NuNSn_R, cpl_CLSn_L, cpl_CLSn_R, mSlepton, gSlepton &
-    & , cpl_LNSl_L, cpl_LNSl_R, cpl_CNuSl_L, cpl_CNuSl_R, gSU2, sW2          &
-    & , GenerationMixing, OnlySM, epsI, deltaM, Check_Real_States, m_d       &
-    & , gPhoton, gNll, gNnunu, gNdd, gNuu, gCln, gCDU, gNgdd, gNguu          &
-    & , gNNNN, GNNCC, n_int_diag, n_int_off_diag, gT, gP, BR, is_NMSSM)
+ Subroutine NeutralinoThreeBodyDecays(n_in, n_l, id_l, n_nu, id_nu, n_d, id_d  &
+    & , n_u, id_u, n_c, n_n, n_W, id_W, n_Z, id_Z, n_Sle, n_Snu, n_Sd, n_Su    &
+    & , n_S0, n_P0, n_Spm, id_ph, Chi0, mZ, gZ, L_nu, R_nu, mf_l, L_e, R_e     &
+    & , mf_u, L_u, R_u, mf_d, L_d, R_d, cpl_NNZ_L, cpl_NNZ_R, ChiPm, mW, gW    &
+    & , cpl_NuLW, cpl_UDW, cpl_CCZ_L, cpl_CCZ_R, cpl_CNW_L, cpl_CNW_R, Spm     &
+    & , cpl_SmpCN_L, cpl_SmpCN_R, cpl_SmpLNu_L, cpl_SmpLNu_R, cpl_SmpDU_L      &
+    & , cpl_SmpDU_R, S0, cpl_NNS0_L, cpl_NNS0_R, cpl_CCS0_L, cpl_CCS0_R        &
+    & , cpl_DDS0_L, cpl_DDS0_R, cpl_LLS0_L, cpl_LLS0_R, cpl_UUS0_L, cpl_UUS0_R &
+    & , P0, cpl_NNP0_L, cpl_NNP0_R, cpl_CCP0_L, cpl_CCP0_R, cpl_DDP0_L         &
+    & , cpl_DDP0_R, cpl_LLP0_L, cpl_LLP0_R, cpl_UUP0_L, cpl_UUP0_R, Sup        &
+    & , cpl_UNSu_L, cpl_UNSu_R, cpl_CDSu_L, cpl_CDSu_R, Glu, cpl_UGSu_L        &
+    & , cpl_UGSu_R, Sdown, cpl_DNSd_L, cpl_DNSd_R, cpl_CUSd_L, cpl_CUSd_R      &
+    & , cpl_DGSd_L, cpl_DGSd_R, Sneut, cpl_NuNSn_L, cpl_NuNSn_R, cpl_CLSn_L    &
+    & , cpl_CLSn_R, Slept, cpl_LNSl_L, cpl_LNSl_R, cpl_CNuSl_L, cpl_CNuSl_R    &
+    & , gSU2, sW2, GenerationMixing, OnlySM, epsI, deltaM, Check_Real_States   &
+    & , M_D, n_int_diag, n_int_off_diag, is_NMSSM)
  !------------------------------------------------------------------
  ! calculates all 3-body decays of a neutralino into fermions +
  ! the decay into another neutralino + photon, in case of spontaneous R-parity
@@ -75,19 +74,15 @@ Contains
  !              problems 
  !            - adding n_int_diag, n_int_off_diag, which give the size of
  !              arrays for the intermediate contrictuions
+ !  19.09.2010: adjusting for new variable types
  !------------------------------------------------------------------
  Implicit None
 
-  Integer, Intent(in) :: n_in, n_int_diag, n_int_off_diag
-  Real(dp), Intent(in) :: mN(:), mZ, gZ, L_nu, R_nu, mf_l(3), L_e, R_e      &
-     &, mf_u(3), L_u, R_u, mf_d(3), L_d, R_d, mC(:), mW, gW                 &
-     &, mSpm(:), gSpm(:), mS0(:), gS0(:), mP0(:), gP0(:), mUSquark(6)       &
-     &, gUSquark(6), mGlu, mDSquark(6), gDSquark(6), mSneutrino(:)          &
-     &, gSneutrino(:), mSlepton(:), gSlepton(:), gSU2, sW2, epsI, deltaM, M_D
-  Real(dp), Intent(inout) :: gPhoton(:,:), gNll(:,:,:,:), gNdd(:,:,:,:)       &
-     & , gNuu(:,:,:,:), gCln(:,:,:,:), gCDU(:,:,:,:), gNncc(:,:,:,:)        &
-     & , gNnnn(:,:,:,:), gNgdd(:,:,:), gNguu(:,:,:), gNnunu(:,:,:,:), gT(:)
-  Real(dp), Intent(inout), Optional :: BR(:,:), gP(:,:)
+  Integer, Intent(in) :: n_in, n_int_diag, n_int_off_diag, n_nu, n_l, n_d, n_u &
+     & , n_Z, n_W, n_snu, n_sle, n_Sd, n_su, n_n, n_c, n_s0, n_p0, n_Spm, id_ph
+  Integer, Intent(in) :: id_nu(:), id_l(:), id_d(:), id_u(:), id_Z(:), id_W(:)
+  Real(dp), Intent(in) :: mZ, gZ, L_nu, R_nu, mf_l(:), L_e, R_e, mf_u(:), L_u  &
+     & , R_u, mf_d(:), L_d, R_d, mW, gW, gSU2, sW2, epsI, deltaM, M_D
   Complex(dp), Intent(in) :: cpl_NNZ_L(:,:), cpl_NNZ_R(:,:), cpl_CCZ_L(:,:)  &
      & , cpl_CCZ_R(:,:), cpl_CNW_L(:,:), cpl_CNW_R(:,:), cpl_UDW(3,3)        &
      & , cpl_SmpCN_L(:,:,:), cpl_SmpCN_R(:,:,:), cpl_SmpLNu_L(:,:,:)         &
@@ -107,19 +102,22 @@ Contains
      & , cpl_LNSl_L(:,:,:), cpl_LNSl_R(:,:,:), cpl_CNuSl_L(:,:,:)            &
      & , cpl_CNuSl_R(:,:,:), cpl_NuLW(:,:)
   Logical, Intent(in) :: GenerationMixing, OnlySM, Check_Real_States
-  Logical, Optional , intent(in) :: is_NMSSM
+  Logical, Optional , Intent(in) :: is_NMSSM
+  Type(particle2), Intent(in) :: Slept(:), Sneut(:), Sdown(:), Spm(:), P0(:)
+  Type(particle23), Intent(in) :: Sup(:), ChiPm(:), S0(:), Glu
+  Type(particle23), Intent(inout) :: Chi0(:)
 
-  Integer :: n_neut, n_char, n_S0, n_P0, n_Spm, i_start, i_end, i_run       &
-     &, i1, i2, i3, n_Z4, n_S04, n_Sf4, n_ZS04, n_ZSf8 &
-     & , n_S0P04, n_S0Sf8, n_CSf4, n_Sf8, nf, n_W4, n_WSpm, n_WSf8, n_Z8    &
-     & , n_ZS08, n_S0P08, n_W8, n_ZW8, n_WSpm8, i_count, n_Sl, n_Sd, n_Su   &
-     & , n_Sn
-  Real(dp) :: factor(3), mW2a, m_nu(3)  &
-     & , mUsquark2(6), mDsquark2(6), mSlepton2(6), gNff(3,3), gCffp(3,3)   &
-     & , diffM, gNNN, gNCC, gGqq(3,3), gW_in, gZ_in
-  Real(dp), Allocatable :: mSpm2(:), IntegralsZ4(:,:), IntegralsS04(:,:)   &
-     & , IntegralsSf4(:,:), IntegralsW4(:,:), gS0_in(:), gP0_in(:)         &
-     & , gSpm_in(:), g_Su(:), g_Sd(:), g_Sl(:), g_Sn(:)
+  Integer :: i_start, i_end, i_run, i_c, i1, i2, i3, n_Z4, n_S04, n_Sf4   &
+     & , n_ZS04, n_ZSf8, n_S0P04, n_S0Sf8, n_CSf4, n_Sf8, n_W4, n_WSpm    &
+     & , n_ZS08, n_S0P08, n_W8, n_ZW8, n_WSpm8, n_WSf8, n_Z8
+  Real(dp) :: factor(3), mW2a, m_nu(3), mUsquark2(n_Su), gP0_in(n_P0)       &
+     & , mDsquark2(n_Sd), mSlepton2(n_sle), gNff(3,3), gCffp(3,3), mGlu     &
+     & , mSneutrino(n_snu), mN(n_n), mC(n_c), mP0(n_P0), mUsquark(n_Su)     &
+     & , mDsquark(n_Sd), mSlepton(n_sle), mS0(n_S0), mSpm(n_Spm), diffM     &
+     & , gNNN, gNCC, gGqq(3,3), gW_in, gZ_in, mSpm2(n_Spm), gS0_in(n_S0)    &
+     & , gSpm_in(n_Spm), g_Su(n_Su), g_Sd(n_Sd), g_Sl(n_Sle), g_Sn(n_Snu)
+  Real(dp), Allocatable :: IntegralsZ4(:,:), IntegralsS04(:,:)   &
+     & , IntegralsSf4(:,:), IntegralsW4(:,:)
   Complex(dp), Allocatable :: IntegralsZS04(:,:), IntegralsZSf8(:,:)     &
       & , IntegralsS0P04(:,:), IntegralsS0Sf8(:,:), IntegralsCSf4(:,:)   &
       & , IntegralsSf8(:,:), IntegralsWSpm4(:,:), IntegralsWSf8(:,:)     &
@@ -132,62 +130,50 @@ Contains
   !--------------------
   ! checking for model 
   !--------------------
-  n_neut = Size( mN )
-  n_char = Size( mC )
-  n_S0 = Size( mS0 )
-  n_P0 = Size( mP0 )
-  n_Spm = Size( mSpm )
-  n_Su = Size( gUSquark )
-  n_Sd = Size( gDSquark )
-  n_Sl = Size( gSlepton )
-  n_Sn = Size( gSneutrino )
 
-  if (present(is_NMSSM)) then
+  If (Present(is_NMSSM)) Then
    l_nmssm = is_NMSSM
-  else
+  Else
    l_nmssm = .False.
-  end if
+  End If
 
-  Allocate( mSpm2(n_Spm) )
-  Allocate( gS0_in(n_S0) )
-  Allocate( gP0_in(n_P0) )
-  Allocate( gSpm_in(n_Spm) )
-  Allocate( g_Su(n_Su) )
-  Allocate( g_Sd(n_Sd) )
-  Allocate( g_Sn(n_Sn) )
-  Allocate( g_Sl(n_Sl) )
-
-   Allocate( IntegralsZ4(n_int_diag,8) )
-   Allocate( IntegralsZ8(n_int_diag,12) )
-   Allocate( IntegralsW4(n_int_diag,8) )
-   Allocate( IntegralsW8(n_int_diag,12) )
-   Allocate( IntegralsZW8(n_int_diag,12) )
-   Allocate( IntegralsS04(n_int_off_diag,10) )
-   Allocate( IntegralsSf4(n_int_off_diag,10) )
-   Allocate( IntegralsZS04(n_int_off_diag,12) )
-   Allocate( IntegralsZS08(n_int_off_diag,16) )
-   Allocate( IntegralsWSpm4(n_int_off_diag,12) )
-   Allocate( IntegralsWSpm8(n_int_off_diag,16) )
-   Allocate( IntegralsZSf8(n_int_off_diag,16) )
-   Allocate( IntegralsWSf8(n_int_off_diag,16) )
-   Allocate( IntegralsS0P04(n_int_off_diag,12) )
-   Allocate( IntegralsS0P08(n_int_off_diag,16) )
-   Allocate( IntegralsS0Sf8(n_int_off_diag,16) )
-   Allocate( IntegralsCSf4(n_int_off_diag,12) )
-   Allocate( IntegralsSf8(n_int_off_diag,16) )
+  Allocate( IntegralsZ4(n_int_diag,8) )
+  Allocate( IntegralsZ8(n_int_diag,12) )
+  Allocate( IntegralsW4(n_int_diag,8) )
+  Allocate( IntegralsW8(n_int_diag,12) )
+  Allocate( IntegralsZW8(n_int_diag,12) )
+  Allocate( IntegralsS04(n_int_off_diag,10) )
+  Allocate( IntegralsSf4(n_int_off_diag,10) )
+  Allocate( IntegralsZS04(n_int_off_diag,12) )
+  Allocate( IntegralsZS08(n_int_off_diag,16) )
+  Allocate( IntegralsWSpm4(n_int_off_diag,12) )
+  Allocate( IntegralsWSpm8(n_int_off_diag,16) )
+  Allocate( IntegralsZSf8(n_int_off_diag,16) )
+  Allocate( IntegralsWSf8(n_int_off_diag,16) )
+  Allocate( IntegralsS0P04(n_int_off_diag,12) )
+  Allocate( IntegralsS0P08(n_int_off_diag,16) )
+  Allocate( IntegralsS0Sf8(n_int_off_diag,16) )
+  Allocate( IntegralsCSf4(n_int_off_diag,12) )
+  Allocate( IntegralsSf8(n_int_off_diag,16) )
 
   If (n_in.Lt.0) Then
    i_start = 1
-   i_end = n_neut
+   i_end = n_n
+   Do i1=1,n_n
+    Chi0(i1)%gi3 = 0._dp
+    Chi0(i1)%bi3 = 0._dp
+   End Do
 
-  Else If ( (n_in.Ge.1).And.(n_in.Le.n_neut) ) Then 
+  Else If ( (n_in.Ge.1).And.(n_in.Le.n_n) ) Then 
    i_start = n_in 
    i_end = n_in
+   Chi0(n_in)%gi3 = 0._dp
+   Chi0(n_in)%bi3 = 0._dp
 
   Else
    If (ErrorLevel.Ge.-1) Then
     Write(ErrCan,*) 'Problem in subroutine '//NameOfUnit(Iname)
-    Write(ErrCan,*) 'Value of n_in out of range, (n_in,n_neut) = ',n_in,n_neut
+    Write(ErrCan,*) 'Value of n_in out of range, (n_in,n_n) = ',n_in,n_n
    End If
 
    If (ErrorLevel.Gt.0) Call TerminateProgram
@@ -196,56 +182,53 @@ Contains
    Return
   End If
 
+  mC = ChiPm%m
+  mN = Chi0%m
+  mSlepton = Slept%m
+  mSneutrino = Sneut%m
+  mDsquark = Sdown%m
+  mUSquark = Sup%m
+  mP0 = P0%m
+  mS0 = S0%m
+  mSpm = Spm%m
+  mGlu = Glu%m
+
   mSpm2 = mSpm**2
   mUsquark2 = mUsquark**2 
   mDsquark2 = mDsquark**2 
   mSlepton2 = mSlepton**2 
 
   m_nu = 0._dp
-  nf = 0
 
-   mW2a = mW**2
+  mW2a = mW**2
 
-   If (Check_Real_States) Then
-    gZ_in = 0._dp
-    gW_in = 0._dp
-    gS0_in = 0._dp
-    gP0_in = 0._dp
-    gSpm_in = 0._dp
-    g_Su = 0._dp
-    g_Sd = 0._dp 
-    g_Sl = 0._dp 
-    g_Sn =  0._dp
-   Else
-    gZ_in = gZ
-    gW_in = gW
-    gS0_in = gS0
-    gP0_in = gP0
-    gSpm_in = gSpm
-    g_Su = gUSquark
-    g_Sd = gDSquark
-    g_Sl = gSlepton
-    g_Sn = gSneutrino
-   End If
-   check = Check_Real_States
+  If (Check_Real_States) Then
+   gZ_in = 0._dp
+   gW_in = 0._dp
+   gS0_in = 0._dp
+   gP0_in = 0._dp
+   gSpm_in = 0._dp
+   g_Su = 0._dp
+   g_Sd = 0._dp 
+   g_Sl = 0._dp 
+   g_Sn =  0._dp
+  Else
+   gZ_in = gZ
+   gW_in = gW
+   gS0_in = S0%g
+   gP0_in = P0%g
+   gSpm_in = Spm%g
+   g_Su = Sup%g
+   g_Sd = Sdown%g
+   g_Sl = Slept%g
+   g_Sn = Sneut%g
+  End If
+  check = Check_Real_States
 
   Do i_run = i_start, i_end
    !-----------------
    ! intitialisation
    !-----------------
-   gT(i_run) = 0._dp
-   gPhoton(i_run,:) = 0._dp
-   gNdd(i_run,:,:,:) = 0._dp
-   gNuu(i_run,:,:,:) = 0._dp
-   gNgdd(i_run,:,:) = 0._dp
-   gNguu(i_run,:,:) = 0._dp
-   gNll(i_run,:,:,:) = 0._dp
-   gNncc(i_run,:,:,:) = 0._dp
-   gNnnn(i_run,:,:,:) = 0._dp
-   gCln(i_run,:,:,:) = 0._dp
-   gCDU(i_run,:,:,:) = 0._dp
-   gNnunu(i_run,:,:,:) = 0._dp
-
    IntegralsZ4 = 0._dp
    IntegralsW4 = 0._dp
    IntegralsS04 = 0._dp
@@ -283,14 +266,15 @@ Contains
    factor(1) = oo512pi3 / Abs(mN(i_run))**3   ! for 3-body decays
    factor(2) = 3._dp * factor(1)            ! including color factor
    factor(3) = 4._dp * factor(1)            ! for decays into gluinos
-
+   Chi0(i_run)%gi3 = 0._dp
+   i_c = 1
    !--------------------------------------
    ! decays into a neutralino + 2 fermions
    !--------------------------------------
    Do i1 = 1, i_run - 1
-    If (Abs(mN(i_run)).Gt.(Abs(mN(i1))+M_D)) then
+    If (Abs(mN(i_run)).Gt.(Abs(mN(i1))+M_D)) Then
      Call  Chi0ToChi0ff(i_run, i1, ' u u ', mN, mZ, gZ_in, Cpl_NNZ_L,Cpl_NNZ_R &
-     & , 3, mf_u, L_u, R_u, IntegralsZ4, n_Z4, mS0, gS0_in, cpl_NNS0_L         &
+     & , n_u, mf_u, L_u, R_u, IntegralsZ4, n_Z4, mS0, gS0_in, cpl_NNS0_L       &
      & , cpl_NNS0_R, cpl_UUS0_L, cpl_UUS0_R, IntegralsS04, n_S04, mP0, gP0_in  &
      & , cpl_NNP0_L, cpl_NNP0_R, cpl_UUP0_L, cpl_UUP0_R, mUSquark, g_Su        &
      & , cpl_UNSu_L, cpl_UNSu_R, IntegralsSf4, n_Sf4, IntegralsZS04, n_ZS04    &
@@ -298,11 +282,30 @@ Contains
      & , n_S0Sf8, IntegralsCSf4, n_CSf4, IntegralsSf8, n_Sf8, deltaM, epsI     &
      & , GenerationMixing, check, factor(2), gNff,0,ErrCan)
 
-     gNuu(i_run, i1,:,:) = gNff
-     gT(i_run) = gT(i_run) + Sum( gNff )
+     Do i2=1,n_u
+      Do i3=i2,n_u
+       If (i2.Eq.i3) Then
+        Chi0(i_run)%gi3(i_c) = gNff(i2,i3)
+        Chi0(i_run)%id3(i_c,1) = Chi0(i1)%id
+        Chi0(i_run)%id3(i_c,2) = id_u(i2)
+        Chi0(i_run)%id3(i_c,3) = id_u(i2) + 1
+        i_c = i_c +1
+       Else
+        Chi0(i_run)%gi3(i_c) = gNff(i2,i3)
+        Chi0(i_run)%id3(i_c,1) = Chi0(i1)%id
+        Chi0(i_run)%id3(i_c,2) = id_u(i2)
+        Chi0(i_run)%id3(i_c,3) = id_u(i3) + 1
+        Chi0(i_run)%gi3(i_c+1) = gNff(i3,i2)
+        Chi0(i_run)%id3(i_c+1,1) = Chi0(i1)%id
+        Chi0(i_run)%id3(i_c+1,2) = id_u(i3)
+        Chi0(i_run)%id3(i_c+1,3) = id_u(i2) + 1
+        i_c = i_c +2
+       End If
+      End Do
+     End Do
 
      Call  Chi0ToChi0ff(i_run, i1, ' d d ', mN, mZ, gZ_in, Cpl_NNZ_L,Cpl_NNZ_R &
-     & , 3, mf_d, L_d, R_d, IntegralsZ4, n_Z4, mS0, gS0_in, cpl_NNS0_L         &
+     & , n_d, mf_d, L_d, R_d, IntegralsZ4, n_Z4, mS0, gS0_in, cpl_NNS0_L       &
      & , cpl_NNS0_R, cpl_DDS0_L, cpl_DDS0_R, IntegralsS04, n_S04, mP0, gP0_in  &
      & , cpl_NNP0_L, cpl_NNP0_R, cpl_DDP0_L, cpl_DDP0_R, mDSquark, g_Sd        &
      & , cpl_DNSd_L, cpl_DNSd_R, IntegralsSf4, n_Sf4, IntegralsZS04, n_ZS04    &
@@ -310,13 +313,32 @@ Contains
      & , n_S0Sf8, IntegralsCSf4, n_CSf4, IntegralsSf8, n_Sf8, deltaM, epsI     &
      & , GenerationMixing, check, factor(2), gNff,0,ErrCan)
 
-     gNdd(i_run, i1,:,:) = gNff
-     gT(i_run) = gT(i_run) + Sum( gNff )
+     Do i2=1,n_d
+      Do i3=i2,n_d
+       If (i2.Eq.i3) Then
+        Chi0(i_run)%gi3(i_c) = gNff(i2,i3)
+        Chi0(i_run)%id3(i_c,1) = Chi0(i1)%id
+        Chi0(i_run)%id3(i_c,2) = id_d(i2)
+        Chi0(i_run)%id3(i_c,3) = id_d(i2) + 1
+        i_c = i_c +1
+       Else
+        Chi0(i_run)%gi3(i_c) = gNff(i2,i3)
+        Chi0(i_run)%id3(i_c,1) = Chi0(i1)%id
+        Chi0(i_run)%id3(i_c,2) = id_d(i2)
+        Chi0(i_run)%id3(i_c,3) = id_d(i3) + 1
+        Chi0(i_run)%gi3(i_c+1) = gNff(i3,i2)
+        Chi0(i_run)%id3(i_c+1,1) = Chi0(i1)%id
+        Chi0(i_run)%id3(i_c+1,2) = id_d(i3)
+        Chi0(i_run)%id3(i_c+1,3) = id_d(i2) + 1
+        i_c = i_c +2
+       End If
+      End Do
+     End Do
 
-     If (n_char.Lt.5) Then
-      nf = 5 - n_char
+
+     If (n_l.Ge.1) Then
       Call  Chi0ToChi0ff(i_run, i1, ' l l ', mN, mZ,gZ_in, Cpl_NNZ_L,Cpl_NNZ_R &
-      & , nf, mf_l, L_e, R_e, IntegralsZ4, n_Z4, mS0, gS0_in, cpl_NNS0_L       &
+      & , n_l, mf_l, L_e, R_e, IntegralsZ4, n_Z4, mS0, gS0_in, cpl_NNS0_L      &
       & , cpl_NNS0_R, cpl_LLS0_L, cpl_LLS0_R, IntegralsS04, n_S04, mP0, gP0_in &
       & , cpl_NNP0_L, cpl_NNP0_R, cpl_LLP0_L, cpl_LLP0_R, mSlepton, g_Sl       &
       & , cpl_LNSl_L, cpl_LNSl_R, IntegralsSf4, n_Sf4, IntegralsZS04, n_ZS04   &
@@ -324,25 +346,49 @@ Contains
       & , n_S0Sf8, IntegralsCSf4, n_CSf4, IntegralsSf8, n_Sf8, deltaM, epsI    &
       & , GenerationMixing, check, factor(1), gNff,0,ErrCan)
 
-      gT(i_run) = gT(i_run) + Sum( gNff )
-      gNll(i_run, i1,:,:) = gNff
- 
-     Call  Chi0ToChi0NuNu(i_run, i1, mN, mZ, gZ_in, Cpl_NNZ_L, Cpl_NNZ_R, nf   &
-     & , L_nu, R_nu, IntegralsZ4, n_Z4, mSneutrino, g_Sn, cpl_NuNSn_L          &
-     & , cpl_NuNSn_R, IntegralsSf4, n_Sf4, IntegralsZSf8, n_ZSf8               &
-     & , IntegralsCSf4, n_CSf4, IntegralsSf8, n_Sf8                            &
-     & , deltaM, epsI, GenerationMixing, check, factor(1), gNff,0,ErrCan)
-
-      gNnunu(i_run,i1,:,:) = gNff
-      gT(i_run) = gT(i_run) + Sum( gNff )
+      Do i2=1,n_l
+       Do i3=i2,n_l
+        If (i2.Eq.i3) Then
+         Chi0(i_run)%gi3(i_c) = gNff(i2,i3)
+         Chi0(i_run)%id3(i_c,1) = Chi0(i1)%id
+         Chi0(i_run)%id3(i_c,2) = id_l(i2)
+         Chi0(i_run)%id3(i_c,3) = id_l(i2) + 1
+         i_c = i_c +1
+        Else
+         Chi0(i_run)%gi3(i_c) = gNff(i2,i3)
+         Chi0(i_run)%id3(i_c,1) = Chi0(i1)%id
+         Chi0(i_run)%id3(i_c,2) = id_l(i2)
+         Chi0(i_run)%id3(i_c,3) = id_l(i3) + 1
+         Chi0(i_run)%gi3(i_c+1) = gNff(i3,i2)
+         Chi0(i_run)%id3(i_c+1,1) = Chi0(i1)%id
+         Chi0(i_run)%id3(i_c+1,2) = id_l(i3)
+         Chi0(i_run)%id3(i_c+1,3) = id_l(i2) + 1
+         i_c = i_c +2
+        End If
+       End Do
+      End Do
      End If
-    end if
+
+
+     If (n_nu.Ge.1) Then
+      Call  Chi0ToChi0NuNu(i_run, i1, mN, mZ, gZ_in, Cpl_NNZ_L, Cpl_NNZ_R      &
+        & , n_nu, L_nu, R_nu, IntegralsZ4, n_Z4, mSneutrino, g_Sn, cpl_NuNSn_L &
+        & , cpl_NuNSn_R, IntegralsSf4, n_Sf4, IntegralsZSf8, n_ZSf8            &
+        & , IntegralsCSf4, n_CSf4, IntegralsSf8, n_Sf8                         &
+        & , deltaM, epsI, GenerationMixing, check, factor(1), gNff,0,ErrCan)
+      Chi0(i_run)%gi3(i_c) = Sum(gNff)
+      Chi0(i_run)%id3(i_c,1) = Chi0(i1)%id
+      Chi0(i_run)%id3(i_c,2) = id_nu(1)
+      Chi0(i_run)%id3(i_c,3) = id_nu(1) + 1
+      i_c = i_c +1
+     End If
+    End If
    End Do
 
    !--------------------------------------
    ! decay into charginos + 2 SM fermions
    !--------------------------------------
-   Do i1=1,n_char
+   Do i1=1,n_c
     If (Abs(mN(i_run)).Gt.(Abs(mC(i1))+M_D)) Then
      Call Chi0ToChimffp(i_run, i1, mN, mC, 3, mf_d, mf_u, mW, gW_in, Cpl_CNW_L &
           & , Cpl_CNW_R, Cpl_UDW, mSpm, gSpm_in, Cpl_SmpCN_L, Cpl_SmpCN_R      &
@@ -354,11 +400,23 @@ Contains
           & , IntegralsCSf4, n_CSf4, IntegralsSf8, n_Sf8, deltaM, epsI         &
           & , GenerationMixing, check, factor(2), gCffp, 0, ErrCan)
 
-     gCDU(i_run,i1,:,:) = gCffp
-     gT(i_run) = gT(i_run) + 2._dp * Sum( gCffp )
+     Do i2=1,n_d
+      Do i3=1,n_u
+       Chi0(i_run)%gi3(i_c) = gCffp(i2,i3)
+       Chi0(i_run)%id3(i_c,1) = ChiPm(i1)%id
+       Chi0(i_run)%id3(i_c,2) = id_d(i2)
+       Chi0(i_run)%id3(i_c,3) = id_u(i3) + 1
+       i_c = i_c +1
+       Chi0(i_run)%gi3(i_c) = gCffp(i2,i3)
+       Chi0(i_run)%id3(i_c,1) = ChiPm(i1)%id + 1
+       Chi0(i_run)%id3(i_c,2) = id_d(i2) + 1
+       Chi0(i_run)%id3(i_c,3) = id_u(i3)
+       i_c = i_c +1
+      End Do
+     End Do
 
-     If (n_char.Lt.5) Then
-      Call Chi0ToChimffp(i_run, i1, mN, mC, nf, mf_l, m_nu, mW, gW_in           &
+     If (n_l.ge.1) Then
+      Call Chi0ToChimffp(i_run, i1, mN, mC, n_l, mf_l, m_nu, mW, gW_in          &
          & , Cpl_CNW_L, Cpl_CNW_R, Cpl_NuLW, mSpm, gSpm_in, Cpl_SmpCN_L         &
          & , Cpl_SmpCN_R, Cpl_SmpLNu_L, Cpl_SmpLNu_R, mSlepton, g_Sl            &
          & , cpl_LNSl_L, cpl_LNSl_R, cpl_CNuSl_L, cpl_CNuSl_R, mSneutrino, g_Sn &
@@ -367,8 +425,20 @@ Contains
          & , IntegralsWSf8, n_WSf8, IntegralsS0P04, n_S0P04, IntegralsS0Sf8     &
          & , n_S0Sf8, IntegralsCSf4, n_CSf4, IntegralsSf8, n_Sf8, deltaM, epsI  &
          & , GenerationMixing, check, factor(1), gCffp,0,ErrCan)
-      gCln(i_run,i1,:,:) = gCffp
-      gT(i_run) = gT(i_run) + 2._dp * Sum( gCffp )
+      Do i2=1,n_l
+       Do i3=1,n_nu
+        Chi0(i_run)%gi3(i_c) = gCffp(i2,i3)
+        Chi0(i_run)%id3(i_c,1) = ChiPm(i1)%id
+        Chi0(i_run)%id3(i_c,2) = id_l(i2)
+        Chi0(i_run)%id3(i_c,3) = id_nu(i3) + 1
+        i_c = i_c +1
+        Chi0(i_run)%gi3(i_c) = gCffp(i2,i3)
+        Chi0(i_run)%id3(i_c,1) = ChiPm(i1)%id + 1
+        Chi0(i_run)%id3(i_c,2) = id_l(i2) + 1
+        Chi0(i_run)%id3(i_c,3) = id_nu(i3)
+        i_c = i_c +1
+       End Do
+      End Do
      End If
     End If
    End Do
@@ -382,13 +452,16 @@ Contains
        diffM = Abs(mN(i_run)) - Abs(mN(i1)) - Abs(mN(i2)) - Abs(mN(i3)) - M_D
        If (diffM.Gt.0._dp) Then
         Call Chi0To3Chi0(i_run, i1, i2, i3, mN, mZ, gZ_in, cpl_NNZ_L, cpl_NNZ_R &
-             & , mS0, gS0_in, cpl_NNS0_L, cpl_NNS0_R, mP0, gP0, cpl_NNP0_L      &
+             & , mS0, gS0_in, cpl_NNS0_L, cpl_NNS0_R, mP0, gP0_in, cpl_NNP0_L   &
              & , cpl_NNP0_R, IntegralsZ4, n_Z4, IntegralsS04, n_S04             &
              & , IntegralsZ8, n_Z8, IntegralsZS04, n_ZS04, IntegralsZS08        &
              & , n_ZS08, IntegralsS0P04, n_S0P04, IntegralsS0P08, n_S0P08       &
              & , deltaM, epsI, check, factor(1), gNNN,0,ErrCan)
-        gNNNN(i_run,i1,i2,i3) = gNNN
-        gT(i_run) = gT(i_run) + gNNN
+        Chi0(i_run)%gi3(i_c) = gNNN
+        Chi0(i_run)%id3(i_c,1) = Chi0(i1)%id
+        Chi0(i_run)%id3(i_c,2) = Chi0(i2)%id
+        Chi0(i_run)%id3(i_c,3) = Chi0(i3)%id
+        i_c = i_c +1
        End If
       End Do
      End Do
@@ -397,7 +470,7 @@ Contains
     ! decay into neutralino + 2 charginos
     !-------------------------------------
     Do i1=1,i_run-1
-     Do i2=1,n_char
+     Do i2=1,n_c
       Do i3=1,i2
        diffM = Abs(mN(i_run)) - Abs(mN(i1)) - Abs(mC(i2)) - Abs(mC(i3)) - M_D
        If (diffM.Gt.0._dp) Then
@@ -411,12 +484,23 @@ Contains
            & , IntegralsWSpm4, n_WSpm, IntegralsWSpm8, n_WSpm8, IntegralsS0P04  &
            & , n_S0P04, IntegralsS0P08, n_S0P08                                 &
            & , deltaM, epsI, check, factor(1), gNcc,0,ErrCan)
-        gNNCC(i_run,i1,i2,i3) = gNCC
         If (i2.Eq.i3) Then
-         gT(i_run) = gT(i_run) + gNCC
+         Chi0(i_run)%gi3(i_c) = gNCC
+         Chi0(i_run)%id3(i_c,1) = Chi0(i1)%id
+         Chi0(i_run)%id3(i_c,2) = ChiPm(i2)%id
+         Chi0(i_run)%id3(i_c,3) = ChiPm(i3)%id + 1
+         i_c = i_c +1
         Else
-         gNNCC(i_run,i1,i3,i2) = gNCC
-         gT(i_run) = gT(i_run) + 2._dp * gNCC
+         Chi0(i_run)%gi3(i_c) = gNCC
+         Chi0(i_run)%id3(i_c,1) = Chi0(i1)%id
+         Chi0(i_run)%id3(i_c,2) = ChiPm(i2)%id
+         Chi0(i_run)%id3(i_c,3) = ChiPm(i3)%id + 1
+         i_c = i_c +1
+         Chi0(i_run)%gi3(i_c) = gNCC
+         Chi0(i_run)%id3(i_c,1) = Chi0(i1)%id
+         Chi0(i_run)%id3(i_c,2) = ChiPm(i3)%id
+         Chi0(i_run)%id3(i_c,3) = ChiPm(i2)%id + 1
+         i_c = i_c +1
         End If
        End If
       End Do
@@ -426,7 +510,7 @@ Contains
                                        ! as also the 1-gen. R-parity model
                                        ! contains 5 neutralinos
 
-   Else If (OnlySM.And.(n_neut.Gt.4).And.(i_run.Gt.3)) Then
+   Else If (OnlySM.And.(n_n.Gt.4).And.(i_run.Gt.3)) Then
     !-------------------------------
     ! decay into 2 or 3 neutralinos
     !-------------------------------  
@@ -441,8 +525,11 @@ Contains
            & , n_Z8, IntegralsZS04, n_ZS04, IntegralsZS08, n_ZS08               &
            & , IntegralsS0P04, n_S0P04, IntegralsS0P08, n_S0P08                 &
            & , deltaM, epsI, check, factor(1), gNNN,0,ErrCan)
-        gNNNN(i_run,i1,i2,i3) = gNNN
-        gT(i_run) = gT(i_run) + gNNN
+        Chi0(i_run)%gi3(i_c) = gNNN
+        Chi0(i_run)%id3(i_c,1) = Chi0(i1)%id
+        Chi0(i_run)%id3(i_c,2) = Chi0(i2)%id
+        Chi0(i_run)%id3(i_c,3) = Chi0(i3)%id
+        i_c = i_c +1
        End If
       End Do
      End Do
@@ -451,7 +538,7 @@ Contains
     ! decay into neutralino + 2 charginos
     !-------------------------------------
     Do i1=1,3
-     Do i2=1,n_char
+     Do i2=1,n_c
       Do i3=1,Min(i2,3)
        diffM = Abs(mN(i_run)) - Abs(mN(i1)) - Abs(mC(i2)) - Abs(mC(i3)) - M_D
        If (diffM.Gt.0._dp) Then
@@ -466,12 +553,23 @@ Contains
            & , IntegralsS0P04, n_S0P04, IntegralsS0P08, n_S0P08                 &
            & , deltaM, epsI, check, factor(1), gNcc,0,ErrCan)
 
-        gNNCC(i_run,i1,i2,i3) = gNCC
         If (i2.Eq.i3) Then
-         gT(i_run) = gT(i_run) + gNCC
+         Chi0(i_run)%gi3(i_c) = gNCC
+         Chi0(i_run)%id3(i_c,1) = Chi0(i1)%id
+         Chi0(i_run)%id3(i_c,2) = ChiPm(i2)%id
+         Chi0(i_run)%id3(i_c,3) = ChiPm(i3)%id + 1
+         i_c = i_c +1
         Else
-         gNNCC(i_run,i1,i3,i2) = gNCC
-         gT(i_run) = gT(i_run) + 2._dp * gNCC
+         Chi0(i_run)%gi3(i_c) = gNCC
+         Chi0(i_run)%id3(i_c,1) = Chi0(i1)%id
+         Chi0(i_run)%id3(i_c,2) = ChiPm(i2)%id
+         Chi0(i_run)%id3(i_c,3) = ChiPm(i3)%id + 1
+         i_c = i_c +1
+         Chi0(i_run)%gi3(i_c) = gNCC
+         Chi0(i_run)%id3(i_c,1) = Chi0(i1)%id
+         Chi0(i_run)%id3(i_c,2) = ChiPm(i3)%id
+         Chi0(i_run)%id3(i_c,3) = ChiPm(i2)%id + 1
+         i_c = i_c +1
         End If
        End If
       End Do
@@ -493,12 +591,23 @@ Contains
            & , IntegralsS0P04, n_S0P04, IntegralsS0P08, n_S0P08                 &
            & , deltaM, epsI, check, factor(1), gNcc,0,ErrCan)
 
-        gNNCC(i_run,i1,i2,i3) = gNCC
         If (i2.Eq.i3) Then
-         gT(i_run) = gT(i_run) + gNCC
+         Chi0(i_run)%gi3(i_c) = gNCC
+         Chi0(i_run)%id3(i_c,1) = Chi0(i1)%id
+         Chi0(i_run)%id3(i_c,2) = ChiPm(i2)%id
+         Chi0(i_run)%id3(i_c,3) = ChiPm(i3)%id + 1
+         i_c = i_c +1
         Else
-         gNNCC(i_run,i1,i3,i2) = gNCC
-         gT(i_run) = gT(i_run) + 2._dp * gNCC
+         Chi0(i_run)%gi3(i_c) = gNCC
+         Chi0(i_run)%id3(i_c,1) = Chi0(i1)%id
+         Chi0(i_run)%id3(i_c,2) = ChiPm(i2)%id
+         Chi0(i_run)%id3(i_c,3) = ChiPm(i3)%id + 1
+         i_c = i_c +1
+         Chi0(i_run)%gi3(i_c) = gNCC
+         Chi0(i_run)%id3(i_c,1) = Chi0(i1)%id
+         Chi0(i_run)%id3(i_c,2) = ChiPm(i3)%id
+         Chi0(i_run)%id3(i_c,3) = ChiPm(i2)%id + 1
+         i_c = i_c +1
         End If
        End If
       End Do
@@ -516,21 +625,58 @@ Contains
     & , cpl_UNSu_L, cpl_UNSu_R, cpl_UGSu_L, cpl_UGSu_R                  &
     & , IntegralsSf4, n_Sf4, IntegralsCSf4, n_CSf4, IntegralsSf8, n_Sf8 &
     & , deltaM, epsI, GenerationMixing, check, factor(3), gGqq,0,ErrCan)
-    gNGuu(i_run,:,:) = gGqq
-    gT(i_run) = gT(i_run) + Sum( gGqq )
+    Do i2=1,n_u
+     Do i3=i2,n_u
+      If (i2.Eq.i3) Then
+       Chi0(i_run)%gi3(i_c) = gGqq(i2,i3)
+       Chi0(i_run)%id3(i_c,1) = Glu%id
+       Chi0(i_run)%id3(i_c,2) = id_u(i2)
+       Chi0(i_run)%id3(i_c,3) = id_u(i2) + 1
+       i_c = i_c +1
+      Else
+       Chi0(i_run)%gi3(i_c) = gGqq(i2,i3)
+       Chi0(i_run)%id3(i_c,1) = Glu%id
+       Chi0(i_run)%id3(i_c,2) = id_u(i2)
+       Chi0(i_run)%id3(i_c,3) = id_u(i3) + 1
+       Chi0(i_run)%gi3(i_c+1) = gGqq(i3,i2)
+       Chi0(i_run)%id3(i_c+1,1) = Glu%id
+       Chi0(i_run)%id3(i_c+1,2) = id_u(i3)
+       Chi0(i_run)%id3(i_c+1,3) = id_u(i2) + 1
+       i_c = i_c +2
+      End If
+     End Do
+    End Do
 
     Call Chi0toGqq(i_run, ' d d ', mN, mGlu, mf_d, mDSquark, g_Sd       &
     & , cpl_DNSd_L, cpl_DNSd_R, cpl_DGSd_L, cpl_DGSd_R                  &
     & , IntegralsSf4, n_Sf4, IntegralsCSf4, n_CSf4, IntegralsSf8, n_Sf8 &
     & , deltaM, epsI, GenerationMixing, check, factor(3), gGqq ,0,ErrCan)
 
-    gNGdd(i_run,:,:) = gGqq
-    gT(i_run) = gT(i_run) + Sum( gGqq )
+    Do i2=1,n_u
+     Do i3=i2,n_u
+      If (i2.Eq.i3) Then
+       Chi0(i_run)%gi3(i_c) = gGqq(i2,i3)
+       Chi0(i_run)%id3(i_c,1) = Glu%id
+       Chi0(i_run)%id3(i_c,2) = id_d(i2)
+       Chi0(i_run)%id3(i_c,3) = id_d(i2) + 1
+       i_c = i_c +1
+      Else
+       Chi0(i_run)%gi3(i_c) = gGqq(i2,i3)
+       Chi0(i_run)%id3(i_c,1) = Glu%id
+       Chi0(i_run)%id3(i_c,2) = id_d(i2)
+       Chi0(i_run)%id3(i_c,3) = id_d(i3) + 1
+       Chi0(i_run)%gi3(i_c+1) = gGqq(i3,i2)
+       Chi0(i_run)%id3(i_c+1,1) = Glu%id
+       Chi0(i_run)%id3(i_c+1,2) = id_d(i3)
+       Chi0(i_run)%id3(i_c+1,3) = id_d(i2) + 1
+       i_c = i_c +2
+      End If
+     End Do
+    End Do
    End If
    !-------------------------------
    ! decay into neutralino + photon
    !-------------------------------  
-   gPhoton(i_run,:) = 0._dp
    factor(1) = - gSU2 * Sqrt(sW2) * oo8pi2
    factor(2) = 0.25_dp * factor(1)
    factor(3) = 0.125_dp / (Pi * Abs(mN(i_run))**3 ) 
@@ -539,194 +685,31 @@ Contains
     Call  Chi0ToChi0Photon(i_run, i1, mN, mW2a, mC, Cpl_CNW_L, Cpl_CNW_R     &
        & , mSpm2, Cpl_SmpCN_L, Cpl_SmpCN_R, mf_u, mUsquark2, cpl_UNSu_L      &
        & , cpl_UNSu_R, mf_d, mDsquark2, cpl_DNSd_L, cpl_DNSd_R, mf_l         &
-       & , mSlepton2, cpl_LNSl_L, cpl_LNSl_R, factor, gPhoton(i_run,i1) )
-    gT(i_run) = gT(i_run) + gPhoton(i_run,i1)
+       & , mSlepton2, cpl_LNSl_L, cpl_LNSl_R, factor, gNNN )
+
+    Chi0(i_run)%gi2(200-i_run+i1) = gNNN
+    Chi0(i_run)%id2(200-i_run+i1,1) = Chi0(i1)%id
+    Chi0(i_run)%id2(200-i_run+i1,2) = id_ph
    End Do
 
-   If (Present(gP)) Then
-    gP(i_run,:) = 0._dp 
-    gP(i_run,1:n_neut-1) = gPhoton(i_run,:)
-    i_count = n_neut
-
-    If (GenerationMixing) Then
-     Do i1=1,n_char
-      Do i2=1,3
-       Do i3=1,3
-        gP(i_run,i_count) = gCDU(i_run, i1,i2,i3)
-        gP(i_run,i_count+1) = gCDU(i_run, i1,i2,i3)
-        i_count = i_count + 2
-       End Do
-      End Do
-      Do i2=1,5-n_char
-        gP(i_run,i_count) = Sum(gCln(i_run, i1,i2,:))
-        gP(i_run,i_count+1) = gP(i_run,i_count)
-        i_count = i_count + 2
-      End Do
-     End Do
-     Do i1=1,3
-      Do i2=1,3
-       gP(i_run,i_count) = gNGuu(i_run, i1,i2)
-       i_count = i_count + 1
-      End Do
-     End Do
-     Do i1=1,3
-      Do i2=1,3
-       gP(i_run,i_count) = gNGdd(i_run, i1,i2)
-       i_count = i_count + 1
-      End Do
-     End Do
-     Do i1=1,i_run-1
-      Do i2=1,3
-       Do i3=1,3
-        gP(i_run,i_count) = gNuu(i_run, i1,i2,i3)
-        i_count = i_count + 1
-       End Do
-      End Do
-      Do i2=1,3
-       Do i3=1,3
-        gP(i_run,i_count) = gNdd(i_run, i1,i2,i3)
-        i_count = i_count + 1
-       End Do
-      End Do
-      If ((5-n_char).Gt.0) Then
-       gP(i_run,i_count) = Sum(gNuu(i_run, i1,:,:))
-       i_count = i_count + 1
-      End If
-      Do i2=1,5-n_char
-       Do i3=1,5-n_char
-        gP(i_run,i_count) = gNll(i_run, i1,i2,i3)
-        i_count = i_count + 1
-       End Do
-      End Do
-     End Do
-
-    Else
-     Do i1=1,n_char
-      Do i2=1,3
-       gP(i_run,i_count) = gCDU(i_run, i1,i2,i2)
-       gP(i_run,i_count+1) = gCDU(i_run, i1,i2,i2)
-       i_count = i_count + 2
-      End Do
-      Do i2=1,5-n_char
-       gP(i_run,i_count) = gCln(i_run, i1,i2,i2)
-       gP(i_run,i_count+1) = gCln(i_run, i1,i2,i2)
-       i_count = i_count + 2
-      End Do
-     End Do
-     Do i1=1,3
-       gP(i_run,i_count) = gNGuu(i_run, i1,i1)
-       i_count = i_count + 1
-     End Do
-     Do i1=1,3
-       gP(i_run,i_count) = gNGdd(i_run, i1,i1)
-       i_count = i_count + 1
-     End Do
-
-     Do i1=1,i_run-1
-      Do i2=1,3
-       gP(i_run,i_count) = gNuu(i_run, i1,i2,i2)
-       i_count = i_count + 1
-      End Do
-      Do i2=1,3
-       gP(i_run,i_count) = gNdd(i_run, i1,i2,i2)
-       i_count = i_count + 1
-      End Do
-      If ((5-n_char).Gt.0) Then
-       gP(i_run,i_count) = Sum(gNnunu(i_run, i1,:,:))
-       i_count = i_count + 1
-      End If
-      Do i2=1,5-n_char
-       gP(i_run,i_count) = gNll(i_run, i1,i2,i2)
-       i_count = i_count + 1
-      End Do
-     End Do
-
-    End If
-
-     If (.Not.OnlySM) Then
-      Do i1=1,i_run-1
-       Do i2=1,n_char
-        Do i3=1,i2
-         If (i2.Eq.i3) Then
-          gP(i_run,i_count) = gNNCC(i_run,i1,i2,i3)
-          i_count = i_count + 1
-         Else
-          gP(i_run,i_count) = gNNCC(i_run,i1,i2,i3)
-          gP(i_run,i_count+1) = gNNCC(i_run,i1,i2,i3)
-          i_count = i_count + 2
-         End If
-        End Do
-       End Do
-      End Do
-      Do i1=1,i_run-1
-       Do i2=1,i1
-        Do i3=1,i2
-         gP(i_run,i_count) = gNNNN(i_run,i1,i2,i3)
-         i_count = i_count + 1
-        End Do
-       End Do
-     End Do
- 
-   Else If (OnlySM.And.(l_nmssm)) Then ! do nothing, is necessary because
-                                       ! as also the 1-gen. R-parity model
-                                       ! contains 5 neutralinos
-
-   Else If (OnlySM.And.(n_neut.Gt.4).And.(i_run.Gt.3)) Then
-     Do i2=1,n_char
-      Do i3=1,Min(i2,3)
-       If (i2.Eq.i3) Then
-        gP(i_run,i_count) = Sum(gNNCC(i_run,1:3,i3,i2))
-        i_count = i_count + 1
-       Else
-        gP(i_run,i_count) = Sum(gNNCC(i_run,1:3,i3,i2))
-        gP(i_run,i_count+1) = gP(i_run,i_count)
-        i_count = i_count + 2
-       End If
-      End Do
-     End Do
-    Do i1=4,i_run-1
-     Do i2=1,3
-      Do i3=1,i2
-       If (i2.Eq.i3) Then
-        gP(i_run,i_count) = gNNCC(i_run,i1,i3,i2)
-        i_count = i_count + 1
-       Else
-        gP(i_run,i_count) = gNNCC(i_run,i1,i3,i2)
-        gP(i_run,i_count+1) = gP(i_run,i_count)
-        i_count = i_count + 2
-       End If
-      End Do
-     End Do
-    End Do
-     gP(i_run,i_count) = Sum(gNNNN(i_run,1:3,1:3,1:3))
-     i_count = i_count + 1
-     Do i1=4,i_run-1
-      gP(i_run,i_count) = Sum(gNNNN(i_run,i1,1:3,1:3))
-      i_count = i_count + 1
-     End Do
-    End If
-
-    If (Present(BR)) Then
-     If (gT(i_run).Gt.0._dp) Then
-      BR(i_run,:) = gP(i_run,:) / gT(i_run)
-     Else
-      BR(i_run,:) = 0._dp
-     End If
-    End If
-   End If ! present(gP)
+   Chi0(i_run)%g = Sum(Chi0(i_run)%gi2) + Sum(Chi0(i_run)%gi3)
+   If (Chi0(i_run)%g.Ne.0._dp) Then
+    Chi0(i_run)%bi2 = Chi0(i_run)%gi2 / Chi0(i_run)%g
+    Chi0(i_run)%bi3 = Chi0(i_run)%gi3 / Chi0(i_run)%g
+   End If
 
   End Do ! i_run
 
-  Deallocate( mSpm2, IntegralsZ4, IntegralsZ8, IntegralsW4, IntegralsW8    &
+  Deallocate( IntegralsZ4, IntegralsZ8, IntegralsW4, IntegralsW8    &
     & , IntegralsZW8, IntegralsS04, IntegralsSf4, IntegralsZS04            &
     & , IntegralsZS08, IntegralsWSpm4, IntegralsWSpm8, IntegralsZSf8       &
     & , IntegralsWSf8, IntegralsS0P04, IntegralsS0P08, IntegralsS0Sf8      &
     & , IntegralsCSf4, IntegralsSf8 )
-  Deallocate( gS0_in, gP0_in, gSpm_in, g_Su, g_Sd, g_Sn, g_Sl)
 
   Iname = Iname - 1
 
  End Subroutine NeutralinoThreeBodyDecays
+
 
  Subroutine Chi0To3Chi0(i_in, i1, i2, i3, mN, mZ, gZ, cpl_NNZ_L, cpl_NNZ_R    &
     & , mS0, gS0, cpl_NNS0_L, cpl_NNS0_R, mP0, gP0, cpl_NNP0_L, cpl_NNP0_R    &

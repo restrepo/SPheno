@@ -20,12 +20,11 @@ Use ThreeBodyPhaseSpaceS
 Contains
 
 
- Subroutine GluinoThreeBodyDecays(mglu, mN, mC, mf_u, g_t, mf_d,mUSquark   &
-    & , gUSquark, gSU3, cpl_UNSu_L, cpl_UNSu_R, cpl_CDSu_L, cpl_CDSu_R     &
-    & , cpl_UGSu_L, cpl_UGSu_R, cpl_SdSuW, mDSquark, gDSquark, cpl_DNSd_L  &
-    & , cpl_DNSd_R, cpl_CUSd_L, cpl_CUSd_R, cpl_DGSd_L, cpl_DGSd_R         &
-    & , GenerationMixing, epsI, deltaM, Check_Real_States                  &
-    & , gNdd, gNuu, gCDU, gGluon, gStWB, gT, gP, BR)
+ Subroutine GluinoThreeBodyDecays(n_d, id_d, n_u, id_u, n_n, n_c, id_gl, n_su  &
+    & , n_sd, n_W, Glu, Chi0, ChiPm, mf_u, g_t, mf_d, USquark, gSU3            &
+    & , cpl_UNSu_L, cpl_UNSu_R, cpl_CDSu_L, cpl_CDSu_R, cpl_UGSu_L, cpl_UGSu_R &
+    & , cpl_SdSuW, DSquark, cpl_DNSd_L, cpl_DNSd_R, cpl_CUSd_L, cpl_CUSd_R     &
+    & , cpl_DGSd_L, cpl_DGSd_R, mW, epsI, deltaM, Check_Real_States)
  !------------------------------------------------------------------
  ! calculates all 3-body decays of a gluino
  ! input:
@@ -42,27 +41,30 @@ Contains
  ! 24.08.03: - adding gluino -> chi^0_i gluon
  !           - adding possiblity to calculate 3-body states only via
  !             virtual states -> new logical variable Check_Real_States
+ ! 18.09.2010: adapting to new variable type for particles
  !------------------------------------------------------------------
  Implicit None
 
-  Real(dp), Intent(in) :: mGlu, mN(:), mf_u(3), mf_d(3), mC(:), mUSquark(6) &
-     &, gUSquark(6), mDSquark(6), gDSquark(6), epsI, deltaM, g_T, gSU3
-  Real(dp), Intent(out) :: gT, gNdd(:,:,:), gNuu(:,:,:), gCDU(:,:,:)        &
-     & , gGluon(:), gStWB(:,:)
-  Real(dp), Intent(out), Optional :: BR(:), gP(:)
+  Integer, Intent(in) :: n_d, id_d(:), n_u, id_u(:), n_n, n_c, id_gl, n_su &
+     & , n_sd, n_W
+  Real(dp), Intent(in) :: mf_u(n_u), mf_d(n_d), epsI, deltaM, g_T, gSU3, mW(:)
   Complex(dp), Intent(in) :: cpl_UNSu_L(:,:,:), cpl_UNSu_R(:,:,:)          &
      & , cpl_CDSu_L(:,:,:), cpl_CDSu_R(:,:,:), cpl_UGSu_L(:,:)             &
      & , cpl_UGSu_R(:,:), cpl_DNSd_L(:,:,:), cpl_DNSd_R(:,:,:)             &
      & , cpl_CUSd_L(:,:,:), cpl_CUSd_R(:,:,:), cpl_DGSd_L(:,:)             &
-     & , cpl_DGSd_R(:,:), cpl_SdSuW(:,:)
-  Logical, Intent(in) :: GenerationMixing, Check_Real_States
+     & , cpl_DGSd_R(:,:), cpl_SdSuW(:,:,:)
+  Logical, Intent(in) :: Check_Real_States
 
-  Integer :: n_neut, n_char, i1, i2, i3, n_length, n_Sf4, n_CSf4, n_Sf8 &
-     & , i_part
+  Type(particle2), Intent(in) :: Dsquark(:)
+  Type(particle23), Intent(in) :: Usquark(:), Chi0(:), ChiPm(:)
+  Type(particle23), intent(inout) :: Glu
+
+  Real(dp) :: mUSquark(n_su), gUSquark(n_su), mDSquark(n_sd), gDSquark(n_sd)
+  Integer :: i1, i2, i3, n_length, n_Sf4, n_CSf4, n_Sf8, i_part, i_c
   Real(dp) :: factor(2), mUsquark2(6), mDsquark2(6), gNff(3,3), gSbottom(2) &
      & , gCffp(3,3), mStop(2), mStop2(2), mSbottom(2), mSbottom2(2), gG     &
      & , g_SU(6), g_Sd(6)
-!  Complex(dp) :: Iinte, I2inte, Jinte, Kinte, coup1a, coup2a, Gcoup
+  Real(dp) :: mN(n_n), mGlu, mC(n_c)
   Complex(dp) :: c_BGSb_L(2), c_BGSb_R(2), c_WSbSt(2,2), c_TGSt_L(2)       &
      & , c_TGSt_R(2)
   Real(dp), Allocatable :: IntegralsSf4(:,:)
@@ -75,20 +77,9 @@ Contains
   !--------------------
   ! checking for model 
   !--------------------
-  n_neut = Size( mN )
-  n_char = Size( mC )
-
    Allocate( IntegralsSf4(2500,10) )
    Allocate( IntegralsCSf4(2500,12) )
    Allocate( IntegralsSf8(2500,16) )
-
-   mUsquark2 = mUsquark**2 
-   mDsquark2 = mDsquark**2 
-
-   gT = 0._dp
-   gNdd = 0._dp
-   gNuu = 0._dp
-   gCDU = 0._dp
 
    IntegralsSf4 = 0._dp
    IntegralsCSf4 = 0._dp
@@ -107,29 +98,78 @@ Contains
    end if
    check = Check_Real_States
 
+   mGlu = Glu%m
+   Glu%gi3 = 0._dp
+
+   mDsquark = Dsquark%m
+   mUsquark = Usquark%m
+   mDsquark2 = Dsquark%m2
+   mUsquark2 = Usquark%m2
+   gDsquark = Dsquark%g
+   gUsquark = Usquark%g
+
+   mN = Chi0%m
+   mC = ChiPm%m
+
    factor(1) = oo256pi3 / Abs(mglu)**3   ! for 3-body decays
    !--------------------------------------
    ! decays into a neutralino + 2 quarks
    !--------------------------------------
-   Do i1 = 1, n_neut
+   i_c = 1
+   Do i1 = 1, n_n
     If (Abs(mGlu).Gt.Abs(mN(i1))) Then
-      Call GluToChi0qq(mGlu, i1,' u u ', mN, mf_u, mUSquark, g_Su         &
+      Call GluToChi0qq(mGlu, i1,' u u ', mN, mf_u, mUSquark, g_Su             &
          & , cpl_UGSu_L, cpl_UGSu_R, cpl_UNSu_L, cpl_UNSu_R                   &
          & , IntegralsSf4, n_Sf4, IntegralsCSf4, n_CSf4, IntegralsSf8, n_Sf8  &
          & , deltaM, epsI, GenerationMixing, check, factor(1), gNff) 
-      gNuu(i1,:,:) = gNff
-      gT = gT + Sum( gNff )
- 
-      Call GluToChi0qq(mGlu, i1,' d d ', mN, mf_d, mDSquark, g_Sd         &
+      Do i2=1,n_u
+       Do i3=i2,n_u
+        If (i2.eq.i3) then
+         Glu%gi3(i_c) = gNff(i2,i3)
+         Glu%id3(i_c,1) = Chi0(i1)%id
+         Glu%id3(i_c,2) = id_u(i2)
+         Glu%id3(i_c,3) = id_u(i2) + 1
+         i_c = i_c +1
+        Else
+         Glu%gi3(i_c) = gNff(i2,i3)
+         Glu%id3(i_c,1) = Chi0(i1)%id
+         Glu%id3(i_c,2) = id_u(i2)
+         Glu%id3(i_c,3) = id_u(i3) + 1
+         Glu%gi3(i_c+1) = gNff(i3,i2)
+         Glu%id3(i_c+1,1) = Chi0(i1)%id
+         Glu%id3(i_c+1,2) = id_u(i3)
+         Glu%id3(i_c+1,3) = id_u(i2) + 1
+         i_c = i_c +2
+        End If
+       End Do
+      End Do
+
+      Call GluToChi0qq(mGlu, i1,' d d ', mN, mf_d, mDSquark, g_Sd             &
          & , cpl_DGSd_L, cpl_DGSd_R, cpl_DNSd_L, cpl_DNSd_R                   &
          & , IntegralsSf4, n_Sf4, IntegralsCSf4, n_CSf4, IntegralsSf8, n_Sf8  &
          & , deltaM, epsI, GenerationMixing, check, factor(1), gNff)
-      gNdd(i1,:,:) = gNff
-      gT = gT + Sum( gNff )
+      Do i2=1,n_d
+       Do i3=i2,n_d
+        If (i2.eq.i3) then
+         Glu%gi3(i_c) = gNff(i2,i3)
+         Glu%id3(i_c,1) = Chi0(i1)%id
+         Glu%id3(i_c,2) = id_d(i2)
+         Glu%id3(i_c,3) = id_d(i2) + 1
+         i_c = i_c +1
+        Else
+         Glu%gi3(i_c) = gNff(i2,i3)
+         Glu%id3(i_c,1) = Chi0(i1)%id
+         Glu%id3(i_c,2) = id_d(i2)
+         Glu%id3(i_c,3) = id_d(i3) + 1
+         Glu%gi3(i_c+1) = gNff(i3,i2)
+         Glu%id3(i_c+1,1) = Chi0(i1)%id
+         Glu%id3(i_c+1,2) = id_d(i3)
+         Glu%id3(i_c+1,3) = id_d(i2) + 1
+         i_c = i_c +2
+        End If
+       End Do
+      End Do
 
-    Else
-     gNdd(i1,:,:) = 0._dp
-     gNuu(i1,:,:) = 0._dp
     End If
 
    End Do
@@ -137,34 +177,41 @@ Contains
    !--------------------------------------
    ! decay into charginos + 2 quarks
    !--------------------------------------
-   Do i1=1,n_char
+   Do i1=1,n_c
     If (Abs(mGlu).Gt.Abs(mC(i1))) Then
-      Call GluToChimqqp(mGlu, i1, mC, mf_d, mf_u, mDSquark, g_Sd         &
+     Call GluToChimqqp(mGlu, i1, mC, mf_d, mf_u, mDSquark, g_Sd            &
           & , cpl_DGSd_L, cpl_DGSd_R, cpl_CUSd_L, cpl_CUSd_R, mUSquark      &
-          & , g_Su, cpl_UGSu_L, cpl_UGSu_R, cpl_CDSu_L, cpl_CDSu_R      &
+          & , g_Su, cpl_UGSu_L, cpl_UGSu_R, cpl_CDSu_L, cpl_CDSu_R          &
           & , IntegralsSf4, n_Sf4, IntegralsCSf4, n_CSf4, IntegralsSf8      &
           & , n_Sf8, deltaM, epsI, GenerationMixing, check, factor(1), gCffp)
-     gCDU(i1,:,:) = gCffp
-
-     gT = gT + 2._dp * Sum( gCffp )
-
-    Else
-     gCDU(i1,:,:) = 0._dp
+     Do i2=1,n_d
+      Do i3=1,n_u
+       Glu%gi3(i_c) = gCffp(i2,i3)
+       Glu%id3(i_c,1) = ChiPm(i1)%id
+       Glu%id3(i_c,2) = id_d(i2)
+       Glu%id3(i_c,3) = id_u(i3) + 1
+       Glu%gi3(i_c+1) = gCffp(i2,i3)
+       Glu%id3(i_c+1,1) = ChiPm(i1)%id + 1
+       Glu%id3(i_c+1,2) = id_d(i2) + 1
+       Glu%id3(i_c+1,3) = id_u(i3)
+       i_c = i_c +2
+      End Do
+     End Do
     End If
    End Do
    !-------------------------------
    ! decay into neutralino + gluon
    !-------------------------------  
-   gGluon = 0._dp
    factor(1) = - gSU3 * oo16pi2
    factor(2) = 0.125_dp / ( Pi * Abs(mGlu)**3 ) 
-   Do i1=1,n_neut
+   Do i1=1,n_n
     If (Abs(mGlu).Gt.Abs(mN(i1)) ) Then
      Call GluToChi0Gluon(mGlu, i1, mN, mf_u, mUsquark2, cpl_UNSu_L           &
         & , cpl_UNSu_R, cpl_UGSu_L, cpl_UGSu_R, mf_d, mDsquark2, cpl_DNSd_L  &
         & , cpl_DNSd_R, cpl_DGSd_L, cpl_DGSd_R, factor, gG)
-     gGluon(i1) = gG
-     gT = gT + gG
+      Glu%gi2(100+i1) = gG
+      Glu%id2(100+i1,1) = Chi0(i1)%id
+      Glu%id2(100+i1,2) = id_gl
     End If
    End Do
    !-------------------------------
@@ -172,7 +219,6 @@ Contains
    ! in case of generation mixing, the position of the stops is determined
    ! using the couplings stop-top-gluino and in the same way for sbottoms
    !-------------------------------  
-   gStWB = 0._dp
     mStop = mUSquark(5:6)
     mStop2 = mUSquark2(5:6)
     mSbottom = mDSquark(5:6)
@@ -182,7 +228,7 @@ Contains
     c_BGSb_R = cpl_DGSd_R(3,5:6)
     c_TGSt_L = cpl_UGSu_L(3,5:6)
     c_TGSt_R = cpl_UGSu_R(3,5:6)
-    c_WSbSt = cpl_SdSuW(5:6,5:6)
+    c_WSbSt = cpl_SdSuW(5:6,5:6,1)
    i_part = 0
 !   Call GluinoToStopWB(mglu, mStop, mStop2, mSbottom, mSbottom2, gSbottom     &
 !       & , c_BGSb_L, c_BGSb_R, c_WSbSt, c_TGSt_L, c_TGSt_R, CKM(3,3), g_t &
@@ -190,78 +236,17 @@ Contains
    !---------------------------
    ! simplifies life sometimes
    !---------------------------
-   If (Present(gP)) Then
-    gP = 0._dp
-    n_length = 1
-    Do i1=1,n_neut
-      gP(n_length) = gGluon(i1)
-      n_length = n_length + 1
-    End Do
-
-    If (GenerationMixing) Then
-     Do i1=1,n_neut
-      Do i2=1,3
-       Do i3=1,3
-        gP(n_length) = gNuu(i1,i2,i3)
-        gP(n_length+9*n_neut) = gNdd(i1,i2,i3)
-        n_length = n_length + 1
-       End Do
-      End Do
-     End Do
-     n_length = 18 * n_neut + 5
-     Do i1=1,n_char
-      Do i2=1,3
-       Do i3=1,3
-        gP(n_length) = gCdu(i1,i2,i3)
-        gP(n_length+1) = gP(n_length)
-        n_length = n_length + 2
-       End Do
-      End Do
-     End Do
-
-     Do i2=1,6
-      Do i3=1,3
-       gP(n_length) = gStWB(i2,i3)
-       gP(n_length+1) = gStWB(i2,i3)
-       n_length = n_length + 2
-      End Do
-     End Do
-
-    Else ! .not.GenerationMixing
-
-     Do i1=1,n_neut
-      Do i2=1,3
-       gP(n_length) = gNuu(i1,i2,i2)
-       gP(n_length+3) = gNdd(i1,i2,i2)
-       n_length = n_length + 1
-      End Do
-      n_length = n_length + 3
-     End Do
-
-     Do i1=1,n_char
-      Do i2=1,3
-       gP(n_length) = gCdu(i1,i2,i2)
-       gP(n_length+1) = gP(n_length)
-       n_length = n_length + 2
-      End Do
-     End Do
-     Do i2=5,6
-      gP(n_length) = gStWB(i2,1)
-      n_length = n_length + 1
-     End Do
-    End If
-
-    If (Present(BR).And.(gT.Gt.0._dp)) Then
-     BR = gP / gT
-    Else If (Present(BR)) Then
-     BR = 0
-    End If
+   Glu%g = Sum(Glu%gi2) + Sum(Glu%gi3)
+   If (Glu%g.ne.0._dp) then
+    Glu%bi2 = Glu%gi2 / Glu%g
+    Glu%bi3 = Glu%gi3 / Glu%g
    End If
 
   Deallocate( IntegralsSf4, IntegralsCSf4, IntegralsSf8 )
 
   Iname = Iname - 1
  End Subroutine GluinoThreeBodyDecays
+
 
 
  Subroutine GluToChi0qq(mGlu, i_out, state, mN, mf, mSf, gSf, cpl_FGSf_L   &

@@ -32,7 +32,9 @@ Use Control
  End Interface 
 
  Interface MatMul2
-  Module Procedure MatMul2R3, MatMul2C3
+  Module Procedure MatMul2R3, MatMul2C3, MatVec2R3, MatVec2C3, VecVec2R3     &
+       , VecMat2R3, VecMat2C3, VecRMatC2, VecCMatR2, MatCVecR23  & ! , MatVec2CR3
+       , VecVec2C3, VecVec2RC3, VecVec2CR3
  End Interface
 
  Interface MatMul3
@@ -73,7 +75,7 @@ Use Control
  ! test of quality, used in ComplexEigensystem , RealEigensystem
  Real(Dp), Parameter, Private :: MinimalPrecision = 1000._dp * Epsilon(1._dp)
 ! for ode integration
- Integer, Private, Parameter :: MAXSTP=100000
+ Integer, Private, Parameter :: MAXSTP=5000
 ! Real(dp), Private :: Path(2,MAXSTP)
  Real(dp), Private, Parameter :: A2=0.2_dp,A3=0.3_dp,A4=0.6_dp,A5=1.0_dp,&
     A6=0.875_dp,B21=0.2_dp,B31=3.0_dp/40.0_dp,B32=9.0_dp/40.0_dp,&
@@ -841,7 +843,17 @@ Contains
 
   Real(dp), Intent(in) :: x, y, z
 
-  delt = x**2 + y**2 + z**2 - 2._dp*(x*y + x*z + y*z)
+  If ((x.eq.z).and.(y.eq.z)) then
+   delt = -3._dp * Z**2
+  Else If (x.eq.y) then
+   delt = z * (z - 4._dp * y) 
+  Else If (x.eq.z) then
+   delt = y * (y - 4._dp * z) 
+  Else If (y.eq.z) then
+   delt = x * (x - 4._dp * z) 
+  Else 
+   delt = x**2 + y**2 + z**2 - 2._dp*(x*y + x*z + y*z)
+  End If
 
  End Function delt
 
@@ -1943,6 +1955,74 @@ End If
   End If
  End Function MatMul2C3
 
+ Function MatVec2C3(A, B, OnlyDiagonal) Result(D)
+ Implicit None
+  Logical, Intent(in) :: OnlyDiagonal
+  Complex(dp), Intent(in) :: a(3,3), b(3)
+  Complex(dp) :: d(3)
+  Integer :: i1
+
+  d = 0._dp
+
+  If (OnlyDiagonal) Then
+   Do i1=1,3
+    d(i1) = a(i1,i1) * b(i1)
+   End Do
+  Else
+   d = Matmul(a, b)
+  End If
+
+ End Function MatVec2C3
+
+
+ Function VecMat2C3(A, B, OnlyDiagonal) Result(D)
+ Implicit None
+  Logical, Intent(in) :: OnlyDiagonal
+  Complex(dp), Intent(in) :: b(3,3), a(3)
+  Complex(dp) :: d(3)
+  Integer :: i1
+
+  d = 0._dp
+
+  If (OnlyDiagonal) Then
+   Do i1=1,3
+    d(i1) = b(i1,i1) * a(i1)
+   End Do
+  Else
+   d = Matmul(a, b)
+  End If
+
+ End Function VecMat2C3
+
+ Function VecVec2C3(A, B, OnlyDiagonal) Result(D)
+ Implicit None
+  Logical, Intent(in) :: OnlyDiagonal
+  Complex(dp), Intent(in) :: a(3), b(3)
+  Complex(dp) :: d
+
+  d = Dot_Product(a, b)
+
+ End Function VecVec2C3
+
+ Function MatCVecR23(A, B, OnlyDiagonal) Result(D)
+ Implicit None
+  Logical, Intent(in) :: OnlyDiagonal
+  Complex(dp), Intent(in) :: a(3,3)
+  Real(dp), Intent(in) :: b(3)
+  Complex(dp) :: d(3)
+  Integer :: i1
+
+  d = 0._dp
+
+  If (OnlyDiagonal) Then
+   Do i1=1,3
+    d(i1) = a(i1,i1) * b(i1)
+   End Do
+  Else
+   d = Matmul(a, b )
+  End If
+ End Function MatCVecR23
+
 ! Interface MutMul2
  Function MatMul2R3(A, B, OnlyDiagonal) Result(D)
  Implicit None
@@ -1961,6 +2041,140 @@ End If
    d = Matmul(a, b )
   End If
  End Function MatMul2R3
+
+ Function MatVec2CR3(Aij, Bi, OnlyDiagonal) Result(D)
+  Implicit None
+   Logical, Intent(in) :: OnlyDiagonal
+   Complex(dp), Intent(in) :: aij(3,3)
+   Real(dp), Intent(in) :: bi(3)
+   Complex(dp) :: d(3)
+   Integer :: i1
+
+   d = 0._dp
+
+   If (OnlyDiagonal) Then
+    Do i1=1,3
+     d(i1) = Aij(i1,i1) * bi(i1)
+    End Do
+   Else
+    d = Matmul(Aij, bi )
+   End If
+
+ End Function MatVec2CR3
+
+
+ Function MatVec2R3(A, B, OnlyDiagonal) Result(D)
+ Implicit None
+  Logical, Intent(in) :: OnlyDiagonal
+  Real(dp), Intent(in) :: a(3,3), b(3)
+  Real(dp) :: d(3)
+  Integer :: i1
+
+  d = 0._dp
+
+  If (OnlyDiagonal) Then
+   Do i1=1,3
+    d(i1) = a(i1,i1) * b(i1)
+   End Do
+  Else
+   d = Matmul(a, b )
+  End If
+ End Function MatVec2R3
+
+ Function VecMat2R3(A, B, OnlyDiagonal) Result(D)
+ Implicit None
+  Logical, Intent(in) :: OnlyDiagonal
+  Real(dp), Intent(in) :: b(3,3), a(3)
+  Real(dp) :: d(3)
+  Integer :: i1
+
+  d = 0._dp
+
+  If (OnlyDiagonal) Then
+   Do i1=1,3
+    d(i1) = b(i1,i1) * a(i1)
+   End Do
+  Else
+   d = Matmul(a, b )
+  End If
+
+ End Function VecMat2R3
+
+ Function VecVec2R3(A, B, OnlyDiagonal) Result(D)
+ Implicit None
+  Logical, Intent(in) :: OnlyDiagonal
+  Real(dp), Intent(in) :: a(3), b(3)
+  Real(dp) :: d
+
+  d = Dot_product(a, b )
+
+ End Function VecVec2R3
+
+ Function VecCMatR2(A, B, OnlyDiagonal) Result(D)
+ Implicit None
+  Logical, Intent(in) :: OnlyDiagonal
+  Complex(dp), Intent(in) :: a(3)
+  Real(dp), Intent(in) :: b(3,3)
+  Complex(dp) :: d(3)
+  Integer :: i1
+
+  d = 0._dp
+
+  If (OnlyDiagonal) Then
+   Do i1=1,3
+    d(i1) = b(i1,i1) * a(i1)
+   End Do
+  Else
+   d = Matmul(a, b)
+  End If
+
+ End Function VecCMatR2
+
+
+ Function VecVec2CR3(A, B, OnlyDiagonal) Result(D)
+  Implicit None
+
+  Logical, Intent(in) :: OnlyDiagonal
+  Complex(dp), Intent(in) :: a(3)
+  Real(dp), Intent(in) :: b(3)
+  Complex(dp) :: d
+  Integer :: i1
+
+  d = Dot_Product(a, b)
+
+ End Function VecVec2CR3
+
+ Function VecVec2RC3(A, B, OnlyDiagonal) Result(D)
+  Implicit None
+  Logical, Intent(in) :: OnlyDiagonal
+  Real(dp), Intent(in) :: a(3)
+  Complex(dp), Intent(in) :: b(3)
+  Complex(dp) :: d
+
+  d = Dot_Product(a, b)
+
+ End Function VecVec2RC3
+
+ Function VecRMatC2(A, B, OnlyDiagonal) Result(D)
+ Implicit None
+  Logical, Intent(in) :: OnlyDiagonal
+  Real(dp), Intent(in) :: a(3)
+  Complex(dp), Intent(in) :: b(3,3)
+  Complex(dp) :: d(3)
+  Integer :: i1
+
+  d = 0._dp
+
+  If (OnlyDiagonal) Then
+   Do i1=1,3
+    d(i1) = b(i1,i1) * a(i1)
+   End Do
+  Else
+   d = Matmul(a, b)
+  End If
+
+ End Function VecRMatC2
+
 
 
  Function MatMul3C3(A, B, C, OnlyDiagonal) Result(D)
@@ -2116,8 +2330,8 @@ End If
   Real(dp), Intent(IN) :: x1, x2, eps, h1, hmin
   Integer, Intent(inout) :: kont
 
-  Real(dp), Parameter :: my_TINY=Epsilon(1._dp)
-  Integer :: nstp, i1
+  Real(dp), Parameter :: TINY=Epsilon(1._dp)
+  Integer :: nstp
   Real(dp) :: h,hdid,hnext,x !,xsav
   Real(dp), Dimension(len) :: dydx, y, yscal
 
@@ -2137,7 +2351,7 @@ End If
 
    Call derivs(len,x,y,dydx)
 
-   yscal(:)=Abs(y(:))+Abs(h*dydx(:))+my_tiny
+   yscal(:)=Abs(y(:))+Abs(h*dydx(:))+TINY
 
    If ((x+h-x2)*(x+h-x1) > 0.0_dp) h=x2-x
 
@@ -2203,7 +2417,7 @@ End If
   Real(dp), Intent(IN) :: x1, x2, eps, h1, hmin
   Integer, Intent(inout) :: kont
 
-  Real(dp), Parameter :: my_tiny=Epsilon(1._dp)
+  Real(dp), Parameter :: TINY=Epsilon(1._dp)
   Integer :: nstp
   Real(dp) :: h,hdid,hnext,x,x_old, h_old
   Real(dp), Dimension(len) :: dydx, y, yscal, y_old
@@ -2226,12 +2440,12 @@ End If
   h_old = h
   x_old = x
   y_old = y
-!Write(12,*) "my_tiny",my_tiny
+
   Do nstp=1,MAXSTP
 
    Call derivs(len,x,y,dydx)
 
-   yscal(:)=Abs(y(:))+Abs(h*dydx(:))+my_tiny
+   yscal(:)=Abs(y(:))+Abs(h*dydx(:))+TINY
 
    If ((x+h-x2)*(x+h-x1) > 0.0_dp) h=x2-x
 
@@ -2315,7 +2529,7 @@ End If
   Real(dp), Intent(IN) :: x1, x2, eps, h1, hmin
   Integer, Intent(inout) :: kont
 
-  Real(dp), Parameter :: my_tiny=Epsilon(1._dp)
+  Real(dp), Parameter :: TINY=Epsilon(1._dp)
   Integer :: nstp
   Real(dp) :: h,hdid,hnext,x,x_old, h_old
   Real(dp), Dimension(len) :: dydx, y, yscal, y_old
@@ -2343,7 +2557,7 @@ End If
 
    Call derivs(len,x,y,dydx)
 
-   yscal(:)=Abs(y(:))+Abs(h*dydx(:))+my_tiny
+   yscal(:)=Abs(y(:))+Abs(h*dydx(:))+TINY
 
    If ((x+h-x2)*(x+h-x1) > 0.0_dp) h=x2-x
 
@@ -2708,7 +2922,7 @@ End If
   Real(dp), Intent(IN) :: htry,eps
   Real(dp), Intent(OUT) :: hdid,hnext
 
-  Integer :: ndum, i1
+  Integer :: ndum
   Real(dp) :: errmax,h,htemp,xnew
   Real(dp), Dimension(Size(y)) :: ak2,ak3,ak4,ak5,ak6
   Real(dp), Dimension(Size(y)) :: yerr,ytemp
@@ -2744,17 +2958,9 @@ End If
    yerr=h*(DC1*dydx+DC3*ak3+DC4*ak4+DC5*ak5+DC6*ak6)
 
    errmax=Maxval(Abs(yerr(:)/yscal(:)))/eps
-   If (errmax <= 1.0_dp) Exit
+   If (errmax <= 1.0) Exit
    htemp=SAFETY*h*(errmax**PSHRNK)
    h=Sign(Max(Abs(htemp),0.1_dp*Abs(h)),h)
-!Write(12,*) "h",Real(h),x,Real((x+h)-x),errmax
-!If (Real((x+h)-x).eq.0._dp) then
-!Write(12,*) "ndum",ndum
-!Do i1=1,ndum
-! If (Abs(yerr(i1)/yscal(i1)/eps).Gt.1._dp) Write(12,*) i1,real(yerr(i1)),real(yscal(i1)) &
-!,real(yerr(i1)/yscal(i1)),real(eps)
-!end do
-!end if
    xnew=x+h
 
    If (xnew == x) Then
@@ -2779,6 +2985,7 @@ End If
   Iname = Iname - 1
 
  End Subroutine rkqs
+
 
  Subroutine RKSTP(H,X,Y,SUB,W)
  !----------------------------------------------------------------------
@@ -3254,7 +3461,7 @@ End If
    End Function func
   End Interface
 
-  Real(dp), Parameter :: ALPH = 1.5_dp, my_tiny = 1.0e-30_dp
+  Real(dp), Parameter :: ALPH = 1.5_dp, TINY = 1.0e-30_dp
   Integer, Parameter :: MXDIM = 10, NDMX = 50
   Integer, Save :: i, it, j, k, mds, nd, ndim, ndo, ng, npg
   Integer, Dimension(MXDIM), Save :: ia, kg
@@ -3367,7 +3574,7 @@ End If
     End Do
     f2b = Sqrt(f2b*npg)
     f2b = (f2b-fb)*(f2b+fb)
-    If (f2b <=  0.0) f2b = my_tiny
+    If (f2b <=  0.0) f2b = TINY
     ti = ti+fb
     tsi = tsi+f2b
 
@@ -3418,7 +3625,7 @@ End If
      dt(j) = dt(j) + d(i,j)
     End Do
    End Do
-   Where (d(1:nd,:) < my_tiny) d(1:nd,:) = my_tiny
+   Where (d(1:nd,:) < TINY) d(1:nd,:) = TINY
    Do j = 1,ndim
     Do i =1,nd
 !     Write(*,*) j,i,dt(j),d(i,j)
@@ -3506,7 +3713,7 @@ End If
    End Function func
   End Interface
 
-  Real(dp), Parameter :: ALPH = 1.5_dp, my_tiny = 1.0e-30_dp
+  Real(dp), Parameter :: ALPH = 1.5_dp, TINY = 1.0e-30_dp
   Integer, Parameter :: MXDIM = 10, NDMX = 50
   Integer, Save :: i, it, j, k, mds, nd, ndim, ndo, ng, npg
   Integer, Dimension(MXDIM), Save :: ia, kg
@@ -3612,7 +3819,7 @@ End If
     End Do
     f2b = Sqrt(f2b*npg)
     f2b = (f2b-fb)*(f2b+fb)
-    If (f2b <=  0.0_dp) f2b = my_tiny
+    If (f2b <=  0.0_dp) f2b = TINY
     ti = ti+fb
     tsi = tsi+f2b
 
@@ -3668,7 +3875,7 @@ End If
     d(nd,j) = (xo+xn)/2.0_dp
     dt(j) = dt(j)+d(nd,j)
    End Do
-   Where (d(1:nd,:) < my_tiny) d(1:nd,:) = my_tiny
+   Where (d(1:nd,:) < TINY) d(1:nd,:) = TINY
    Do j = 1,ndim
     r(1:nd) = ((1.0_dp-d(1:nd,j)/dt(j))/(Log(dt(j))-Log(d(1:nd,j))))**ALPH
     rc = Sum(r(1:nd))

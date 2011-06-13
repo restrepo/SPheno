@@ -1,3 +1,4 @@
+# PreDef = -DGENERATIONMIXING  -DONLYDOUBLE -DSEESAWIII
 PreDef = -DGENERATIONMIXING  -DONLYDOUBLE
 # setting various paths
 InDir = ../include
@@ -7,12 +8,6 @@ name = ../lib/libSPheno.a
 #
 # options for various compilers
 #
-F90 = g95
-LFlagsB = -g   
-LFlagsB = -O  
-comp = -c -O -fmod=${Mdir} -I${InDir} 
-comp = -c -g -module ${Mdir} -I${InDir} 
-comp = -c -O -
 
 # Intels ifort, default in optimized mode
 F90 = ifort
@@ -28,7 +23,7 @@ endif
 
 # gfortran
 ifeq (${F90},gfortran)
- comp = -c -O -J ${Mdir} -I${InDir}
+ comp = -c -O -J${Mdir} -I${InDir}
  LFlagsB = -O  
 endif
 
@@ -46,8 +41,8 @@ endif
  
 # NAG f95/2003
 ifeq (${F90},nagfor)
- comp = -c -O -M ${Mdir} -I${InDir}
- LFlagsB = -c -O -DONLYDOUBLE -mdir ${MDir} -I${InDir}   
+ comp = -c -O  -DONLYDOUBLE -mdir ${MDir} -I${InDir}   
+ LFlagsB = -O
 endif
  
 .SUFFIXES : .o .ps .f90 .F90 .a

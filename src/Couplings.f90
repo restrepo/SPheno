@@ -79,6 +79,10 @@ Use StandardModel, Only: CKM
   Module Procedure CoupGluinoSquark1, CoupGluinoSquark3
  End Interface
  
+ Interface CoupGravitinoSfermion
+  Module Procedure CoupGravitinoSfermion1, CoupGravitinoSfermion3
+ End Interface
+ 
  Interface CoupNeutralinoSfermion
   Module Procedure CoupNeutralinoSfermion1, CoupNeutralinoSfermion3 
  End Interface
@@ -115,9 +119,7 @@ Use StandardModel, Only: CKM
 
  Interface CoupScalarSfermion3
   Module Procedure CoupScalarSfermion3MSSM_1, CoupScalarSfermion3MSSM_3 &
-                &, CoupScalarSfermion3Eps_1, Coup_S0_Sf_Sf_NMSSM_1      &
-                & , CoupScalarSfermion3MSSM_1_CP
-!                &,  CoupScalarSfermion3Eps_3
+                &, CoupScalarSfermion3Eps_1, Coup_S0_Sf_Sf_NMSSM_1      
  End Interface
 
  Interface CoupScalarSfermion3a
@@ -1682,7 +1684,7 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
 
   If (n_sfer.Eq.2) Then
    If (i.Eq.1) Then 
-    coup = T3 * Rsf(j,1) - e * sinW2 * Rsf(j,1) 
+    coup = (T3 - e * sinW2 ) * Rsf(j,1) 
    Else
     coup = - e * sinW2 * Rsf(j,2)
    End If
@@ -1692,7 +1694,7 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
 
   Else If (n_sfer.Eq.6) Then 
    If (i.Le.3) Then
-    coup = T3 * Rsf(j,i) - e * sinW2 * Rsf(j,i)
+    coup = (T3 - e * sinW2 ) * Rsf(j,i)
    Else
     coup =  - e * sinW2 * Rsf(j,i)
    End If
@@ -3272,6 +3274,35 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
 
  End Subroutine CoupFermionScalar1
 
+ Subroutine CoupGravitinoSfermion1(j, RSf, coupL, coupR)
+ !-----------------------------------------------------------------------
+ ! calculates the overall coupling gravitino-sfermion-fermion 
+ ! and without the generator T^a_ij, the Lagrangian is given by:
+ !  L = \bar{f_i} (coupR P_R + coupL P_L) gamma_mu gamma^nu G^mu D_\nu 
+ !            *  \tilde f_j / (Sqrt[2] m_Planck)
+ ! input:
+ !  g3 ............ SU(3) coupling
+ !  phase_M3 ...... phase of the parameter M3
+ !  i ............. index of the fermion
+ !  j ............. index of the sfermion
+ !  RSf(i,j) ...... sfermion mixing matrix
+ !  RL(i,j) ....... left fermion mixing matrix
+ !  RR(i,j). ...... right fermion mixing matrix
+ ! output
+ !  coupL ......... left coupling
+ !  coupR ......... right coupling
+ ! written by Werner Porod, 18.09.10
+ !-----------------------------------------------------------------------
+ Implicit None
+  Integer, Intent(in) :: j
+  Complex(dp), Intent(in) :: RSf(2,2)
+  Complex(dp), Intent(out) :: coupL, coupR
+
+  coupL = Conjg( RSf(j,2) )
+  coupR = Conjg( RSf(j,1) )
+
+ End Subroutine CoupGravitinoSfermion1
+
  Subroutine CoupGluinoSquark1(g3, phase_M3, i_sq, Rsq, coupL, coupR)
  !-----------------------------------------------------------------------
  ! calculates the coupling gluino-squark-quark without generation mixing
@@ -4032,84 +4063,6 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
 
  End Subroutine CoupScalarSfermion3MSSM_1
 
- Subroutine CoupScalarSfermion3MSSM_1_CP(i, j, k, RS0, T3, e, yuk, Rsf, A, mu, &
-                      &          vevSM, gU1, gSU2, t, coup)
- Implicit None
-
-  Complex(dp), Intent(in) :: RSf(2,2) , yuk , A, mu
-  Complex(dp), Intent(out) :: coup
-  Real(dp), Intent(in) :: RS0(3,3), T3, e, vevSM(2), gU1, gSU2, t
-  Integer, Intent(in) :: i, j, k
-
-  Integer :: i1
-  Complex(dp) :: ayuk, aA, muC, parts(3)
-  Real(dp) :: g2, gp2, YL, YR, Dterm, cosb, sinb
-
-  Iname = Iname + 1
-  NameOfUnit(Iname) = 'CoupScalarSfermion3MSSM_1_CP'
-
-  coup = ZeroC
-
-  ayuk = Conjg( yuk )
-  aA = Conjg( A )
-
-  muC = Conjg( mu )
-  parts = ZeroC
-
-  g2 = gSU2**2
-  gp2 = gU1**2
-  YL = e - T3
-  YR = - e
-
-  Dterm = 0.5_dp * ( (g2*T3 - YL * gp2) * Rsf(k,1) * Conjg( Rsf(j,1) ) &
-        &         - YR * gp2 * Rsf(k,2) * Conjg( Rsf(j,2) ) )
-
-  cosb = vevSM(1) / Sqrt(vevSM(1)**2 + vevSM(2)**2)
-  sinb = vevSM(2) / Sqrt(vevSM(1)**2 + vevSM(2)**2)
-
-  If (T3.Gt.0._dp) Then
-   parts(1) = ( yuk * muC * Rsf(k,2) * Conjg( Rsf(j,1) )              &
-          &   + ayuk * mu * Rsf(k,1) * Conjg( Rsf(j,2) ) ) * oosqrt2  &
-          & -  vevSM(1) * Dterm
-
-   parts(2) = - ( A * Rsf(k,2) * Conjg( Rsf(j,1) )                   &
-          &     + aA * Rsf(k,1) * Conjg( Rsf(j,2) ) ) * oosqrt2      &
-          & + vevSM(2) * Dterm                                        &
-          & - vevSM(2) * yuk * ayuk * ( Rsf(k,1) * Conjg( Rsf(j,1) ) &
-          &                           + Rsf(k,2) * Conjg( Rsf(j,2) ) )
-
-   parts(3) = ( A * Rsf(k,2) * Conjg( Rsf(j,1) )                      &
-          &   - aA * Rsf(k,1) * Conjg( Rsf(j,2) ) ) * cosb            &
-          & + ( yuk * muC * Rsf(k,2) * Conjg( Rsf(j,1) )           &
-          &   - ayuk * mu * Rsf(k,1) * Conjg( Rsf(j,2) ) ) * sinb
-  Else
-
-   parts(1) = - ( A * Rsf(k,2) * Conjg( Rsf(j,1) )                    &
-          &     + aA * Rsf(k,1) * Conjg( Rsf(j,2) ) ) * oosqrt2       &
-          & - vevSM(1) * Dterm                                         &
-          & - vevSM(1) * yuk * ayuk * ( Rsf(k,1) * Conjg( Rsf(j,1) )  &
-          &                           + Rsf(k,2) * Conjg( Rsf(j,2) ) )
-
-   parts(2) = ( yuk * muC * Rsf(k,2) * Conjg( Rsf(j,1) )              &
-          &   + ayuk * mu * Rsf(k,1) * Conjg( Rsf(j,2) ) ) * oosqrt2  &
-          & + vevSM(2) * Dterm
-
-   parts(3) = ( A * Rsf(k,2) * Conjg( Rsf(j,1) )                      &
-          &   - aA * Rsf(k,1) * Conjg( Rsf(j,2) ) ) * sinb            &
-          & + ( yuk * muC * Rsf(k,2) * Conjg( Rsf(j,1) )           &
-          &   - ayuk * mu * Rsf(k,1) * Conjg( Rsf(j,2) ) ) * cosb
-  End If
-  parts(3) = (0._dp,-1._dp) * oosqrt2 * parts(3)
-
-  Do i1=1,3
-   coup = coup + RS0(i,i1) * parts(i1)
-  End Do
-
-  Iname = Iname - 1
-  
- End Subroutine CoupScalarSfermion3MSSM_1_CP
-
-
 
  Subroutine CoupScalarSfermion3MSSMa_1(i, j, k, RS0, T3, e, yuk, Rsf, A, mu, &
                       &          vevSM, gU1, gSU2, coup)
@@ -4441,7 +4394,7 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
  End Subroutine CoupSfermion4G_13
 
 
- Subroutine CoupSfermion4Y_1(i, j, k, l, T3_1, Yuk1, Rsf1, T3_2, yuk2, Rsf2 &
+ Subroutine CoupSfermion4Y_1(i, j, k, l, T3_1, Yuk1, Rsf1, T3_2, yuk2, Rsf2, nc &
                             &, coup)
  !-----------------------------------------------------------------------
  ! calculates the 4-sfermion self coupling for different flavours of
@@ -4463,7 +4416,7 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
  !-----------------------------------------------------------------------
  Implicit None
 
-  Integer, Intent(in) :: i, j, k, l
+  Integer, Intent(in) :: i, j, k, l, nc
   Real(dp), Intent(in) :: T3_1, T3_2
   Complex(dp), Intent(in) :: Yuk1, Rsf1(2,2), Yuk2, Rsf2(2,2)
   Complex(dp), Intent(out) :: coup
@@ -4475,6 +4428,8 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
    coup = -Abs(Yuk1)**2 *Conjg(Rsf1(i,2) * Rsf2(k,1)) * Rsf1(j,2) * Rsf2(l,1) &
         & -Abs(Yuk2)**2 *Conjg(Rsf1(i,1) * Rsf2(k,2)) * Rsf1(j,1) * Rsf2(l,2)
   End If
+
+!  coup = nc * coup
 
  End Subroutine CoupSfermion4Y_1
 
@@ -4601,7 +4556,7 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
 
  End Subroutine CoupSfermionSelf4G_13
 
- Subroutine CoupSfermionSelf4Y_1(i, j, k, l, Yuk, Rsf, coup, self)
+ Subroutine CoupSfermionSelf4Y_1(i, j, k, l, Yuk, Rsf, nc, coup, self)
  !-----------------------------------------------------------------------
  ! calculates the 4-sfermion Yukawa self coupling 
  ! valid for the MSSM, 1-generation epsilon model, and
@@ -4623,16 +4578,16 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
  !-----------------------------------------------------------------------
  Implicit None
 
-  Integer, Intent(in) :: i, j, k, l
+  Integer, Intent(in) :: i, j, k, l, nc
   Integer, Intent(in) :: self
   Complex(dp), Intent(in) :: Yuk, Rsf(2,2)
   Complex(dp), Intent(out) :: coup
 
   If (self.Eq.1) Then
    If ((i.eq.1).and.(j.eq.2)) then
-    coup = - Abs(yuk)**2 * Conjg( RSf(k,2) ) * Rsf(l,1)
+    coup = - Abs(yuk)**2 * Conjg( RSf(k,2) ) * Rsf(l,1) * nc
    else if ((i.eq.2).and.(j.eq.1)) then
-    coup = - Abs(yuk)**2 * Conjg( RSf(k,1) ) * Rsf(l,2)
+    coup = - Abs(yuk)**2 * Conjg( RSf(k,1) ) * Rsf(l,2) * nc
    else if ((i.eq.1).and.(j.eq.1)) then
     coup = - Abs(yuk)**2 * Conjg( RSf(k,2) ) * Rsf(l,2)
    else if ((i.eq.2).and.(j.eq.2)) then
@@ -4666,7 +4621,8 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
     & , cpl_S0ZZ, cpl_FFpW, cpl_LNuW, cpl_SdSuW, cpl_SuSdW, cpl_SlSnW        &
     & , cpl_SnSlW, cpl_SdSdZ, cpl_SlSlZ, cpl_SnSnZ, cpl_SuSuZ, cpl_CCP0_L    &
     & , cpl_CCP0_R, cpl_CCS0_L, cpl_CCS0_R, cpl_CNW_L, cpl_CNW_R             &
-    & , cpl_SmpCN_L, cpl_SmpCN_R, GenerationMixing)
+    & , cpl_SmpCN_L, cpl_SmpCN_R, c_GraDSd_L, c_GraDSd_R, c_GraUSu_L, c_GraUSu_R &
+    & , c_GraLSl_L, c_GraLSl_R, c_GraNuSn_L, c_GraNuSn_R, GenerationMixing)
  !-----------------------------------------------------------------
  ! Routine for calculating all couplings of the MSSM
  ! output:
@@ -4759,7 +4715,9 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
   Complex(dp), Intent(out) :: cpl_CCP0_L(2,2,2), cpl_CCP0_R(2,2,2)    &
       & , cpl_CCS0_L(2,2,2), cpl_CCS0_R(2,2,2), cpl_CNW_L(2,4)        &
       & , cpl_CNW_R(2,4), cpl_SmpCN_L(2,2,4), cpl_SmpCN_R(2,2,4)
-
+  Complex(dp), Intent(out), Dimension(3,6) :: c_GraDSd_L, c_GraDSd_R, c_GraUSu_L &
+      & , c_GraUSu_R, c_GraLSl_L, c_GraLSl_R
+  Complex(dp), Intent(out), Dimension(3,3) :: c_GraNuSn_L, c_GraNuSn_R
   Integer :: n_char, n_neut, n_S0, n_P0, n_Spm 
   Integer :: i1, i2, i3, i4
   Real(dp) :: gU1, gSU2, gSU3, e_d, e_u, sinW2, cosW2, cosW
@@ -4884,6 +4842,8 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
   ! charged scalar - sfermion - sfermion
   !--------------------------------------
   cpl_SmpSlSn = ZeroC
+  cpl_SmpSnSl = ZeroC
+  cpl_SmpSuSd = ZeroC
   cpl_SmpSdSu = ZeroC
   mat3 = zeroC
 
@@ -5031,6 +4991,7 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
    End Do
 
   Else
+   
    Do i1=1,3
     Rsd = RSdown(2*(i1-1)+1:2*(i1-1)+2, 2*(i1-1)+1:2*(i1-1)+2)
     Rsu = RSup(2*(i1-1)+1:2*(i1-1)+2, 2*(i1-1)+1:2*(i1-1)+2)
@@ -5256,6 +5217,57 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
    End Do ! i1
 
   End If
+  !--------------------------------
+  ! Gravitino - fermion - sfermion
+  !--------------------------------
+  c_GraNuSn_L = 0._dp
+  c_GraNuSn_R = 0._dp
+  c_GraLSl_L = 0._dp
+  c_GraLSl_R = 0._dp
+  c_GraDSd_L = 0._dp
+  c_GraDSd_R = 0._dp
+  c_GraUSu_L = 0._dp
+  c_GraUSu_R = 0._dp
+
+  If (GenerationMixing) Then
+
+   Do i1=1,3
+    Do i2=1,3
+     Call CoupGravitinoSfermion(i1, i2, RSneut, RSneut, id3c &
+                  & , c_GraNuSn_L(i1,i2), c_GraNuSn_R(i1,i2))
+    End Do
+    Do i2=1,6
+     Call CoupGravitinoSfermion(i1, i2, RSlepton, uL_L, uL_R &
+                  & , c_GraLSl_L(i1,i2), c_GraLSl_R(i1,i2))
+     Call CoupGravitinoSfermion(i1, i2, RSdown, uD_L, uD_R &
+                  & , c_GraDSd_L(i1,i2), c_GraDSd_R(i1,i2))
+     Call CoupGravitinoSfermion(i1, i2, RSup, uU_L, uU_R &
+                  & , c_GraUSu_L(i1,i2), c_GraUSu_R(i1,i2))
+    End Do
+   End Do
+
+  Else
+   
+   Do i1=1,3
+    Rsd = RSdown(2*(i1-1)+1:2*(i1-1)+2, 2*(i1-1)+1:2*(i1-1)+2)
+    Rsu = RSup(2*(i1-1)+1:2*(i1-1)+2, 2*(i1-1)+1:2*(i1-1)+2)
+    Rsl = RSlepton(2*(i1-1)+1:2*(i1-1)+2, 2*(i1-1)+1:2*(i1-1)+2)
+
+    c_GraNuSn_R(i1, i1) = 1._dp
+    Do i2=1,2
+     Call CoupGravitinoSfermion(i2, RSd, coupLC, coupRC)
+     c_GraDSd_L(i1, (i1-1)*2 + i2) = coupLC
+     c_GraDSd_R(i1, (i1-1)*2 + i2) = coupRC
+     Call CoupGravitinoSfermion(i2, RSu, coupLC, coupRC)
+     c_GraUSu_L(i1, (i1-1)*2 + i2) = coupLC
+     c_GraUSu_R(i1, (i1-1)*2 + i2) = coupRC
+     Call CoupGravitinoSfermion(i2, RSl, coupLC, coupRC)
+     c_GraLSl_L(i1, (i1-1)*2 + i2) = coupLC
+     c_GraLSl_R(i1, (i1-1)*2 + i2) = coupRC
+    End Do
+   End Do
+
+  End If 
 
   !--------------------------
   ! Gluino
@@ -6479,6 +6491,65 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
 
  End Subroutine CoupGluinoSquark3
 
+ Subroutine CoupGravitinoSfermion3(i, j, RSf, RL, RR, coupL, coupR)
+ !-----------------------------------------------------------------------
+ ! calculates the overall coupling gravitino-sfermion-fermion 
+ ! and without the generator T^a_ij, the Lagrangian is given by:
+ !  L = \bar{f_i} (coupR P_R + coupL P_L) gamma_mu gamma^nu G^mu D_\nu 
+ !            *  \tilde f_j / (Sqrt[2] m_Planck)
+ ! input:
+ !  g3 ............ SU(3) coupling
+ !  phase_M3 ...... phase of the parameter M3
+ !  i ............. index of the fermion
+ !  j ............. index of the sfermion
+ !  RSf(i,j) ...... sfermion mixing matrix
+ !  RL(i,j) ....... left fermion mixing matrix
+ !  RR(i,j). ...... right fermion mixing matrix
+ ! output
+ !  coupL ......... left coupling
+ !  coupR ......... right coupling
+ ! written by Werner Porod, 18.09.10
+ !-----------------------------------------------------------------------
+ Implicit None
+  Integer, Intent(in) :: i, j
+  Complex(dp), Intent(in) :: RSf(:,:), RL(:,:), RR(:,:)
+  Complex(dp), Intent(out) :: coupL, coupR
+
+  Integer :: i1, len
+
+  coupL = 0._dp
+  coupR = 0._dp
+
+  len = Size( Rsf, dim=1 )
+
+  If ( CompareMatrices(RR,id3C,NearlyZero).And. &
+     & CompareMatrices(RL,id3C,NearlyZero)      ) Then
+   If (len.Eq.6) coupL = Conjg( RSf(j,i+3) )
+   coupR = Conjg( RSf(j,i) )
+
+  Else If (CompareMatrices(RR,id3C,NearlyZero)) Then
+   If (len.Eq.6) coupL = Conjg( RSf(j,i+3) )
+   Do i1 = 1,3
+    coupR = coupR + Conjg( RSf(j,i1) ) * RL(i,i1)
+   End Do
+
+  Else If (CompareMatrices(RL,id3C,NearlyZero)) Then
+   coupR = Conjg( RSf(j,i) )
+   If (len.Eq.6) Then
+    Do i1 = 1,3
+     coupL = coupL + Conjg( RSf(j,i1+3) * RR(i,i1) )
+    End Do
+   End If
+
+  Else
+   Do i1 = 1,3
+    If (len.Eq.6) coupL = coupL + Conjg( RSf(j,i1+3) * RR(i,i1) )
+    coupR = coupR + Conjg( RSf(j,i1) ) * RL(i,i1)
+   End Do
+  End If
+
+ End Subroutine CoupGravitinoSfermion3
+
  Subroutine CoupNeutralinoSdown3(i, j, k, gp, g, RSf, RfL, RfR, Yuk, N &
                                   &, coupL, coupR)
  !-----------------------------------------------------------------------
@@ -7375,7 +7446,7 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
 
  End Subroutine CoupScalarSfermion4MSSM_3
 
- Subroutine CoupSfermion4Y_3(i, j, k, l, T3_1, Yuk1, Rsf1, T3_2, yuk2, Rsf2 &
+ Subroutine CoupSfermion4Y_3(i, j, k, l, T3_1, Yuk1, Rsf1, T3_2, yuk2, Rsf2, nc &
                             &, coup)
  !-----------------------------------------------------------------------
  ! calculates the 4-sfermion self coupling for different flavours of
@@ -7397,7 +7468,7 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
  !-----------------------------------------------------------------------
  Implicit None
 
-  Integer, Intent(in) :: i, j, k, l
+  Integer, Intent(in) :: i, j, k, l, nc
   Real(dp), Intent(in) :: T3_1, T3_2
   Complex(dp), Intent(in) :: Yuk1(3,3), Rsf1(:,:), Yuk2(3,3), Rsf2(:,:)
   Complex(dp), Intent(out) :: coup
@@ -7464,6 +7535,7 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
     End Do
    End Do
   End If
+
 
  End Subroutine CoupSfermion4Y_3
 
@@ -8831,8 +8903,8 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
   Integer, Intent(in) :: i, j, k
 
   Integer :: n_S0,i1
-  Complex(dp) :: ayuk,aA
-  Real(dp) :: g2,gp2,YL,YR,Dterm, abi(Size(bi)), parts(Size(RS0, Dim=1))
+  Complex(dp) :: ayuk,aA, abi(Size(bi))
+  Real(dp) :: g2,gp2,YL,YR,Dterm, parts(Size(RS0, Dim=1))
 
   Iname = Iname + 1
   NameOfUnit(Iname) = 'CoupScalarSfermion3Eps_1'
@@ -8895,7 +8967,6 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
 
  End Subroutine CoupScalarSfermion3Eps_1
 
-
  Subroutine CoupScalarSfermion3Epsa_1(i, j, k, RS0, T3, e, yuk, Rsf, A, bi, &
                       &          vevSM, vevL, gU1, gSU2, coup)
  !-----------------------------------------------------------------------
@@ -8924,8 +8995,8 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
   Integer, Intent(in) :: i, j, k
 
   Integer :: n_S0,i1
-  Complex(dp) :: ayuk,aA
-  Real(dp) :: g2,gp2,YL,YR,Dterm, abi(Size(bi)), parts(Size(RS0, Dim=1))
+  Complex(dp) :: ayuk,aA, abi(Size(bi))
+  Real(dp) :: g2,gp2,YL,YR,Dterm, parts(Size(RS0, Dim=1))
 
   Iname = Iname + 1
   NameOfUnit(Iname) = 'CoupScalarSfermion3Epsa_1'
@@ -10151,7 +10222,7 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
       & , cpl_CNW_R(5,7), cpl_SmpCN_L(8,5,7), cpl_SmpCN_R(8,5,7)
 
   Integer :: n_char, n_neut, n_S0, n_P0, n_Spm 
-  Integer :: i1, i2, i3, i4
+  Integer :: i1, i2, i3 !, i4
   Real(dp) :: gU1, gSU2, gSU3, e_d, e_u, sinW2, cosW2, cosW
   Complex(dp) :: Rsd(2,2), Rsu(2,2), coupLC, coupRC, Yuk, Yukp, &
                & coupC, A, Ap, mu, YukL(3)
@@ -10970,7 +11041,7 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
  Case (1101)
   coupR = Conjg( yukU(j,k) ) * RSpm(i,2)
   Do i1=1,3
-   coupL = coupL + yukD(k,i2) * Conjg( RdR(j,i2) * RSpm(i,1) )
+   coupL = coupL + yukD(k,i1) * Conjg( RdR(j,i1) * RSpm(i,1) )
   End Do
 
  Case (1110)
@@ -11177,8 +11248,6 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
 
  End Subroutine CoupCharginoScalarLam3
 
-
-
  Subroutine CoupCharginoSfermion3Lam(i, j, k, g, T3, RSf, YukD, YukU, RfL &
                                 &, RfR, lamp, U, V, coupL, coupR)
  !-----------------------------------------------------------------------
@@ -11256,7 +11325,7 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
      coupR = coupR + Conjg( YukD(j,i1) * RSf(k,i1+3) ) * U(i,2)
      Do i2=1,3
       coupL = coupL + YukU(i1,i2) * Conjg( RSf(k,i1) ) * RfR(j,i2) 
-      coupR = coupR + Conjg(lamp(i3,i1,j) * RSf(k,3+i1)) * U(i,2+i3)
+      coupR = coupR + Conjg(lamp(i2,i1,j) * RSf(k,3+i1)) * U(i,2+i2)
      End Do
     End Do
 
@@ -12636,7 +12705,8 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
     & , cpl_S0ZZ, cpl_FFpW, cpl_LNuW, cpl_SdSuW, cpl_SuSdW, cpl_SlSnW        &
     & , cpl_SnSlW, cpl_SdSdZ, cpl_SlSlZ, cpl_SnSnZ, cpl_SuSuZ, cpl_CCP0_L    &
     & , cpl_CCP0_R, cpl_CCS0_L, cpl_CCS0_R, cpl_CNW_L, cpl_CNW_R             &
-    & , cpl_SmpCN_L, cpl_SmpCN_R, GenerationMixing)
+    & , cpl_SmpCN_L, cpl_SmpCN_R, c_GraDSd_L, c_GraDSd_R, c_GraUSu_L, c_GraUSu_R &
+    & , c_GraLSl_L, c_GraLSl_R, c_GraNuSn_L, c_GraNuSn_R, GenerationMixing)
  !-----------------------------------------------------------------
  ! Routine for calculating all couplings of the MSSM
  ! output: 
@@ -12734,6 +12804,9 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
   Complex(dp), Intent(out) :: cpl_CCP0_L(2,2,3), cpl_CCP0_R(2,2,3)    &
       & , cpl_CCS0_L(2,2,3), cpl_CCS0_R(2,2,3), cpl_CNW_L(2,5)        &
       & , cpl_CNW_R(2,5), cpl_SmpCN_L(2,2,5), cpl_SmpCN_R(2,2,5)
+  Complex(dp), Intent(out), Dimension(3,6) :: c_GraDSd_L, c_GraDSd_R, c_GraUSu_L &
+      & , c_GraUSu_R, c_GraLSl_L, c_GraLSl_R
+  Complex(dp), Intent(out), Dimension(3,3) :: c_GraNuSn_L, c_GraNuSn_R
 
   Integer :: n_char, n_neut, n_S0, n_P0, n_Spm 
   Integer :: i1, i2, i3, i4
@@ -12862,7 +12935,9 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
   ! charged scalar - sfermion - sfermion
   !--------------------------------------
   cpl_SmpSlSn = ZeroC
+  cpl_SmpSnSl = ZeroC
   cpl_SmpSdSu = ZeroC
+  cpl_SmpSuSd = ZeroC
   mat3 = zeroC
 
   If (GenerationMixing) Then
@@ -13234,6 +13309,58 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
    End Do ! i1
 
   End If
+
+  !--------------------------------
+  ! Gravitino - fermion - sfermion
+  !--------------------------------
+  c_GraNuSn_L = 0._dp
+  c_GraNuSn_R = 0._dp
+  c_GraLSl_L = 0._dp
+  c_GraLSl_R = 0._dp
+  c_GraDSd_L = 0._dp
+  c_GraDSd_R = 0._dp
+  c_GraUSu_L = 0._dp
+  c_GraUSu_R = 0._dp
+
+  If (GenerationMixing) Then
+
+   Do i1=1,3
+    Do i2=1,3
+     Call CoupGravitinoSfermion(i1, i2, RSneut, RSneut, id3c &
+                  & , c_GraNuSn_L(i1,i2), c_GraNuSn_R(i1,i2))
+    End Do
+    Do i2=1,6
+     Call CoupGravitinoSfermion(i1, i2, RSlepton, uL_L, uL_R &
+                  & , c_GraLSl_L(i1,i2), c_GraLSl_R(i1,i2))
+     Call CoupGravitinoSfermion(i1, i2, RSdown, uD_L, uD_R &
+                  & , c_GraDSd_L(i1,i2), c_GraDSd_R(i1,i2))
+     Call CoupGravitinoSfermion(i1, i2, RSup, uU_L, uU_R &
+                  & , c_GraUSu_L(i1,i2), c_GraUSu_R(i1,i2))
+    End Do
+   End Do
+
+  Else
+   
+   Do i1=1,3
+    Rsd = RSdown(2*(i1-1)+1:2*(i1-1)+2, 2*(i1-1)+1:2*(i1-1)+2)
+    Rsu = RSup(2*(i1-1)+1:2*(i1-1)+2, 2*(i1-1)+1:2*(i1-1)+2)
+    Rsl = RSlepton(2*(i1-1)+1:2*(i1-1)+2, 2*(i1-1)+1:2*(i1-1)+2)
+
+    c_GraNuSn_R(i1, i1) = 1._dp
+    Do i2=1,2
+     Call CoupGravitinoSfermion(i2, RSd, coupLC, coupRC)
+     c_GraDSd_L(i1, (i1-1)*2 + i2) = coupLC
+     c_GraDSd_R(i1, (i1-1)*2 + i2) = coupRC
+     Call CoupGravitinoSfermion(i2, RSu, coupLC, coupRC)
+     c_GraUSu_L(i1, (i1-1)*2 + i2) = coupLC
+     c_GraUSu_R(i1, (i1-1)*2 + i2) = coupRC
+     Call CoupGravitinoSfermion(i2, RSl, coupLC, coupRC)
+     c_GraLSl_L(i1, (i1-1)*2 + i2) = coupLC
+     c_GraLSl_R(i1, (i1-1)*2 + i2) = coupRC
+    End Do
+   End Do
+
+  End If 
 
   !--------------------------
   ! Gluino

@@ -202,7 +202,7 @@ Contains
 
     Else
 
-     w1 = Mll_max(msq,mchi2,msl)
+     w1 = Mll_max(msq,mchi2,mchi1)
      w2 = Mll_max(msq,msl,mchi1)
      w3 = (msq2*msl2-mchi22*mchi12) * (mchi22-msl2) / (mchi22*msl2)
      If (w3.Gt.0._dp) w3 = sqrt(w3)
@@ -506,7 +506,7 @@ Contains
   gP_Su = 0._dp
   gT_Su = 0._dp
   BR_Su = 0._dp
-  Call SfermionTwoBodyDecays(5, mSup, mf_u, mf_d                           &
+  Call SfermionTwoBodyDecays_old(5, mSup, mf_u, mf_d                           &
           &, mN, cpl_UNSu_L, cpl_UNSu_R, mC, cpl_CDSu_L, cpl_CDSu_R         &
           &, mSdown, mW, cpl_SuSdW, mZ, cpl_SuSuZ, mSpm, cpl_SmpSuSd        &
           &, mP0, cpl_P0SuSu, ms0, cpl_S0SuSu                               &
@@ -516,7 +516,7 @@ Contains
   gP_G2 = 0._dp
   gT_G = 0._dp
   BR_G2 = 0._dp
-  Call GluinoTwoBodyDecays(mGlu, mSdown, cpl_GDSd_L        &  
+  Call GluinoTwoBodyDecays_old(mGlu, mSdown, cpl_GDSd_L        &  
           &, cpl_GDSd_R, mf_d, mSup, cpl_GUSu_L, cpl_GUSu_R, mf_u         &  
           &, 0, GenerationMixing, gP_G2, gT_G, BR_G2 )
   !-----------------------------
@@ -527,13 +527,13 @@ Contains
   gP_Sd = 0._dp
   gT_Sd = 0._dp
   BR_Sd = 0._dp
-  Call SfermionTwoBodyDecays(5, mSdown, mf_d, mf_u                         &
+  Call SfermionTwoBodyDecays_old(5, mSdown, mf_d, mf_u                         &
           &, mN, cpl_DNSd_L, cpl_DNSd_R, mC, cpl_CUSd_L, cpl_CUSd_R         &
           &, mSup, mW, cpl_SdSuW, mZ, cpl_SdSdZ, mSpm, cpl_SmpSdSu          &
           &, mP0, cpl_P0SdSd, mS0, cpl_S0SdSd                               &
           &, 0, GenerationMixing                                            &
           &, gP_Sd, gT_Sd, BR_Sd, mGlu, cpl_GDSd_L, cpl_GDSd_R)
-  Call SfermionTwoBodyDecays(6, mSdown, mf_d, mf_u                         &
+  Call SfermionTwoBodyDecays_old(6, mSdown, mf_d, mf_u                         &
           &, mN, cpl_DNSd_L, cpl_DNSd_R, mC, cpl_CUSd_L, cpl_CUSd_R         &
           &, mSup, mW, cpl_SdSuW, mZ, cpl_SdSdZ, mSpm, cpl_SmpSdSu          &
           &, mP0, cpl_P0SdSd, mS0, cpl_S0SdSd                               &

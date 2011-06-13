@@ -10,6 +10,8 @@ Use LoopCouplings
 Use LoopFunctions 
 Use LoopMasses
 Use Model_Data
+Use MSSM_Data
+Use NMSSM_Data
 Use RGEs
 Use StandardModel
 Use SugraRuns
@@ -42,14 +44,10 @@ Contains
   !---------------------------------------
   ! local variables
   !---------------------------------------
-    Real(dp) :: gp, g, vev, vev2, vevs_DR(2), sinW2, mP0_T(3), mP02_T(3) &
-           &, RP0_T(3,3), mS0_T(3), mS02_T(3), RS0_T(3,3), mSpm_T(2)   &
-           &, mSpm2_T(2), tad(3), mZ2_run, mW2_run, US(3,3), UP(3,3)   &
-           &, cosb2, sinb2, matMSSM(2,2)
-  Real(dp) :: gauge_mZ(3), ht, hb, htau, lam_mZ, kappa_mZ, Scale_Q, tz, dt &
-           &, g8(8), g9(9), g6(6), mf_l_save(3), mf_d_save(3), mf_u_save(3)
-  Real(dp) :: delta = 1.e-5_dp, logQ, alphas_DR, p2_in(3), pp2_in(3)
-  Complex(dp) :: mu_in, dmZ2, RSpm_T(2,2)
+  Real(dp) :: gp, g, vev, sinW2, gauge_mZ(3), ht &
+         & , hb, htau, Scale_Q, tz, dt, g8(8), g9(9), g6(6)
+  Real(dp) :: delta = 1.e-5_dp, logQ, alphas_DR
+  Complex(dp) :: mu_in
   Integer :: i1 
   Real(dp), Parameter :: &
     & as2loop = 1._dp / 24._dp + 2011._dp * oo32Pi2 / 12._dp          &
@@ -65,10 +63,19 @@ Contains
   !--------------------------------
   Integer :: p_max
   Complex(dp) :: Ylp(3,3)
+ !------------------------------------------------------
+ ! internal information on particle identities
+ !------------------------------------------------------
+  Integer :: id_gl, id_ph, id_grav
+  Integer, Dimension(1) :: id_Z, id_W
+  Integer, Dimension(3) :: id_nu, id_l, id_d, id_u
+
 
   Iname = Iname + 1 
   NameOfUnit(Iname) = "Model_NMSSM"
 
+  Call Initialize_NMSSM(GenerationMixing, id_gl, id_ph, id_Z, id_W &
+               & , id_nu, id_l, id_d, id_u, id_grav)
   kont = 0
 
   sinW2 = 1._dp - mW2/mZ2 
@@ -182,11 +189,12 @@ Contains
  If (.Not.External_Spectrum) &
   & Call TreeMassesNMSSM(gp, g, vevSM, vP, Mi(1), Mi(2), Mi(3), mu_in, B, h0  &
             &, lam, A_h0, A_lam, M2_E, M2_L, A_l, Y_l, M2_D, M2_U, M2_Q    &
-            &, A_d, A_u, Y_d, Y_u, mGlu, PhaseGlu, mC, mC2, U, V, mN5      &
-            &, mN52, N5, mSneut, mSneut2, Rsneut, mSlepton, mSlepton2      &
-            &, RSlepton, mSdown, mSdown2, RSdown, mSup, mSup2, RSup        &
-            &, mP0_T, mP02_T, RP0_T, mS0_T, mS02_T, RS0_T, mSpm_T, mSpm2_T &
-            &, RSpm_T, GenerationMixing, kont, .True.)
+            &, A_d, A_u, Y_d, Y_u, Glu%m, PhaseGlu, ChiPm%m, ChiPm%m2, U, V, Chi05%m      &
+            &, Chi05%m2, N5, Sneut%m, Sneut%m2, Rsneut, Slepton%m, Slepton%m2      &
+            &, RSlepton, Sdown%m, Sdown%m2, RSdown, Sup%m, Sup%m2, RSup        &
+            &, P03%m, P03%m2, RP03, S03%m, S03%m2, RS03, Spm%m, Spm%m2 &
+            &, RSpm, GenerationMixing, kont, .True.)
+  Glu%m2 = Glu%m**2
 
   If (kont.Ne.0) Then
    Iname = Iname - 1
@@ -206,6 +214,17 @@ Contains
      uU_R = id3C
     End If
 
+   !----------------------------------------------
+   ! reorder state identification if necessary
+   !----------------------------------------------
+   If (.Not.GenerationMixing) Then
+    Call Swap_Order_Sf(RSlepton(1,1), Slepton(1)%id, Slepton(2)%id, id_p, c_name)    
+    Call Swap_Order_Sf(RSlepton(3,3), Slepton(3)%id, Slepton(4)%id, id_p, c_name)    
+    Call Swap_Order_Sf(RSdown(1,1), Sdown(1)%id, Sdown(2)%id, id_p, c_name)    
+    Call Swap_Order_Sf(RSdown(3,3), Sdown(3)%id, Sdown(4)%id, id_p, c_name)    
+    Call Swap_Order_Sf(RSup(1,1), Sup(1)%id, Sup(2)%id, id_p, c_name)    
+    Call Swap_Order_Sf(RSup(3,3), Sup(3)%id, Sup(4)%id, id_p, c_name)    
+   End If
   !----------------------------------------
   ! decays of SUSY and Higgs particles
   !----------------------------------------
@@ -216,15 +235,13 @@ Contains
    CalcTBD = .False. ! if .True. than calculation of 3-body decays is enforced
    ratioWoM = 0._dp ! 1.e-4_dp
 
-   Call CalculateBR(gauge, mGlu, PhaseGlu, mC, U, V, mN5, N5, mSneut, RSneut &
-     & , mSlepton, RSlepton, mSup, RSup, mSdown, RSdown, uL_L, uL_R          &
-     & , uD_L, uD_R, uU_L, uU_R, mS03, RS03, mP03, RP03, mSpm, RSpm, epsI    &
-     & , deltaM, CalcTBD, kont, ratioWoM, Y_d, A_d, Y_l, A_l, Y_u, A_u       &
-     & , mu, h0, A_h0, lam, A_lam, vevSM, vP, F_Gmsb, m32, grav_fac          &
-     & , gP_Sl, gT_Sl, BR_Sl, gP_Sn, gT_Sn, BR_Sn, gP_Sd, gT_Sd, BR_Sd       &
-     & , gP_Su, gT_Su, BR_Su, gP_C, gT_C, BR_C, gP_N5, gT_N5, BR_N5          &
-     & , gP_Glu, gT_Glu, BR_Glu, gP_P03, gT_P03, BR_P03                      &
-     & , gP_S03, gT_S03, BR_S03, gP_Spm, gT_Spm, BR_Spm)
+   Call CalculateBR(n_nu, id_nu, n_l, id_l, n_d, id_d, n_u, id_u, n_Z, id_Z    &
+     & , n_W, id_W, n_snu, n_sle, n_Sd, n_su, n_n, n_c, n_g, n_s0, n_p0, n_Spm &
+     & , id_grav, id_gl, id_ph, gauge, Glu, PhaseGlu, Chipm, U, V, Chi05, N5   &
+     & , Sneut, RSneut, Slepton, RSlepton, Sup, RSup, Sdown, RSdown, uL_L      &
+     & , uL_R, uD_L, uD_R, uU_L, uU_R, S03, RS03, P03, RP03, Spm, RSpm, epsI   &
+     & , deltaM, CalcTBD, ratioWoM, Y_d, A_d, Y_l, A_l, Y_u, A_u, mu, h0, A_h0 &
+     & , lam, A_lam, vevSM, vP, F_Gmsb, m32, grav_fac)
 
   End If
 
@@ -249,17 +266,45 @@ Contains
     Do i1=1,p_max
      If (Ecms(i1).Eq.0._dp) Exit
      Call CalculateCrossSections(Ecms(i1), Pm(i1), Pp(i1), ISR(i1), Beam(i1)   &
-            & , "Tesla800", mSup, RSup, mf_u, mSdown, RSdown, mf_d, mglu       &
-            & , SigSup(i1,:,:), SigSdown(i1,:,:), mSlepton, RSlepton, Ylp      &
-            & , mSneut, RSneut, SigSle(i1,:,:), SigSn(i1,:,:), mC, U, V        &
-            & , mN5, N5, SigC(i1,:,:), SigChi0(i1,1:5,1:5), mS03, RS03, vevSM  &
-            & , mP03, RP03, mSpm, RSpm, SigS0(i1,1:3), SigSP(i1,1:3,1:2)       &
-            & , SigHp(i1,1,1) )
+            & , "Tesla800", Sup%m, RSup, mf_u, Sdown%m, RSdown, mf_d, glu%m    &
+            & , SigSup(i1,:,:), SigSdown(i1,:,:), Slepton%m, RSlepton, Ylp     &
+            & , Sneut%m, RSneut, SigSle(i1,:,:), SigSn(i1,:,:), ChiPm%m, U, V  &
+            & , Chi05%m, N5, SigC(i1,:,:), SigChi0(i1,1:5,1:5), S03%m, RS03    &
+            & , vevSM, P03%m, RP03, Spm%m, RSpm, SigS0(i1,1:3)                 &
+            & , SigSP(i1,1:3,1:2), SigHp(i1,1,1) )
     End Do
    End If
 
   Iname = Iname - 1
  
+
+ Contains
+
+  Subroutine Swap_Order_Sf(Rij, id1, id2, id_p, names)
+  Implicit None
+   Complex(dp), Intent(in) :: Rij
+   Integer, Intent(in) :: id1, id2
+   Integer, Intent(inout) :: id_p(:)
+   Character(len=12), Intent(inout) :: names(:)
+
+   Integer :: k(2)
+   Character(len=12) :: nam(2)
+   !--------------------------------------------------------------------
+   ! changes name and particle id, in case that the lighter of two
+   ! sfermions is a right-sfermion
+   !--------------------------------------------------------------------
+   If (Abs(Rij).Lt.0.5_dp) Then
+    k = id_p(id1:id1+1)
+    id_p(id1:id1+1) = id_p(id2:id2+1)
+    id_p(id2:id2+1) = k
+
+    nam = names(id1:id1+1)
+    names(id1:id1+1) = names(id2:id2+1)
+    names(id2:id2+1) = nam
+   End If
+
+  End Subroutine Swap_Order_Sf
+
  End Subroutine Model_NMSSM
 
 End Module NMSSM_tools

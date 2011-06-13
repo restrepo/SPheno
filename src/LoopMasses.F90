@@ -88,7 +88,8 @@ Contains
     & , mZ2_mZ, vevs_DR(2), tadpoles_1L(2), M2_H_1L(2), p2, b_A, mW2_mW      &
     & , mA2_mA, eq, T3, Q2, Pi2A0, tadpoles_2L(2), mW2_run, mglu_sign        &
     & , comp2(2), wert, mf3(3)
-  Complex(dp) :: dmZ2, PiA0, dmW2, PiSpm, M1, M2, dmglu
+  Real(dp) :: M2Ein, M2Lin, M2Din, M2Qin, M2Uin
+  Complex(dp) :: dmZ2, PiA0, dmW2, PiSpm, M1, M2, dmglu, B_T, mu_T
   Complex(dp), Dimension(3,3) :: Y_lp, Y_dp, Y_up, CKM_Q
   Integer :: i1, i2, i_count
  
@@ -228,7 +229,8 @@ Contains
   mu = Abs_mu * phase_mu
   B = (M2_H(1) + M2_H(2) + 2._dp *  Abs_Mu2) * tanbQ / (1+tanbQ**2)
   If (Real(B).Le.0._dp) B = -B+1 ! problem with large tan(beta)
-
+  mu_T = mu
+  B_T = B
   !------------------------------------------------
   ! now some iterations to get all values precisely
   !------------------------------------------------
@@ -240,7 +242,6 @@ Contains
   comp2(2) = mZ2_mZ
   vevs_DR = vevSM
 
-  Do
   !-------------------------------------------------
   ! tree level masses and mixings as starting point
   !-------------------------------------------------
@@ -321,10 +322,21 @@ Contains
 #endif
   !---------------------------
   ! tadpoles at 2-loop
-  !---------------------------
+  !---------------------------------------------------------------------
+  ! Define first input, numerical problems can occur if left and right
+  ! sfermion mass parameters are identical
+  !---------------------------------------------------------------------
+   M2Din = Real(M2_D(3,3),dp)
+   M2Ein = Real(M2_E(3,3),dp)
+   M2Lin = Real(M2_L(3,3),dp)
+   M2Qin = Real(M2_Q(3,3),dp)
+   M2Uin = Real(M2_U(3,3),dp)
+   If (M2Ein.Eq.M2Lin) M2Ein = (1._dp + Max(1.0e-8_dp,0.1_dp*delta0)) * M2Ein
+   If (M2Din.Eq.M2Qin) M2Din = (1._dp + Max(1.0e-8_dp,0.1_dp*delta0)) * M2Din
+   If (M2Uin.Eq.M2Qin) M2Uin = (1._dp + Max(1.0e-8_dp,0.1_dp*delta0)) * M2Uin
+
    Call Two_Loop_Tadpoles_MSSM(g(3), mglu_sign, mP02(2), vevs_DR           &
-          & , Real(M2_D(3,3),dp), Real(M2_U(3,3),dp), Real(M2_Q(3,3),dp)   &
-          & , Real(M2_E(3,3),dp), Real(M2_L(3,3),dp), A_d(3,3), A_u(3,3)   &
+          & , M2Din, M2Uin, M2Qin, M2Ein, M2Lin, A_d(3,3), A_u(3,3)        &
           & , A_l(3,3), Y_d(3,3), Y_u(3,3), Y_l(3,3), mu, tadpoles_2L, kont)
    If (kont.Ne.0) Then
     Iname = Iname - 1
@@ -360,21 +372,6 @@ Contains
    mu = Abs_mu * phase_mu
    B = (M2_H_1L(1) + M2_H_1L(2) + 2._dp *  Abs_Mu2) * tanbQ / (1+tanbQ**2)
 
-   comp2(1) = Abs(Real(mu,dp) - comp2(1)) / comp2(1)
-   comp2(2) = Abs(mZ2_mZ - comp2(2)) / comp2(2)
-   If (Maxval(comp2).Lt.0.1_dp*delta0) Then
-    Exit
-   Else If (i_count.Gt.30) Then
-    Write(ErrCan,*) "Problem for mu, mZ loop in LoopMassesMSSM"
-    Write(ErrCan,123) Real(mu,dp),mZ2_mZ,comp2
-123 Format(4f18.10)
-    Exit
-   Else
-    comp2(1) = Real(mu,dp)
-    comp2(2) = mZ2_mZ
-    i_count = i_count + 1
-   End If     
-  End Do ! i_loop
   vev_Q = Sqrt(vev2)
   mA2_Q = mP02(2)
   mglu_sign = phase_glu * mglu
@@ -401,9 +398,8 @@ Contains
      & , RS0, mN, mN2, N, mZ2_mZ, mW2_run, PiA0)
 #endif
 
-  Call PiPseudoScalar2(g(3), mglu_sign, mP02(2), vevs_DR, Real(M2_D(3,3),dp)  &
-     & , Real(M2_U(3,3),dp), Real(M2_Q(3,3),dp), Real(M2_E(3,3),dp)           &
-     & , Real(M2_L(3,3),dp), A_d(3,3), A_u(3,3), A_l(3,3), Y_d(3,3), Y_u(3,3) &
+  Call PiPseudoScalar2(g(3), mglu_sign, mP02(2), vevs_DR, M2Din, M2Uin, M2Qin &
+     & , M2Ein, M2Lin, A_d(3,3), A_u(3,3), A_l(3,3), Y_d(3,3), Y_u(3,3)       &
      & , Y_l(3,3), mu, Pi2A0, kont)
 
   mP02_1L(2) = (M2_H_1L(2) - M2_H_1L(1)) / cos2b - mZ2_mZ - Real(PiA0,dp) &
@@ -446,7 +442,7 @@ Contains
 
   If (mP02_1L(2).Le.0._dp) Then
    WriteWert = mP02_1L(2)
-   Call WriteLoopMassesError(7, "LoopMasses", kont)
+   Call WriteLoopMassesError(-7, "LoopMasses", kont)
    Write(ErrCan,*) "M^2_A:",mP02_1L(2)
    mP02_1L(2) = 1.e4_dp
    mP0_1L(2) = 1.e2_dp
@@ -533,7 +529,7 @@ Contains
 
   If (mSpm2_1L(2).Le.0._dp) Then
    WriteWert = mSpm2_1L(2)
-   Call WriteLoopMassesError(8, "LoopMasses", kont)
+   Call WriteLoopMassesError(-8, "LoopMasses", kont)
    mSpm2_1L(2) = 1.e4_dp
    mSpm_1L(2) = 1.e2_dp
   Else
@@ -546,20 +542,18 @@ Contains
 #ifdef GENERATIONMIXING
   Call ScalarMass_Loop_MSSM(mS02, mS02, RS0, Q2, tanbQ, tadpoles_1L, mZ2_mZ   &
        & , mW2_run, mA2_mA, b_a, g(1), g(2), g(3), Y_l, Y_d, Y_u              &
-       & , uD_L, uD_R, uL_L, uL_R, uU_L, uU_R &
+       & , uD_L, uD_R, uL_L, uL_R, uU_L, uU_R                                 &
        & , mUSquark2, RUSquark, mDSquark2, RDSquark, mSneutrino2, RSneutrino  &
        & , mSlepton2, RSlepton, A_d, A_u, A_l, mu, vevs_DR, mP02, RP0, mSpm2  &
-       & , RSpm, mC, mC2, U, V, mN, mN2, N, Real(M2_Q(3,3),dp)                &
-       & , Real(M2_U(3,3),dp), Real(M2_D(3,3),dp), Real(M2_E(3,3),dp)         &
-       & , Real(M2_L(3,3),dp), mglu_sign, 0, mS0_1L, mS02_1L, RS0_1L, kont)
+       & , RSpm, mC, mC2, U, V, mN, mN2, N, M2Qin, M2Uin, M2Din, M2Ein, M2Lin &
+       & , mglu_sign, 0, mS0_1L, mS02_1L, RS0_1L, kont)
 #else
   Call ScalarMass_Loop_MSSM(mS02, mS02, RS0, Q2, tanbQ, tadpoles_1L, mZ2_mZ   &
        & , mW2_run, mA2_mA, b_a, g(1), g(2), g(3), Y_l, Y_d, Y_u              &
        & , mUSquark2, RUSquark, mDSquark2, RDSquark, mSneutrino2              &
        & , mSlepton2, RSlepton, A_d, A_u, A_l, mu, vevs_DR, mP02, RP0, mSpm2  &
-       & , RSpm, mC, mC2, U, V, mN, mN2, N, Real(M2_Q(3,3),dp)                &
-       & , Real(M2_U(3,3),dp), Real(M2_D(3,3),dp), Real(M2_E(3,3),dp)         &
-       & , Real(M2_L(3,3),dp), mglu_sign, 0, mS0_1L, mS02_1L, RS0_1L, kont)
+       & , RSpm, mC, mC2, U, V, mN, mN2, N, M2Qin, M2Uin, M2Din, M2Ein, M2Lin &
+       & , mglu_sign, 0, mS0_1L, mS02_1L, RS0_1L, kont)
 #endif
   If (kont.Ne.0) Then
    Iname = Iname -1
@@ -580,21 +574,19 @@ Contains
    comp2 = mS02_1L
 #ifdef GENERATIONMIXING
    Call ScalarMass_Loop_MSSM(mS02, mS02_1L, RS0, Q2, tanbQ, tadpoles_1L, mZ2_mZ&
-       & , mW2_run, mA2_mA, b_a, g(1), g(2), g(3), Y_l, Y_d, Y_u              &
-       & , uD_L, uD_R, uL_L, uL_R, uU_L, uU_R &
-       & , mUSquark2, RUSquark, mDSquark2, RDSquark, mSneutrino2, RSneutrino  &
-       & , mSlepton2, RSlepton, A_d, A_u, A_l, mu, vevs_DR, mP02, RP0, mSpm2  &
-       & , RSpm, mC, mC2, U, V, mN, mN2, N, Real(M2_Q(3,3),dp)                &
-       & , Real(M2_U(3,3),dp), Real(M2_D(3,3),dp), Real(M2_E(3,3),dp)         &
-       & , Real(M2_L(3,3),dp), mglu_sign, 0, mS0_1L, mS02_1L, RS0_1L, kont)
+       & , mW2_run, mA2_mA, b_a, g(1), g(2), g(3), Y_l, Y_d, Y_u               &
+       & , uD_L, uD_R, uL_L, uL_R, uU_L, uU_R                                  &
+       & , mUSquark2, RUSquark, mDSquark2, RDSquark, mSneutrino2, RSneutrino   &
+       & , mSlepton2, RSlepton, A_d, A_u, A_l, mu, vevs_DR, mP02, RP0, mSpm2   &
+       & , RSpm, mC, mC2, U, V, mN, mN2, N, M2Qin, M2Uin, M2Din, M2Ein, M2Lin  &
+       & , mglu_sign, 0, mS0_1L, mS02_1L, RS0_1L, kont)
 #else
    Call ScalarMass_Loop_MSSM(mS02, mS02_1L, RS0, Q2, tanbQ, tadpoles_1L, mZ2_mZ&
-       & , mW2_run, mA2_mA, b_a, g(1), g(2), g(3), Y_l, Y_d, Y_u              &
-       & , mUSquark2, RUSquark, mDSquark2, RDSquark, mSneutrino2              &
-       & , mSlepton2, RSlepton, A_d, A_u, A_l, mu, vevs_DR, mP02, RP0, mSpm2  &
-       & , RSpm, mC, mC2, U, V, mN, mN2, N, Real(M2_Q(3,3),dp)                &
-       & , Real(M2_U(3,3),dp), Real(M2_D(3,3),dp), Real(M2_E(3,3),dp)         &
-       & , Real(M2_L(3,3),dp), mglu_sign, 0, mS0_1L, mS02_1L, RS0_1L, kont)
+       & , mW2_run, mA2_mA, b_a, g(1), g(2), g(3), Y_l, Y_d, Y_u               &
+       & , mUSquark2, RUSquark, mDSquark2, RDSquark, mSneutrino2               &
+       & , mSlepton2, RSlepton, A_d, A_u, A_l, mu, vevs_DR, mP02, RP0, mSpm2   &
+       & , RSpm, mC, mC2, U, V, mN, mN2, N, M2Qin, M2Uin, M2Din, M2Ein, M2Lin  &
+       & , mglu_sign, 0, mS0_1L, mS02_1L, RS0_1L, kont)
 #endif
    If (kont.Ne.0) Then
     Iname = Iname -1
@@ -880,6 +872,8 @@ Contains
    RSpm(2,2) = - RP0(1,1)
    RSpm(2,1) = RP0(1,2)
   End If
+  B = B_T
+  mu = mu_T
   !------------------------------------------------
   ! replacing running fermion masses by pole masses
   !------------------------------------------------
@@ -891,6 +885,7 @@ Contains
   mf_u2 = mf_u**2
 
   Iname = Iname -1
+
 
  End Subroutine LoopMassesMSSM
 
@@ -937,8 +932,9 @@ Contains
 
   Real(dp) :: vevSM(2), tanbQ, cosb2, cos2b, sinb2, g6(6), g7(7) , Q, dt, tz  &
     & , vev2, sinW2_DR, mZ2_mZ, vevs_DR(2), tadpoles_1L(2), p2, b_A, mW2_mW   &
-    & , mA2_mA, eq, T3, Q2, Pi2A0, tadpoles_2L(2), mW2_run, mglu_T, mP0_T(2)  &
+    & , mA2_mA, eq, T3, Q2, Pi2A0, tadpoles_2L(2), mW2_run, mP0_T(2)  &
     & , mP02_T(2), mglu_sign, M2_H_1L(2), RP0_T(2,2), comp2(2), wert, mf3(3)
+  Real(dp) :: M2Ein, M2Lin, M2Din, M2Qin, M2Uin
   Complex(dp) :: dmZ2, PiA0, dmW2, PiSpm, dmglu, M1, M2
   Complex(dp), Dimension(3,3) :: uL_L, uL_R, uD_L, uD_R, uU_L, uU_R, CKM_Q    &
     & , Y_up, Y_dp, Y_lp
@@ -1125,20 +1121,12 @@ Contains
   mf_l2 = mf_l**2
   mf_u2 = mf_u**2
 
+  mglu_sign = mGlu * phase_Glu
+
   Do i_loop=1,2
   !-------------------------------------------------------------
   ! tree level masses and mixings using the loop corrected vevs
   !-------------------------------------------------------------
-   Call TreeMassesMSSM2(g(1), g(2), vevs_DR, Mi(1), Mi(2), Mi(3), mu, B       &
-        , tanbQ, M2_E, M2_L, A_l, Y_l, M2_D, M2_U, M2_Q, A_d, A_u, Y_d, Y_u   &
-        , uU_L, uU_R, uD_L, uD_R, uL_L, uL_R                                  &
-        , mGlu, Phase_Glu, mC, mC2, U, V, mN, mN2, N, mSneutrino, mSneutrino2 &
-        , Rsneutrino, mSlepton, mSlepton2, RSlepton, mDSquark, mDSquark2      &
-        , RDSquark, mUSquark, mUSquark2, RUSquark, mP0_T, mP02_T, RP0_T       &
-        , mS0, mS02, RS0, mSpm, mSpm2, RSpm, mZ2_mZ, mW2_run                  &
-        , GenerationMixing, kont, .True., .False.)
-   mglu_T = mGlu
-   mglu_sign = mGlu * phase_Glu
 
    Call PiZZT1(mZ2, g(2), sinW2_DR, vevs_DR, mZ2_mZ, mW2_run, mS02, RS0, mP02_T&
            , RP0_T, mSpm2, RSpm, mSneutrino2, RSneutrino, mSlepton2, RSlepton  &
@@ -1202,10 +1190,21 @@ Contains
 #endif
    !---------------------------
    ! tadpoles at 2-loop
-   !---------------------------
-   Call Two_Loop_Tadpoles_MSSM(g(3), mglu_sign, mP02_T(2), vevs_DR       &
-       & , Real(M2_D(3,3),dp), Real(M2_U(3,3),dp), Real(M2_Q(3,3),dp)    &
-       & , Real(M2_E(3,3),dp), Real(M2_L(3,3),dp), A_d(3,3), A_u(3,3)    &
+  !---------------------------------------------------------------------
+  ! Define first input, numerical problems can occur if left and right
+  ! sfermion mass parameters are identical
+  !---------------------------------------------------------------------
+   M2Din = Real(M2_D(3,3),dp)
+   M2Ein = Real(M2_E(3,3),dp)
+   M2Lin = Real(M2_L(3,3),dp)
+   M2Qin = Real(M2_Q(3,3),dp)
+   M2Uin = Real(M2_U(3,3),dp)
+   If (M2Ein.Eq.M2Lin) M2Ein = (1._dp + Max(1.0e-8_dp,0.1_dp*delta)) * M2Ein
+   If (M2Din.Eq.M2Qin) M2Din = (1._dp + Max(1.0e-8_dp,0.1_dp*delta)) * M2Din
+   If (M2Uin.Eq.M2Qin) M2Uin = (1._dp + Max(1.0e-8_dp,0.1_dp*delta)) * M2Uin
+
+   Call Two_Loop_Tadpoles_MSSM(g(3), mglu_sign, mP02_T(2), vevs_DR  &
+       & , M2Din, M2Uin, M2Qin, M2Ein, M2Lin, A_d(3,3), A_u(3,3)    &
        & , A_l(3,3), Y_d(3,3), Y_u(3,3), Y_l(3,3), mu, tadpoles_2L, kont)
 
    If (kont.Ne.0) Then
@@ -1253,10 +1252,9 @@ Contains
      & , RS0, mN, mN2, N, mZ2_mZ, mW2_run, PiA0)
 #endif
 
-   Call PiPseudoScalar2(g(3), mglu_sign, mP02_T(2), vevs_DR, Real(M2_D(3,3),dp)&
-       , Real(M2_U(3,3),dp), Real(M2_Q(3,3),dp), Real(M2_E(3,3),dp)           &
-       , Real(M2_L(3,3),dp), A_d(3,3), A_u(3,3), A_l(3,3), Y_d(3,3)           &
-       , Y_u(3,3), Y_l(3,3), mu, Pi2A0, kont)
+   Call PiPseudoScalar2(g(3), mglu_sign, mP02_T(2), vevs_DR, M2Din, M2Uin &
+     & , M2Qin, M2Ein, M2Lin, A_d(3,3), A_u(3,3), A_l(3,3), Y_d(3,3)      &
+     & , Y_u(3,3), Y_l(3,3), mu, Pi2A0, kont)
 
    mA2_mA = -Pi2A0+ PiA0 + mP02(2) - b_a 
    M2_H_1L(1) = 0.5_dp * ( mA2_mA - 2._dp * Abs(mu)**2    &
@@ -1308,7 +1306,7 @@ Contains
   
 
   If (mSpm2_1L(2).Le.0._dp) Then
-   Call WriteLoopMassesError(8, "LoopMasses_2", kont)
+   Call WriteLoopMassesError(-8, "LoopMasses_2", kont)
    mSpm2_1L(2) = 1.e4_dp
    mSpm_1L(2) = 1.e2_dp
   Else
@@ -1349,7 +1347,7 @@ Contains
   End Do
 
   If (mSpm2_1L(2).Le.0._dp) Then
-   Call WriteLoopMassesError(8, "LoopMasses_2", kont)
+   Call WriteLoopMassesError(-8, "LoopMasses_2", kont)
    mSpm2_1L(2) = 1.e4_dp
    mSpm_1L(2) = 1.e2_dp
   Else
@@ -1366,17 +1364,15 @@ Contains
        & , uD_L, uD_R, uL_L, uL_R, uU_L, uU_R                                  &
        & , mUSquark2, RUSquark, mDSquark2, RDSquark, mSneutrino2, RSneutrino   &
        & , mSlepton2, RSlepton, A_d, A_u, A_l, mu, vevs_DR, mP02_T, RP0, mSpm2 &
-       & , RSpm, mC, mC2, U, V, mN, mN2, N, Real(M2_Q(3,3),dp)                 &
-       & , Real(M2_U(3,3),dp), Real(M2_D(3,3),dp), Real(M2_E(3,3),dp)          &
-       & , Real(M2_L(3,3),dp), mglu_sign, 0, mS0_1L, mS02_1L, RS0_1L, kont)
+       & , RSpm, mC, mC2, U, V, mN, mN2, N, M2Qin, M2Uin, M2Din, M2Ein, M2Lin  &
+       & , mglu_sign, 0, mS0_1L, mS02_1L, RS0_1L, kont)
 #else
   Call ScalarMass_Loop_MSSM(mS02, mS02, RS0, Q2, tanbQ, tadpoles_1L, mZ2_mZ    &
        & , mW2_run, mA2_mA, b_a, g(1), g(2), g(3), Y_l, Y_d, Y_u               &
        & , mUSquark2, RUSquark, mDSquark2, RDSquark, mSneutrino2               &
        & , mSlepton2, RSlepton, A_d, A_u, A_l, mu, vevs_DR, mP02_T, RP0, mSpm2 &
-       & , RSpm, mC, mC2, U, V, mN, mN2, N, Real(M2_Q(3,3),dp)                 &
-       & , Real(M2_U(3,3),dp), Real(M2_D(3,3),dp), Real(M2_E(3,3),dp)          &
-       & , Real(M2_L(3,3),dp), mglu_sign, 0, mS0_1L, mS02_1L, RS0_1L, kont)
+       & , RSpm, mC, mC2, U, V, mN, mN2, N, M2Qin, M2Uin, M2Din, M2Ein, M2Lin  &
+       & , mglu_sign, 0, mS0_1L, mS02_1L, RS0_1L, kont)
 #endif
   If (kont.Ne.0) Then
    Iname = Iname -1
@@ -1401,17 +1397,15 @@ Contains
        & , uD_L, uD_R, uL_L, uL_R, uU_L, uU_R                                  &
        & , mUSquark2, RUSquark, mDSquark2, RDSquark, mSneutrino2, RSneutrino   &
        & , mSlepton2, RSlepton, A_d, A_u, A_l, mu, vevs_DR, mP02_T, RP0, mSpm2 &
-       & , RSpm, mC, mC2, U, V, mN, mN2, N, Real(M2_Q(3,3),dp)                 &
-       & , Real(M2_U(3,3),dp), Real(M2_D(3,3),dp), Real(M2_E(3,3),dp)          &
-       & , Real(M2_L(3,3),dp), mglu_sign, 0, mS0_1L, mS02_1L, RS0_1L, kont)
+       & , RSpm, mC, mC2, U, V, mN, mN2, N, M2Qin, M2Uin, M2Din, M2Ein, M2Lin  &
+       & , mglu_sign, 0, mS0_1L, mS02_1L, RS0_1L, kont)
 #else
    Call ScalarMass_Loop_MSSM(mS02, mS02_1L, RS0, Q2, tanbQ, tadpoles_1L, mZ2_mZ&
        & , mW2_run, mA2_mA, b_a, g(1), g(2), g(3), Y_l, Y_d, Y_u               &
        & , mUSquark2, RUSquark, mDSquark2, RDSquark, mSneutrino2               &
        & , mSlepton2, RSlepton, A_d, A_u, A_l, mu, vevs_DR, mP02_T, RP0, mSpm2 &
-       & , RSpm, mC, mC2, U, V, mN, mN2, N, Real(M2_Q(3,3),dp)                 &
-       & , Real(M2_U(3,3),dp), Real(M2_D(3,3),dp), Real(M2_E(3,3),dp)          &
-       & , Real(M2_L(3,3),dp), mglu_sign, 0, mS0_1L, mS02_1L, RS0_1L, kont)
+       & , RSpm, mC, mC2, U, V, mN, mN2, N, M2Qin, M2Uin, M2Din, M2Ein, M2Lin  &
+       & , mglu_sign, 0, mS0_1L, mS02_1L, RS0_1L, kont)
 #endif
 
    If (kont.Ne.0) Then
@@ -1752,8 +1746,9 @@ Contains
 
   Real(dp) :: vevSM(2), tanbQ, cosb2, cos2b, sinb2, Q, vev2, sinW2_DR    &
     & , mZ2_mZ, vevs_DR(2), tadpoles_1L(2), p2, b_A, mW2_mW, mA2_mA      &
-    & , eq, T3, Q2, Pi2A0, tadpoles_2L(2), mW2_run, mglu_T, mglu_sign    &
+    & , eq, T3, Q2, Pi2A0, tadpoles_2L(2), mW2_run, mglu_sign    &
     & , M2_H_1L(2), comp2(2), wert
+  Real(dp) :: M2Ein, M2Lin, M2Din, M2Qin, M2Uin
   Complex(dp) :: dmZ2, PiA0, dmW2, PiSpm, M1, M2, dmglu
   Complex(dp), Dimension(3,3) :: uL_L, uL_R, uD_L, uD_R, uU_L, uU_R, CKM_Q
   Integer :: i1, i2, i_loop, i_count
@@ -1877,21 +1872,11 @@ Contains
   comp2(2) = mZ2_mZ
   mP02_1L(2) = mP02(2)
   i_count = 1
+  mglu_sign = mGlu * phase_Glu
   Do i_loop=1,31
   !-------------------------------------------------------------
   ! tree level masses and mixings using the loop corrected vevs
   !-------------------------------------------------------------
-   Call TreeMassesMSSM2(g(1), g(2), vevs_DR, Mi(1), Mi(2), Mi(3), mu, B       &
-      & , tanbQ, M2_E, M2_L, A_l, Y_l, M2_D, M2_U, M2_Q, A_d, A_u, Y_d, Y_u   &
-      & , uU_L, uU_R, uD_L, uD_R, uL_L, uL_R                                  &
-      & , mGlu, Phase_Glu, mC, mC2, U, V, mN, mN2, N                          &
-      & , mSneutrino, mSneutrino2, Rsneutrino, mSlepton, mSlepton2, RSlepton  &
-      & , mDSquark, mDSquark2, RDSquark, mUSquark, mUSquark2, RUSquark        &
-      & , mP0, mP02, RP0, mS0, mS02, RS0, mSpm, mSpm2, RSpm, mZ2_mZ, mW2_run  &
-      & , GenerationMixing, kont, .True., .False.)
-   mglu_T = mGlu
-   mglu_sign = mGlu * phase_Glu
-  
    Call PiZZT1(mZ2, g(2), sinW2_DR, vevs_DR, mZ2_mZ, mW2_run, mS02, RS0, mP02 &
             , RP0, mSpm2, RSpm, mSneutrino2, RSneutrino, mSlepton2, RSlepton  &
             , mUSquark2 , RUSquark, mDSquark2, RDSquark, mf_l2, mf_u2, mf_d2  &
@@ -1932,10 +1917,21 @@ Contains
 #endif
    !---------------------------
    ! tadpoles at 2-loop
-   !---------------------------
-   Call Two_Loop_Tadpoles_MSSM(g(3), mglu_sign, mP02(2), vevs_DR         &
-       & , Real(M2_D(3,3),dp), Real(M2_U(3,3),dp), Real(M2_Q(3,3),dp)    &
-       & , Real(M2_E(3,3),dp), Real(M2_L(3,3),dp), A_d(3,3), A_u(3,3)    &
+  !---------------------------------------------------------------------
+  ! Define first input, numerical problems can occur if left and right
+  ! sfermion mass parameters are identical
+  !---------------------------------------------------------------------
+   M2Din = Real(M2_D(3,3),dp)
+   M2Ein = Real(M2_E(3,3),dp)
+   M2Lin = Real(M2_L(3,3),dp)
+   M2Qin = Real(M2_Q(3,3),dp)
+   M2Uin = Real(M2_U(3,3),dp)
+   If (M2Ein.Eq.M2Lin) M2Ein = (1._dp + Max(1.0e-8_dp,0.1_dp*delta)) * M2Ein
+   If (M2Din.Eq.M2Qin) M2Din = (1._dp + Max(1.0e-8_dp,0.1_dp*delta)) * M2Din
+   If (M2Uin.Eq.M2Qin) M2Uin = (1._dp + Max(1.0e-8_dp,0.1_dp*delta)) * M2Uin
+
+   Call Two_Loop_Tadpoles_MSSM(g(3), mglu_sign, mP02(2), vevs_DR    &
+       & , M2Din, M2Uin, M2Qin, M2Ein, M2Lin, A_d(3,3), A_u(3,3)    &
        & , A_l(3,3), Y_d(3,3), Y_u(3,3), Y_l(3,3), mu, tadpoles_2L, kont)
 
    If (kont.Ne.0) Then
@@ -1976,16 +1972,15 @@ Contains
      & , RS0, mN, mN2, N, mZ2_mZ, mW2_run, PiA0)
 #endif
 
-   Call PiPseudoScalar2(g(3), mglu_sign, mP02(2), vevs_DR, Real(M2_D(3,3),dp) &
-       , Real(M2_U(3,3),dp), Real(M2_Q(3,3),dp), Real(M2_E(3,3),dp)           &
-       , Real(M2_L(3,3),dp), A_d(3,3), A_u(3,3), A_l(3,3), Y_d(3,3)           &
-       , Y_u(3,3), Y_l(3,3), mu, Pi2A0, kont)
+   Call PiPseudoScalar2(g(3), mglu_sign, mP02(2), vevs_DR, M2Din, M2Uin, M2Qin &
+     & , M2Ein, M2Lin, A_d(3,3), A_u(3,3), A_l(3,3), Y_d(3,3), Y_u(3,3)        &
+     & , Y_l(3,3), mu, Pi2A0, kont)
 
    mP02_1L(2) = (M2_H_1L(2) - M2_H_1L(1)) / cos2b - mZ2_mZ - Real(PiA0,dp) &
               + Pi2A0 + b_a
 
    If (mP02_1L(2).Le.0._dp) Then
-    Call WriteLoopMassesError(7, "LoopMasses", kont)
+    Call WriteLoopMassesError(-7, "LoopMasses", kont)
     Write(ErrCan,*) "M^2_A:",mP02_1L(2)
     mP02_1L(2) = 1.e4_dp
     mP0_1L(2) = 1.e2_dp
@@ -2077,7 +2072,7 @@ Contains
 
   mSpm2_1L(2) = mW2_mW + mA2_mA - Real( PiSpm,dp )
   If (mSpm2_1L(2).Le.0._dp) Then
-   Call WriteLoopMassesError(8, "LoopMasses", kont)
+   Call WriteLoopMassesError(-8, "LoopMasses", kont)
    mSpm2_1L(2) = 1.e4_dp
    mSpm_1L(2) = 1.e2_dp
   Else
@@ -2089,22 +2084,20 @@ Contains
 !---------------
   mA2_mA = mP02_1L(2) + Real( PiA0,dp )
 #ifdef GENERATIONMIXING
-  Call ScalarMass_Loop_MSSM(mS02, mS02, RS0, Q2, tanbQ, tadpoles_1L, mZ2_mZ   &
-       & , mW2_run, mA2_mA, b_a, g(1), g(2), g(3), Y_l, Y_d, Y_u              &
-       & , uD_L, uD_R, uL_L, uL_R, uU_L, uU_R &
-       & , mUSquark2, RUSquark, mDSquark2, RDSquark, mSneutrino2, RSneutrino  &
-       & , mSlepton2, RSlepton, A_d, A_u, A_l, mu, vevs_DR, mP02, RP0, mSpm2  &
-       & , RSpm, mC, mC2, U, V, mN, mN2, N, Real(M2_Q(3,3),dp)                &
-       & , Real(M2_U(3,3),dp), Real(M2_D(3,3),dp), Real(M2_E(3,3),dp)         &
-       & , Real(M2_L(3,3),dp), mglu_sign, 0, mS0_1L, mS02_1L, RS0_1L, kont)
+  Call ScalarMass_Loop_MSSM(mS02, mS02, RS0, Q2, tanbQ, tadpoles_1L, mZ2_mZ  &
+       & , mW2_run, mA2_mA, b_a, g(1), g(2), g(3), Y_l, Y_d, Y_u             &
+       & , uD_L, uD_R, uL_L, uL_R, uU_L, uU_R                                &
+       & , mUSquark2, RUSquark, mDSquark2, RDSquark, mSneutrino2, RSneutrino &
+       & , mSlepton2, RSlepton, A_d, A_u, A_l, mu, vevs_DR, mP02, RP0, mSpm2 &
+       & , RSpm, mC, mC2, U, V, mN, mN2, N, M2Qin, M2Uin, M2Din, M2Ein       &
+       & , M2Lin, mglu_sign, 0, mS0_1L, mS02_1L, RS0_1L, kont)
 #else
-  Call ScalarMass_Loop_MSSM(mS02, mS02, RS0, Q2, tanbQ, tadpoles_1L, mZ2_mZ   &
-       & , mW2_run, mA2_mA, b_a, g(1), g(2), g(3), Y_l, Y_d, Y_u              &
-       & , mUSquark2, RUSquark, mDSquark2, RDSquark, mSneutrino2              &
-       & , mSlepton2, RSlepton, A_d, A_u, A_l, mu, vevs_DR, mP02, RP0, mSpm2  &
-       & , RSpm, mC, mC2, U, V, mN, mN2, N, Real(M2_Q(3,3),dp)                &
-       & , Real(M2_U(3,3),dp), Real(M2_D(3,3),dp), Real(M2_E(3,3),dp)         &
-       & , Real(M2_L(3,3),dp), mglu_sign, 0, mS0_1L, mS02_1L, RS0_1L, kont)
+  Call ScalarMass_Loop_MSSM(mS02, mS02, RS0, Q2, tanbQ, tadpoles_1L, mZ2_mZ  &
+       & , mW2_run, mA2_mA, b_a, g(1), g(2), g(3), Y_l, Y_d, Y_u             &
+       & , mUSquark2, RUSquark, mDSquark2, RDSquark, mSneutrino2             &
+       & , mSlepton2, RSlepton, A_d, A_u, A_l, mu, vevs_DR, mP02, RP0, mSpm2 &
+       & , RSpm, mC, mC2, U, V, mN, mN2, N, M2Qin, M2Uin, M2Din, M2Ein       &
+       & , M2Lin, mglu_sign, 0, mS0_1L, mS02_1L, RS0_1L, kont)
 #endif
   If (kont.Ne.0) Then
    Iname = Iname -1
@@ -2125,21 +2118,19 @@ Contains
    comp2 = mS02_1L
 #ifdef GENERATIONMIXING
    Call ScalarMass_Loop_MSSM(mS02, mS02_1L, RS0, Q2, tanbQ, tadpoles_1L, mZ2_mZ&
-       & , mW2_run, mA2_mA, b_a, g(1), g(2), g(3), Y_l, Y_d, Y_u              &
-       & , uD_L, uD_R, uL_L, uL_R, uU_L, uU_R &
-       & , mUSquark2, RUSquark, mDSquark2, RDSquark, mSneutrino2, RSneutrino  &
-       & , mSlepton2, RSlepton, A_d, A_u, A_l, mu, vevs_DR, mP02, RP0, mSpm2  &
-       & , RSpm, mC, mC2, U, V, mN, mN2, N, Real(M2_Q(3,3),dp)                &
-       & , Real(M2_U(3,3),dp), Real(M2_D(3,3),dp), Real(M2_E(3,3),dp)         &
-       & , Real(M2_L(3,3),dp), mglu_sign, 0, mS0_1L, mS02_1L, RS0_1L, kont)
+       & , mW2_run, mA2_mA, b_a, g(1), g(2), g(3), Y_l, Y_d, Y_u               &
+       & , uD_L, uD_R, uL_L, uL_R, uU_L, uU_R                                  &
+       & , mUSquark2, RUSquark, mDSquark2, RDSquark, mSneutrino2, RSneutrino   &
+       & , mSlepton2, RSlepton, A_d, A_u, A_l, mu, vevs_DR, mP02, RP0, mSpm2   &
+       & , RSpm, mC, mC2, U, V, mN, mN2, N, M2Qin, M2Uin, M2Din, M2Ein         &
+       & , M2Lin, mglu_sign, 0, mS0_1L, mS02_1L, RS0_1L, kont)
 #else
    Call ScalarMass_Loop_MSSM(mS02, mS02_1L, RS0, Q2, tanbQ, tadpoles_1L, mZ2_mZ&
-       & , mW2_run, mA2_mA, b_a, g(1), g(2), g(3), Y_l, Y_d, Y_u              &
-       & , mUSquark2, RUSquark, mDSquark2, RDSquark, mSneutrino2              &
-       & , mSlepton2, RSlepton, A_d, A_u, A_l, mu, vevs_DR, mP02, RP0, mSpm2  &
-       & , RSpm, mC, mC2, U, V, mN, mN2, N, Real(M2_Q(3,3),dp)                &
-       & , Real(M2_U(3,3),dp), Real(M2_D(3,3),dp), Real(M2_E(3,3),dp)         &
-       & , Real(M2_L(3,3),dp), mglu_sign, 0, mS0_1L, mS02_1L, RS0_1L, kont)
+       & , mW2_run, mA2_mA, b_a, g(1), g(2), g(3), Y_l, Y_d, Y_u               &
+       & , mUSquark2, RUSquark, mDSquark2, RDSquark, mSneutrino2               &
+       & , mSlepton2, RSlepton, A_d, A_u, A_l, mu, vevs_DR, mP02, RP0, mSpm2   &
+       & , RSpm, mC, mC2, U, V, mN, mN2, N, M2Qin, M2Uin, M2Din, M2Ein, M2Lin  &
+       & , mglu_sign, 0, mS0_1L, mS02_1L, RS0_1L, kont)
 #endif
    If (kont.Ne.0) Then
     Iname = Iname -1
@@ -2838,7 +2829,7 @@ Contains
 
 
  Subroutine delta_VB(gSU2, sinW2, sinW2_DR, rho, mC, mC2, U, V, mN, mN2, N &
-                    &, Y_l, mSlept2, Rslept, mSneut2, RSneut, res)
+     & , Y_l, UL_L, UL_R, mSlept2, Rslept, mSneut2, RSneut, UNu_L, res)
  !-----------------------------------------------------------------------
  ! Calculates the the nonuniversal corrections to delta_r
  ! The formula of J. Bagger et al, Nucl.Phys.B is used. The renormalization
@@ -2855,10 +2846,12 @@ Contains
  ! - mN2 ........ masses of the neutralinos squared
  ! - N .......... mixing matrix of the neutrlinos
  ! - Y_l ........ lepton yukawas
+ ! - UL_L, UL_R . lepton mixing matrices
  ! - mSlept2 .... masses of the sleptons squared
  ! - RSlept ..... mixing matrix of the sleptons
  ! - mSneut2 .... masses of the sneutrinos squared
  ! - RSneut ..... mixing matrix of the sneutrinos
+ ! - UNu_L ...... neutrino mixing matrix
  ! output
  !  res    
  ! written by Werner Porod, 30.11.01
@@ -2867,8 +2860,8 @@ Contains
 
   Real(dp), Intent(in) :: sinW2, sinW2_DR, gSU2, rho, mC(2), mC2(2), mN(4) &
      & , mN2(4), mSneut2(3), mSlept2(6)
-  Complex(dp), Intent(in) :: RSneut(3,3), RSlept(6,6), U(2,2), V(2,2), N(4,4) &
-     & , Y_l(3,3)
+  Complex(dp), Intent(in) :: RSlept(6,6), U(2,2), V(2,2), N(4,4)
+  Complex(dp), Intent(in), Dimension(3,3) :: RSneut, Y_l, UL_L, UL_R, UNu_L
   Real(dp), Intent(out) :: res
 
   Integer :: i1, i2, i3, i4
@@ -2880,7 +2873,7 @@ Contains
      & , C0_SnCN(3,2,4), C0_SlCN(6,2,4), teil, D0_SlSnCN(6,3,2,4)          &
      & , D27_SlSlCN(6,6,2,4), D27_SnSnCN(3,3,2,4), D0_SlSnCC(6,3,2,2)      &
      & , D0_SlSnNN(6,3,4,4), D27_SlSnNN(6,3,4,4), Rsel(2,2), Rsmu(2,2)     &
-     & , C0_NSlSn(4,6,3), B0_SlSn(6,3), mat6(6,6)
+     & , C0_NSlSn(4,6,3), B0_SlSn(6,3)
   Logical :: WriteOut
 
   Iname = Iname + 1
@@ -2935,26 +2928,24 @@ Contains
 
 #ifdef GENERATIONMIXING
   If (GenerationMixing) Then
-   mat6 = 0._dp
-   mat6(1:3,1:3) = Rsneut ! needed for chargino couplings
    Do i3=1,2
     Do i1=1,6
      Do i2=1,2
       Call CoupCharginoSfermion(i2, i3, i1, gSU2, 0.5_dp, RSlept, Y_l, mat3  &
-           &, id3C, id3C, U, V, c_CNuSl_L(i2, i3, i1), c_CNuSl_R(i2, i3, i1) )
+           &, UNu_L, mat3, U, V, c_CNuSl_L(i2, i3, i1), c_CNuSl_R(i2, i3, i1) )
      End Do
      Do i2=1,4
-      Call CoupNeutralinoSlepton(i3, i2, i1, gp, gSU2, RSlept, id3C, id3C &
+      Call CoupNeutralinoSlepton(i3, i2, i1, gp, gSU2, RSlept, UL_L, UL_R  &
                   &, Y_l, N, c_LNSl_L(i3, i2, i1), c_LNSl_R(i3, i2, i1) )
      End Do    
     End Do 
     Do i1=1,3
      Do i2=1,2
-      Call CoupCharginoSfermion(i2, i3, i1, gSU2, -0.5_dp, mat6, Y_l, mat3 &
-           &, id3C, id3C, U, V, c_CLSn_L(i2,i3,i1), c_CLSn_R(i2,i3,i1) )
+      Call CoupCharginoSfermion(i2, i3, i1, gSU2, -0.5_dp, RSneut, Y_l, mat3 &
+           & , UL_L, UL_R, U, V, c_CLSn_L(i2,i3,i1), c_CLSn_R(i2,i3,i1) )
      End Do
      Do i2=1,4
-      Call CoupNeutralinoSneutrino(i3, i2, i1, gp, gSU2, N, RSneut, id3C &
+      Call CoupNeutralinoSneutrino(i3, i2, i1, gp, gSU2, N, RSneut, UNu_L &
                                  &, c_NuNSn_R(i3,i2,i1) )
      End Do
     End Do
@@ -4106,7 +4097,7 @@ Contains
   !--------------------
   ! Loop Contributions
   !--------------------
- LoopContributions(6:7) = .false.
+! LoopContributions(6:7) = .false.
 
   Call Sigma_Neutralino_2(mN, mN2, c_NNZ_L, c_NNZ_R, mS02, c_NNS0_L       &
         & , c_NNS0_R, mP02, c_NNP0_L, c_NNP0_R, mC, mC2, c_CNW_L, c_CNW_R &
@@ -12216,7 +12207,7 @@ If (WriteOut) Write(ErrCan,*) "N N S0",i1,i2,sumI(1,1),sumI(1,2)&
       c_SlSf4(i1,i2,i3) = c_SlSf4(i1,i2,i3) + coupC
       Call CoupSfermion4G(i2, i3, i1, i1, gU1, gSU2, T3, e, id6C, -T3, eu &
                          &, RSup, 3, .False., c_SuSf4(i1,i2,i3) )
-      Call CoupSfermion4Y(i1, i1, i2, i3, T3, Y_d, RSdown, T3, Y_l, id6c &
+      Call CoupSfermion4Y(i1, i1, i2, i3, T3, Y_d, RSdown, T3, Y_l, id6c, 3 &
                           &,c_SdSf4(i1,i2,i3) )
       Call CoupSfermion4G(i2, i3, i1, i1, gU1, gSU2, T3, e, id6C, T3, ed &
                          &, RSdown, 3, .False., coupC )
@@ -12241,13 +12232,13 @@ If (WriteOut) Write(ErrCan,*) "N N S0",i1,i2,sumI(1,1),sumI(1,2)&
        Do i5=1,2
         i_gen2 = 2*(i3-1)+i5
         If (i1.Eq.i3) Then
-         Call CoupSfermion4Y(i4, i5, i2, i2, Y_l(i1,i1), Rsf2 &
+         Call CoupSfermion4Y(i4, i5, i2, i2, Y_l(i1,i1), Rsf2, 1 &
                            &, c_SlSf4(i_min,i_gen1,i_gen2), 1)
          Call CoupSfermion4G(i4, i5, i2, i2, gU1, gSU2, e, T3, RSf2,1,coupC,1)
          c_SlSf4(i_min,i_gen1,i_gen2) = c_SlSf4(i_min,i_gen1,i_gen2) + coupC
         Else
          Call CoupSfermion4Y(i2, i2, i4, i5, T3, Y_l(i1,i1), RSf2, T3 &
-                        &, Y_l(i3,i3), id2c, c_SlSf4(i_min,i_gen1,i_gen2) )
+                        &, Y_l(i3,i3), id2c, 1, c_SlSf4(i_min,i_gen1,i_gen2) )
          Call CoupSfermion4G(i4, i5, i2, i2, gU1, gSU2, T3, e, id2C &
                          &, T3, e, RSf2, 1, .False., coupC)
          c_SlSf4(i_min,i_gen1,i_gen2) = c_SlSf4(i_min,i_gen1,i_gen2) + coupC
@@ -12269,12 +12260,12 @@ If (WriteOut) Write(ErrCan,*) "N N S0",i1,i2,sumI(1,1),sumI(1,2)&
         Do i5=1,2
          i_gen2 = 2*(i3-1)+i5
          Call CoupSfermion4Y(i2, i2, i4, i5, T3, Y_d(i1,i1), RSfp2, T3 &
-                           &, Y_l(i3,i3), id2c, c_SdSf4(i_min,i_gen1,i_gen2) )
+                           &, Y_l(i3,i3), id2c, 3, c_SdSf4(i_min,i_gen1,i_gen2) )
          Call CoupSfermion4G(i4, i5, i2, i2, gU1, gSU2, T3, e, id2C, T3    &
                            & , ed, RSfp2, 3, .False., coupC )
-         ! be aware of colour
-         c_SdSf4(i_min,i_gen1,i_gen2) = 3._dp *c_SdSf4(i_min,i_gen1,i_gen2) &
-                                    & + coupC
+      ! be aware of colour
+         c_SdSf4(i_min,i_gen1,i_gen2) = 3._dp*c_SdSf4(i_min,i_gen1,i_gen2) &
+               & + coupC
         End Do
       End Do
      End Do
@@ -12291,7 +12282,7 @@ If (WriteOut) Write(ErrCan,*) "N N S0",i1,i2,sumI(1,1),sumI(1,2)&
     Do i2=1,6
     i_gen1 = (i2+1)/2
      Do i3=1,6
-      Call CoupSfermion4Y(i1, i1, i2, i3, -T3, mat3, RSneut, T3, Y_l, id6c &
+      Call CoupSfermion4Y(i1, i1, i2, i3, -T3, mat3, RSneut, T3, Y_l, id6c, 1 &
                          &,c_SnSf4(i1,i2,i3) )
       Call CoupSfermion4G(i2, i3, i1, i1, gU1, gSU2, T3, e, id6C, -T3, eu &
                          &, RSneut, 1, .True., coupC )
@@ -12308,7 +12299,7 @@ If (WriteOut) Write(ErrCan,*) "N N S0",i1,i2,sumI(1,1),sumI(1,2)&
      Do i4=1,2
       i_gen2 = 2*(i1-1)+i4
       Call CoupSfermion4Y(1, 1, i3, i4, -T3, ZeroC, id2C, T3 &
-                        &, Y_l(i1,i1), id2c, c_SnSf4(i1,i_gen1,i_gen2) )
+                        &, Y_l(i1,i1), id2c, 1, c_SnSf4(i1,i_gen1,i_gen2) )
      End Do
     End Do
     Do i2=1,3
@@ -12847,7 +12838,7 @@ If (WriteOut) Write(ErrCan,*) "N N S0",i1,i2,sumI(1,1),sumI(1,2)&
                          &, RSup, 3, .False., c_SuSf4(i1,i2,i3) )
       Call CoupSfermion4G(i2, i3, i1, i1, gU1, gSU2, T3, e, id3C, -T3, ed &
                          &, RSdown, 3, .False., c_SdSf4(i1,i2,i3) )
-      Call CoupSfermion4Y(i1, i1, i2, i3, -T3, Y_l, RSlepton, T3, mat3, id3c &
+      Call CoupSfermion4Y(i1, i1, i2, i3, -T3, Y_l, RSlepton, T3, mat3, id3c, 1 &
                          &, c_SlSf4(i1,i2,i3) )
       Call CoupSfermion4G(i2, i3, i1, i1, gU1, gSU2, T3, e, id6C, -T3, e2 &
                         &, RSlepton, 1, .True., coupC)
@@ -12875,9 +12866,9 @@ If (WriteOut) Write(ErrCan,*) "N N S0",i1,i2,sumI(1,1),sumI(1,2)&
     i_min = 2*i1-1
     i_max = i_min + 1
     Call CoupSfermion4Y(1, 1, 1, 1, -T3, Y_l(i1,i1), RSfp2, T3 &
-                      &, ZeroC, id2c, c_SlSf4(i_min,i1,i1) )
+                      &, ZeroC, id2c, 1, c_SlSf4(i_min,i1,i1) )
     Call CoupSfermion4Y(2, 2, 1, 1, -T3, Y_l(i1,i1), RSfp2, T3 &
-                      &, ZeroC, id2c, c_SlSf4(i_max,i1,i1) )
+                      &, ZeroC, id2c, 1, c_SlSf4(i_max,i1,i1) )
     Do i2=1,3
      i_min = 2*i2-1
      i_max = i_min + 1
@@ -13533,7 +13524,7 @@ If (WriteOut) Write(ErrCan,*) "N N S0",i1,i2,sumI(1,1),sumI(1,2)&
        Call CoupSfermion4Y(i2, i3, i1, i1, Yuk, Rsup, 3, c_SuSf4(i1,i2,i3), 1)
        Call CoupSfermion4G(i2, i3, i1, i1, gU1, gSU2, e, T3, RSup, 3, coupC, 1)
        c_SuSf4(i1,i2,i3) = c_SuSf4(i1,i2,i3) + coupC
-       Call CoupSfermion4Y(i1, i1, i2, i3, -T3, Y_d, RSdown, T3, Y_u, id6c &
+       Call CoupSfermion4Y(i1, i1, i2, i3, -T3, Y_d, RSdown, T3, Y_u, id6c, 3 &
                           &,c_SdSf4(i1,i2,i3) )
        Call CoupSfermion4G(i2, i3, i1, i1, gU1, gSU2, T3, e, id6C, -T3, e2 &
                          &, RSdown, 3, .True., coupC)
@@ -13558,18 +13549,18 @@ If (WriteOut) Write(ErrCan,*) "N N S0",i1,i2,sumI(1,1),sumI(1,2)&
         Do i5=1,2
          i_gen2 = 2*(i3-1)+i5
          If (i1.Eq.i3) Then
-          Call CoupSfermion4Y(i4, i5, i2, i2, Yuk(i1,i1), Rsf2  &
+          Call CoupSfermion4Y(i4, i5, i2, i2, Yuk(i1,i1), Rsf2, 3  &
                            &, c_SuSf4(i_min,i_gen1,i_gen2), 1)
           Call CoupSfermion4G(i4, i5, i2, i2, gU1, gSU2, e, T3, RSf2,3,coupC,1)
           c_SuSf4(i_min,i_gen1,i_gen2) = c_SuSf4(i_min,i_gen1,i_gen2) + coupC
           Call CoupSfermion4Y(i2, i2, i4, i5, -T3, Y_d(i1,i1), RSfp2, T3 &
-                           &, Y_u(i3,i3), id2c, c_SdSf4(i_min,i_gen1,i_gen2) )
+                           &, Y_u(i3,i3), id2c, 3, c_SdSf4(i_min,i_gen1,i_gen2) )
           Call CoupSfermion4G(i4, i5, i2, i2, gU1, gSU2, T3, e, id2C &
                             &, -T3, e2, RSfp2, 3, .True., coupC)
           c_SdSf4(i_min,i_gen1,i_gen2) = c_SdSf4(i_min,i_gen1,i_gen2) + coupC
          Else
           Call CoupSfermion4Y(i2, i2, i4, i5, T3, Y_u(i1,i1), RSf2, T3 &
-                         &, Y_u(i3,i3), id2c, c_SuSf4(i_min,i_gen1,i_gen2) )
+                         &, Y_u(i3,i3), id2c, 3, c_SuSf4(i_min,i_gen1,i_gen2) )
           Call CoupSfermion4G(i4, i5, i2, i2, gU1, gSU2, T3, e, id2C &
                           &, T3, e, RSf2, 3, .False., coupC)
           c_SuSf4(i_min,i_gen1,i_gen2) = c_SuSf4(i_min,i_gen1,i_gen2) + coupC
@@ -13613,12 +13604,12 @@ If (WriteOut) Write(ErrCan,*) "N N S0",i1,i2,sumI(1,1),sumI(1,2)&
        Call CoupSfermion4Y(i2, i3, i1, i1, Yuk, Rsdown, 3, c_SdSf4(i1,i2,i3), 1)
        Call CoupSfermion4G(i2, i3, i1, i1, gU1, gSU2, e, T3, RSf6, 3, coupC, 1)
        c_SdSf4(i1,i2,i3) = c_SdSf4(i1,i2,i3) + coupC
-       Call CoupSfermion4Y(i1, i1, i2, i3, -T3, Y_u, RSup, T3, Y_d, id6c &
+       Call CoupSfermion4Y(i1, i1, i2, i3, -T3, Y_u, RSup, T3, Y_d, id6c, 3 &
                           &,c_SuSf4(i1,i2,i3) )
        Call CoupSfermion4G(i2, i3, i1, i1, gU1, gSU2, T3, e, id6C, -T3, e2 &
                          &, RSup, 3, .True., coupC)
        c_SuSf4(i1,i2,i3) = c_SuSf4(i1,i2,i3) + coupC
-       Call CoupSfermion4Y(i1, i1, i2, i3, T3, Y_l, RSlepton, T3, Y_d, id6c &
+       Call CoupSfermion4Y(i1, i1, i2, i3, T3, Y_l, RSlepton, T3, Y_d, id6c, 1 &
                           &,c_SlSf4(i1,i2,i3) )
        Call CoupSfermion4G(i2, i3, i1, i1, gU1, gSU2, T3, e, id6C, T3, -1._dp &
                             &, RSlepton, 1, .False., coupC )
@@ -13641,18 +13632,18 @@ If (WriteOut) Write(ErrCan,*) "N N S0",i1,i2,sumI(1,1),sumI(1,2)&
         Do i5=1,2
          i_gen2 = 2*(i3-1)+i5
          If (i1.Eq.i3) Then
-          Call CoupSfermion4Y(i4, i5, i2, i2, Yuk(i1,i1), Rsf2 &
+          Call CoupSfermion4Y(i4, i5, i2, i2, Yuk(i1,i1), Rsf2, 3 &
                             &, c_SdSf4(i_min,i_gen1,i_gen2), 1)
           Call CoupSfermion4G(i4, i5, i2, i2, gU1, gSU2, e, T3, RSf2,3,coupC,1)
           c_SdSf4(i_min,i_gen1,i_gen2) = c_SdSf4(i_min,i_gen1,i_gen2) + coupC
           Call CoupSfermion4Y(i2, i2, i4, i5, -T3, Y_u(i1,i1), RSfp2, T3 &
-                            &, Y_d(i3,i3), id2c, c_SuSf4(i_min,i_gen1,i_gen2) )
+                            &, Y_d(i3,i3), id2c, 3, c_SuSf4(i_min,i_gen1,i_gen2) )
           Call CoupSfermion4G(i4, i5, i2, i2, gU1, gSU2, T3, e, id2C &
                             &, -T3, e2, RSfp2, 3, .True., coupC)
           c_SuSf4(i_min,i_gen1,i_gen2) = c_SuSf4(i_min,i_gen1,i_gen2) + coupC
          Else
           Call CoupSfermion4Y(i2, i2, i4, i5, T3, Y_d(i1,i1), RSf2, T3 &
-                         &, Y_d(i3,i3), id2c, c_SdSf4(i_min,i_gen1,i_gen2) )
+                         &, Y_d(i3,i3), id2c, 3, c_SdSf4(i_min,i_gen1,i_gen2) )
           Call CoupSfermion4G(i4, i5, i2, i2, gU1, gSU2, T3, e, id2C &
                           &, T3, e, RSf2, 3, .False., coupC)
           c_SdSf4(i_min,i_gen1,i_gen2) = c_SdSf4(i_min,i_gen1,i_gen2) + coupC
@@ -13674,7 +13665,7 @@ If (WriteOut) Write(ErrCan,*) "N N S0",i1,i2,sumI(1,1),sumI(1,2)&
         Do i5=1,2
          i_gen2 = 2*(i3-1)+i5
          Call CoupSfermion4Y(i2, i2, i4, i5, T3, Y_l(i1,i1), RSfp2, T3 &
-                           &, Y_d(i3,i3), id2c, c_SlSf4(i_min,i_gen1,i_gen2) )
+                           &, Y_d(i3,i3), id2c, 1, c_SlSf4(i_min,i_gen1,i_gen2) )
          Call CoupSfermion4G(i4, i5, i2, i2, gU1, gSU2, T3, e, id2C, T3    &
                  & , -1._dp, RSfp2, 1, .False., coupC )
          c_SlSf4(i_min,i_gen1,i_gen2) = c_SlSf4(i_min,i_gen1,i_gen2) + coupC

@@ -4636,7 +4636,7 @@ Contains
     & - sb2/2*((1+c2t)*t+2*s2t*mt*Xt+(1-c2t)*Xt**2)) *Li2(1-T1/BL) &
     & - (-sb2*(BL-T2)*(c2t*s2t*(t-Xt**2)-2*c2t**2*mt*Xt) /s2t/(T1-T2) &
     & - sb2/2*((1-c2t)*t-2*s2t*mt*Xt+(1+c2t)*Xt**2)) *Li2(1-T2/BL) &
-    & + s2t**2*sb2*Xt**2/2*(Li2(1-T2/T1)-Li2(1-T1/T2))	       &
+    & + s2t**2*sb2*Xt**2/2*(Li2(1-T2/T1)-Li2(1-T1/T2))       &
     &+(-((-2+s2t**2)*T1+s2t**2*T2)/2/(T1-T2) &
     & * (sb2*Xt**2+cb2*Yt**2+2*mt*At/s2t) &
     & - (2*A0*c2t**2+(T1-T2)*s2t**2)/4/(T1-T2)*cb2*Yt**2&
