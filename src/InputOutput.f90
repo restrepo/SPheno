@@ -15,6 +15,8 @@ Logical, Save :: LesHouches_Format
 Logical, Save ::  Add_Rparity = .False.  
 ! transfer of GMSB info
 Real(dp), Save :: grav_fac = 1._dp
+! used in combination with Fittino
+character(len=80), save :: Old_Data=""
 ! using 1st SLHA2 output with flavour ordered states
 Logical, Save, Private :: Use_Flavour_States = .False.
 ! branching ratios larger than BrMin are written out
@@ -24,7 +26,7 @@ Real(dp), Save, Private :: SigMin=1.e-3_dp
 ! contains information on possible inconsitencies in the input
 Integer, Save, Private :: in_kont(2)
 ! version number
-Character(len=8), Save, Private :: version="v3beta42"
+Character(len=8), Save, Private :: version="v3beta44"
 ! name of 'input-program'
 Character(len=40), Private :: sp_info 
 ! tempory variables for Higgs mixing in case of NMSSM
@@ -793,7 +795,7 @@ Contains
   Real(dp), Intent(out) :: Fgmsb, Ecms(:), Pm(:), Pp(:)
   Character(len=15), Intent(out) :: HighScaleModel
   Logical, Intent(out) :: l_ISR(:)
-
+  
   Character(len=80) :: read_line
   Integer :: i_mod=-1, i_sm=-1, i_par=-1, set_mod_par(25)=-1 &
     & , i1, p_max, p_act, i_sp, i_model=-1, i_particles=-1
@@ -931,7 +933,7 @@ Contains
      Call ReadVectorC(99, 3, eps, 1, "Im(epsilon)", kont)
 
     Else If (read_line(7:15).Eq."RVSNVEVIN") Then
-     Call ReadVectorR(99, 3, vevL, "v_L", kont)
+     Call ReadVectorR(99, 3, vevL, "v_L", kont)  
 
 !     Else If (read_line(7:17).Eq."RVLAMPBDAIN") Then
 !      Call ReadTensorC(99, 3, Rp_lam, 0, "Re(lambda_ijk)", kont)
@@ -1143,6 +1145,10 @@ Contains
     Else If (read_line(7:24).Eq."NEUTRINOBOUNDSIN") Then
      Call Read_Neutrino_Bounds(99, kont)
 
+    Else If (read_line(7:19).Eq."STARTDATAFILE") Then
+     read(99,*) Old_Data
+     Old_data= Trim(Old_data) ! to avoid trailing blanks
+
     Else
      If (output_screen) Write(*,*) "Warning, the following block is ignored"
      If (output_screen) Write(*,*) Trim(read_line)
@@ -1240,7 +1246,6 @@ Contains
    End If ! i_mod.eq.0
 
      kont = -305 ! model has not specified completly
-     Call AddError(305)
      If ((i_model.Eq.0).And.(Sum(set_mod_par(1:25)).Eq.23)) kont = 0 ! MSSM
      If ((i_model.Eq.1).And.(Sum(set_mod_par(1:5)).Eq.5)) kont = 0 ! mSugra 
      If ((i_model.Eq.2).And.(Sum(set_mod_par(1:5)).Eq.5)) Then ! GMSB 
@@ -1952,6 +1957,7 @@ Contains
    Integer, Intent(inout) :: kont
 
    Integer :: i_mod, i_test, i_rp
+   Real(dp) :: r_mod
    Character(len=80) :: read_line
 
    i_cpv = 0
@@ -1963,7 +1969,12 @@ Contains
      Backspace(io) ! resetting to the beginning of the line
      If ((read_line(1:1).Eq."B").Or.(read_line(1:1).Eq."b") ) Exit ! this loop
 
-     Read(io,*) i_test,i_mod,read_line
+     Read(io,*) i_test,r_mod ! ,read_line
+     if (i_test.ne.12) then
+      Backspace(io)
+      Read(io,*) i_test,i_mod ! ,read_line
+     end if
+
      If (i_test.Eq.1) Then
       i_particles = i_test
       i_model = i_mod
@@ -2075,6 +2086,9 @@ Contains
        Return
       End If
 
+     Else If (i_test.Eq.12) Then
+      Call SetRGEScale(r_mod**2)  ! set Q_EWSB
+
      End If
     End Do ! i_mod
 
@@ -2109,7 +2123,7 @@ Contains
      Backspace(io) ! resetting to the beginning of the line
      If ((read_line(1:1).Eq."B").Or.(read_line(1:1).Eq."b") ) Exit ! this loop
 
-     Read(io,*,End=200) i_par,wert,read_line
+     Read(io,*,End=200) i_par,wert ! ,read_line
 !     write(*,*) i_par,wert,trim(read_line)
      Select Case(i_par)
      Case(1)
@@ -2204,9 +2218,6 @@ Contains
      Case(32) ! requires strict unification
       If (Int(wert).Ne.0) check = SetStrictUnification(.True.)
 
-     Case(33) ! setting a fixed renormalization scale if wert > 0
-      If (wert.Gt.0._dp) Call SetRGEScale(wert**2)
-
      Case(34) ! precision of mass calculation
       delta_mass = wert
 
@@ -2293,7 +2304,7 @@ Contains
      Backspace(io) ! resetting to the beginning of the line
      If ((read_line(1:1).Eq."B").Or.(read_line(1:1).Eq."b") ) Exit ! this loop
 
-     Read(io,*) i_par,wert,read_line
+     Read(io,*) i_par,wert ! ,read_line
 
      If ((i_par.Eq.0).And.(i_c.Eq.0)) Then
       If (i_model.Eq.0) Call SetRGEScale(wert**2)  ! in case of MSSM
@@ -2606,8 +2617,8 @@ Contains
      Backspace(io) ! resetting to the beginning of the line
      If ((read_line(1:1).Eq."B").Or.(read_line(1:1).Eq."b") ) Exit ! this loop
 
-     Read(io,*) i_par,wert,read_line
-! Write(*,*) i_c,i_par,wert,read_line
+     Read(io,*) i_par,wert ! ,read_line
+! Write(*,*) i_c,i_par,wert ! ,read_line
 ! Write(*,*) i_model
      If ((i_par.Eq.1).And.(i_c.Eq.0)) Then 
       If (i_model.Eq.1) Then ! mSugra, M_0
@@ -2722,7 +2733,7 @@ Contains
      Backspace(io) ! resetting to the beginning of the line
      If ((read_line(1:1).Eq."B").Or.(read_line(1:1).Eq."b") ) Exit ! this loop
 
-     Read(io,*) i_sm,wert,read_line
+     Read(io,*) i_sm,wert ! ,read_line
 
      Select Case(i_sm)
      Case(1)
@@ -2803,280 +2814,6 @@ Contains
     End Do ! i_sm
 
   End Subroutine Read_SMinput
-
-  Subroutine ReadMatrixC(io, nmax, mat, ic, mat_name, kont, fill)
-  Implicit None
-   Character(len=*) :: mat_name
-   Integer, Intent(in) :: nmax, io, ic
-   Integer, Intent(in), Optional :: fill
-   Complex(dp), Intent(inout) :: mat(nmax, nmax)
-   Integer, Intent(out) :: kont
-
-   Character(len=80) :: read_line
-   Integer :: i1, i2
-   Real(dp) :: wert
-
-   kont = 0
-
-   Iname = Iname + 1
-   NameOfUnit(Iname) = "ReadMatrixC"
-   Do 
-    Read(io,*,End=200) read_line
-!     Write(*,*) read_line
-    If (read_line(1:1).Eq."#") Cycle ! ignore comments
-    Backspace(io)                    ! resetting to the beginning of the line
-    If ((read_line(1:1).Eq."B").Or.(read_line(1:1).Eq."b") ) Then
-     Iname = Iname - 1
-     Return ! new block
-    End If
-
-    Read(io,*) i1, i2, wert, read_line
-
-    If ((i1.Lt.1).Or.(i1.Gt.nmax)) Then
-     Write(ErrCan,*) "Problem while reading "//mat_name//" in routine"// &
-        & Trim(NameOfUnit(Iname))//", index i1=",i1
-     Iname = Iname - 2
-     kont = -308
-     Call AddError(308)
-     Call TerminateProgram()
-    End If
-    If ((i2.Lt.1).Or.(i2.Gt.nmax)) Then
-     Write(ErrCan,*) "Problem while reading "//mat_name//" in routine"// &
-        & Trim(NameOfUnit(Iname))//", index i2=",i2
-     Iname = Iname - 2
-     kont = -308
-     Call AddError(308)
-     Call TerminateProgram()
-    End If
-
-    If (ic.Eq.0) Then
-     mat(i1,i2) = Cmplx(0._dp,Aimag(mat(i1,i2)),dp) + wert
-     If (Present(fill).And.(i1.Ne.i2)) &
-       &  mat(i2,i1) = Cmplx(0._dp, Aimag(mat(i2,i1)), dp) + wert
-    Else If (ic.Eq.1) Then
-     mat(i1,i2) = Real(mat(i1,i2),dp) + Cmplx(0._dp, wert, dp)
-     !-------------------------------------------------------------
-     ! if fill==1 -> matrix is hermitian
-     ! if fill==2 -> matrix is complex symmetric
-     !-------------------------------------------------------------
-     If (Present(fill).And.(i1.Ne.i2)) Then
-      If (fill.Eq.1) mat(i2,i1) = Real(mat(i2,i1),dp) - Cmplx(0._dp, wert, dp)
-      If (fill.Eq.2) mat(i2,i1) = Real(mat(i2,i1),dp) + Cmplx(0._dp, wert, dp)
-     End If
-    End If
-
-   End Do
-
-   200 Return
-
-  End Subroutine ReadMatrixC
-
- 
-  Subroutine ReadMatrixR(io, nmax, mat, mat_name, kont)
-  Implicit None
-   Character(len=*) :: mat_name
-   Integer, Intent(in) :: nmax, io
-   Real(dp), Intent(inout) :: mat(nmax, nmax)
-   Integer, Intent(out) :: kont
-
-   Character(len=80) :: read_line
-   Integer :: i1, i2
-   Real(dp) :: wert
-
-   kont = 0
-
-   Iname = Iname + 1
-   NameOfUnit(Iname) = "ReadMatrixR"
-   Do 
-    Read(io,*,End=200) read_line
-!     Write(*,*) read_line
-    If (read_line(1:1).Eq."#") Cycle ! ignore comments
-    Backspace(io)                    ! resetting to the beginning of the line
-    If ((read_line(1:1).Eq."B").Or.(read_line(1:1).Eq."b") ) Then
-     Iname = Iname - 1
-     Return ! new block
-    End If
-
-    Read(io,*) i1, i2, wert, read_line
-
-    If ((i1.Lt.1).Or.(i1.Gt.nmax)) Then
-     Write(ErrCan,*) "Problem while reading "//mat_name//" in routine"// &
-        & Trim(NameOfUnit(Iname))//", index i1=",i1
-     Iname = Iname - 2
-     kont = -309
-     Call AddError(309) 
-     Call TerminateProgram()
-    End If
-    If ((i2.Lt.1).Or.(i2.Gt.nmax)) Then
-     Write(ErrCan,*) "Problem while reading "//mat_name//" in routine"// &
-        & Trim(NameOfUnit(Iname))//", index i2=",i2
-     Iname = Iname - 2
-     kont = -309
-     Call AddError(309) 
-     Call TerminateProgram()
-    End If
-
-    mat(i1,i2) = wert
-
-   End Do
-
-   200 Return
-
-  End Subroutine ReadMatrixR
-
-  
-  Subroutine ReadVectorC(io, nmax, vec, ic, vec_name, kont)
-  Implicit None
-   Character(len=*) :: vec_name
-   Integer, Intent(in) :: nmax, io, ic
-   Complex(dp), Intent(inout) :: vec(nmax)
-   Integer, Intent(out) :: kont
-
-   Character(len=80) :: read_line
-   Integer :: i1
-   Real(dp) :: wert
-
-   kont = 0
-
-   Iname = Iname + 1
-   NameOfUnit(Iname) = "ReadVectorC"
-   Do 
-    Read(io,*,End=200) read_line
-!     Write(*,*) read_line
-    If (read_line(1:1).Eq."#") Cycle ! ignore comments
-    Backspace(io)                    ! resetting to the beginning of the line
-    If ((read_line(1:1).Eq."B").Or.(read_line(1:1).Eq."b") ) Then
-     Iname = Iname - 1
-     Return ! new block
-    End If
-
-    Read(io,*) i1, wert, read_line
-
-    If ((i1.Lt.1).Or.(i1.Gt.nmax)) Then
-     Write(ErrCan,*) "Problem while reading "//vec_name//" in routine"// &
-        & Trim(NameOfUnit(Iname))//", index i1=",i1
-     Iname = Iname - 2
-     kont = -310
-     Call AddError(310)
-     Call TerminateProgram()
-    End If
-
-    If (ic.Eq.0) vec(i1) = Cmplx(0._dp, Aimag(vec(i1)), dp) + wert
-    If (ic.Eq.1) vec(i1) = Real(vec(i1),dp) + Cmplx(0._dp, wert, dp)
-
-   End Do
-
-   200 Return
-
-  End Subroutine ReadVectorC
-
-  
-  Subroutine ReadVectorR(io, nmax, vec, vec_name, kont)
-  Implicit None
-   Character(len=*) :: vec_name
-   Integer, Intent(in) :: nmax, io
-   Real(dp), Intent(inout) :: vec(nmax)
-   Integer, Intent(out) :: kont
-
-   Character(len=80) :: read_line
-   Integer :: i1
-   Real(dp) :: wert
-
-   kont = 0
-
-   Iname = Iname + 1
-   NameOfUnit(Iname) = "ReadVectorR"
-   Do 
-    Read(io,*,End=200) read_line
-!     Write(*,*) read_line
-    If (read_line(1:1).Eq."#") Cycle ! ignore comments
-    Backspace(io)                    ! resetting to the beginning of the line
-    If ((read_line(1:1).Eq."B").Or.(read_line(1:1).Eq."b") ) Then
-     Iname = Iname - 1
-     Return ! new block
-    End If
-
-    Read(io,*) i1, wert, read_line
-
-    If ((i1.Lt.1).Or.(i1.Gt.nmax)) Then
-     Write(ErrCan,*) "Problem while reading "//vec_name//" in routine"// &
-        & Trim(NameOfUnit(Iname))//", index i1=",i1
-     Iname = Iname - 2
-     kont = -311
-     Call AddError(311)
-     Call TerminateProgram()
-    End If
-
-    vec(i1) = wert
-
-   End Do
-
-   200 Return
-
-  End Subroutine ReadVectorR
-
-  
-  Subroutine ReadTensorC(io, nmax, mat, ic, mat_name, kont)
-  Implicit None
-   Character(len=*) :: mat_name
-   Integer, Intent(in) :: nmax, io, ic
-   Complex(dp), Intent(inout) :: mat(nmax, nmax, nmax)
-   Integer, Intent(out) :: kont
-
-   Character(len=80) :: read_line
-   Integer :: i1, i2, i3
-   Real(dp) :: wert
-
-   kont = 0
-
-   Iname = Iname + 1
-   NameOfUnit(Iname) = "ReadTensorC"
-   Do 
-    Read(io,*,End=200) read_line
-!     Write(*,*) read_line
-    If (read_line(1:1).Eq."#") Cycle ! ignore comments
-    Backspace(io)                    ! resetting to the beginning of the line
-    If ((read_line(1:1).Eq."B").Or.(read_line(1:1).Eq."b") ) Then
-     Iname = Iname - 1
-     Return ! new block
-    End If
-
-    Read(io,*) i1, i2, i3, wert, read_line
-
-    If ((i1.Lt.1).Or.(i1.Gt.nmax)) Then
-     Write(ErrCan,*) "Problem while reading "//mat_name//" in routine"// &
-        & Trim(NameOfUnit(Iname))//", index i1=",i1
-     Iname = Iname - 2
-     kont = -312
-     Call AddError(312)
-     Call TerminateProgram()
-    End If
-    If ((i2.Lt.1).Or.(i2.Gt.nmax)) Then
-     Write(ErrCan,*) "Problem while reading "//mat_name//" in routine"// &
-        & Trim(NameOfUnit(Iname))//", index i2=",i2
-     Iname = Iname - 2
-     kont = -312 
-     Call AddError(312)
-     Call TerminateProgram()
-    End If
-    If ((i3.Lt.1).Or.(i3.Gt.nmax)) Then
-     Write(ErrCan,*) "Problem while reading "//mat_name//" in routine"// &
-        & Trim(NameOfUnit(Iname))//", index i3=",i3
-     Iname = Iname - 2
-     kont = -312
-      Call AddError(312)
-    Call TerminateProgram()
-    End If
-
-    If (ic.Eq.0) mat(i1,i2,i3) = Cmplx(0._dp, Aimag(mat(i1,i2,i3)), dp) + wert
-    If (ic.Eq.1) mat(i1,i2,i3) = mat(i1,i2,i3) + Cmplx(0._dp, wert, dp)
-
-   End Do
-
-   200 Return
-
-  End Subroutine ReadTensorC
-
  
  End  Subroutine LesHouches_Input
 
@@ -11588,6 +11325,275 @@ Contains
   End Do
  End Subroutine PutUpperCase
 
+
+  Subroutine ReadMatrixC(io, nmax, mat, ic, mat_name, kont, fill)
+  Implicit None
+   Character(len=*) :: mat_name
+   Integer, Intent(in) :: nmax, io, ic
+   Integer, Intent(in), Optional :: fill
+   Complex(dp), Intent(inout) :: mat(nmax, nmax)
+   Integer, Intent(out) :: kont
+
+   Character(len=80) :: read_line
+   Integer :: i1, i2
+   Real(dp) :: wert
+
+   kont = 0
+
+   Iname = Iname + 1
+   NameOfUnit(Iname) = "ReadMatrixC"
+   Do 
+    Read(io,*,End=200) read_line
+!     Write(*,*) read_line
+    If (read_line(1:1).Eq."#") Cycle ! ignore comments
+    Backspace(io)                    ! resetting to the beginning of the line
+    If ((read_line(1:1).Eq."B").Or.(read_line(1:1).Eq."b") ) Then
+     Iname = Iname - 1
+     Return ! new block
+    End If
+
+    Read(io,*) i1, i2, wert, read_line
+
+    If ((i1.Lt.1).Or.(i1.Gt.nmax)) Then
+     Write(ErrCan,*) "Problem while reading "//mat_name//" in routine"// &
+        & Trim(NameOfUnit(Iname))//", index i1=",i1
+     Iname = Iname - 2
+     kont = -308
+     Call AddError(308)
+     Call TerminateProgram()
+    End If
+    If ((i2.Lt.1).Or.(i2.Gt.nmax)) Then
+     Write(ErrCan,*) "Problem while reading "//mat_name//" in routine"// &
+        & Trim(NameOfUnit(Iname))//", index i2=",i2
+     Iname = Iname - 2
+     kont = -308
+     Call AddError(308)
+     Call TerminateProgram()
+    End If
+
+    If (ic.Eq.0) Then
+     mat(i1,i2) = Cmplx(0._dp,Aimag(mat(i1,i2)),dp) + wert
+     If (Present(fill).And.(i1.Ne.i2)) &
+       &  mat(i2,i1) = Cmplx(0._dp, Aimag(mat(i2,i1)), dp) + wert
+    Else If (ic.Eq.1) Then
+     mat(i1,i2) = Real(mat(i1,i2),dp) + Cmplx(0._dp, wert, dp)
+     !-------------------------------------------------------------
+     ! if fill==1 -> matrix is hermitian
+     ! if fill==2 -> matrix is complex symmetric
+     !-------------------------------------------------------------
+     If (Present(fill).And.(i1.Ne.i2)) Then
+      If (fill.Eq.1) mat(i2,i1) = Real(mat(i2,i1),dp) - Cmplx(0._dp, wert, dp)
+      If (fill.Eq.2) mat(i2,i1) = Real(mat(i2,i1),dp) + Cmplx(0._dp, wert, dp)
+     End If
+    End If
+
+   End Do
+
+   200 Return
+
+  End Subroutine ReadMatrixC
+
+  Subroutine ReadMatrixR(io, nmax, mat, mat_name, kont)
+  Implicit None
+   Character(len=*) :: mat_name
+   Integer, Intent(in) :: nmax, io
+   Real(dp), Intent(inout) :: mat(nmax, nmax)
+   Integer, Intent(out) :: kont
+
+   Character(len=80) :: read_line
+   Integer :: i1, i2
+   Real(dp) :: wert
+
+   kont = 0
+
+   Iname = Iname + 1
+   NameOfUnit(Iname) = "ReadMatrixR"
+   Do 
+    Read(io,*,End=200) read_line
+!     Write(*,*) read_line
+    If (read_line(1:1).Eq."#") Cycle ! ignore comments
+    Backspace(io)                    ! resetting to the beginning of the line
+    If ((read_line(1:1).Eq."B").Or.(read_line(1:1).Eq."b") ) Then
+     Iname = Iname - 1
+     Return ! new block
+    End If
+
+    Read(io,*) i1, i2, wert, read_line
+
+    If ((i1.Lt.1).Or.(i1.Gt.nmax)) Then
+     Write(ErrCan,*) "Problem while reading "//mat_name//" in routine"// &
+        & Trim(NameOfUnit(Iname))//", index i1=",i1
+     Iname = Iname - 2
+     kont = -309
+     Call AddError(309) 
+     Call TerminateProgram()
+    End If
+    If ((i2.Lt.1).Or.(i2.Gt.nmax)) Then
+     Write(ErrCan,*) "Problem while reading "//mat_name//" in routine"// &
+        & Trim(NameOfUnit(Iname))//", index i2=",i2
+     Iname = Iname - 2
+     kont = -309
+     Call AddError(309) 
+     Call TerminateProgram()
+    End If
+
+    mat(i1,i2) = wert
+
+   End Do
+
+   200 Return
+
+  End Subroutine ReadMatrixR
+  
+  Subroutine ReadTensorC(io, nmax, mat, ic, mat_name, kont)
+  Implicit None
+   Character(len=*) :: mat_name
+   Integer, Intent(in) :: nmax, io, ic
+   Complex(dp), Intent(inout) :: mat(nmax, nmax, nmax)
+   Integer, Intent(out) :: kont
+
+   Character(len=80) :: read_line
+   Integer :: i1, i2, i3
+   Real(dp) :: wert
+
+   kont = 0
+
+   Iname = Iname + 1
+   NameOfUnit(Iname) = "ReadTensorC"
+   Do 
+    Read(io,*,End=200) read_line
+!     Write(*,*) read_line
+    If (read_line(1:1).Eq."#") Cycle ! ignore comments
+    Backspace(io)                    ! resetting to the beginning of the line
+    If ((read_line(1:1).Eq."B").Or.(read_line(1:1).Eq."b") ) Then
+     Iname = Iname - 1
+     Return ! new block
+    End If
+
+    Read(io,*) i1, i2, i3, wert, read_line
+
+    If ((i1.Lt.1).Or.(i1.Gt.nmax)) Then
+     Write(ErrCan,*) "Problem while reading "//mat_name//" in routine"// &
+        & Trim(NameOfUnit(Iname))//", index i1=",i1
+     Iname = Iname - 2
+     kont = -312
+     Call AddError(312)
+     Call TerminateProgram()
+    End If
+    If ((i2.Lt.1).Or.(i2.Gt.nmax)) Then
+     Write(ErrCan,*) "Problem while reading "//mat_name//" in routine"// &
+        & Trim(NameOfUnit(Iname))//", index i2=",i2
+     Iname = Iname - 2
+     kont = -312 
+     Call AddError(312)
+     Call TerminateProgram()
+    End If
+    If ((i3.Lt.1).Or.(i3.Gt.nmax)) Then
+     Write(ErrCan,*) "Problem while reading "//mat_name//" in routine"// &
+        & Trim(NameOfUnit(Iname))//", index i3=",i3
+     Iname = Iname - 2
+     kont = -312
+      Call AddError(312)
+    Call TerminateProgram()
+    End If
+
+    If (ic.Eq.0) mat(i1,i2,i3) = Cmplx(0._dp, Aimag(mat(i1,i2,i3)), dp) + wert
+    If (ic.Eq.1) mat(i1,i2,i3) = mat(i1,i2,i3) + Cmplx(0._dp, wert, dp)
+
+   End Do
+
+   200 Return
+
+  End Subroutine ReadTensorC
+  
+  Subroutine ReadVectorC(io, nmax, vec, ic, vec_name, kont)
+  Implicit None
+   Character(len=*) :: vec_name
+   Integer, Intent(in) :: nmax, io, ic
+   Complex(dp), Intent(inout) :: vec(nmax)
+   Integer, Intent(out) :: kont
+
+   Character(len=80) :: read_line
+   Integer :: i1
+   Real(dp) :: wert
+
+   kont = 0
+
+   Iname = Iname + 1
+   NameOfUnit(Iname) = "ReadVectorC"
+   Do 
+    Read(io,*,End=200) read_line
+!     Write(*,*) read_line
+    If (read_line(1:1).Eq."#") Cycle ! ignore comments
+    Backspace(io)                    ! resetting to the beginning of the line
+    If ((read_line(1:1).Eq."B").Or.(read_line(1:1).Eq."b") ) Then
+     Iname = Iname - 1
+     Return ! new block
+    End If
+
+    Read(io,*) i1, wert, read_line
+
+    If ((i1.Lt.1).Or.(i1.Gt.nmax)) Then
+     Write(ErrCan,*) "Problem while reading "//vec_name//" in routine"// &
+        & Trim(NameOfUnit(Iname))//", index i1=",i1
+     Iname = Iname - 2
+     kont = -310
+     Call AddError(310)
+     Call TerminateProgram()
+    End If
+
+    If (ic.Eq.0) vec(i1) = Cmplx(0._dp, Aimag(vec(i1)), dp) + wert
+    If (ic.Eq.1) vec(i1) = Real(vec(i1),dp) + Cmplx(0._dp, wert, dp)
+
+   End Do
+
+   200 Return
+
+  End Subroutine ReadVectorC
+  
+  Subroutine ReadVectorR(io, nmax, vec, vec_name, kont)
+  Implicit None
+   Character(len=*) :: vec_name
+   Integer, Intent(in) :: nmax, io
+   Real(dp), Intent(inout) :: vec(nmax)
+   Integer, Intent(out) :: kont
+
+   Character(len=80) :: read_line
+   Integer :: i1
+   Real(dp) :: wert
+
+   kont = 0
+
+   Iname = Iname + 1
+   NameOfUnit(Iname) = "ReadVectorR"
+   Do 
+    Read(io,*,End=200) read_line
+!     Write(*,*) read_line
+    If (read_line(1:1).Eq."#") Cycle ! ignore comments
+    Backspace(io)                    ! resetting to the beginning of the line
+    If ((read_line(1:1).Eq."B").Or.(read_line(1:1).Eq."b") ) Then
+     Iname = Iname - 1
+     Return ! new block
+    End If
+
+    Read(io,*) i1, wert, read_line
+
+    If ((i1.Lt.1).Or.(i1.Gt.nmax)) Then
+     Write(ErrCan,*) "Problem while reading "//vec_name//" in routine"// &
+        & Trim(NameOfUnit(Iname))//", index i1=",i1
+     Iname = Iname - 2
+     kont = -311
+     Call AddError(311)
+     Call TerminateProgram()
+    End If
+
+    vec(i1) = wert
+
+   End Do
+
+   200 Return
+
+  End Subroutine ReadVectorR
 
  Subroutine SetWriteMinBR(wert)
  !-------------------------------------------------------------------

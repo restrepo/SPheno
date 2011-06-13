@@ -1167,10 +1167,6 @@ Contains
          & , mC, mSup2_in, cpl_CDSu_L, cpl_CDSu_R, mGlu, mSdown2, cpl_DGSd_L  &
         & , cpl_DGSd_R, mN,  cpl_DNSd_L, cpl_DNSd_R, mS02, cpl_DDS0_L         &
         & , cpl_DDS0_r, mP02, cpl_DDP0_L, cpl_DDP0_R, c8p )
-!c7(1) = c7(2)
-!c7p(1) = 0*c7p(2)
-!c8(1) = c8(2)
-!c8p(1) = 0*c8p(2)
 
   c7 = c7 / norm
   c7p = c7p / norm
@@ -3863,6 +3859,73 @@ Contains
   end do
   
  End Subroutine Delta_F2_Boxes
+
+
+  Subroutine Delta_MK(mf_u, g, Y_u, Ru_L, Ru_R, Y_d, Rd_L, Rd_R, mC, U, V &
+      & , mN, N, mGlu, phi_g, mS02, RS0, mP02, RP0, mSpm2, RSpm, mSup2, RSup &
+      & , A_u, mu, mSdown2, RSdown, A_d, vevSM  &
+      & , res )
+ !---------------------------------------------------------------------------
+ ! Input: mf_u, mC, mN, mGlu, mS0, mP0, mSpm
+ !        U, V, N, C
+ !        
+ ! Output: 
+ !         res
+ !         
+ ! written by Werner Porod, 01 Jul 2003
+ !---------------------------------------------------------------------------
+ Implicit None
+  Real(dp), Intent(in) :: mf_u(3), mC(:), mN(:), mGlu, mS02(:), mP02(:) &
+     & , mSpm2(:), g(3), mSdown2(6), mSup2(6), RS0(:,:), RP0(:,:), vevSM(2)
+  Complex(dp), Intent(in) :: U(:,:), V(:,:), N(:,:), RSpm(:,:), RSup(6,6) &
+     & , RSdown(6,6), phi_g, A_u(3,3), A_d(3,3), mu
+  Complex(dp), Intent(in), Dimension(3,3) :: Y_u, Ru_L, Ru_R, Y_d, Rd_L, Rd_R
+  Complex(dp), Intent(out) :: res
+
+  Real(dp) :: xt
+  Complex(dp) :: K_VLL, K_VRR, K_LR1, K_LR2, K_SLL1, K_SLL2, K_SRR1, K_SRR2 &
+    & , coupLC, coupRC
+  Real(dp), Parameter :: oo4r = 0.25_dp / 0.985_dp, P1_LR = -0.71_dp   &
+    & , P2_LR = 0.9_dp, P1_SLL = -0.37_dp, P2_SLL = -0.72_dp           &
+    & , T3= -0.5_dp, e_d =-1._dp/3._dp
+  Integer :: i1
+
+  xt = mf_u(3)**2 / mW**2
+
+  Call Delta_F2_Boxes(2, 1, T3, g, Y_u, Ru_L, Ru_R, Y_d, Rd_L, Rd_R, mf_u, mf_d_mZ &
+     & , mC, U, V, mN, N, mGlu, phi_g, mSpm2, RSpm, mSup2, RSup, mSdown2   &
+     & , RSdown, K_VLL, K_VRR, K_LR1, K_LR2, K_SLL1, K_SLL2, K_SRR1, K_SRR2  )
+write(45,*) "K_VLL, K_VRR",K_VLL, K_VRR
+write(45,*) "K_LR1, K_LR2",K_LR1, K_LR2
+write(45,*) "K_SLL1, K_SLL2",K_SLL1, K_SLL2
+write(45,*) "K_SRR1, K_SRR2",K_SRR1, K_SRR2
+write(45,*) "SM",(G_F*mW)**2 * CKM(2,1)**2 * Conjg(CKM(2,2))**2 * S0(xt) 
+write(45,*) 
+  !------------------------------------------
+  ! double penguins
+  !------------------------------------------
+  Do i1=1,2
+   Call  CoupFermionScalar31L_eff(2, 1, i1, T3, e_d, g, Y_d, Rd_L, Rd_R, RS0  &
+    & , vevSM, mSdown2, RSdown, A_d, phi_g, mglu, mu, mN, N, mSup2, RSup, Y_u &
+    & , A_u, mC, U, V, coupLC, coupRC)
+   K_LR2 = K_LR2 - 16._dp * Pi2 * coupLC * coupRC / mS02(i1) 
+   K_SLL1 = K_SLL1 - 8._dp * Pi2 * coupLC * coupLC / mS02(i1) 
+   K_SRR1 = K_SRR1 - 8._dp * Pi2 * coupRC * coupRC / mS02(i1)
+  End Do
+
+  Call CoupFermionPseudoScalar31L_eff(2, 1, 2, T3, e_d, g, Y_d, Rd_L, Rd_R, RP0&
+    & , vevSM, mSdown2, RSdown, A_d, phi_g, mglu, mu, mN, N, mSup2, RSup, Y_u &
+    & , A_u, mC, U, V, coupLC, coupRC)
+  K_LR2 = K_LR2 - 16._dp * Pi2 * coupLC * coupRC / mP02(2) 
+  K_SLL1 = K_SLL1 - 8._dp * Pi2 * coupLC * coupLC / mP02(2) 
+  K_SRR1 = K_SRR1 - 8._dp * Pi2 * coupRC * coupRC / mP02(2) 
+
+  res = oo6pi2 * MBq(1) * etaB * FBhatB(1)**2                               &
+      &        * ( (G_F*mW)**2 * CKM(2,1)**2 * Conjg(CKM(2,2))**2 * S0(xt)  &
+      &          + oo4r * (K_VLL + K_VRR) + P1_LR * K_LR1  + P2_LR * K_LR2  &
+      &          + P1_SLL * (K_SLL1 + K_SRR1) + P2_SLL * (K_SLL2 + K_SRR2)  )
+
+ End Subroutine Delta_MK
 
 
   Subroutine Delta_MB(i, mf_u, g, Y_u, Ru_L, Ru_R, Y_d, Rd_L, Rd_R, mC, U, V &

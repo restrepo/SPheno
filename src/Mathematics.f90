@@ -71,7 +71,7 @@ Use Control
 
 ! private variables
  ! test of quality, used in ComplexEigensystem , RealEigensystem
- Real(Dp), Parameter, Private :: MinimalPrecision = 10._dp * Epsilon(1._dp)
+ Real(Dp), Parameter, Private :: MinimalPrecision = 1000._dp * Epsilon(1._dp)
 ! for ode integration
  Integer, Private, Parameter :: MAXSTP=100000
 ! Real(dp), Private :: Path(2,MAXSTP)
@@ -619,11 +619,16 @@ Contains
   End Do
   If (test(1).Gt.0._dp) Then
    If (l_complex) Then
-    If ( (test(2)/test(1)).Gt.1.e5_dp*MinimalPrecision) kont = -14
+    If ( (test(2)/test(1)).Gt.1.e5_dp*MinimalPrecision) then
+     kont = -14
+     Call AddError(14)
+    End If
    Else 
-    If ( (test(2)/test(1)).Gt.MinimalPrecision) kont = -14
+    If ( (test(2)/test(1)).Gt.MinimalPrecision) then
+     kont = -14
+     Call AddError(14)
+    End If
    End If
-   Call AddError(14)
   End If
 
   Deallocate(AR,AI,WR,Work,Ctest)
@@ -1987,6 +1992,11 @@ End If
 
   xout = 0._dp
 
+  ! initialisation
+  h_old = h
+  x_old = x
+  y_old = y
+
   Do nstp=1,MAXSTP
 
    Call derivs(len,x,y,dydx)
@@ -2052,7 +2062,7 @@ End If
   End Do
 
   kont = -7
-  Write(ErrCan,*) "Problem in OdeInt, too many steps."
+  Write(ErrCan,*) "Problem in OdeIntB, too many steps."
   If (ErrorLevel.Ge.1) Call TerminateProgram
   Call AddError(7)
   Iname = Iname - 1
@@ -2089,6 +2099,11 @@ End If
 
   xout = 0._dp
 
+  ! initialisation
+  h_old = h
+  x_old = x
+  y_old = y
+
   Do nstp=1,MAXSTP
 
    Call derivs(len,x,y,dydx)
@@ -2104,7 +2119,7 @@ End If
    End If
 
 
-   If (((y(1)-y(2)).Lt.0._dp).And.(Abs(y(1)-y(2)).Lt.eps)) Then
+   If (((y(1)-y(2)).Gt.0._dp).And.(Abs(y(1)-y(2)).Lt.eps)) Then
     ystart(:)=y(:)
     xout = x
     Iname = Iname - 1
@@ -2155,7 +2170,7 @@ End If
   End Do
 
   kont = -11
-  Write(ErrCan,*) "Problem in OdeInt, too many steps."
+  Write(ErrCan,*) "Problem in OdeIntC, too many steps."
   If (ErrorLevel.Ge.1) Call TerminateProgram
   Call AddError(11)
   Iname = Iname - 1
@@ -2341,8 +2356,10 @@ End If
    End Do
   End Do
   If (test(1).Gt.0._dp) Then
-   If ( (test(2)/test(1)).Gt.MinimalPrecision) kont = -16
-   Call AddError(16)
+   If ( (test(2)/test(1)).Gt.MinimalPrecision) then
+    kont = -16
+    Call AddError(16)
+   End If
   End If
 
   Deallocate(AR,WR,Work)

@@ -570,7 +570,7 @@ Contains
 ! module InputOutput
   Do i1=1,100
    If (i_errors(300+i1).Gt.0) Write(io,*) &
-      &    Trim(InOut_Error(i1)),i_errors(300+i1)
+      &    Trim(InOut_Error(i1)),i_errors(300+i1),i1+300
   End Do
 
 ! module Sugra

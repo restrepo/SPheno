@@ -454,7 +454,7 @@ Contains
  ! shifts the parameter from the  super CKM basis to the electroweak basis
  ! written by werner Porod, 12.03.08
  !---------------------------------------------------------------------------
- implicit none
+ Implicit None
   Complex(dp), Intent(in), Dimension(3,3) :: Y_d, Y_u, Au_in, Ad_in, MD_in &
         & , MQ_in, MU_in
   Complex(dp), Optional, Intent(in), Dimension(6,6) :: RSu_in, RSd_in
@@ -469,24 +469,24 @@ Contains
   Complex(dp), Dimension(3,3) :: uU_L, uU_R, uD_L, uD_R, CKM_Q
   Complex(dp) :: rot(6,6)
 
-  real(dp) :: mf(3)
-  integer :: ierr
+  Real(dp) :: mf(3)
+  Integer :: ierr
 
   !------------------------------------------
   ! diagonalizing d- and u-Yukawa couplings
   ! I am only interested in the mixing matrices
   !------------------------------------------
-  if (tr) then
+  If (tr) Then
    Call FermionMass(Transpose(Y_u), 1._dp, mf, uU_L, uU_R, ierr)
    If (Present(Yu)) Yu = sqrt2 * mf
    Call FermionMass(Transpose(Y_d), 1._dp, mf, uD_L, uD_R, ierr)
    If (Present(Yd)) Yd = sqrt2 * mf
-  else
+  Else
    Call FermionMass(Y_u, 1._dp, mf, uU_L, uU_R, ierr)
    If (Present(Yu)) Yu = sqrt2 * mf
    Call FermionMass(Y_d, 1._dp, mf, uD_L, uD_R, ierr)
    If (Present(Yd)) Yd = sqrt2 * mf
-  end if
+  End If
   !---------------------------------------------------------
   ! CKM matrix at Q, shifting phases according to PDG form
   !---------------------------------------------------------
@@ -505,11 +505,11 @@ Contains
   uU_R(3,:) = uU_R(3,:) / Conjg(CKM_Q(3,3)) * Abs(CKM_Q(3,3))
   CKM_Q =  Matmul(uU_L, Transpose(Conjg(ud_L)) )
 
-  If (present(CKM_out)) CKM_out = CKM_Q
+  If (Present(CKM_out)) CKM_out = CKM_Q
   !-------------------------------------------------------------------
   ! shifting the parameters to the super CKM basis
   !-------------------------------------------------------------------
-  if (tr) then
+  If (tr) Then
    Au_out = Matmul( Matmul(Transpose(Conjg(uU_R)), Au_in), uU_L)
    Ad_out = Matmul( Matmul(Transpose(Conjg(uD_R)), Ad_in), uD_L)
 
@@ -517,20 +517,7 @@ Contains
    MU_out = Matmul( Matmul( Transpose(Conjg(uU_R)), MU_in), uU_R)
    MQ_out = Matmul( Matmul( Conjg(uD_L), MQ_in), Transpose(uD_L) )
 
-   If (Present(RSu_in).and.Present(RSu_out)) then
-    rot = 0._dp
-    rot(1:3,1:3) = uU_L
-    rot(4:6,4:6) = Conjg(uU_R)
-    RSu_out = Matmul(Conjg(rot), RSu_in)
-   end if
-   If (Present(RSd_in).and.Present(RSd_out)) then
-    rot = 0._dp
-    rot(1:3,1:3) = uD_L
-    rot(4:6,4:6) = Conjg(uD_R)
-    RSd_out = Matmul(Conjg(rot), RSd_in)
-   end if
-
-  else
+  Else
    Au_out = Matmul( Matmul(Transpose(uU_L), Au_in), Conjg(uU_R))
    Ad_out = Matmul( Matmul(Transpose(uD_L), Ad_in), Conjg(uD_R))
 
@@ -538,22 +525,22 @@ Contains
    MU_out = Matmul( Matmul( Transpose(uU_R), MU_in), Conjg(uU_R))
    MQ_out = Matmul( Matmul( Transpose(Conjg(uD_L)), MQ_in), uD_L )
 
-   If (Present(RSu_in).and.Present(RSu_out)) then
+  End If
+
+   If (Present(RSu_in).And.Present(RSu_out)) Then
     rot = 0._dp
     rot(1:3,1:3) = Conjg(uU_L)
     rot(4:6,4:6) = uU_R
-    RSu_out = Matmul(RSu_in, Transpose(rot))
-   end if
-   If (Present(RSd_in).and.Present(RSd_out)) then
+    RSu_out = Matmul(RSu_in, rot)
+   End If
+   If (Present(RSd_in).And.Present(RSd_out)) Then
     rot = 0._dp
     rot(1:3,1:3) = Conjg(uD_L)
     rot(4:6,4:6) = uD_R
-    RSd_out = Matmul(RSd_in, Transpose(rot))
-   end if
-  end if
+    RSd_out = Matmul(RSd_in, rot)
+   End If
 
-
- end Subroutine Switch_from_superCKM
+ End Subroutine Switch_from_superCKM
 
  Subroutine Switch_to_superCKM(Y_d, Y_u, Ad_in, Au_in, MD_in, MQ_in, MU_in &
                       &, Ad_out, Au_out, MD_out, MQ_out, MU_out, tr        &
@@ -562,7 +549,7 @@ Contains
  ! shifts the parameter from the electroweak basis to the super CKM basis
  ! written by werner Porod, 12.03.08
  !---------------------------------------------------------------------------
- implicit none
+ Implicit None
   Complex(dp), Intent(in), Dimension(3,3) :: Y_d, Y_u, Au_in, Ad_in, MD_in &
         & , MQ_in, MU_in
   Complex(dp), Optional, Intent(in), Dimension(6,6) :: RSu_in, RSd_in
@@ -577,24 +564,24 @@ Contains
   Complex(dp), Dimension(3,3) :: uU_L, uU_R, uD_L, uD_R, CKM_Q
   Complex(dp) :: rot(6,6)
 
-  real(dp) :: mf(3)
-  integer :: ierr
+  Real(dp) :: mf(3)
+  Integer :: ierr
 
   !------------------------------------------
   ! diagonalizing d- and u-Yukawa couplings
   ! I am only interested in the mixing matrices
   !------------------------------------------
-  if (tr) then
+  If (tr) Then
    Call FermionMass(Transpose(Y_u), 1._dp, mf, uU_L, uU_R, ierr)
    If (Present(Yu)) Yu = sqrt2 * mf
    Call FermionMass(Transpose(Y_d), 1._dp, mf, uD_L, uD_R, ierr)
    If (Present(Yd)) Yd = sqrt2 * mf
-  else
+  Else
    Call FermionMass(Y_u, 1._dp, mf, uU_L, uU_R, ierr)
    If (Present(Yu)) Yu = sqrt2 * mf
    Call FermionMass(Y_d, 1._dp, mf, uD_L, uD_R, ierr)
    If (Present(Yd)) Yd = sqrt2 * mf
-  end if
+  End If
   !---------------------------------------------------------
   ! CKM matrix at Q, shifting phases according to PDG form
   !---------------------------------------------------------
@@ -613,11 +600,11 @@ Contains
   uU_R(3,:) = uU_R(3,:) / Conjg(CKM_Q(3,3)) * Abs(CKM_Q(3,3))
   CKM_Q =  Matmul(uU_L, Transpose(Conjg(ud_L)) )
 
-  If (present(CKM_out)) CKM_out = CKM_Q
+  If (Present(CKM_out)) CKM_out = CKM_Q
   !-------------------------------------------------------------------
   ! shifting the parameters to the super CKM basis
   !-------------------------------------------------------------------
-  if (tr) then
+  If (tr) Then
    Au_out = Matmul( Matmul(uU_R, Au_in), Transpose(Conjg(uU_L)))
    Ad_out = Matmul( Matmul(uD_R, Ad_in), Transpose(Conjg(uD_L)))
 
@@ -625,20 +612,7 @@ Contains
    MU_out = Matmul( Matmul( uU_R, MU_in), Transpose(Conjg(uU_R)))
    MQ_out = Matmul( Matmul( Transpose(uD_L), MQ_in), Conjg(uD_L) )
 
-   If (Present(RSu_in).and.Present(RSu_out)) then
-    rot = 0._dp
-    rot(1:3,1:3) = uU_L
-    rot(4:6,4:6) = Conjg(uU_R)
-    RSu_out = Matmul(Transpose(rot), RSu_in)
-   end if
-   If (Present(RSd_in).and.Present(RSd_out)) then
-    rot = 0._dp
-    rot(1:3,1:3) = uD_L
-    rot(4:6,4:6) = Conjg(uD_R)
-    RSd_out = Matmul(Transpose(rot), RSd_in)
-   end if
-
-  else
+  Else
    Au_out = Matmul( Matmul(Conjg(uU_L), Au_in), Transpose(uU_R))
    Ad_out = Matmul( Matmul(Conjg(uD_L), Ad_in), Transpose(uD_R))
 
@@ -646,22 +620,22 @@ Contains
    MU_out = Matmul( Matmul( Conjg(uU_R), MU_in), Transpose(uU_R))
    MQ_out = Matmul( Matmul( uD_L, MQ_in), Transpose(Conjg(uD_L)) )
 
-   If (Present(RSu_in).and.Present(RSu_out)) then
+  End If
+
+   If (Present(RSu_in).And.Present(RSu_out)) Then
     rot = 0._dp
-    rot(1:3,1:3) = uU_L
-    rot(4:6,4:6) = Conjg(uU_R)
+    rot(1:3,1:3) = Transpose(uU_L)
+    rot(4:6,4:6) = Transpose(Conjg(uU_R))
     RSu_out = Matmul(RSu_in, rot)
-   end if
-   If (Present(RSd_in).and.Present(RSd_out)) then
+   End If
+   If (Present(RSd_in).And.Present(RSd_out)) Then
     rot = 0._dp
-    rot(1:3,1:3) = uD_L
-    rot(4:6,4:6) = Conjg(uD_R)
+    rot(1:3,1:3) = Transpose(uD_L)
+    rot(4:6,4:6) = Transpose(Conjg(uD_R))
     RSd_out = Matmul(RSd_in, rot)
-   end if
-  end if
+   End If
 
-
- end Subroutine Switch_to_superCKM
+ End Subroutine Switch_to_superCKM
 
 End Module Model_Data
 

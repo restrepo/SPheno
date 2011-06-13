@@ -2515,6 +2515,7 @@ Contains
     sumC = sumC - Conjg( bi(i1+1) ) * bi(i2+1) * vevL(i2)
     If (i1.Ne.i2) sumC = sumC - vevL(i2) * ML2a(i2,i1)
    End Do
+
    ML2a(i1,i1) = - DTerm + Real( sumC,dp ) / vevL(i1) 
   End Do
 

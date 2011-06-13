@@ -31,6 +31,17 @@ Module RGEs
     &                          ,  2.8_dp,  6._dp,  4._dp       &
     &                          ,  5.2_dp,  6._dp,  4._dp  /),  &
     &                Shape = (/3, 4/) )
+  ! including complete 15-plet: tau, T, bottom,top, S, Z, lam_1, lam_2
+  Real(dp), Parameter :: a_2b(3,8) =     &
+    &       Reshape( Source = (/  3.6_dp,  2._dp,  0._dp       &
+    &                          ,  5.4_dp,  7._dp,  0._dp       &
+    &                          ,  2.8_dp,  6._dp,  4._dp       &
+    &                          ,  5.2_dp,  6._dp,  4._dp        &
+    &                          ,  4.8_dp,  0._dp,  9._dp        &
+    &                          ,  2.8_dp,  6._dp,  4._dp        &
+    &                          ,  5.4_dp,  7._dp,  0._dp        &
+    &                          ,  5.4_dp,  7._dp,  0._dp   /),  &
+    &                Shape = (/3, 8/) )
   !-------------------------------------------------------------------
   ! coefficients for contribution in RGEs for Yukawa couplings
   ! the matrix is revised compared to usual notation: tau,bottom,top
@@ -57,7 +68,10 @@ Module RGEs
 ! global variables
 
 ! private variables
+! simplifies matrix multiplication in case of diagonal entries only
 Logical, Private, Save :: OnlyDiagonal
+! fix to completely decouple heavy states
+Logical, Private, Save :: decoupling_heavy_states = .False.
 ! private variables
 
 !------------------------------------------------
@@ -1625,13 +1639,6 @@ Contains
   Integer :: i1, i2, SumI
  
   Iname = Iname + 1
-if (iname.eq.41) then
-write(10,*) "here is a problem"
- do i1=1,40
-write(10,*) i1," "//trim(NameOfUnit(i1) )
-end do
-end if
-
   NameOfUnit(Iname) = 'GToParameters'
 
   gauge = g1(1:3)
@@ -4083,13 +4090,13 @@ end if
 
   diagonal(2,1) = TraceY(2)  + lam12          &
             &   - 1.8_dp * gauge2(1) - 7._dp * gauge2(2)
-  sumT1 = aYeYe + 6._dp * aYTYT + aYZYZ
+  sumT1 = aYeYe + 6._dp * aYTYT + 3._dp * aYZYZ
   Do i1=1,3
    sumT1(i1,i1) = sumT1(i1,i1) + diagonal(2,1)
   End Do
 
   betaYT1 = Matmul2(YT,sumT1,OnlyDiagonal)                 &
-        & + Matmul2(Transpose(aYeYe+aYZYZ),YT,OnlyDiagonal)
+        & + Matmul2(Transpose(aYeYe+3._dp * aYZYZ),YT,OnlyDiagonal)
 
   diagonal(3,1) = 3._dp * (TraceY(3)  + lam12) + TraceY(1)              &
     &  + c1_1(2,1) * gauge2(1) + c1_1(2,2) * gauge2(2) + c1_1(2,3) * gauge2(3)
@@ -4141,7 +4148,7 @@ end if
   ! beta function for the 15-plet, MT, M_Z, M_S
   !---------------------------------------------
    betaM15(1) = M15(1) * ( TraceY(2) + lam12 + lam22 &
-            &        - 0.6_dp * gauge2(1) - 8._dp * gauge2(2)  )
+            &        - 2.4_dp * gauge2(1) - 8._dp * gauge2(2)  )
    betaM15(2) = M15(2) * ( TraceY(5) - gauge2(1)/15._dp - 3._dp * gauge2(2) &
                      & - 16._dp * gauge2(3) / 3._dp  )
    betaM15(3) = M15(3) * ( TraceY(6)  &
@@ -4386,7 +4393,7 @@ end if
   TraceY(2) = Real( cTrace(aYdYd),dp )
   TraceY(3) = Real( cTrace(aYuYu),dp )
 
-  diagonal(1,1) = (3._dp,0._dp) * TraceY(2) + TraceY(1)     &
+  diagonal(1,1) = 3._dp * TraceY(2) + TraceY(1)     &
               & + c1_1(1,1) * gauge2(1) + c1_1(1,2) * gauge2(2)
   sume1 = 3._dp * aYeYe
   Do i1=1,3
@@ -4395,7 +4402,7 @@ end if
 
   betaYe1 = Matmul2(Ye,sume1,OnlyDiagonal)
 
-  diagonal(2,1) = (3._dp,0._dp) * TraceY(2) + TraceY(1)              &
+  diagonal(2,1) = 3._dp * TraceY(2) + TraceY(1)              &
     &  + c1_1(2,1) * gauge2(1) + c1_1(2,2) * gauge2(2) + c1_1(2,3) * gauge2(3)
   sumd1  = 3._dp * aYdYd + aYuYu
   Do i1=1,3
@@ -4404,7 +4411,7 @@ end if
 
   betaYd1 = Matmul2(Yd,sumd1,OnlyDiagonal)
 
-  diagonal(3,1) = (3._dp,0._dp) * TraceY(3)              &
+  diagonal(3,1) = 3._dp * TraceY(3)              &
    &  + c1_1(3,1) * gauge2(1) + c1_1(3,2) * gauge2(2) + c1_1(3,3) * gauge2(3)
   sumu1  = 3._dp * aYuYu + aYdYd
   Do i1=1,3
@@ -4882,9 +4889,9 @@ end if
      & + ( (8._dp * gauge2(3) + 0.1_dp*gauge2(1)) / 3._dp      &
      &   + 1.5_dp * gauge2(2) ) * Real( cTrace(Mq),dp   )         &
      & - (16._dp * gauge2(3) + 3.2_dp*gauge2(1) )              &
-     &    * Real(cTrace(Mu)) / 3._dp                           &
+     &    * Real(cTrace(Mu),dp) / 3._dp                           &
      & + (8._dp * gauge2(3) + 0.4_dp*gauge2(1) )               &
-     &    * Real(cTrace(Md)) / 3._dp                           &
+     &    * Real(cTrace(Md),dp) / 3._dp                           &
      & + 1.2_dp*gauge2(1) * Real(cTrace(Me),dp)                   &
      & - 3._dp * (MH(2)*TraceY(3) - MH(1) * TraceY(2) )        &
      & + mH(1) * TraceY(1)
@@ -6632,21 +6639,24 @@ end if
   !--------------
   ! A_T
   !--------------
-  diagonal(2,1) = TraceY(2)  + lam12          &
+   If (decoupling_heavy_states) then
+    betaAT1 = 0._dp
+   Else  
+    diagonal(2,1) = TraceY(2)  + lam12          &
             &   - 1.8_dp * gauge2(1) - 7._dp * gauge2(2)
-  sumT1 = aYeYe + 9._dp * aYTYT
-  betaAT1 = MatMul2(AT,sumT1,OnlyDiagonal)
-  betaAT1 = Transpose(betaAT1)
-  Do i1=1,3
-   sumT1(i1,i1) = sumT1(i1,i1) + diagonal(2,1)
-  End Do
+    sumT1 = aYeYe + 9._dp * aYTYT
+    betaAT1 = MatMul2(AT,sumT1,OnlyDiagonal)
+    betaAT1 = Transpose(betaAT1)
+    Do i1=1,3
+     sumT1(i1,i1) = sumT1(i1,i1) + diagonal(2,1)
+    End Do
 
-  betaAT1 = betaAT1 + MatMul2(sumT1,AT,OnlyDiagonal)
-
-  diagonal(2,1) = 2._dp * ( TraceaYA(2) + lam1Alam1    &
+    betaAT1 = betaAT1 + MatMul2(sumT1,AT,OnlyDiagonal)
+  
+    diagonal(2,1) = 2._dp * ( TraceaYA(2) + lam1Alam1    &
       &         + 1.8_dp * g2Mi(1) + 7._dp * g2Mi(2) )
-  betaAT1 = betaAT1 + diagonal(2,1) * YT
-
+    betaAT1 = betaAT1 + diagonal(2,1) * YT
+   End If
   !--------------
   ! A_d
   !--------------
@@ -7210,15 +7220,19 @@ end if
    betamH21 = 2._dp * TraceMH2(1) + 6._dp * TraceMH2(2)       &
           & - 6._dp * AbsGM2(2) - 1.2_dp * AbsGM2(1) + 0.6_dp * S1
 
-   betaMT2(1) = MT(1) * (lam12 + TraceY(2)) + 2._dp * mH(1) * lam12   &
+   If (decoupling_heavy_states) then
+    betaMT2 = 0._dp 
+
+   else
+    betaMT2(1) = MT(1) * (lam12 + TraceY(2)) + 2._dp * mH(1) * lam12   &
             & + 2._dp * Real( cTrace(aYTMlYT),dp ) + TraceA(2) + Alam12 &
             & - 2.4_dp * AbsGM2(1) - 8._dp * AbsGM2(2)
 
-   betaMT2(2) = MT(2) * lam22 + 2._dp * mH(2) * lam22 + Alam22 &
+    betaMT2(2) = MT(2) * lam22 + 2._dp * mH(2) * lam22 + Alam22 &
             & - 2.4_dp * AbsGM2(1) - 8._dp * AbsGM2(2)
 
-   betaMT2 = 2._dp * betaMT2
- 
+    betaMT2 = 2._dp * betaMT2
+   End If
 
    If (TwoLoopRGE) Then
     traceMH1(3) = MH(1) * (6._dp*TraceY2(2) + 2._dp*TraceY2(1) + TraceY2(4) ) &
@@ -8678,13 +8692,13 @@ end if
 
   diagonal(2,1) = TraceY(2)  + lam12          &
             &   - 1.8_dp * gauge2(1) - 7._dp * gauge2(2)
-  sumT1 = aYeYe + 6._dp * aYTYT + aYZYZ
+  sumT1 = aYeYe + 6._dp * aYTYT + 3._dp * aYZYZ
   Do i1=1,3
    sumT1(i1,i1) = sumT1(i1,i1) + diagonal(2,1)
   End Do
 
   betaYT1 = Matmul2(YT,sumT1,OnlyDiagonal)                 &
-        & + Matmul2(Transpose(aYeYe+aYZYZ),YT,OnlyDiagonal)
+        & + Matmul2(Transpose(aYeYe+3._dp * aYZYZ),YT,OnlyDiagonal)
 
   diagonal(3,1) = 3._dp * (TraceY(3)  + lam12) + TraceY(1)              &
     &  + c1_1(2,1) * gauge2(1) + c1_1(2,2) * gauge2(2) + c1_1(2,3) * gauge2(3)
@@ -8814,6 +8828,7 @@ end if
   aYZAZ = MatMul2(aYZ,AZ,OnlyDiagonal)
   aYSAS = MatMul2(aYS,AS,OnlyDiagonal)
 
+  AeaYe = MatMul2(Ad,aYd,OnlyDiagonal)
   AdaYd = MatMul2(Ad,aYd,OnlyDiagonal)
   AZaYZ = MatMul2(AZ,aYZ,OnlyDiagonal)
   ASaYS = MatMul2(AS,aYS,OnlyDiagonal)
@@ -8856,7 +8871,7 @@ end if
   !--------------
   diagonal(2,1) = TraceY(2)  + lam12          &
             &   - 1.8_dp * gauge2(1) - 7._dp * gauge2(2)
-  sumT1 = aYeYe + 9._dp * aYTYT + 3._dp * aYZYZ
+  sumT1 = 2._dp * aYeYe + 9._dp * aYTYT + 3._dp * aYZYZ
   betaAT1 = MatMul2(AT,sumT1,OnlyDiagonal)
   betaAT1 = Transpose(betaAT1)
   Do i1=1,3
@@ -8908,16 +8923,17 @@ end if
   !--------------
   ! A_Z
   !--------------
-  sumZ1 = sumZ1 + 2._dp * aYZYZ
+  sumZ1 = sumZ1 + 3._dp * aYZYZ
   betaAZ1 = MatMul2(AZ,sumZ1,OnlyDiagonal)                                   &
     & + 2._dp * MatMul2(2._dp*YSaYs + YdaYd + 2._dp*YZaYZ, AZ,OnlyDiagonal)  &
     & + 6._dp * MatMul2(YZ, aYTAT, OnlyDiagonal)
 
   diagonal(5,1) = - 2._dp * ( c1_1(2,1) * g2Mi(1) + c1_1(2,2) * g2Mi(2) &
-                &           + c1_1(2,3) * g2Mi(3) )
+                &           + c1_1(2,3) * g2Mi(3)  ) + 2._dp * TraceaYA(5)
 
-  betaAZ1 = betaAZ1 + diagonal(5,1) * YZ                         &
-        & + 2._dp * MatMul2(AdaYd + 4._dp * ASaYS, YZ,OnlyDiagonal)
+  betaAZ1 = betaAZ1 + diagonal(5,1) * YZ                                                &
+        & +  2._dp * MatMul2(YZ, AeaYe,OnlyDiagonal)                              &
+        & + 4._dp * MatMul2(AdaYd + 2._dp * ASaYS, YZ,OnlyDiagonal)
 
   !--------------
   ! A_S
@@ -9176,7 +9192,6 @@ end if
     YeaYeYeaYe = MatSquare(YeaYe,OnlyDiagonal)
     YuaYuYuaYu = MatSquare(YuaYu,OnlyDiagonal)
 
-    AeaYe = MatMul2(Ae,aYe,OnlyDiagonal)
     AuaYu = MatMul2(Au,aYu,OnlyDiagonal)
 
     aAdYd = MatMul2(aAd,Yd,OnlyDiagonal)
@@ -9501,13 +9516,13 @@ end if
    betaMZ2(2) = - (0.4_dp * AbsGM2(1) + 32._dp * AbsGM2(3) ) / 3._dp  &
               & - 6._dp  * AbsGM2(2)
 
-   betaMZ2(1) = 2._dp * MZ(1) * TraceY(5) + TraceA(5) + betaMZ2(2) &
-            & + Real( cTrace(aYZMdYZ) + cTrace(YZMlaYZ) ,dp ) 
+   betaMZ2(1) = 2._dp * MZ(1) * TraceY(5) + 2._dp * TraceA(5) + betaMZ2(2) &
+            & + 2._dp * Real( cTrace(aYZMdYZ) + cTrace(YZMlaYZ) ,dp ) 
 
    betaMS2(2) = - (3.2_dp * AbsGM2(1) + 40._dp * AbsGM2(3) ) / 3._dp
 
    betaMS2(1) = MS(1) * TraceY(6) + 2._dp * Real( cTrace(aYSMdYS),dp ) &
-            & + 2._dp * TraceA(6) + betaMS2(2)
+            & + TraceA(6) + betaMS2(2)
 
    betaMS2 = 2._dp * betaMS2
 
@@ -9569,7 +9584,7 @@ end if
 ! beta function for the 15-plet
 !------------------------------
    betaMT15 = MT15 * ( TraceY(2) + lam12 + lam22 &
-            &        - 0.6_dp * gauge2(1) - 8._dp * gauge2(2)  )
+            &        - 2.4_dp * gauge2(1) - 8._dp * gauge2(2)  )
    betaMZ15 = MZ15 * ( TraceY(5) - gauge2(1)/15._dp - 3._dp * gauge2(2) &
                      & - 16._dp * gauge2(3) / 3._dp  )
    betaMS15 = MS15 * ( TraceY(6)  &
@@ -9635,8 +9650,15 @@ end if
  !----------------------
  ! gauge couplings
  !----------------------
-   Dgauge = oo16pi2 * gauge * gauge2  &
-        & * ( b_1a + oo16pi2 * (Matmul(b_2a,gauge2) - Matmul(a_2a,TraceY(1:4)) ) )
+   If (MaxVal(Delta_b_2).eq.0._dp) then
+    Dgauge = oo16pi2 * gauge * gauge2  &
+         & * ( b_1a + oo16pi2 * ( Matmul(b_2a,gauge2) - a_2(:,1) * TraceY(1) &
+         &                      - Matmul(a_2(:,2:3),TraceY(3:4))  ))
+   else
+    Dgauge = oo16pi2 * gauge * gauge2  &
+         & * ( b_1a + oo16pi2 * (Matmul(b_2a,gauge2) - Matmul(a_2b(:,1:6),TraceY) )  &
+         &                      - a_2b(:,7)*lam12 - a_2b(:,8)*lam22 ) 
+   End if
  !--------------------
  ! Yukawa couplings
  !--------------------
@@ -10180,6 +10202,15 @@ end if
   Iname = Iname - 1
 
  End Subroutine RGE_SU5
+
+
+ Subroutine Set_Decoupling_Heavy_States(set)
+  Implicit none
+  Logical, Intent(in) :: set
+
+   decoupling_heavy_states = set
+
+ End Subroutine Set_Decoupling_Heavy_States
 
 
 End Module RGEs

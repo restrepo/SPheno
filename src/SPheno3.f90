@@ -126,7 +126,9 @@ Use SugraRuns
     & , uL_L, uL_R, uD_L, uD_R, uU_L, uU_R, Y_l, Y_d, Y_u                      &
     & , Mi, A_l, A_d, A_u, M2_E, M2_L, M2_D, M2_Q, M2_U, M2_H, mu, B           &
     & , m_GUT)
-
+!write(*,*) "Ha",real(m2_h)
+!write(*,*) "La",(real(m2_l_0(i1,i1)),i1=1,3)
+!call WriteNumberOfErrors(10)
  !-------------------------------------------------------------------
  ! Calculation of the branching ratios and widths provided L_BR is
  ! set .TRUE. (default) and that the routine Sugra has finished
@@ -326,6 +328,7 @@ Contains
   vev2 =  Sqrt( mZ2 * (1._dp - sinW2) * SinW2 / (pi * alpha_mZ) )
   vevSM(1) = vev2 / Sqrt(1._dp + tanb_mZ**2)
   vevSM(2) = tanb_mZ * vevSM(1)
+
   mZ2_run = (gauge_mZ(1)**2+gauge_mZ(2))**2*0.25*(vevSM(1)**2+vevSM(2)**2)
   mW2_run = gauge_mZ(2)**2*0.25*(vevSM(1)**2+vevSM(2)**2)
 
@@ -338,6 +341,35 @@ Contains
      & , RSlepton_T, mSdown_T, mSdown2_T, RSdown_T, mSup_T, mSup2_T, RSup_T  &
      & , mP0_T, mP02_T, RP0_T, mS0_T, mS02_T, RS0_T, mSpm_T, mSpm2_T, RSpm_T &
      & , mZ2_run, mW2_run, GenerationMixing, kont, .False., .False.)
+
+  if (kont.ne.0) then ! there is a problem with the running masses, use pole masses instead
+   mGlu_T = mglu
+   Phase_Glu_T = PhaseGlu
+   mC_T = mC
+   mC2_T = mC2
+   U_T = U
+   V_T = V
+   mN_T = mN
+   mN2_T = mN2
+   N_T = N
+   mSneutrino2_T = mSneutrino2
+   Rsneut_T = Rsneut
+   mSlepton2_T = mSlepton2
+   RSlepton_T = RSlepton
+   mSdown2_T = mSdown2
+   RSdown_T = Rsdown
+   mSup2_T = mSup2 
+   RSup_T = RSup
+   mP0_T = mP0
+   mP02_T = mP02 
+   RP0_T = RP0
+   mS0_T = mS0 
+   mS02_T = mS02 
+   RS0_T = RS0 
+   mSpm_T = mSpm
+   mSpm2_T = mSpm2 
+   RSpm_T = RSpm
+  End If 
 
   If (.Not.GenerationMixing) Then ! need to add quark mixing for the following
    If (scheme.Eq.1) Then
@@ -712,9 +744,16 @@ Contains
    End If
 
   Else ! high scale model
-   Call FirstGuess(phase_mu, tanb, Mi, M2_E, M2_L, A_l, M2_D   &
+
+   If (len(trim(Old_data)).ne.0) then
+    Call FirstGuess(phase_mu, tanb, Mi, M2_E, M2_L, A_l, M2_D   &
+           & , M2_Q, M2_U, A_d, A_u, mu, B, M2_H, gp, g, Y_l  &
+           & , Y_d, Y_u, vevSM, mP02, mP0, kont, .True., delta, Trim(Old_data) )
+   Else 
+    Call FirstGuess(phase_mu, tanb, Mi, M2_E, M2_L, A_l, M2_D   &
            & , M2_Q, M2_U, A_d, A_u, mu, B, M2_H, gp, g, Y_l  &
            & , Y_d, Y_u, vevSM, mP02, mP0, kont)
+   End If
   End If
 
   If (External_Spectrum) Return ! using the externaly given spectrum
