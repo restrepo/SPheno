@@ -26,7 +26,7 @@ Real(dp), Save, Private :: SigMin=1.e-3_dp
 ! contains information on possible inconsitencies in the input
 Integer, Save, Private :: in_kont(2)
 ! version number
-Character(len=8), Save, Private :: version="v3beta44"
+Character(len=8), Save, Private :: version="v3beta45"
 ! name of 'input-program'
 Character(len=40), Private :: sp_info 
 ! tempory variables for Higgs mixing in case of NMSSM
@@ -35,7 +35,8 @@ Real(dp), Private, Dimension(3,3) :: RS03_save, RP03_save
 Integer, Private :: i_cpv=0
 Logical, Private :: l_RP_Pythia = .False. ! Pythia only takes 4x4 matrix 
                                          ! for neutralinos and 2x2 for charginos
-
+Logical, Private :: Write_SLHA1 = .False. ! write a second SLHA output file
+                                          ! using SLHA1 standard only call SPheno_1.spc
 Contains
 
 
@@ -2241,6 +2242,9 @@ Contains
        TwoLoopRGE=.True.
       End If
 
+     Case(39) ! if =1 -> CKM thourgh V_u, if =2 CKM through V_d 
+      If (wert.Eq.1._dp) Write_SLHA1 = .True.
+
      Case(40) ! alpha(0)
       check_alpha(2) = .True.
       Alpha = 1._dp / wert
@@ -2311,20 +2315,20 @@ Contains
       If (i_model.Eq.1) Call SetGUTScale(wert)     ! Sugra
       If (i_model.Eq.3) Call SetGUTScale(wert)     ! AMSB
      Else If (i_par.Eq.1) Then 
-      If (i_c.Eq.0) Mi(1) = Cmplx(0._dp, Aimag(Mi(1)), dp) + wert
-      If (i_c.Eq.0) Mi_0(1) = Cmplx(0._dp, Aimag(Mi_0(1)), dp) + wert  
+      If (i_c.Eq.0) Mi(1) = Cmplx(wert, Aimag(Mi(1)), dp) 
+      If (i_c.Eq.0) Mi_0(1) = Cmplx(wert, Aimag(Mi_0(1)), dp) 
       If (i_c.Eq.1) Mi(1) = Real(Mi(1),dp) + (0._dp,1._dp) * wert
       If (i_c.Eq.1) Mi_0(1) = Real(Mi_0(1),dp) + (0._dp,1._dp) * wert  
       set_mod_par(1) = 1
      Else If (i_par.Eq.2) Then 
-      If (i_c.Eq.0) Mi(2) = Cmplx(0._dp, Aimag(Mi(2)), dp) + wert
-      If (i_c.Eq.0) Mi_0(2) = Cmplx(0._dp, Aimag(Mi_0(2)), dp) + wert  
+      If (i_c.Eq.0) Mi(2) = Cmplx(wert, Aimag(Mi(2)), dp)
+      If (i_c.Eq.0) Mi_0(2) = Cmplx(wert, Aimag(Mi_0(2)), dp)
       If (i_c.Eq.1) Mi(2) = Real(Mi(2),dp) + (0._dp,1._dp) * wert
       If (i_c.Eq.1) Mi_0(2) = Real(Mi_0(2),dp) + (0._dp,1._dp) * wert  
       set_mod_par(2) = 1
      Else If (i_par.Eq.3) Then 
-      If (i_c.Eq.0) Mi(3) = Cmplx(0._dp, Aimag(Mi(3)), dp) + wert
-      If (i_c.Eq.0) Mi_0(3) = Cmplx(0._dp, Aimag(Mi_0(3)), dp) + wert  
+      If (i_c.Eq.0) Mi(3) = Cmplx(wert, Aimag(Mi(3)), dp) 
+      If (i_c.Eq.0) Mi_0(3) = Cmplx(wert, Aimag(Mi_0(3)), dp) 
       If (i_c.Eq.1) Mi(3) = Real(Mi(3),dp) + (0._dp,1._dp) * wert
       If (i_c.Eq.1) Mi_0(3) = Real(Mi_0(3),dp) + (0._dp,1._dp) * wert  
       set_mod_par(3) = 1
@@ -2355,8 +2359,8 @@ Contains
 
      Else If (i_par.Eq.23) Then
       If ((i_model.Eq.0).Or.(HighScaleModel.Eq."NMSSM")) Then 
-       If (i_c.Eq.0) mu = Cmplx(0._dp, Aimag(mu), dp) + wert
-       If (i_c.Eq.1) mu = Real(mu) + (0._dp,1._dp) * wert
+       If (i_c.Eq.0) mu = Cmplx(wert, Aimag(mu), dp)
+       If (i_c.Eq.1) mu = Real(mu,dp) + (0._dp,1._dp) * wert
        set_mod_par(9) = 1
       Else
        Write(ErrCan,*) "mu can only be specified in the general MSSM and is"
@@ -2659,24 +2663,26 @@ Contains
       If ((i_model.Ge.0).And.(i_model.Le.3)) Then ! MSSM, mSugra, GMSB, AMSB
        set_mod_par(3) = 1
        tanb = wert
+       tanb_mZ = wert
       End If
 
      Else If (i_par.Eq.4) Then 
       If ((i_model.Ge.0).And.(i_model.Le.3)) Then ! MSSM, mSugra, GMSB, AMSB, sign_mu
        set_mod_par(4) = 1
-       If (i_c.Eq.0) phase_mu = Cmplx(0._dp, Aimag(phase_mu),dp) + wert
-       If (i_c.Eq.1) phase_mu = Real(phase_mu) + (0._dp,1._dp) * wert
+       If (i_c.Eq.0) phase_mu = Cmplx(wert, Aimag(phase_mu),dp)
+       If (i_c.Eq.1) phase_mu = Real(phase_mu, dp) + (0._dp,1._dp) * wert
       End If
 
      Else If (i_par.Eq.5) Then 
       If (i_model.Eq.1) Then ! mSugra, A_0
        set_mod_par(5) = 1
-       If (i_c.Eq.0) AoY_d_0 = Cmplx(0._dp, Aimag(AoY_d_0),dp) + wert
+       If (i_c.Eq.0) AoY_d_0 = Cmplx(wert, Aimag(AoY_d_0),dp) 
        If (i_c.Eq.1) AoY_d_0 = Real(AoY_d_0,dp) + (0._dp,1._dp) * wert
        AoY_l_0 = AoY_d_0
        AoY_u_0 = AoY_d_0
        AoY_nu_0 = AoY_d_0
        AoT_0 = AoY_d_0
+       Aolam12_0 = AoY_d_0(1,1)
        If (i_c.Eq.0) Alam12_0 =  Cmplx(0._dp, Aimag(Alam12_0),dp) + wert
        If (i_c.Eq.1) Alam12_0 =  Real(Alam12_0,dp) + (0._dp,1._dp) * wert
       Else If ((i_model.Eq.2).And.(i_c.Eq.0)) Then ! GMSB, n_5
@@ -2902,7 +2908,7 @@ Contains
   !--------------------------------------------------------------------- 
   ! mixing matrices for shifts to super-CKM basis
   !--------------------------------------------------------------------- 
-  Integer :: ierr, i_errors(1100)
+  Integer :: ierr, i_errors(1100), io_L1
   Real(dp) :: Yu(3), Yd(3)
   Complex(dp), Dimension(3,3) :: CKM_Q
   Complex(dp), Dimension(6,6) :: RUsq_ckm, RDsq_ckm
@@ -3187,6 +3193,10 @@ Contains
    Else
     Open(io_L,file="SPheno.spc",status="unknown")
    End If
+   If (Write_SLHA1) then
+    io_L1 = io_L + 1
+    open(io_L1,file="SPheno_1.spc",status="unknown")
+   End If
    l_open = .False.
   End If
   !--------------------------------------------------------
@@ -3194,7 +3204,7 @@ Contains
   !--------------------------------------------------------
   ! Les Houches standard
   !-----------------------
-   Write(io_L,100) "# SUSY Les Houches Accord 2.beta - MSSM spectrum + Decays"
+   Write(io_L,100) "# SUSY Les Houches Accord 2 - MSSM spectrum + Decays"
    Write(io_L,100) "# SPheno "//version
    Write(io_L,100) &
      & "# W. Porod, Comput. Phys. Commun. 153 (2003) 275-315, hep-ph/0301101"
@@ -4766,8 +4776,8 @@ Contains
      id_d_2(i_zaehl,2) = -id_W
      i_zaehl = i_zaehl+1
     End Do
-    Do i2=1,n_sn
-     Do i3=1,n_spm
+    Do i3=1,n_spm
+     Do i2=1,n_sn
       Fnames(i_zaehl) =  "sneutrino_"//Bu(i2)//" "//Trim(c_sm(i3))
       Lnames(i_zaehl) =  Trim(c_snu(i2))//" "//Trim(c_sm(i3))
       id_d_2(i_zaehl,1) = id_snu(i2)
@@ -4782,8 +4792,8 @@ Contains
      id_d_2(i_zaehl,2) = id_Z
      i_zaehl = i_zaehl+1
     End Do
-    Do i2=1,i1-1
-     Do i3=1,n_P0
+    Do i3=1,n_P0
+     Do i2=1,i1-1
       Fnames(i_zaehl) =  "slepton_"//Bu(i2)//" "//Trim(c_p0(i3))
       Lnames(i_zaehl) =  Trim(c_sle(i2))//" "//Trim(c_p0(i3))
       id_d_2(i_zaehl,1) = id_sle(i2)
@@ -4791,8 +4801,8 @@ Contains
       i_zaehl = i_zaehl+1
      End Do
     End Do
-    Do i2=1,i1-1
-     Do i3=1,n_S0
+    Do i3=1,n_S0
+     Do i2=1,i1-1
       Fnames(i_zaehl) =  "slepton_"//Bu(i2)//" "//Trim(c_S0(i3))
       Lnames(i_zaehl) =  Trim(c_sle(i2))//" "//Trim(c_S0(i3))
       id_d_2(i_zaehl,1) = id_sle(i2)
@@ -4939,8 +4949,8 @@ Contains
      id_d_2(i_zaehl,2) = id_W
      i_zaehl = i_zaehl+1
     End Do
-    Do i2=1,n_sl
-     Do i3=1,n_spm
+    Do i3=1,n_spm
+     Do i2=1,n_sl
       Fnames(i_zaehl) =  "slepton_"//Bu(i2)//" "//Trim(c_sp(i3))
       Lnames(i_zaehl) =  Trim(c_sle(i2))//" "//Trim(c_sp(i3))
       id_d_2(i_zaehl,1) = id_sle(i2)
@@ -4955,8 +4965,8 @@ Contains
      id_d_2(i_zaehl,2) = id_Z
      i_zaehl = i_zaehl+1
     End Do
-    Do i2=1,i1-1
-     Do i3=1,n_P0
+    Do i3=1,n_P0
+     Do i2=1,i1-1
       Fnames(i_zaehl) =  "sneutrino_"//Bu(i2)//" "//Trim(c_p0(i3))
       Lnames(i_zaehl) =  Trim(c_snu(i2))//" "//Trim(c_p0(i3))
       id_d_2(i_zaehl,1) = id_snu(i2)
@@ -4964,8 +4974,8 @@ Contains
       i_zaehl = i_zaehl+1
      End Do
     End Do
-    Do i2=1,i1-1
-     Do i3=1,n_S0
+    Do i3=1,n_S0
+     Do i2=1,i1-1
       Fnames(i_zaehl) =  "sneutrino_"//Bu(i2)//" "//Trim(c_S0(i3))
       Lnames(i_zaehl) =  Trim(c_snu(i2))//" "//Trim(c_S0(i3))
       id_d_2(i_zaehl,1) = id_snu(i2)
@@ -5079,8 +5089,8 @@ Contains
      id_d_2(i_zaehl,2) = -id_W
      i_zaehl = i_zaehl+1
     End Do
-    Do i2=1,n_su
-     Do i3=1,n_spm
+    Do i3=1,n_spm
+     Do i2=1,n_su
       Fnames(i_zaehl) =  "s-up_"//Bu(i2)//" "//Trim(c_sm(i3))
       Lnames(i_zaehl) =  Trim(c_su(i2))//" "//Trim(c_sm(i3))
       id_d_2(i_zaehl,1) = id_su(i2)
@@ -5095,8 +5105,8 @@ Contains
      id_d_2(i_zaehl,2) = id_Z
      i_zaehl = i_zaehl+1
     End Do
-    Do i2=1,i1-1
-     Do i3=1,n_P0
+    Do i3=1,n_P0
+     Do i2=1,i1-1
       Fnames(i_zaehl) =  "s-down_"//Bu(i2)//" "//Trim(c_p0(i3))
       Lnames(i_zaehl) =  Trim(c_sd(i2))//" "//Trim(c_p0(i3))
       id_d_2(i_zaehl,1) = id_sd(i2)
@@ -5104,8 +5114,8 @@ Contains
       i_zaehl = i_zaehl+1
      End Do
     End Do
-    Do i2=1,i1-1
-     Do i3=1,n_S0
+    Do i3=1,n_S0
+     Do i2=1,i1-1
       Fnames(i_zaehl) =  "s-down_"//Bu(i2)//" "//Trim(c_S0(i3))
       Lnames(i_zaehl) =  Trim(c_sd(i2))//" "//Trim(c_S0(i3))
       id_d_2(i_zaehl,1) = id_sd(i2)
@@ -5262,8 +5272,8 @@ Contains
      id_d_2(i_zaehl,2) = id_W
      i_zaehl = i_zaehl+1
     End Do
-    Do i2=1,n_su
-     Do i3=1,n_spm
+    Do i3=1,n_spm
+     Do i2=1,n_sd
       Fnames(i_zaehl) =  "s-down_"//Bu(i2)//" "//Trim(c_sp(i3))
       Lnames(i_zaehl) =  Trim(c_sd(i2))//" "//Trim(c_sp(i3))
       id_d_2(i_zaehl,1) = id_sd(i2)
@@ -5278,8 +5288,8 @@ Contains
      id_d_2(i_zaehl,2) = id_Z
      i_zaehl = i_zaehl+1
     End Do
-    Do i2=1,i1-1
-     Do i3=1,n_P0
+    Do i3=1,n_P0
+     Do i2=1,i1-1
       Fnames(i_zaehl) =  "s-up_"//Bu(i2)//" "//Trim(c_p0(i3))
       Lnames(i_zaehl) =  Trim(c_su(i2))//" "//Trim(c_p0(i3))
       id_d_2(i_zaehl,1) = id_su(i2)
@@ -5287,8 +5297,8 @@ Contains
       i_zaehl = i_zaehl+1
      End Do
     End Do
-    Do i2=1,i1-1
-     Do i3=1,n_S0
+    Do i3=1,n_S0
+     Do i2=1,i1-1
       Fnames(i_zaehl) =  "s-up_"//Bu(i2)//" "//Trim(c_S0(i3))
       Lnames(i_zaehl) =  Trim(c_su(i2))//" "//Trim(c_S0(i3))
       id_d_2(i_zaehl,1) = id_su(i2)
@@ -11357,7 +11367,7 @@ Contains
     If ((i1.Lt.1).Or.(i1.Gt.nmax)) Then
      Write(ErrCan,*) "Problem while reading "//mat_name//" in routine"// &
         & Trim(NameOfUnit(Iname))//", index i1=",i1
-     Iname = Iname - 2
+     Iname = Iname - 1
      kont = -308
      Call AddError(308)
      Call TerminateProgram()
@@ -11365,7 +11375,7 @@ Contains
     If ((i2.Lt.1).Or.(i2.Gt.nmax)) Then
      Write(ErrCan,*) "Problem while reading "//mat_name//" in routine"// &
         & Trim(NameOfUnit(Iname))//", index i2=",i2
-     Iname = Iname - 2
+     Iname = Iname - 1
      kont = -308
      Call AddError(308)
      Call TerminateProgram()
@@ -11389,7 +11399,8 @@ Contains
 
    End Do
 
-   200 Return
+   200 Iname = Iname - 1
+   Return
 
   End Subroutine ReadMatrixC
 
@@ -11423,7 +11434,7 @@ Contains
     If ((i1.Lt.1).Or.(i1.Gt.nmax)) Then
      Write(ErrCan,*) "Problem while reading "//mat_name//" in routine"// &
         & Trim(NameOfUnit(Iname))//", index i1=",i1
-     Iname = Iname - 2
+     Iname = Iname - 1
      kont = -309
      Call AddError(309) 
      Call TerminateProgram()
@@ -11431,7 +11442,7 @@ Contains
     If ((i2.Lt.1).Or.(i2.Gt.nmax)) Then
      Write(ErrCan,*) "Problem while reading "//mat_name//" in routine"// &
         & Trim(NameOfUnit(Iname))//", index i2=",i2
-     Iname = Iname - 2
+     Iname = Iname - 1
      kont = -309
      Call AddError(309) 
      Call TerminateProgram()
@@ -11441,7 +11452,8 @@ Contains
 
    End Do
 
-   200 Return
+   200 Iname = Iname - 1
+   Return
 
   End Subroutine ReadMatrixR
   
@@ -11475,7 +11487,7 @@ Contains
     If ((i1.Lt.1).Or.(i1.Gt.nmax)) Then
      Write(ErrCan,*) "Problem while reading "//mat_name//" in routine"// &
         & Trim(NameOfUnit(Iname))//", index i1=",i1
-     Iname = Iname - 2
+     Iname = Iname - 1
      kont = -312
      Call AddError(312)
      Call TerminateProgram()
@@ -11483,7 +11495,7 @@ Contains
     If ((i2.Lt.1).Or.(i2.Gt.nmax)) Then
      Write(ErrCan,*) "Problem while reading "//mat_name//" in routine"// &
         & Trim(NameOfUnit(Iname))//", index i2=",i2
-     Iname = Iname - 2
+     Iname = Iname - 1
      kont = -312 
      Call AddError(312)
      Call TerminateProgram()
@@ -11502,7 +11514,8 @@ Contains
 
    End Do
 
-   200 Return
+   200 Iname = Iname - 1
+   Return
 
   End Subroutine ReadTensorC
   
@@ -11536,7 +11549,7 @@ Contains
     If ((i1.Lt.1).Or.(i1.Gt.nmax)) Then
      Write(ErrCan,*) "Problem while reading "//vec_name//" in routine"// &
         & Trim(NameOfUnit(Iname))//", index i1=",i1
-     Iname = Iname - 2
+     Iname = Iname - 1
      kont = -310
      Call AddError(310)
      Call TerminateProgram()
@@ -11547,7 +11560,8 @@ Contains
 
    End Do
 
-   200 Return
+   200 Iname = Iname - 1
+   Return
 
   End Subroutine ReadVectorC
   
@@ -11581,7 +11595,7 @@ Contains
     If ((i1.Lt.1).Or.(i1.Gt.nmax)) Then
      Write(ErrCan,*) "Problem while reading "//vec_name//" in routine"// &
         & Trim(NameOfUnit(Iname))//", index i1=",i1
-     Iname = Iname - 2
+     Iname = Iname - 1
      kont = -311
      Call AddError(311)
      Call TerminateProgram()
@@ -11591,7 +11605,8 @@ Contains
 
    End Do
 
-   200 Return
+   200 Iname = Iname - 1
+   Return
 
   End Subroutine ReadVectorR
 

@@ -35,6 +35,7 @@ Real(dp), save :: mGUT_save, sinW2_DR_mZ      &
     & , mf_l_DR_SM(3), mf_d_DR_SM(3), mf_u_DR_SM(3)
 Real(dp) :: m_32, M0_amsb
 Complex(dp), save :: Yl_mZ(3,3), Yu_mZ(3,3), Yd_mZ(3,3)
+Real(dp), Save :: vevs_DR_save(2)
 ! flag to decide if nu-Yukawas are given from outside or not
 Logical, Save :: Fixed_Nu_Yukawas = .False., Ynu_eq_Yu = .False.
 Logical, Save :: Off_GMSB=.False.
@@ -90,12 +91,14 @@ Contains
   Real(dp), Intent(out) :: g1(57), mW2_run, mZ2_run
   Integer, Intent(inout) :: kont
 
+  Real(dp), save :: vevs_DR(2)
+
   Integer :: n_S0, i1, i_loop, i_loop_max, i2
   Real(dp) :: mC2( Size(mC) ), mN2(Size(mN) ), D_mat(3,3)
   Real(dp) :: test, alphaMZ, alpha3, gSU2, rho, delta_rho, sinW2_DR, vev2    &
-    & , vevs_DR(2), mZ2_mZ, CosW2SinW2, gauge(3), delta, sinW2_old, delta_r  &
+    & , mZ2_mZ, CosW2SinW2, gauge(3), delta, sinW2_old, delta_r  &
     & , p2, gSU3, tanb, xt2, fac(2), SigQCD, delta_rw, sinW2, cosW2, cosW
-  Real(dp), Dimension(3) :: mf_d_DR, mf_l_DR, mf_u_DR
+  Real(dp), Dimension(3) :: mf_d_DR, mf_l_DR, mf_u_DR, mf_d2, mf_l2, mf_u2
   Complex(dp) :: dmZ2, dmW2, dmW2_0, yuk_tau, yuk_t, yuk_b, SigLep, Sigdown  &
     & , SigUp
   Complex(dp), Dimension(3,3) :: SigS_u, sigR_u, SigL_u, SigS_d, SigR_d    &
@@ -135,15 +138,6 @@ Contains
   !-------------------------------------------------------------------
   Call  SetLoopMassModel(Size(mC), Size(mN), n_s0, n_s0, Size(mSpm) &
                        & , Size(mSlepton), Size(msneutrino2))
-  !-----------
-  ! alpha(mZ)
-  !-----------
-  alphaMZ = AlphaEwDR(mZ, mSpm, mUsquark, mDSquark, mSlepton, mC)
-  !-----------
-  ! alpha_s(mZ)
-  !-----------
-  alpha3 = AlphaSDR(mZ, mglu, mUSquark, mDSquark)
-  gSU3 = Sqrt( 4._dp*pi*alpha3)
   !-----------------
   ! sin(theta_W)^2
   !-----------------
@@ -154,11 +148,32 @@ Contains
    Do i1=1,3
     y_l(i1,i1) = sqrt2 * mf_l_mZ(i1) / vevSM(1)
    End Do
+   mf_l2 = mf_l_mZ**2
+   mf_d2 = mf_d_mZ**2
+   mf_u2 = mf_u_mZ**2
+ 
   Else
    sinW2_DR = sinW2_DR_mZ
    sinW2_old = sinW2_DR
    Y_l = Yl_mZ
+
+   Call FermionMass(Yd_mZ,vevs_DR_save(1),mf_d2,uD_L_T,uD_R_T,kont)
+   Call FermionMass(Yl_mZ,vevs_DR_save(1),mf_l2,uL_L_T,uL_R_T,kont)
+   Call FermionMass(Yu_mZ,vevs_DR_save(2),mf_u2,uU_L_T,uU_R_T,kont)
+
+   mf_l2 = mf_l2**2
+   mf_d2 = mf_d2**2
+   mf_u2 = mf_u2**2
   End If
+  !-----------
+  ! alpha(mZ)
+  !-----------
+  alphaMZ = AlphaEwDR(mZ, mSpm, mUsquark, mDSquark, mSlepton, mC)
+  !-----------
+  ! alpha_s(mZ)
+  !-----------
+  alpha3 = AlphaSDR(mZ, mglu, mUSquark, mDSquark, sqrt(mf_u2(3)) )
+  gSU3 = Sqrt( 4._dp*pi*alpha3)
   !--------------------
   ! for 2-loop parts
   !--------------------
@@ -359,6 +374,7 @@ Contains
    Call FermionMass(Y_d,vevs_DR(1),mf_d_DR,uD_L_T,uD_R_T,kont)
    Call FermionMass(Y_u,vevs_DR(2),mf_u_DR,uU_L_T,uU_R_T,kont)
   End If ! i_run.eq.1
+
    !---------------------------------------------
    ! shifting mixing matrices to superCKM basis 
    !---------------------------------------------
@@ -401,7 +417,6 @@ Contains
     rot = 0._dp
     rot(1:3,1:3) = uD_L_T
     rot(4:6,4:6) = Conjg(uD_R_T)
-    rot = 0._dp
     RDsq_in = Matmul(RDsq_ckm, rot)
 
     p2 = 0._dp ! for off-diagonal elements
@@ -570,7 +585,6 @@ Contains
    End If
 
   End Do ! i_loop
-!Write(*,*) "i_loop",i_loop
 
   If ((.Not.converge).and.FermionMassResummation) Then
    Write (ErrCan,*) 'Problem in subroutine BoundaryEW!!'
@@ -579,14 +593,14 @@ Contains
    Write (ErrCan,*) 'yuk_b,yuk_d(3,3)',yuk_b,y_d(3,3)
    Write (ErrCan,*) 'yuk_t,yuk_u(3,3)',yuk_t,y_u(3,3)
   End If
-!Write(41,*) "h",mp02(2)+mp02(1),ms02(2)+ms02(1),mp02(1)-mz2
-!Write(41,*) sqrt(mp02(1)),sqrt(mz2)
   !----------------------------------------------------------------
   ! the RGE paper defines the Yukawas transposed to my conventions
   !----------------------------------------------------------------
+
   Yl_mZ = Y_l
   Yd_mZ = Y_d
   Yu_mZ = Y_u
+  vevs_DR_save = vevs_DR
   Y_u = Transpose(Y_u)
   Y_d = Transpose(Y_d)
   Y_l = Transpose(Y_l)
@@ -2121,6 +2135,503 @@ Contains
   Iname = Iname - 1
 
  End Subroutine BoundaryHS
+
+ Subroutine Calculate_gi_Yi(Q, gauge, tanb, Y_l, Y_d, Y_u, mC, U, V, mN, N     &
+    & , mS02, RS0, mP02, RP0, mSpm, mSpm2, RSpm, mDsquark, mDsquark2, RDsquark &
+    & , mUsquark, mUsquark2, RUsquark, mSlepton, mSlepton2, RSlepton           &
+    & , mSneutrino2 , RSneutrino, mGlu, phase_glu                              &
+    & , alphaMZ, AlphaS_5, mf_d_SM, mf_u_SM, CKM, mf_l_SM, kont         &
+    & , Mnu5, mf_nu, PMNS)
+ !-----------------------------------------------------------------------
+ ! Calculates gauge and yukawa couplings from the DRbar scheme to
+ ! pole and MSbar quantities. The SUSY mass vectors and mixing matrices
+ ! are not fixed so that the model can easily be extended
+ ! input:
+ !  Q ................ scale, where all the parameters and running masses
+ !                     are given
+ !  gauge ............ 3-vector for gauge couplings: i=1 -> U(1)
+ !                                                   i=2 -> SU(2)
+ !                                                   i=3 -> SU(3)
+ !  tanb ............. tan(beta)
+ !  Y_l .............. lepton Yukawa couplings
+ !  Y_d .............. d-quarks Yukawa couplings
+ !  Y_u .............. u-quarks Yukawa couplings
+ !  mC ............... chargino masses
+ !  U,V .............. chargino mixing matrices
+ !  mN ............... neutralino masses
+ !  N ................ neutralino mixing matrices
+ !  mS02 ............. masses squared of the neutral scalar Higgs bosons
+ !  RS0 .............. mixing matrix of the neutral scalar Higgs bosons
+ !  mP02 ............. masses squared of the neutral pseudo-scalar Higgs bosons
+ !  RP0 .............. mixing matrix of the neutral pseudo-scalar Higgs bosons
+ !  mSpm2 ............ masses squared of the charged scalar Higgs bosons
+ !  RSpm ............. mixing matrix of the charged scalar Higgs bosons
+ !  mDsquark ......... masses of d-squarks
+ !  mDsquark2 ........ masses of d-squarks squared
+ !  RDsquark ......... mixing matrix of d-squarks
+ !  mUsquark ......... masses of u-squarks
+ !  mUsquark2 ........ masses of u-squarks squared
+ !  RUsquark ......... mixing matrix of u-squarks
+ !  mSlepton ......... masses of sleptons
+ !  mSlepton2 ........ masses of sleptons squared
+ !  RSlepton ......... mixing matrix of sleptons
+ !  mSneutrino2 ...... masses of sneutrinos squared
+ !  RSneutrino ....... mixing matrix of sneutrinos
+ !  mGlu ............. gluino mass
+ !  phase_glu ........ phase of gluino mass parameter
+ ! input, optional
+ !  mNu5 ............. dim-5 operator for neutrino masses
+ ! output:
+ !  AlphaMZ .......... electromagnetic coupling alpha(Q) at the scale Q
+ !                     without t-quark but including W-boson
+ !                     (corresponding to the usual alpha(mZ) definition
+ !  AlphaS_5 ......... strong coupling alpha_S(Q) at the scale Q with
+ !                     5 flavours of quarks
+ !  mf_d_SM .......... MSbar d-quark masses: i=1 -> m_d(2 GeV)
+ !                                           i=2 -> m_s(2 GeV)
+ !                                           i=3 -> mb(mb)
+ !  mf_u_SM .......... MSbar u-quark masses: i=1 -> m_u(2 GeV)
+ !                                           i=2 -> m_c(2 GeV)
+ !                                           i=3 -> pole mass of t-quark
+ !  CKM .............. CKM matrix at scale Q
+ !  mf_l_SM .......... lepton pole masses: i=1 -> m_e
+ !                                         i=2 -> m_mu
+ !                                         i=3 -> m_tau
+ !  kont ............. if 0 everything is fine, if =!0 -> problem
+ ! output, optional but must be given once mNu5 is given!
+ !  mf_nu ............ neutrino masses
+ !  PMNS ............. PMNS matrix
+ ! written by Werner Porod, 10.02.2010
+ !-----------------------------------------------------------------------
+ Implicit None
+  Real(dp), Intent(in) :: Q, gauge(3), tanb  ! scale, DRbar gauge coupling
+  Complex(dp), Dimension(3,3), Intent(in) :: Y_u, Y_d, Y_l ! Yukawas
+  Real(dp), Intent(inout) :: mSpm2(:)
+  Real(dp), Intent(in) :: mC(:), mN(:), mSpm(:), mUsquark(:), mDsquark(:)     &
+    & , mSlepton(:), mUsquark2(:), mDsquark2(:), mSlepton2(:), mSneutrino2(:) &
+    & , mS02(:), mP02(:), RP0(:,:), mglu, RS0(:,:)
+  Complex(dp), Intent(in) :: U(:,:), V(:,:), N(:,:), RSpm(:,:)           &
+    & , RDsquark(:,:), RUsquark(:,:), RSlepton(:,:), RSneutrino(:,:)     &
+    & , phase_glu
+  Complex(dp), Optional, Intent(in) :: Mnu5(3,3)
+  Real(dp), Intent(out) :: AlphaMZ  ! alpha MSbar
+  Real(dp), Intent(out) :: AlphaS_5 ! alpha_s MSbar, 5 flavours
+  Complex(dp), Intent(out) :: CKM(3,3)
+  Integer, Intent(inout) :: kont
+  Real(dp), Intent(out), Dimension(3) :: mf_l_SM, mf_d_SM, mf_u_SM
+  Real(dp), Intent(out), Optional :: mf_nu(3)
+  Complex(dp), Optional, Intent(out) :: PMNS(3,3)
+
+  Integer :: n_S0, i1
+  Real(dp) :: mC2( Size(mC) ), mN2(Size(mN) )
+  Real(dp) :: test, gU1, gU1sq, gSU2, gSU2sq, sinW2, vev2    &
+    & , vevs_DR(2), mZ2_mZ, CosW2SinW2, p2, gSU3, gSU3sq, SigQCD
+  Complex(dp) :: dmZ2, SigLep, Sigdown, SigUp
+  Complex(dp), Dimension(3,3) :: SigS_u, sigR_u, SigL_u, SigS_d, SigR_d, SigL_d &
+    & , SigS_l, sigR_l, SigL_l, uU_L_T, uU_R_T, uD_L_T, uD_R_T, uL_L_T, uL_R_T
+  Real(dp), Parameter :: e_d=-1._dp/3._dp, e_u=2._dp/3._dp, e_e=-1._dp &
+    & , T3_d=-0.5_dp, T3_u=0.5_dp
+  Complex(dp), Parameter :: Y_nu(3,3) = ZeroC
+
+  Real(dp) :: sumI, AlphaSDR , DeltaAlpha, alpha_in, mZ2_run, mW2_run
+  Real(dp), Dimension(3) :: mf_u_DR, mf_u_DR_SM, mf_d_DR &
+                        &  , mf_d_DR_SM, mf_l_DR, mf_l_DR_SM, mf_l2 &
+                        &  , mf_d2, mf_u2
+  Complex(dp), Dimension(3,3) :: uL_u, uR_u, uL_d, uR_d, uL_l, uR_l, Unu
+  !---------------------------------------------------
+  ! needed for threshold corrections and rge running
+  !---------------------------------------------------
+  Real(dp) :: g9(9), g10(10), as_nf, as_nf_minus_1, as_nf_d_pi, aem , tz, dt  &
+     & , mb_guess, mb_check
+  Logical :: converge
+  Real(dp), Parameter :: zeta3 = 1.202056903159594285399738161511449990765_dp &
+     & , zeta4 = 1.082323233711138191516003696541167902775_dp                 &
+     & , B4 = -1.762800087073770864061897634679818807215_dp                   &
+     & , c_as(2) = (/ 11._dp / 72._dp                                         &
+     &             , 58067._dp / 13824._dp - 82043._dp * zeta3 / 27648._dp /) &
+     & , c_m(2) = (/ 89._dp / 432._dp                                         &
+     &            , 713._dp/486._dp - B4 / 36._dp - 221._dp * zeta3 / 288._dp &
+     &          + 1.25_dp * zeta4  /)
+
+  Iname = Iname + 1
+  nameOfUnit(Iname) = "Calculate_gi_Yi"
+  !----------------------------------------
+  ! checking if masses squared are positiv
+  !----------------------------------------
+  If (Min(Minval(mUsquark2), Minval(mDSquark2), Minval(mSlepton2)           &
+     &    ,Minval(mSneutrino2), Minval(mS02), Minval(mP02), Minval(mSpm2))  &
+     & .Lt. 0._dp ) Then
+   kont = -401
+   Call AddError(401)
+   Iname = Iname - 1
+   Return
+  End If
+
+  mf_nu = 0._dp ! only for initialisation
+  n_s0 = Size(mS02)
+  !-------------------------------------------------------------------
+  ! setting renormalisation scale to m_Z, because the RGEs start there
+  !-------------------------------------------------------------------
+  test = SetRenormalizationScale(Q**2)
+  !-------------------------------------------------------------------
+  ! initialization of LoopMasses
+  !-------------------------------------------------------------------
+  Call  SetLoopMassModel(Size(mC), Size(mN), n_s0, n_s0, Size(mSpm) &
+                       & , Size(mSlepton), Size(msneutrino2))
+  !------------
+  ! couplings
+  !------------
+  gU1 = gauge(1)
+  gU1sq = gU1**2
+  gSU2 = gauge(2)
+  gSU2sq = gSU2**2
+  gSU3 = gauge(3)
+  gSU3sq = gSU3**2
+  sinW2 = gU1sq / (gU1sq + gSu2sq)
+  CosW2SinW2 = (1._dp - sinW2) * sinW2
+  alpha_in = oo4pi * sinW2 * gSu2sq
+  !------------
+  ! vevs
+  !------------
+  vev2 =  mZ2 * CosW2SinW2 / (pi * alpha_in)
+  vevs_DR(1) = Sqrt(vev2 / (1._dp+tanb**2) )
+  vevs_DR(2) = tanb * vevs_DR(1)
+
+  If (GenerationMixing) Then
+   !---------------------
+   ! running masses at Q
+   !---------------------
+   Call FermionMass(Y_l,vevs_DR(1),mf_l_DR,uL_L_T,uL_R_T,kont)
+   Call FermionMass(Y_d,vevs_DR(1),mf_d_DR,uD_L_T,uD_R_T,kont)
+   Call FermionMass(Y_u,vevs_DR(2),mf_u_DR,uU_L_T,uU_R_T,kont)
+   If (kont.ne.0) then
+    Iname = Iname - 1
+    return
+   End If
+  Else
+   Do i1=1,3
+    mf_l_DR(i1) = oosqrt2 * vevs_DR(1) * Abs(Y_l(i1,i1))
+    mf_d_DR(i1) = oosqrt2 * vevs_DR(1) * Abs(Y_d(i1,i1))
+    mf_u_DR(i1) = oosqrt2 * vevs_DR(2) * Abs(Y_u(i1,i1))
+   End Do
+  End If
+  mf_l2 =  mf_l_DR**2
+  mf_d2 =  mf_d_DR**2
+  mf_u2 =  mf_u_DR**2
+  !-------------
+  ! alpha(mZ)
+  !-------------
+  alphaMZ = AlphaEwMS(Q, alpha_in, mSpm, mUsquark, mDSquark, mSlepton &
+          &          , mC, mf_u_DR(3))
+  !---------------
+  ! alpha_s(mZ)
+  !---------------
+  sumI = 0
+  Do i1=1,6
+   sumI = sumI + Log( mDSquark(i1) / Q ) + Log( mUSquark(i1) / Q )
+  End Do
+
+  AlphaSDR = oo4pi * gSu3sq
+
+  DeltaAlpha = 0.5_dp - 2._dp * Log(mf_u_DR(3)/Q ) / 3._dp &
+           & - sumI / 6._dp  - 2._dp * Log(mGlu /Q)
+  DeltaAlpha = AlphaSDR * DeltaAlpha / ( 2._dp * Pi)
+  
+  AlphaS_5 = AlphaSDR / (1._dp + DeltaAlpha)
+  !-----------------
+  ! vevs
+  !-----------------
+  vev2 =  mZ2 * CosW2SinW2 / (pi * alpha_in)
+  vevs_DR(1) = Sqrt(vev2 / (1._dp+tanb**2) )
+  vevs_DR(2) = tanb * vevs_DR(1)
+  mC2 = mC**2
+  mN2 = mN**2
+  Call PiZZT1(mZ2, gSU2, sinW2, vevs_DR, mZ2, mW2, mS02, RS0, mP02, RP0   &
+   & , mSpm2, RSpm, mSneutrino2, RSneutrino, mSlepton2, RSlepton, mUsquark2 &
+   & , RUsquark, mDSquark2, RDSquark, mf_l2, mf_u2, mf_d2, mC, mC2, U, V    &
+   & , mN, mN2, N, dmZ2)
+  mZ2_mZ = Real(dmZ2+mZ2,dp)
+  If (mZ2_mZ.Lt.0._dp) Then
+   Iname = Iname - 1
+   kont = -413
+   Call AddError(413) 
+   Return
+  End If
+  mZ2_run = mZ2_mZ
+  mW2_run = mZ2_mZ * (1._dp - sinW2)
+  If (GenerationMixing) Then
+   !---------------------
+   ! running masses at Q
+   !---------------------
+   Call FermionMass(Y_l,vevs_DR(1),mf_l_DR,uL_L_T,uL_R_T,kont)
+   Call FermionMass(Y_d,vevs_DR(1),mf_d_DR,uD_L_T,uD_R_T,kont)
+   Call FermionMass(Y_u,vevs_DR(2),mf_u_DR,uU_L_T,uU_R_T,kont)
+   If (kont.ne.0) then
+    Iname = Iname - 1
+    return
+   End If
+  Else
+   Do i1=1,3
+    mf_l_DR(i1) = oosqrt2 * vevs_DR(1) * Abs(Y_l(i1,i1))
+    mf_d_DR(i1) = oosqrt2 * vevs_DR(1) * Abs(Y_d(i1,i1))
+    mf_u_DR(i1) = oosqrt2 * vevs_DR(2) * Abs(Y_u(i1,i1))
+   End Do
+  End If
+  mf_l2 =  mf_l_DR**2
+  mf_d2 =  mf_d_DR**2
+  mf_u2 =  mf_u_DR**2
+  !---------------------------------------
+  ! recalculation, using running masses
+  !---------------------------------------
+  Call PiZZT1(mZ2, gSU2, sinW2, vevs_DR, mZ2_mZ, mW2_run, mS02, RS0        &
+   & , mP02, RP0, mSpm2, RSpm, mSneutrino2, RSneutrino, mSlepton2, RSlepton   &
+   & , mUsquark2, RUsquark, mDSquark2, RDSquark, mf_l2, mf_u2, mf_d2, mC, mC2 &
+   & , U, V, mN, mN2, N  &
+   & , dmZ2)
+  mZ2_mZ = Real(dmZ2+mZ2,dp)
+  If (mZ2_mZ.Lt.0._dp) Then
+    Iname = Iname - 1
+    kont = -413
+    Call AddError(413) 
+    Return
+  End If
+  mZ2_run = mZ2_mZ
+  mW2_run = mZ2_mZ * (1._dp - sinW2)
+
+  vev2 =  mZ2_mZ * CosW2SinW2 / (pi * alpha_in)
+  vevs_DR(1) = Sqrt(vev2 / (1._dp+tanb**2) )
+  vevs_DR(2) = tanb * vevs_DR(1)
+
+  !----------------------------
+  ! fermion masses, CKM, PMNS
+  !----------------------------
+
+  If (GenerationMixing) Then
+   !---------------------
+   ! running masses at Q
+   !---------------------
+   Call FermionMass(Y_l,vevs_DR(1),mf_l_DR,uL_L_T,uL_R_T,kont)
+   Call FermionMass(Y_d,vevs_DR(1),mf_d_DR,uD_L_T,uD_R_T,kont)
+   Call FermionMass(Y_u,vevs_DR(2),mf_u_DR,uU_L_T,uU_R_T,kont)
+   If (kont.ne.0) then
+    Iname = Iname - 1
+    return
+   End If
+   p2 = 0._dp ! for off-diagonal elements
+   !---------------------------------------------------
+   ! 1-loop SUSY contributions + QCD & QED for t-quark
+   !---------------------------------------------------
+   ! u-quarks
+   Call Sigma_Fermion3(p2, mf_u_DR, Y_u, uU_L_T, uU_R_T, gSU2, gSU3, sinW2  &
+       & , T3_u, e_u, mf_d_DR, Y_d, uD_L_T, uD_R_T, mUSquark2, RUsquark     &
+       & , mDSquark2, RDsquark, mglu , phase_glu, mN, mN2, N, mC, mC2, U, V &
+       & , mS02, RS0, mP02, RP0, mSpm2 , RSpm, mZ2_run, mW2_run, .True.     &
+       & , SigS_u, SigL_u, SigR_u, SigQCD)
+   Call Masses(Y_u, vevs_DR(2), SigS_u, SigL_u, SigR_u, .False.    &
+            & , uL_u, uR_u, mf_u_DR_SM, kont)
+   If (kont.ne.0) then
+    Iname = Iname - 1
+    return
+   End If
+   
+   mf_u_SM(3) = mf_u_DR_SM(3)- SigQCD
+   ! d-quarks
+   Call Sigma_Fermion3(p2, mf_d_DR, Y_d, uD_L_T, uD_R_T, gSU2, gSU3, sinW2 &
+       & , T3_d, e_d, mf_u_DR, Y_u, uU_L_T, uU_R_T, mDSquark2, RDsquark       &
+       & , mUSquark2, RUsquark,  mglu , phase_glu, mN, mN2, N, mC, mC2, U, V  &
+       & , mS02, RS0, mP02, RP0, mSpm2 , RSpm, mZ2_run, mW2_run , .True.      &
+       & , SigS_d, SigL_d, SigR_d)
+   Call Masses(Y_d, vevs_DR(1), SigS_d, SigL_d, SigR_d, .True.    &
+            & , uL_d, uR_d, mf_d_DR_SM, kont)
+   If (kont.ne.0) then
+    Iname = Iname - 1
+    return
+   End If
+
+   ! leptons
+   Call Sigma_Fermion3(p2, mf_l_DR, Y_l, uL_L_T, uL_R_T, gSU2, gSU3, sinW2    &
+       & , T3_d, e_e, mf_nu, Y_nu, id3C, id3C, mSlepton2, RSlepton           &
+       & , mSneutrino2, RSneutrino, mglu , phase_glu, mN, mN2, N, mC, mC2, U &
+       & , V, mS02, RS0, mP02, RP0, mSpm2 , RSpm, mZ2_run, mW2_run, .False.  &
+       & , SigS_l, SigL_l, SigR_l)
+   Call Masses(Y_l, vevs_DR(1), SigS_l, SigL_l, SigR_l, .True.    &
+            & , uL_l, uR_l, mf_l_DR_SM, kont)
+   If (kont.ne.0) then
+    Iname = Iname - 1
+    return
+   End If
+
+   CKM = Matmul(uL_u, Transpose(Conjg(uL_D)) )
+   ! neutrinos
+   If (Present(mNu5)) Then
+    MnuL5 = 0.5_dp * Mnu5 * vevs_DR(2)**2
+    Call NeutrinoMass_1L(MnuL5, gU1, gSu2, Y_l, mC2, U, V, mN2, N &
+           & , mSlepton2, Rslepton, mSneutrino2, Rsneut, mf_nu, Unu, kont)
+    If (kont.ne.0) then
+     Iname = Iname - 1
+     return
+    End If
+    PMNS = Matmul(Unu, Transpose(Conjg(uL_l)) )
+   End If
+
+  Else ! GenerationMixing
+   Do i1=1,3
+    mf_u_DR(i1) = Y_u(i1,i1) * vevs_DR(2) * oosqrt2
+    mf_d_DR(i1) = Y_d(i1,i1) * vevs_DR(1) * oosqrt2
+    mf_l_DR(i1) = Y_l(i1,i1) * vevs_DR(1) * oosqrt2
+
+    p2 = mf_d_DR(i1)**2
+    Call Sigma_Fermion(p2, i1, mf_d_DR, Y_d, id3C, id3C,gSU2,gSU3,sinW2   &
+      & ,T3_d, e_d, mf_u_DR, Y_u, id3C, id3C, mDSquark2, RDSquark, mUSquark2  &
+      & ,RUSquark, mglu, phase_glu, mN, mN2, N, mC, mC2, U, V, mS02, RS0      &
+      & ,mP02, RP0, mSpm2, RSpm, mZ2_run, mW2_run, .True., .True., SigDown)
+    mf_d_DR_SM(i1) = mf_d_DR(i1) * (1- Real(SigDown,dp) / mf_d_DR(i1) )
+
+    p2 = mf_u_DR(i1)**2
+    If (i1.Lt.3) Then
+     Call Sigma_Fermion(p2, i1, mf_u_dR, Y_u, id3C, id3C, gSU2, gSU3,sinW2&
+       & ,T3_u, e_u, mf_d_DR, Y_d, id3C, id3C,mUSquark2,RUSquark,mDSquark2   &
+       & ,RDSquark, mglu, phase_glu, mN, mN2, N, mC, mC2, U, V, mS02, RS0    &
+       & ,mP02, RP0, mSpm2, RSpm, mZ2_run, mW2_run, .True., .True., SigUp)
+    Else
+     Call Sigma_Fermion(p2, i1, mf_u_DR, Y_u, id3C, id3C, gSU2, gSU3,sinW2&
+       & ,T3_u, e_u, mf_d_DR, Y_d, id3C, id3C,mUSquark2,RUSquark,mDSquark2   &
+       & ,RDSquark, mglu, phase_glu, mN, mN2, N, mC, mC2, U, V, mS02, RS0    &
+       & ,mP02, RP0, mSpm2, RSpm, mZ2_run, mW2_run, .True., .False., SigUp)
+    End If
+    mf_u_DR_SM(i1) = mf_u_DR(i1) - Real(SigUp,dp)
+
+    p2 = mf_l_DR(i1)**2
+    Call Sigma_Fermion(p2, i1, mf_l, Y_l, id3C, id3C, gSU2, gSU3, sinW2  &
+        & , T3_d, e_e, mf_nu, Y_nu, id3C, id3C, mSlepton2, RSlepton          &
+        & , mSneutrino2, RSneutrino, mglu, phase_glu, mN, mN2, N, mC, mC2, U &
+        & , V, mS02, RS0, mP02, RP0, mSpm2, RSpm, mZ2_run, mW2_run           &
+        & , .False., .True., SigLep)
+    mf_l_DR_SM(i1) = mf_l_DR(i1) * (1- Real(SigLep,dp) / mf_l_DR(i1) )
+    
+   End Do
+  End If ! GenerationMixing
+
+  !--------------------------------------------------------------------------
+  ! shifting light fermion masses to MS-scheme, only gluon and photon part
+  ! except for m_t
+  !--------------------------------------------------------------------------
+  mf_l_SM = &
+    &    mf_l_DR_SM / (1._dp - oo8pi2 *3._dp *(gU1sq-gSu2sq)/16._dp)
+  mf_d_SM = mf_d_DR_SM / (1._dp - AlphaSDR / (3._dp*pi)                  &
+         &               - 23._dp * AlphaSDR**2 / (72._dp * Pi2 )         &
+         &               + oo8pi2 * 3._dp * gSu2sq / 16._dp        &
+         &               - oo8pi2 * 13._dp * gU1sq / 144._dp  )
+  mf_u_SM(1:2) = mf_u_DR_SM(1:2)  / (1._dp - AlphaSDR / (3._dp*pi)       &
+         &               - 23._dp * AlphaSDR**2 / (72._dp * Pi2 )         &
+         &               + oo8pi2 * 3._dp * gSu2sq / 16._dp        &
+         &               - oo8pi2 * 7._dp * gU1sq / 144._dp  )
+
+
+  !---------------------------------------
+  ! now we have to find mb(mb)
+  !---------------------------------------
+  mb_guess = mf_d_SM(3)
+  converge = .False.
+  Do i1=1,40
+   g10(1) = Sqrt(4._dp * Pi * alphaS_5)
+   g10(2) = Sqrt(4._dp * Pi * alphaMZ)
+   g10(3:5) = mf_l_SM
+   g10(6:7) = mf_u_SM(1:2)
+   g10(8:10) = mf_d_SM
+   tz = Log( mb_guess / Q)
+   dt = tz / 50._dp
+   Call odeint(g10, 10, 0._dp, tz, 1.e-7_dp, dt, 0._dp, RGE10_SM, kont)
+   as_nf_d_Pi = oo4pi * g10(1)**2 / Pi
+   mb_check = g10(10) * (1._dp + as_nf_d_Pi**2 * (c_m(1) + c_m(2)*as_nf_d_Pi)) 
+   Write(*,*) i1,mb_guess,mb_check
+
+   If ((Abs(mb_guess-mb_check) / mb_guess).Lt.1.e-5_dp) Then
+    converge = .True.
+    Exit
+   End If
+   mb_guess = mb_check
+  End Do
+
+  If (.not.converge) then
+    kont = -413
+    Call AddError(413) 
+  End If
+
+  g9 = g10(1:9)
+  mf_d_SM(3) = mb_check
+
+  !---------------------------
+  ! and now from m_b to 2 GeV
+  !---------------------------
+  ! thresholds
+  !------------
+  g9(6:9) = g9(6:9) * (1._dp + as_nf_d_Pi**2 * (c_m(1) + c_m(2)*as_nf_d_Pi)) 
+  as_nf = oo4pi * g10(1)**2
+  as_nf_minus_1 = as_nf *(1._dp+ as_nf_d_pi**2 *(c_as(1) +c_as(2)*as_nf_d_pi))
+  g9(1) = Sqrt(4._dp * Pi * as_nf_minus_1)
+  tz = Log(2._dp/mb_check) 
+  dt = tz / 50._dp
+
+  Call odeint(g9, 9, 0._dp, tz, 1.e-7_dp, dt, 0._dp, RGE10_SM, kont)
+
+  aem = g9(2)**2 / (4._dp * Pi**2)
+  mf_l_SM = g9(3:5) / (1._dp - aem)
+  mf_u_SM(1:2) = g9(6:7)
+  mf_d_SM(1:2) = g9(8:9)
+  !----------------------------------------------
+  ! resetting scale
+  !----------------------------------------------
+  test = SetRenormalizationScale(test)
+
+  Iname = Iname - 1
+
+ Contains
+
+  Subroutine Masses(Yin, vev, SigS, SigL, SigR, ReSum, uL, uR, mf, kont)
+  !--------------------------------------------------------
+  ! solves the matrix equation for Y by a transformation to
+  ! a linear system of 9 equations in 9 unknowns
+  ! written by Werner Porod, 19.03.03
+  !--------------------------------------------------------
+  Implicit None
+   Integer, Intent(inout) :: kont
+   Real(dp), Intent(in) :: vev
+   Complex(dp), Dimension(3,3), Intent(in) :: Yin, SigS, SigL, SigR
+   Logical, Intent(in) :: ReSum
+   Real(dp), Intent(out) :: mf(3)
+   Complex(dp), Intent(out) :: uL(3,3), uR(3,3)
+
+   Integer :: i1
+   Complex(dp), Dimension(3,3) :: Y, mass, uLa, uRa, f, invf, invY
+
+   !-------------------------------------
+   ! first the mass matrix in DR scheme
+   !-------------------------------------
+   Y = Yin * vev * oosqrt2
+
+   If (ReSum) Then
+    kont = 0
+    Call chop(Y)
+    invY = Y
+    Call gaussj(kont,invY,3,3)
+    If (kont.Ne.0) Return
+
+    f = id3C - Matmul(SigS,invY) - Transpose(SigL) - Matmul(Y,Matmul(SigR,invY))
+
+     mass = Matmul(f,Y)
+
+   Else
+
+    mass = Y - SigS - Matmul(Transpose(SigL),Y) - Matmul(Y,SigR)
+
+   End If
+
+   Call FermionMass(mass, sqrt2, mF, uL, uR,kont)
+
+  End Subroutine Masses
+
+ End Subroutine Calculate_gi_Yi
 
  Subroutine FirstGuess(phase_mu, tanb, Mi, M_E2, M_L2, A_e, M_D2 &
                     & , M_Q2, M_U2, A_d, A_u, mu, BImu, M_H2, gU1, gSU2 &

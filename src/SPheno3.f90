@@ -126,9 +126,6 @@ Use SugraRuns
     & , uL_L, uL_R, uD_L, uD_R, uU_L, uU_R, Y_l, Y_d, Y_u                      &
     & , Mi, A_l, A_d, A_u, M2_E, M2_L, M2_D, M2_Q, M2_U, M2_H, mu, B           &
     & , m_GUT)
-!write(*,*) "Ha",real(m2_h)
-!write(*,*) "La",(real(m2_l_0(i1,i1)),i1=1,3)
-!call WriteNumberOfErrors(10)
  !-------------------------------------------------------------------
  ! Calculation of the branching ratios and widths provided L_BR is
  ! set .TRUE. (default) and that the routine Sugra has finished
@@ -547,12 +544,55 @@ Contains
   BrTautoEGamma = 0._dp
   BrTautoMuGamma = 0._dp
   If (GenerationMixing) Then
+!!$  Do i1=1,2
+!!$   Do i2=1,3
+!!$    Do i3=1,3     
+!!$     Call CoupCharginoSfermion(i1, i2, i3, gauge_mZ(2), -0.5_dp, RSneut  &
+!!$             & , Y_l_mZ, Zero33C, id3c, id3c, U, V, cpl_CLSn_L(i1,i2,i3) &
+!!$             & , cpl_CLSn_R(i1,i2,i3) )
+!!$    End Do
+!!$   End Do
+!!$  End Do
+!!$  Do i1=1,3
+!!$   Do i2=1,4
+!!$    Do i3=1,6  
+!!$     Call CoupNeutralinoSlepton(i1, i2, i3, gauge_mZ(1), gauge_mZ(2), RSlepton &
+!!$         & , id3C, id3C, Y_l_mZ, N, cpl_LNSl_L(i1,i2,i3), cpl_LNSl_R(i1,i2,i3) )
+!!$    End Do
+!!$   End Do
+!!$  End Do
+!!$   Call LtoLpGamma(2, 1, mSneutrino2, mC, cpl_CLSn_L, cpl_CLSn_R, mSlepton2, mN &
+!!$                  &, cpl_LNSl_L, cpl_LNSl_R, GMutoEGamma, BrMutoEGamma)
+!!$   Call LtoLpGamma(3, 1, mSneutrino2, mC, cpl_CLSn_L, cpl_CLSn_R, mSlepton2, mN &
+!!$                 &, cpl_LNSl_L, cpl_LNSl_R, GTautoEGamma, BrTautoEGamma)
+!!$   Call LtoLpGamma(3, 2, mSneutrino2, mC, cpl_CLSn_L, cpl_CLSn_R, mSlepton2, mN &
+!!$                 &, cpl_LNSl_L, cpl_LNSl_R, GTautoMuGamma, BrTautoMuGamma)
+!write(*,*) "a",BrMutoEGamma,BrTautoEGamma, BrTautoMuGamma
+
+  Do i1=1,2
+   Do i2=1,3
+    Do i3=1,3     
+     Call CoupCharginoSfermion(i1, i2, i3, gauge_mZ(2), -0.5_dp, RSneut_T  &
+             & , Y_l_mZ, Zero33C, uL_L, uL_R, U_T, V_T, cpl_CLSn_L(i1,i2,i3) &
+             & , cpl_CLSn_R(i1,i2,i3) )
+    End Do
+   End Do
+  End Do
+  Do i1=1,3
+   Do i2=1,4
+    Do i3=1,6  
+     Call CoupNeutralinoSlepton(i1, i2, i3, gauge_mZ(1), gauge_mZ(2), RSlepton_T &
+         & , uL_L, uL_R, Y_l_mZ, N_T, cpl_LNSl_L(i1,i2,i3), cpl_LNSl_R(i1,i2,i3) )
+    End Do
+   End Do
+  End Do
    Call LtoLpGamma(2, 1, mSneutrino2_T, mC_T, cpl_CLSn_L, cpl_CLSn_R, mSlepton2_T, mN_T &
                   &, cpl_LNSl_L, cpl_LNSl_R, GMutoEGamma, BrMutoEGamma)
    Call LtoLpGamma(3, 1, mSneutrino2_T, mC_T, cpl_CLSn_L, cpl_CLSn_R, mSlepton2_T, mN_T &
                  &, cpl_LNSl_L, cpl_LNSl_R, GTautoEGamma, BrTautoEGamma)
    Call LtoLpGamma(3, 2, mSneutrino2_T, mC_T, cpl_CLSn_L, cpl_CLSn_R, mSlepton2_T, mN_T &
                  &, cpl_LNSl_L, cpl_LNSl_R, GTautoMuGamma, BrTautoMuGamma)
+!write(*,*) "b",BrMutoEGamma,BrTautoEGamma, BrTautoMuGamma
   End If
   !------------------------------------------------------------------
   ! rare decays of leptons: l -> 3 l' 
@@ -701,6 +741,10 @@ Contains
     & , RSup_T(6,6), RSlepton_T(6,6), RSneut_T(3,3), CKM_Q(3,3)
   Integer :: i1, i2, ierr
   Logical :: Converge
+
+  !--------------
+  Real(dp) :: amz, as_5, mf_nuT(3),mf_ut(3),mf_lt(3),mf_dt(3)
+  complex(dp) :: ckmt(3,3), pmnst(3,3)
   !------------------------------------------------------------------
   ! Performing a first, very rough calculation of the parameters
   ! using 1-loop RGEs and tree-level boundary conditions for gauge and
@@ -978,6 +1022,12 @@ Contains
 
    End Do
 
+   If ((kont.eq.0).and.(.not.converge)) then
+    Write (ErrCan,*) 'Problem in subroutine CalculateSpectrum!!'
+    Write (ErrCan,*) "After",n_run,"iterations no convergence found"
+    kont = -1200
+   End If
+
   Else If (HighScaleModel.Eq."MSSM1") Then
   ! MSSM parameters and masses at loop level, all parameters are given at
   ! scale Q, m^2_(H_i) serve as input in the Higgs sector
@@ -1151,6 +1201,13 @@ Contains
 
    End Do
 
+   If ((kont.eq.0).and.(.not.converge)) then
+    Write (ErrCan,*) 'Problem in subroutine CalculateSpectrum, model ' &
+                              //trim(HighScaleModel)//'!!'
+    Write (ErrCan,*) "After",n_run,"iterations no convergence found"
+    kont = -1200
+   End If
+
   Else If (HighScaleModel.Eq."pMSSM") Then
 
    ! calculate first gauge and Yukawa in DR-scheme at m_Z
@@ -1310,6 +1367,13 @@ Contains
       & , g1, kont)
 
    End Do
+
+   If ((kont.eq.0).and.(.not.converge)) then
+    Write (ErrCan,*) 'Problem in subroutine CalculateSpectrum, model ' &
+                              //trim(HighScaleModel)//'!!'
+    Write (ErrCan,*) "After",n_run,"iterations no convergence found"
+    kont = -1200
+   End If
 
   Else If (HighScaleModel.Eq."MSSMtree") Then
    mP0 = mP0_T

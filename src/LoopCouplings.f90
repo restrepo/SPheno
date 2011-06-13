@@ -74,6 +74,61 @@ Contains
  End Function AlphaEwDR
 
 
+ Real(dp) Function AlphaEwMS(Q, alphaDR, mHpm, mSqU, mSqD, mSl, mChar, mt)
+ !-----------------------------------------------------------------------
+ ! This function calculates the electromagnetig alpha(Q) in the MS scheme
+ ! starting from the DRbar value
+ ! The formula is taken from J. Bagger et al., Nucl.Phys.B 491, 3, (1997)
+ ! The input is:
+ !  - Alpha at Q=0, something like 1/137
+ !  - Q the energy
+ !  - mW, the W-boson mass
+ !  - mT, the top mass
+ !  - mHpm, the mass of the charged Higgs boson
+ !  - mSqU(i), i=1,..,6 the masses of the u-squarks
+ !  - mSqD(i), i=1,..,6 the masses of the d-squarks
+ !  - mSl(i), i=1,..,6 the masses of the sleptons
+ !  - mChar(i), i=1,2 the masses of the charginos
+ !  - mt, top-quark mass
+ ! written by Werner Porod, 05.02.2010
+ !-----------------------------------------------------------------------
+ Implicit None
+
+  Real(dp), Intent(in) :: Q, alphaDR, mHpm(:), mSqU(:), mSqD(:), mSl(:) &
+                      & , mChar(:), mt
+
+  Integer :: i, n_C, n_H
+  Real(dp) :: DeltaAlpha,sumI(4)
+
+  n_H = Size( mHpm )
+  n_C = Size( mChar )
+
+  sumI = 0._dp
+  Do i=1,6
+   sumI(1) = sumI(1) + Log( mSqU(i) / Q )
+   sumI(2) = sumI(2) + Log( mSqD(i) / Q )
+  End Do
+
+  Do i=2,n_H
+   sumI(3) = sumI(3) + Log( mHpm(i) / Q )
+  End Do
+  Do i=1,(5-n_C)*2
+   sumI(3) = sumI(3) + Log( mSl(i) / Q )
+  End Do
+  Do i=n_C-1,n_C
+   sumI(4) = sumI(4) + Log( mChar(i) / Q )
+  End Do
+
+  DeltaAlpha = 1._dp / (6._dp * Pi) ! conversion from DRbar
+  DeltaAlpha = DeltaAlpha - ( 16._dp * Log(mt / Q ) / 9._dp &
+            & + sumI(3) / 3._dp + (4._dp * sumI(1) + sumI(2) ) / 9._dp    &
+            & + 4._dp * sumI(4) / 3._dp )  / (2._dp * pi) ! SUSY contr.
+
+  AlphaEwMS = AlphaDR / (1._dp + AlphaDR * DeltaAlpha)
+
+ End Function AlphaEwMS
+
+
  Real(dp) Function Alpha_MSbar(Q, mW, mt)
  Implicit None
   Real(dp), Intent(in) :: Q, mW
@@ -98,16 +153,14 @@ Contains
  End Function Alpha_MSbar
 
 
-
- Real(dp) Function AlphaSDR(Q, mG, mSqU, mSqD)
+ Real(dp) Function AlphaSDR(Q, mG, mSqU, mSqD, mt_in)
  !-----------------------------------------------------------------------
  ! This function calculates the strong coupling alpha_s(Q) in the DR scheme.
  ! The formula is taken from J. Bagger et al., Nucl.Phys.B
  ! The input is:
- !  - AlphaS_mZ at Q=mZ , something like 0.12
  !  - Q the energy
  !  - mG, the gluino mass
- !  - mT, the top mass
+ !  - mT_in, the top mass
  !  - mSqU(i), i=1,..,6 the masses of the u-squarks
  !  - mSqD(i), i=1,..,6 the masses of the d-squarks
  ! written by Werner Porod, 19.7.1999
@@ -115,16 +168,23 @@ Contains
  !-----------------------------------------------------------------------
  Implicit None
   Real(dp), Intent(in) :: Q,mG,mSqU(6),mSqD(6)
+  Real(dp), Intent(in), Optional :: mt_in
 
   Integer :: i
-  Real(dp) :: DeltaAlpha, sumI
+  Real(dp) :: DeltaAlpha, sumI, mt
 
   sumI = 0._dp
   Do i=1,6
    sumI = sumI + Log( mSqU(i) / Q ) + Log( mSqD(i) / Q )
   Enddo
 
-  DeltaAlpha = 0.5_dp - 2._dp * Log(mG /Q) - 2._dp * Log(mf_u(3)/Q ) / 3._dp &
+  If (Present(mt_in)) Then
+   mt = mt_in
+  Else
+   mt = mf_u(3)
+  End If
+
+  DeltaAlpha = 0.5_dp - 2._dp * Log(mG /Q) - 2._dp * Log(mt/Q ) / 3._dp &
            & - sumI / 6._dp
   DeltaAlpha = AlphaS_mZ * DeltaAlpha / ( 2._dp * Pi)
   

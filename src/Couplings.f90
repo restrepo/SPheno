@@ -342,7 +342,7 @@ Contains
   End Do
 
  End Select
-
+ 
  coupL = coupL * Conjg( RSpm(i,1) )
  coupR = coupR * RSpm(i,2)
 
@@ -4383,9 +4383,9 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
 
   Else If ((n_Sf1.Eq.3).And.(n_Sf2.Eq.3)) Then
    Do i1=1,3
-    If (Wpart) coup = coup - g2sq * Rsf1(j,i1) * Rsf2(l,i1)              &
-           &                      * Conjg(Rsf1(i,i1) * Rsf2(k,i1))
     Do i2=1,3
+     If (Wpart) coup = coup - g2sq * Rsf1(j,i2) * Rsf2(l,i2)              &
+           &                      * Conjg(Rsf1(i,i1) * Rsf2(k,i1))
      coup = coup                                                            &
         & - YL12 * Rsf1(j,i1) * Rsf2(l,i2) * Conjg(Rsf1(i,i1) * Rsf2(k,i2))
     End Do
@@ -4393,9 +4393,9 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
 
   Else If ((n_Sf1.Eq.3).And.(n_Sf2.Eq.6))  Then
    Do i1=1,3
-    If (Wpart) coup = coup - g2sq * Rsf1(j,i1) * Rsf2(l,i1)              &
-           &                      * Conjg(Rsf1(i,i1) * Rsf2(k,i1))
     Do i2=1,3
+     If (Wpart) coup = coup - g2sq * Rsf1(j,i2) * Rsf2(l,i2)              &
+           &                      * Conjg(Rsf1(i,i1) * Rsf2(k,i1))
      coup = coup                                                            &
         & - YL12 * Rsf1(j,i1) * Rsf2(l,i2) * Conjg(Rsf1(i,i1) * Rsf2(k,i2)) &
         & - YL1R2 * Rsf1(j,i1) * Rsf2(l,i2+3) * Conjg(Rsf1(i,i1) * Rsf2(k,i2+3))
@@ -4404,9 +4404,9 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
 
   Else If ((n_Sf1.Eq.6).And.(n_Sf2.Eq.3))  Then
    Do i1=1,3
-    If (Wpart) coup = coup - g2sq * Rsf1(j,i1) * Rsf2(l,i1)              &
-           &                      * Conjg(Rsf1(i,i1) * Rsf2(k,i1))
     Do i2=1,3
+     If (Wpart) coup = coup - g2sq * Rsf1(j,i2) * Rsf2(l,i2)              &
+           &                      * Conjg(Rsf1(i,i1) * Rsf2(k,i1))
       coup = coup                                                            &
          & - YL12 * Rsf1(j,i1) * Rsf2(l,i2) * Conjg(Rsf1(i,i1) * Rsf2(k,i2)) &
          & - YR1L2 * Rsf1(j,i1+3) * Rsf2(l,i2) * Conjg(Rsf1(i,i1+3) * Rsf2(k,i2))
@@ -4554,21 +4554,28 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
 
   Else If (n_sf.Eq.6) Then ! sfermion with left right mixing
    If (Present(self)) Then
-    If ((i.Eq.j).And.(i.Le.3)) Then
+    If ((i.le.3).and.(j.le.3)) then ! LL
      coup = - Yl2 * Rsf(l,i) * Conjg(Rsf(k,j))
-     Do i2=1,3
-      coup = coup - k_sf * ( Yl2 * Rsf(l,i2) * Conjg(Rsf(k,i2))      &
+     If (i.eq.j) then
+      Do i2=1,3
+       coup = coup - k_sf * ( Yl2 * Rsf(l,i2) * Conjg(Rsf(k,i2))      &
            &               + YLR2 * Rsf(l,i2+3) * Conjg(Rsf(k,i2+3)) )
-     End Do
-    Else If((i.Eq.j).And.(i.Ge.4)) Then
+      End Do
+     End If
+
+    Else If ((i.ge.4).and.(j.ge.4)) then ! RR
      coup = - YR2 * Rsf(l,i) * Conjg(Rsf(k,j))
-     Do i2=1,3
-      coup = coup - k_sf * ( YR2 * Rsf(l,3+i2) * Conjg(Rsf(k,i2+3))      &
-           &               + YLR2 * Rsf(l,i2) * Conjg(Rsf(k,i2)) )
-     End Do
-    Else
+     If (i.eq.j) then
+      Do i2=1,3
+       coup = coup - k_sf * ( YLR2 * Rsf(l,i2) * Conjg(Rsf(k,i2))      &
+           &               + YR2 * Rsf(l,i2+3) * Conjg(Rsf(k,i2+3)) )
+      End Do
+     End If
+
+    Else ! LR or RL
      coup = - YLR2 * Rsf(l,i) * Conjg(Rsf(k,j))
     End If
+
    Else
     Do i1=1,3
      Do i2=1,3
@@ -5706,7 +5713,7 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
     Do i2 = 1,3
      Do i3 = 1,3
      coup = coup  &
-        & + sum2 * YukU(i2,i1) * YukDa(i2,i3) * RSfu(k,3+i1) * RSda(j,3+i2)
+        & + sum2 * YukU(i2,i1) * YukDa(i2,i3) * RSfu(k,3+i1) * RSda(j,3+i3)
      End Do
     End Do
    End If
@@ -7461,7 +7468,7 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
  End Subroutine CoupSfermion4Y_3
 
 
- Subroutine CoupSfermionSelf4Y_3(i, j, k, l, Yuk, Rsf, coup, self)
+ Subroutine CoupSfermionSelf4Y_3(i, j, k, l, Yuk, Rsf, nc, coup, self)
  !-----------------------------------------------------------------------
  ! calculates the 4-sfermion self coupling 
  ! valid for the MSSM, 1-generation epsilon model, and
@@ -7470,6 +7477,7 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
  !  j,l ........ index of the adjungated sfermions
  !  Yuk ........ Yukawa coupling
  !  Rsf(i,j) ... mixing matrix of the sfermions
+ !  nc ......... number of colours 
  !  self ....... integer, if present it is assumed that the first two
  !               indices belong to an electroweak eigenstate sfermion
  ! output
@@ -7483,7 +7491,7 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
  !-----------------------------------------------------------------------
  Implicit None
 
-  Integer, Intent(in) :: i, j, k, l
+  Integer, Intent(in) :: i, j, k, l, nc
   Integer, Intent(in) :: self
   Complex(dp), Intent(in) :: Yuk(3,3), Rsf(6,6)
   Complex(dp), Intent(out) :: coup
@@ -7497,7 +7505,7 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
    If ((i.Le.3).And.(j.Ge.4)) Then
      Do i1=1,3
       Do i2=1,3
-       parts(i1,i2) =  - Conjg( Yuk(i1,i2) * Rsf(k,i2+3)) * Rsf(l,i1)
+       parts(i1,i2) =  - Conjg( Yuk(i1,i2) * Rsf(k,i2+3)) * Rsf(l,i1) * nc
       End Do
      End Do
      parts = parts * Yuk(i,j-3)
@@ -7505,7 +7513,7 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
    Else If  ((j.Le.3).And.(i.Ge.4)) Then
      Do i1=1,3
       Do i2=1,3
-       parts(i1,i2) = - Yuk(i1,i2) * Conjg(Rsf(k,i1) ) * Rsf(l,i2+3)
+       parts(i1,i2) = - Yuk(i1,i2) * Conjg(Rsf(k,i1) ) * Rsf(l,i2+3) * nc
       End Do
      End Do
      parts = parts * Conjg( Yuk(j,i-3) )

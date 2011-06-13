@@ -6815,7 +6815,7 @@ Contains
 !----------------------------------------------
 ! beta functions for Sfermion mass parameters
 !----------------------------------------------
-   S1 = mH(2) - mH(1)
+   S1 = mH(2) - mH(1)  + 3._dp * (mT(1) - mT(2) )
    Do i1=1,3
     S1 = S1 + Me(i1,i1) - Ml(i1,i1) &
        &    + Md(i1,i1) + Mq(i1,i1) - 2._dp * Mu(i1,i1)
@@ -8969,7 +8969,7 @@ Contains
   !--------------
   betaAlam21 = Alam2 * (21._dp * lam22 + 6._dp * TraceY(4)          &
           &           - 1.8_dp * gauge2(1) - 7._dp * gauge2(2) )    &
-          & + 2._dp * lam2 * ( 6._dp * TraceaYA(3)                  &
+          & + 2._dp * lam2 * ( 6._dp * TraceaYA(4)                  &
           &                  + 1.8_dp * g2Mi(1) + 7._dp * g2Mi(2) ) 
 
   If (TwoLoopRGE) Then
@@ -9085,11 +9085,13 @@ Contains
 !----------------------------------------------
 ! beta functions for Sfermion mass parameters
 !----------------------------------------------
-   S1 = mH(2) - mH(1)
+   S1 = mH(2) - mH(1) + 3._dp * (mT(1) - mT(2) ) &
+    & + mZ(1) - mZ(2) + 4._dp * (mS(2) - mS(1))
    Do i1=1,3
     S1 = S1 + Me(i1,i1) - Ml(i1,i1) &
        &    + Md(i1,i1) + Mq(i1,i1) - 2._dp * Mu(i1,i1)
    End Do
+
    S1 = S1 * gauge2(1)
 
    YdaYd = MatMul2(Yd,aYd,OnlyDiagonal)
@@ -9678,9 +9680,10 @@ Contains
     Do i2=1,3
      sumI = sumI + b_2a(i1,i2) * gauge2(i2) * (Mhlf(i1) + Mhlf(i2) ) 
     End Do
-    Do i2=1,4
-     sumI = sumI + a_2a(i1,i2) * ( TraceaYA(i2) - Mhlf(i1)*TraceY(i2) )
+    Do i2=1,6
+     sumI = sumI + a_2b(i1,i2) * ( TraceaYA(i2) - Mhlf(i1)*TraceY(i2) )
     End Do
+    sumI = sumI + a_2b(i1,7) * lam1Alam1 + a_2b(i1,8) * lam2Alam2
     DMhlf(i1) = oo8pi2 * gauge2(i1) * ( b_1a(i1) * Mhlf(i1) + oo16pi2 * sumI)
    End Do
   !--------------------------

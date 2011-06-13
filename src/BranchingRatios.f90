@@ -200,6 +200,7 @@ Contains
   ! first all couplings are calculated, see module Couplings
   !----------------------------------------------------------
   sinW2 = gauge(1)**2 / (gauge(1)**2 + gauge(2)**2)
+
   m_grav = 1.e-9_dp * m32
 
   Call AllCouplings(gauge, Y_l, uL_L, uL_R, Y_d, uD_L, uD_R, Y_u, uU_L, uU_R   &

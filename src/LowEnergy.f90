@@ -3895,12 +3895,6 @@ Contains
   Call Delta_F2_Boxes(2, 1, T3, g, Y_u, Ru_L, Ru_R, Y_d, Rd_L, Rd_R, mf_u, mf_d_mZ &
      & , mC, U, V, mN, N, mGlu, phi_g, mSpm2, RSpm, mSup2, RSup, mSdown2   &
      & , RSdown, K_VLL, K_VRR, K_LR1, K_LR2, K_SLL1, K_SLL2, K_SRR1, K_SRR2  )
-write(45,*) "K_VLL, K_VRR",K_VLL, K_VRR
-write(45,*) "K_LR1, K_LR2",K_LR1, K_LR2
-write(45,*) "K_SLL1, K_SLL2",K_SLL1, K_SLL2
-write(45,*) "K_SRR1, K_SRR2",K_SRR1, K_SRR2
-write(45,*) "SM",(G_F*mW)**2 * CKM(2,1)**2 * Conjg(CKM(2,2))**2 * S0(xt) 
-write(45,*) 
   !------------------------------------------
   ! double penguins
   !------------------------------------------

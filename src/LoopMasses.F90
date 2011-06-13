@@ -2740,10 +2740,10 @@ Contains
 
    mat22 = Matmul( mat2, Transpose( Conjg( mat2 ) ) )
    If ( Maxval( Abs( Aimag(mat22) ) ).Eq.0._dp) Then ! reel matrix
-    Call EigenSystem(Real(mat22,dp), mC21L, u1, ierr, test)
+    Call EigenSystem(Real(mat22,dp), mC2_L, u1, ierr, test)
     u2 = u1
    Else
-    Call EigenSystem(mat22, mC21L, u2, ierr, test)
+    Call EigenSystem(mat22, mC2_L, u2, ierr, test)
    End If
    u2 = Conjg(u2)
 
@@ -12073,7 +12073,7 @@ If (WriteOut) Write(ErrCan,*) "N N S0",i1,i2,sumI(1,1),sumI(1,2)&
      Do i3=1,6
       Call CoupPseudoscalarSfermion4(i1, i1, i2, i3, RP0, T3, e, Y_l  &
                                     &, id6C, gU1, gSU2, c_P0P0SfSf(i1,i2,i3) )
-      Call CoupPseudoScalarSfermion3a(i1, i2, i3, RP0, T3, Y_l, id6c, Af, bi &
+      Call CoupPseudoScalarSfermion3a(i1, i2, i3, RP0, T3, Y_l, Rsf6, Af, bi &
                                     &, c_P0SfSf(i1,i2,i3) )
      End Do   
     End Do   
@@ -12107,7 +12107,7 @@ If (WriteOut) Write(ErrCan,*) "N N S0",i1,i2,sumI(1,1),sumI(1,2)&
      Do i3=1,6
       Call CoupScalarSfermion4(i1, i1, i2, i3, RS0, T3, e, Y_l  &
                              &, id6C, gU1, gSU2, c_S0S0SfSf(i1,i2,i3) )
-      Call CoupScalarSfermion3a(i1, i2, i3, RS0, T3, e, Y_l, id6c, Af , mu &
+      Call CoupScalarSfermion3a(i1, i2, i3, RS0, T3, e, Y_l, Rsf6, Af , mu &
                               &, vevSM, gU1, gSU2, c_S0SfSf(i1,i2,i3) )
      End Do   
     End Do   
@@ -12186,7 +12186,7 @@ If (WriteOut) Write(ErrCan,*) "N N S0",i1,i2,sumI(1,1),sumI(1,2)&
     Do i2=1,6
      i_gen2 = (i2+1)/2
      Do i3=1,6
-      Call CoupSfermion4Y(i2, i3, i1, i1, Y_l, RSlepton, c_SlSf4(i1,i2,i3), 1)
+      Call CoupSfermion4Y(i2, i3, i1, i1, Y_l, RSlepton, 1, c_SlSf4(i1,i2,i3), 1)
       Call CoupSfermion4G(i2, i3, i1, i1, gU1, gSU2, e, T3, RSf6, 1, coupC, 1)
       c_SlSf4(i1,i2,i3) = c_SlSf4(i1,i2,i3) + coupC
       Call CoupSfermion4G(i2, i3, i1, i1, gU1, gSU2, T3, e, id6C, -T3, eu &
@@ -12746,7 +12746,7 @@ If (WriteOut) Write(ErrCan,*) "N N S0",i1,i2,sumI(1,1),sumI(1,2)&
      Do i3=1,3
       Call CoupScalarSfermion4(i1, i1, i2, i3, RS0, T3, e, mat3  &
                              &, id3C, gU1, gSU2, c_S0S0SfSf(i1,i2,i3) )
-      Call CoupScalarSfermion3a(i1, i2, i3, RS0, T3, e, mat3, id3c, mat3, mu &
+      Call CoupScalarSfermion3a(i1, i2, i3, RS0, T3, e, mat3, Rsf3, mat3, mu &
                               &, vevSM, gU1, gSU2, c_S0SfSf(i1,i2,i3) )
      End Do   
     End Do   
@@ -13382,7 +13382,7 @@ If (WriteOut) Write(ErrCan,*) "N N S0",i1,i2,sumI(1,1),sumI(1,2)&
      Do i3=1,6
       Call CoupPseudoscalarSfermion4(i1, i1, i2, i3, RP0, T3, e, yuk  &
                                     &, id6C, gU1, gSU2, c_P0P0SqSq(i1,i2,i3) )
-      Call CoupPseudoScalarSfermion3a(i1, i2, i3, RP0, T3, yuk, id6c, Af, bi &
+      Call CoupPseudoScalarSfermion3a(i1, i2, i3, RP0, T3, yuk, RSf6, Af, bi &
                                     &, c_P0SqSq(i1,i2,i3) )
      End Do   
     End Do   
@@ -13416,7 +13416,7 @@ If (WriteOut) Write(ErrCan,*) "N N S0",i1,i2,sumI(1,1),sumI(1,2)&
      Do i3=1,6
       Call CoupScalarSfermion4(i1, i1, i2, i3, RS0, T3, e, yuk  &
                              &, id6C, gU1, gSU2, c_S0S0SqSq(i1,i2,i3) )
-      Call CoupScalarSfermion3a(i1, i2, i3, RS0, T3, e, yuk, id6c, Af , mu &
+      Call CoupScalarSfermion3a(i1, i2, i3, RS0, T3, e, yuk, RSf6, Af , mu &
                               &, vevSM, gU1, gSU2, c_S0SqSq(i1,i2,i3) )
      End Do   
     End Do   
@@ -13505,7 +13505,7 @@ If (WriteOut) Write(ErrCan,*) "N N S0",i1,i2,sumI(1,1),sumI(1,2)&
     Do i1=1,6
      Do i2=1,6
       Do i3=1,6
-       Call CoupSfermion4Y(i2, i3, i1, i1, Yuk, Rsup, c_SuSf4(i1,i2,i3), 1)
+       Call CoupSfermion4Y(i2, i3, i1, i1, Yuk, Rsup, 3, c_SuSf4(i1,i2,i3), 1)
        Call CoupSfermion4G(i2, i3, i1, i1, gU1, gSU2, e, T3, RSup, 3, coupC, 1)
        c_SuSf4(i1,i2,i3) = c_SuSf4(i1,i2,i3) + coupC
        Call CoupSfermion4Y(i1, i1, i2, i3, -T3, Y_d, RSdown, T3, Y_u, id6c &
@@ -13585,7 +13585,7 @@ If (WriteOut) Write(ErrCan,*) "N N S0",i1,i2,sumI(1,1),sumI(1,2)&
      Do i2=1,6
       i_gen2 = (i2+1)/2
       Do i3=1,6
-       Call CoupSfermion4Y(i2, i3, i1, i1, Yuk, Rsdown, c_SdSf4(i1,i2,i3), 1)
+       Call CoupSfermion4Y(i2, i3, i1, i1, Yuk, Rsdown, 3, c_SdSf4(i1,i2,i3), 1)
        Call CoupSfermion4G(i2, i3, i1, i1, gU1, gSU2, e, T3, RSf6, 3, coupC, 1)
        c_SdSf4(i1,i2,i3) = c_SdSf4(i1,i2,i3) + coupC
        Call CoupSfermion4Y(i1, i1, i2, i3, -T3, Y_u, RSup, T3, Y_d, id6c &

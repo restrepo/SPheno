@@ -181,7 +181,7 @@ Integer, Parameter :: qp = Selected_real_kind(25,450)
   & ,  "ReadVectorR: index exceeds the given boundaries             "    &
   & ,  "ReadTensorC: indices exceed the given boundaries            "    &
   & /)
- Character(len=60) :: Sugra_Error(12) =                                  &
+ Character(len=60) :: Sugra_Error(14) =                                  &
   & (/ "Routine BoundaryEW: negative scalar mass as input           "    &
   & ,  "Routine BoundaryEW: mZ^2(mZ) < 0                            "    &
   & ,  "Routine BoundaryEW: sin^2(theta_DR) < 0                     "    &
@@ -194,6 +194,8 @@ Integer, Parameter :: qp = Selected_real_kind(25,450)
   & ,  "Routine RunRGE: entering non-perturbative regime at M_GUT   "    &
   & ,  "Routine RunRGE: entering non-perturbative regime at M_H3    "    &
   & ,  "Routine Sugra: run did not converge                         "    &
+  & ,  "Routine Calculate_Gi_Yi: mZ^2(mZ) < 0                       "    &
+  & ,  "Routine Calculate_Gi_Yi: too many iterations of mb(mb)      "    &
   & /)
  Character(len=60) :: LoopMass_Error(24) =                               &
   & (/ "SleptonMass_1L: encountered a negative mass squared         "    &
@@ -570,7 +572,7 @@ Contains
 ! module InputOutput
   Do i1=1,100
    If (i_errors(300+i1).Gt.0) Write(io,*) &
-      &    Trim(InOut_Error(i1)),i_errors(300+i1),i1+300
+      &    Trim(InOut_Error(i1)),i_errors(300+i1)
   End Do
 
 ! module Sugra

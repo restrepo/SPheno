@@ -2477,6 +2477,7 @@ Contains
      coupC = cpl_SfSfZ(i1, i2)
      Call ScalarToScalarVectorBoson(m_in, mSf(i2), mZ, coupC, gam)
      gP(i1, i_count) = gam 
+
      gT(i1) = gT(i1) + gP(i1, i_count)       
      i_count = i_count + 1
     End Do
