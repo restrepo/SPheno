@@ -5622,7 +5622,7 @@ Contains
    !-----------------
    ! now the running
    !-----------------
-   Call RunRGE(kont, 0.1_dp*delta, vevSM, g1, g0, mGUT)
+   Call RunRGE(kont, delta, vevSM, g1, g0, mGUT)
    Call Cpu_time(t1)
    If (WriteComment) Write(*,*) "RunRGE",t1-t2
    If (kont.Ne.0) Then

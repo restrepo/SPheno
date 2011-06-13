@@ -798,18 +798,25 @@ Contains
  ! In the case that the file CrossSections.in does not exist, the following
  ! default values are used: Ecms = 500 GeV, Pm = Pp = 0, ISR = .TRUE.
  !----------------------------------------------------------------------------
+! disabled for the moment being,
   If ((L_CS).And.(kont.Eq.0)) Then
-   p_max = Size(Pm)
-
-   Do i1=1,p_max
-    If (Ecms(i1).Eq.0._dp) Exit
-    Call CalculateCrossSections(Ecms(i1), Pm(i1), Pp(i1), ISR(i1), Beam(i1)    &
-           & , "Tesla800", Sup%m, RSup, mf_u, Sdown%m, RSdown, mf_d, Glu%m     &
-           & , SigSup(i1,:,:), SigSdown(i1,:,:), ChiPm5%m, U5, V5, Chi07%m, N7 &
-           & , SigC(i1,:,:), SigChi0(i1,:,:), S05%m, RS05, vevSM, vevL         &
-           & , P05%m, RP05, Spm8%m, RSpm8, SigS0(i1,:), SigSP(i1,:,:)          &
-           & , SigHp(i1,:,:) )
-   End Do
+!   p_max = Size(Pm)
+  SigSup = 0._dp
+  SigSdown = 0._dp
+  SigC = 0._dp
+  SigChi0  = 0._dp
+  SigS0 = 0._dp
+  SigSP = 0._dp
+  SigHp = 0._dp
+!   Do i1=1,p_max
+!    If (Ecms(i1).Eq.0._dp) Exit
+!    Call CalculateCrossSections(Ecms(i1), Pm(i1), Pp(i1), ISR(i1), Beam(i1)    &
+!           & , "Tesla800", Sup%m, RSup, mf_u, Sdown%m, RSdown, mf_d, Glu%m     &
+!           & , SigSup(i1,:,:), SigSdown(i1,:,:), ChiPm5%m, U5, V5, Chi07%m, N7 &
+!           & , SigC(i1,:,:), SigChi0(i1,:,:), S05%m, RS05, vevSM, vevL         &
+!           & , P05%m, RP05, Spm8%m, RSpm8, SigS0(i1,:), SigSP(i1,:,:)          &
+!           & , SigHp(i1,:,:) )
+!   End Do
 
   End If
 

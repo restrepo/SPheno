@@ -189,7 +189,7 @@ Use SugraRuns
    Do i1=1,p_max
     If (Ecms(i1).Eq.0._dp) Exit
     Call CalculateCrossSections(Ecms(i1), Pm(i1), Pp(i1), ISR(i1), Beam(i1)  &
-           & , "Tesla800", Sup%m, RSup, mf_u, Sdown%m, RSdown, mf_d, mglu      &
+           & , "Tesla800", Sup%m, RSup, mf_u, Sdown%m, RSdown, mf_d, Glu%m      &
            & , SigSup(i1,:,:), SigSdown(i1,:,:), Slepton%m, RSlepton, Ylp     &
            & , Sneut%m, RSneut, SigSle(i1,:,:), SigSn(i1,:,:), ChiPm%m, U, V       &
            & , Chi0%m, N, SigC(i1,1:2,1:2), SigChi0(i1,1:4,1:4), S0%m, RS0, vevSM &

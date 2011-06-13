@@ -2866,7 +2866,7 @@ Contains
   Complex(dp), Intent(in), Dimension(3,3) :: RSneut, Y_l, UL_L, UL_R, UNu_L
   Real(dp), Intent(out) :: res
 
-  Integer :: i1, i2, i3, i4
+  Integer :: i1, i2, i3, i4, i5
   Real(dp) :: cosW2, cosW2_DR, g2, gp
   Complex(dp) :: sumI, c_CNuSl_L(2,3,6), c_CNuSl_R(2,3,6), c_LNSl_L(3,4,6) &
      & , c_LNSl_R(3,4,6), B1_C_Sl(2,6), B1_N_Sl(4,6), B1_C_Sn(2,3)         &
@@ -2875,7 +2875,7 @@ Contains
      & , C0_SnCN(3,2,4), C0_SlCN(6,2,4), teil, D0_SlSnCN(6,3,2,4)          &
      & , D27_SlSlCN(6,6,2,4), D27_SnSnCN(3,3,2,4), D0_SlSnCC(6,3,2,2)      &
      & , D0_SlSnNN(6,3,4,4), D27_SlSnNN(6,3,4,4), Rsel(2,2), Rsmu(2,2)     &
-     & , C0_NSlSn(4,6,3), B0_SlSn(6,3)
+     & , C0_NSlSn(4,6,3), B0_SlSn(6,3), RSlSn
   Logical :: WriteOut
 
   Iname = Iname + 1
@@ -3226,10 +3226,13 @@ Contains
      End Do
      Do i3=1,6   ! sleptons
       Do i4=1,3  ! sneutrinos
+       RSlSn = 0._dp
+       Do i5=1,3
+        RSlSn = RSlSn + RSlept(i3,i5) * Conjg(RSneut(i4,i5))
+       End Do
        sumI = sumI                                                            &
           & + 0.5_dp * Conjg( c_NuNSn_R(i1,i2,i4) ) * c_LNSl_R(i1,i2,i3)      &
-          &   * RSlept(i3,i1) * Conjg(RSneut(i4,i1))                          &
-          &   * (B0_SlSn(i3,i4) + 0.5_dp + mN2(i2) * C0_NSlSn(i2,i3,i4) )
+          &  *RSlSn * (B0_SlSn(i3,i4) + 0.5_dp + mN2(i2) * C0_NSlSn(i2,i3,i4) )
       End Do
      End Do
     End Do

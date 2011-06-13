@@ -34,7 +34,7 @@ Real(dp), Save, Private :: SigMin=1.e-3_dp
 ! contains information on possible inconsitencies in the input
 Integer, Save, Private :: in_kont(2)
 ! version number
-Character(len=8), Save, Private :: version="3.1.2"
+Character(len=8), Save, Private :: version="v3.1.3"
 ! name of 'input-program'
 Character(len=40), Private :: sp_info 
 ! tempory variables for Higgs mixing in case of NMSSM
@@ -70,7 +70,7 @@ Contains
  !   - Fgmsb ................. the vev of the F-component in the GMSB model
  !--------------------------------------------------------------------
  Implicit None
-  character(len=60) :: inFile
+  Character(len=60) :: inFile
   Integer, Intent(out) :: kont
   Real(dp), Intent(out) :: Fgmsb, Ecms(:), Pm(:), Pp(:)
   Character(len=15), Intent(out) :: HighScaleModel
@@ -82,7 +82,7 @@ Contains
   Real(dp) :: wert, Abs_Mu2, cosb2, cos2b, sinb2, RG0(3,3) &
     & , mat_D(3,3), R2(2,2), s12, s13, s23, c12, c13, c23
   Logical :: check, calc_ferm, check_alpha(2), test_l
-  Complex(dp) :: lam_vS
+  Complex(dp) :: lam_vS, vec3C(3)
   Logical, Save :: l_open = .True.
 
   Iname = Iname + 1
@@ -134,7 +134,7 @@ Contains
 
   kont = 0
 
-  Open(99,file=trim(inFile),status="old",err=200)
+  Open(99,file=Trim(inFile),status="old",err=200)
 
   Do ! reading file
    Read(99,"(a80)",End=200,err=200) read_line
@@ -359,7 +359,7 @@ Contains
      l_Al = .True.
 
     Else If (read_line(7:12).Eq."YNU0IN")Then
-     If (.not.Ynu_at_MR3) Fixed_Nu_Yukawas = .True.
+     If (.Not.Ynu_at_MR3) Fixed_Nu_Yukawas = .True.
      Call ReadMatrixC(99, 3, Y_nu_0, 0, "Re(Y_nu_0)", kont)
 
     Else If (read_line(7:14).Eq."IMYNU0IN") Then
@@ -367,13 +367,13 @@ Contains
       Call Warn_CPV(i_cpv, "IMYNU0") 
       Cycle
      End If
-     If (.not.Ynu_at_MR3) Fixed_Nu_Yukawas = .True.
+     If (.Not.Ynu_at_MR3) Fixed_Nu_Yukawas = .True.
      Call ReadMatrixC(99, 3, Y_nu_0, 1, "Im(Y_nu_0)", kont)
 
     Else If (read_line(7:12).Eq."MNURIN") Then
      Call ReadVectorR(99, 3, MnuR, "M_nu_R", kont)
 
-    Else If (read_line(7:13).Eq."VPMNSIN") Then
+    Else If (read_line(7:13).Eq."UPMNSIN") Then
      Call Read_PMNS(99)
 
     Else If (read_line(7:11).Eq."YT0IN") Then
@@ -531,32 +531,32 @@ Contains
 
     Else If (read_line(7:13).Eq."STOPMIX") Then
      Call ReadMatrixR(99, 2, R2, "Re(R_~t)", kont)
-     If (Rsup(1,1).eq.0._dp) Rsup = Id6C             ! first initialization
+     If (Rsup(1,1).Eq.0._dp) Rsup = Id6C             ! first initialization
      RSup(5:6,5:6) = Cmplx(R2, Aimag(RSup(5:6,5:6)), dp)
 
     Else If (read_line(7:15).Eq."IMSTOPMIX") Then
      Call ReadMatrixR(99, 2, R2, "Im(R_~t)", kont)
-     If (Rsup(1,1).eq.0._dp) Rsup = Id6C             ! first initialization
+     If (Rsup(1,1).Eq.0._dp) Rsup = Id6C             ! first initialization
      RSup(5:6,5:6) = Cmplx(Real(RSup(5:6,5:6),dp), R2, dp)
 
     Else If (read_line(7:13).Eq."SBOTMIX") Then
      Call ReadMatrixR(99, 2, R2, "Re(R_~b)", kont)
-     If (Rsdown(1,1).eq.0._dp) Rsdown = Id6C
+     If (Rsdown(1,1).Eq.0._dp) Rsdown = Id6C
      RSdown(5:6,5:6) = Cmplx(R2, Aimag(RSdown(5:6,5:6)), dp)
 
     Else If (read_line(7:15).Eq."IMSBOTMIX") Then
      Call ReadMatrixR(99, 2, R2, "Im(R_~b)", kont)
-     If (Rsdown(1,1).eq.0._dp) Rsdown = Id6C
+     If (Rsdown(1,1).Eq.0._dp) Rsdown = Id6C
      RSdown(5:6,5:6) = Cmplx(Real(RSdown(5:6,5:6),dp), R2, dp)
 
     Else If (read_line(7:13).Eq."STAUMIX") Then
      Call ReadMatrixR(99, 2, R2, "Re(R_~tau)", kont)
-     If (Rslepton(1,1).eq.0._dp) Rslepton = Id6C
+     If (Rslepton(1,1).Eq.0._dp) Rslepton = Id6C
      RSlepton(5:6,5:6) = Cmplx(R2, Aimag(RSlepton(5:6,5:6)), dp)
 
     Else If (read_line(7:15).Eq."IMSTAUMIX") Then
      Call ReadMatrixR(99, 2, R2, "Im(R_~tau)", kont)
-     If (Rslepton(1,1).eq.0._dp) Rslepton = Id6C
+     If (Rslepton(1,1).Eq.0._dp) Rslepton = Id6C
      RSlepton(5:6,5:6) = Cmplx(Real(RSlepton(5:6,5:6),dp), R2, dp)
 
     Else If (read_line(7:24).Eq."NEUTRINOBOUNDSIN") Then
@@ -680,7 +680,7 @@ Contains
        m32 = 2.4e-10_dp * Fgmsb  ! gravitino mass in eV  
       End If
 
-      If (Lambda.gt.MlambdaS) then
+      If (Lambda.Gt.MlambdaS) Then
        Write(ErrCan,*) "Inconsistent GMSB input, Lambda > M_M"
        Write(ErrCan,*) "Lambda: ",Lambda,"M_M: " ,MlambdaS
        kont = -313
@@ -857,8 +857,36 @@ Contains
 
   If (HighScaleModel.Eq."SUGRA_NuR") Then
    Y_nu_0 = Transpose(Y_nu_0) ! in the RGEs the transposed Yukawas are used
+   !--------------------------------------------
+   ! check if R-neutrino masses are ordered
+   !--------------------------------------------
+   If (Abs(MnuR(1)).Gt.Abs(MnuR(2))) Then
+    wert = MnuR(1)
+    vec3C = Y_nu_0(1,:)
+    MnuR(1) = MnuR(2)
+    Y_nu_0(1,:) = Y_nu_0(2,:)
+    MnuR(2) = wert
+    Y_nu_0(2,:) = vec3C
+   End If
+   If (Abs(MnuR(1)).Gt.Abs(MnuR(3))) Then
+    wert = MnuR(1)
+    vec3C = Y_nu_0(1,:)
+    MnuR(1) = MnuR(3)
+    Y_nu_0(1,:) = Y_nu_0(3,:)
+    MnuR(3) = wert
+    Y_nu_0(3,:) = vec3C
+   End If
+   If (Abs(MnuR(2)).Gt.Abs(MnuR(3))) Then
+    wert = MnuR(2)
+    vec3C = Y_nu_0(2,:)
+    MnuR(2) = MnuR(3)
+    Y_nu_0(2,:) = Y_nu_0(3,:)
+    MnuR(3) = wert
+    Y_nu_0(3,:) = vec3C
+   End If
+    
    Y_nu_mR(1,:,1) = Y_nu_0(:,1)
-   Y_nu_mR(1,:,1:2) = Y_nu_0(:,1:2)
+   Y_nu_mR(2,:,1:2) = Y_nu_0(:,1:2)
    Y_nu_mR(3,:,:) = Y_nu_0
   End If
 
@@ -1591,10 +1619,10 @@ Contains
       If (Int(wert).Ne.0) FermionMassResummation = .False.
 
      Case(6)
-      If (Int(wert).Ne.0) then
+      If (Int(wert).Ne.0) Then
        Ynu_at_MR3 = .True.
        Fixed_Nu_Yukawas = .False.
-      end if
+      End If
 
      Case(11)  ! whether to calculate  branching ratios or not
       If (Int(wert).Eq.1) L_BR = .True.
@@ -2085,9 +2113,9 @@ Contains
     !----------------------------------------------------------------
     ! check if T_f and A_f given, if yes, then A_f gets overwritten
     !----------------------------------------------------------------
-    If (A_u(3,3).ne.ZeroC) At_save = ZeroC
-    If (A_d(3,3).ne.ZeroC) Ab_save = ZeroC
-    If (A_l(3,3).ne.ZeroC) Atau_save = ZeroC
+    If (A_u(3,3).Ne.ZeroC) At_save = ZeroC
+    If (A_d(3,3).Ne.ZeroC) Ab_save = ZeroC
+    If (A_l(3,3).Ne.ZeroC) Atau_save = ZeroC
     200 Return
 
   End Subroutine Read_EXTPAR 
@@ -2354,7 +2382,8 @@ Contains
  !   - f_name ................ alternative name of output file, optional
  !--------------------------------------------------------------------
  Implicit None
-  Integer, Intent(in) :: io_L, kont, id_p(:)
+  Integer, Intent(in) :: io_L, kont
+  Integer, Intent(inout) :: id_p(:)
   Real(dp), Intent(in) :: M_GUT, BRbtosgamma, Bs_MuMu, BrBToSLL, BR_Bu_TauNu &
       & , BtoSNuNu, a_e, a_mu, a_tau, d_e, d_mu, d_tau, BrMuToEGamma         &
       & , BrTauToEGamma, BrTauToMuGamma, BrMu3e, BrTau3e, BrTau3Mu, Bd_MuMu  &
@@ -2395,7 +2424,7 @@ Contains
   !-------------------------------------------------------------------
   ! these variables are useful for the case of R-parity violation
   !------------------------------------------------------------------
-  Integer :: delta_n_rp, delta_c_rp, i1_min
+  Integer :: i1_min
   Logical :: file_exists,  use_new_RP
   !--------------------------------------------------------------------- 
   ! mixing matrices for shifts to super-CKM and super-PMNS basis 
@@ -2460,9 +2489,6 @@ Contains
   n_sd = 6
   n_su = 6
  
-  delta_n_rp = 0
-  delta_c_rp = 0
-
   id_c(1) = 1000024
   id_c(2) = 1000037
 
@@ -2512,8 +2538,7 @@ Contains
    n_spm = 7 
    n_sl = 0
    n_sn = 0 
-   delta_n_rp = 3
-   delta_c_rp = 3
+
    Inquire(file="oldRP.dat",exist=file_exists)
    If (file_exists) Then
     Open(65,file="oldRP.dat")
@@ -2526,20 +2551,22 @@ Contains
    If (use_new_RP) Then
     mat5R = Abs(RP05)
     mat5R(1,:) = 0._dp ! this is the Goldstone boson
+
     Do i1=1,4
      c_P0(i1) = "P0_"//Bu(i1)
      MaxCont = Maxval(mat5R)
      Call FindPosition(5, mat5R, MaxCont, ii, jj)
      Select Case(jj)
      Case(3)
-      id_p0(ii-1) = 2000012   ! Im(snu_e)
+      id_p0(ii-1) = 1000017   ! Im(snu_e)
      Case(4)
-      id_p0(ii-1) = 2000014   ! Im(snu_mu)
+      id_p0(ii-1) = 1000018   ! Im(snu_mu)
      Case(5)
-      id_p0(ii-1) = 2000016   ! Im(snu_tau)
+      id_p0(ii-1) = 1000019   ! Im(snu_tau)
      Case default
       id_p0(ii-1) = 36        ! A_0
      End Select
+     id_p(46+ii-1) =  id_p0(ii-1)
      mat5R(ii,:) = 0._dp
      mat5R(:,jj) = 0._dp
     End Do
@@ -2561,6 +2588,7 @@ Contains
       id_s0(ii) = 15 + i_zaehl*10
       i_zaehl = i_zaehl + 1
      End Select
+     id_p(41+ii) = id_s0(ii)
      mat5R(ii,:) = 0._dp
      mat5R(:,jj) = 0._dp
     End Do
@@ -2588,6 +2616,8 @@ Contains
       id_sp(ii-1) = -(1000000 * i_zaehl + 15)
       i_zaehl = i_zaehl + 1
      End Select
+     id_p(49+2*(ii-1)) =  id_sp(ii-1)
+     id_p(50+2*(ii-1)) = -id_sp(ii-1)
      mat8R(ii,:) = 0._dp
      mat8R(:,jj) = 0._dp
     End Do
@@ -2635,8 +2665,6 @@ Contains
    n_spm = 7 
    n_sl = 0
    n_sn = 0 
-   delta_n_rp = 3
-   delta_c_rp = 3
 
    i_zaehl = 1 
    mat8R = Abs(RSpm8)
@@ -4373,15 +4401,15 @@ Contains
     End Do
    End If
    ! neutralinos
-   Do i1=1,n_n + delta_n_rp
-    Do i2=i1,n_n + delta_n_rp
+   Do i1=1,n_n
+    Do i2=i1,n_n
      If (SigChi0(i3,i1,i2).Gt.SigMin) Write(io_L,4711) SigChi0(i3,i1,i2), 2 &
         &      , id_n(i1), id_n(i2), c_c0(i1)//" "//c_c0(i2)
     End Do
    End Do
    ! charginos
-   Do i1=1,n_c + delta_c_rp
-    Do i2=1,n_c + delta_c_rp
+   Do i1=1,n_c
+    Do i2=1,n_c
      If (SigC(i3,i1,i2).Gt.SigMin) Write(io_L,4711) SigC(i3,i1,i2), 2 &
         &      , id_c(i1), -id_c(i2), c_cm(i1)//" "//c_cp(i2)
     End Do
@@ -8080,7 +8108,7 @@ Contains
      Return ! new block
     End If
 
-    Read(io,*) i1, i2, wert, read_line
+    Read(io,*) i1, i2, wert   ! , read_line
 
     If ((i1.Lt.1).Or.(i1.Gt.nmax)) Then
      Write(ErrCan,*) "Problem while reading "//mat_name//" in routine"// &
@@ -8147,7 +8175,7 @@ Contains
      Return ! new block
     End If
 
-    Read(io,*) i1, i2, wert, read_line
+    Read(io,*) i1, i2, wert   !, read_line
 
     If ((i1.Lt.1).Or.(i1.Gt.nmax)) Then
      Write(ErrCan,*) "Problem while reading "//mat_name//" in routine"// &
@@ -8200,7 +8228,7 @@ Contains
      Return ! new block
     End If
 
-    Read(io,*) i1, i2, i3, wert, read_line
+    Read(io,*) i1, i2, i3, wert  ! , read_line
 
     If ((i1.Lt.1).Or.(i1.Gt.nmax)) Then
      Write(ErrCan,*) "Problem while reading "//mat_name//" in routine"// &
@@ -8262,7 +8290,7 @@ Contains
      Return ! new block
     End If
 
-    Read(io,*) i1, wert, read_line
+    Read(io,*) i1, wert  !, read_line
 
     If ((i1.Lt.1).Or.(i1.Gt.nmax)) Then
      Write(ErrCan,*) "Problem while reading "//vec_name//" in routine"// &
@@ -8308,7 +8336,7 @@ Contains
      Return ! new block
     End If
 
-    Read(io,*) i1, wert, read_line
+    Read(io,*) i1, wert  ! , read_line
 
     If ((i1.Lt.1).Or.(i1.Gt.nmax)) Then
      Write(ErrCan,*) "Problem while reading "//vec_name//" in routine"// &

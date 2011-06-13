@@ -356,6 +356,7 @@ Contains
   Read (99,800) mf_u(1)
   Read (99,800) mf_u(2)
   Read (99,800) mf_u(3)
+
  !----------------------------
  ! down-quark masses: d, s, b
  !----------------------------
@@ -412,7 +413,7 @@ Contains
   !-----------------------------
   Read (99,800) TimeMu
   Read (99,800) TimeTau
-
+  
   GammaMu = G_F**2 * mf_l(2)**5 * (1._dp-8._dp * mf_l(1)**2 / mf_l(2)**2 ) &
         & * (1._dp + 0.5_dp * Alpha * (6.25-Pi2)/Pi) / (192._dp*pi*pi2)
   GammaTau = hbar / TimeTau
@@ -607,8 +608,8 @@ Contains
     phaseM =   Sqrt( mat32(i1,i1)   / Abs( mat32(i1,i1) ) )
     N(i1,:) = phaseM * N(i1,:)
    End Do
-   mN = Sqrt( Eig )
-
+   mN = Sqrt( Abs(Eig) ) ! abs to avoid problems with numerical zeros showing up
+                         ! as tiny negative numbers
   End If
 
   If ((ierr.Eq.-14).Or.(ierr.Eq.-16)) Then
