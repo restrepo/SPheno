@@ -75,7 +75,7 @@ Use Control
  ! test of quality, used in ComplexEigensystem , RealEigensystem
  Real(Dp), Parameter, Private :: MinimalPrecision = 1000._dp * Epsilon(1._dp)
 ! for ode integration
- Integer, Private, Parameter :: MAXSTP=5000
+ Integer, Private, Parameter :: MAXSTP=20000
 ! Real(dp), Private :: Path(2,MAXSTP)
  Real(dp), Private, Parameter :: A2=0.2_dp,A3=0.3_dp,A4=0.6_dp,A5=1.0_dp,&
     A6=0.875_dp,B21=0.2_dp,B31=3.0_dp/40.0_dp,B32=9.0_dp/40.0_dp,&

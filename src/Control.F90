@@ -51,7 +51,7 @@ Integer, Parameter :: qp = Selected_real_kind(25,450)
  !------------------------------------
  ! variables for spectrum calculation
  !------------------------------------
- Real(dp) :: delta_mass = 1.e-6_dp    ! precision of mass calculation
+ Real(dp) :: delta_mass = 1.e-5_dp    ! precision of mass calculation
  Logical :: WriteOut = .False.        ! write out debug information
  Integer :: n_run = 40         ! maximal number of iterations in mass calculation
  Logical :: GenerationMixing=.False.  ! if (s)fermion generations mix

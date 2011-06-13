@@ -2755,7 +2755,7 @@ Contains
     Write(io_L,100) "    1    1    # mSUGRA model"
     If (i_cpv.Gt.0) Write(io_L,110) 5,i_cpv,"switching on CP violation"
     If (GenerationMixing) Write(io_L,100) &
-      & " 6 3                      # switching on flavour violation"
+      &             "    6    3    # switching on flavour violation"
     Write(io_L,100) "Block MINPAR  # Input parameters"
     Write(io_L,101) 1,Sqrt(Real(M2_E_0(1,1),dp)),"# m0      "
     Write(io_L,101) 2,Real(Mi_0(1),dp),"# m12     "

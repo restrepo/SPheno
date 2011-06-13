@@ -3072,7 +3072,6 @@ Contains
    gauge(3) = Sqrt( 4._dp*pi*alphas_mZ / k_fac)
 
    vev =  2._dp * mW / gauge(2)
-
    vevs(1) = vev / Sqrt(1._dp + tanb**2)
    vevs(2) = tanb * vevs(1)
 
@@ -5579,6 +5578,7 @@ Contains
    Call NeutrinoMasses(MnuL5, mf_nu, Unu, kont)
    If (kont.ne.0) then
     Iname = Iname - 1
+    Deallocate(mass_old, mass_new, diff_m  )
     Return
    end If
   Else 
