@@ -34,7 +34,7 @@ Real(dp), Save, Private :: SigMin=1.e-3_dp
 ! contains information on possible inconsitencies in the input
 Integer, Save, Private :: in_kont(2)
 ! version number
-Character(len=8), Save, Private :: version="3.1.0"
+Character(len=8), Save, Private :: version="3.1.2"
 ! name of 'input-program'
 Character(len=40), Private :: sp_info 
 ! tempory variables for Higgs mixing in case of NMSSM
@@ -359,7 +359,7 @@ Contains
      l_Al = .True.
 
     Else If (read_line(7:12).Eq."YNU0IN")Then
-     Fixed_Nu_Yukawas = .True.
+     If (.not.Ynu_at_MR3) Fixed_Nu_Yukawas = .True.
      Call ReadMatrixC(99, 3, Y_nu_0, 0, "Re(Y_nu_0)", kont)
 
     Else If (read_line(7:14).Eq."IMYNU0IN") Then
@@ -367,7 +367,7 @@ Contains
       Call Warn_CPV(i_cpv, "IMYNU0") 
       Cycle
      End If
-     Fixed_Nu_Yukawas = .True.
+     If (.not.Ynu_at_MR3) Fixed_Nu_Yukawas = .True.
      Call ReadMatrixC(99, 3, Y_nu_0, 1, "Im(Y_nu_0)", kont)
 
     Else If (read_line(7:12).Eq."MNURIN") Then
@@ -1590,6 +1590,12 @@ Contains
      Case(5)
       If (Int(wert).Ne.0) FermionMassResummation = .False.
 
+     Case(6)
+      If (Int(wert).Ne.0) then
+       Ynu_at_MR3 = .True.
+       Fixed_Nu_Yukawas = .False.
+      end if
+
      Case(11)  ! whether to calculate  branching ratios or not
       If (Int(wert).Eq.1) L_BR = .True.
       If (Int(wert).Eq.0) L_BR = .False.
@@ -2780,7 +2786,7 @@ Contains
     Write(io_L,100) "Block MODSEL  # Model selection"
     Write(io_L,100) "    1    1    # mSUGRA model"
     If (GenerationMixing) Write(io_L,100) &
-      & " 6 1                      # switching on flavour violation"
+      &             "    6    3    # switching on flavour violation"
     If (HighScaleModel.Eq."SUGRA_SU5") Then
      Write(io_L,100) "    3    2    # mSUGRA model + SU(5)"
     Else If (HighScaleModel.Eq."SUGRA_NuR1") Then
@@ -2941,7 +2947,7 @@ Contains
     Write(io_L,100) "Block MODSEL  # Model selection"
     Write(io_L,100) "    1    3    # mAMSB model"
     If (GenerationMixing) Write(io_L,100) &
-      & " 6 1                      # switching on flavour violation"
+      &             "    6    3    # switching on flavour violation"
     Write(io_L,100) "Block MINPAR  # Input parameters"
     Write(io_L,101) 1,m0_amsb,"# M_0" 
     Write(io_L,101) 2,m_32,"# m_3/2, gravitino mass"
@@ -4427,6 +4433,17 @@ Contains
     End If
    End Do
   End If ! L_CS
+
+  !--------------------------------------------------------
+  !information for HiggsBounds, for the moment only MSSM
+  !--------------------------------------------------------
+  If (HighScaleModel.Eq."NMSSM") Then  
+
+  Else If (HighScaleModel.Eq."RPexplicit") Then
+ 
+  Else
+   If (L_BR) Call Write_HiggsBoundsInput(io_L,RS0, RP0)
+  End If
 
   Write(io_L,100) "Block SPhenoLowEnergy  # low energy observables"
   Write(io_L,101) 1,1.e-4*BrBToSGamma," # BR(b -> s gamma)"
@@ -9481,6 +9498,85 @@ Contains
   
  End Subroutine WriteSPhenoOutputLHA1
 
+
+ Subroutine Write_HiggsBoundsInput(io, RS0, RP0)
+ !---------------------------------------------------------
+ ! writes information for HiggsBounds, at the moment only
+ ! for the MSSM
+ ! written by Werner Porod, 29.04.2011
+ !---------------------------------------------------------
+ Implicit None
+  Integer, Intent(in) :: io
+  Real(dp), Intent(in) :: RS0(:,:), RP0(:,:)
+
+  Real(dp) :: wert, wert1, wert2, wert3
+
+  Iname = Iname + 1
+  NameOfUnit(Iname) = "Write_HiggsBoundsInput"
+
+  Write(io,200) 6,2.43_dp,"top"
+  Write(io,100) "#    BR                NDA      ID1      ID2"
+  Write(io,401) 1.0_dp,2,5,24,"t","b","W"
+  
+  Write(io,100) "Block HiggsBoundsInputHiggsCouplingsFermions"
+  Write(io,100) "# ScalarNormEffCoupSq PseudoSNormEffCoupSq NP IP1 IP2 IP2"
+  wert1 = (RS0(1,1) / RP0(1,1))**2
+  Write(io,101) wert1,0.0_dp,3,25,5,5,"h0-b-b"
+  wert2 = (RS0(2,1) / RP0(1,1))**2
+  Write(io,101) wert2,0.0_dp,3,35,5,5,"H0-b-b"
+  wert3 = (RP0(2,1) / RP0(1,1))**2
+  Write(io,101) 0.0_dp,wert3,3,36,5,5,"A0-b-b"
+  Write(io,100) "#"
+  wert = (RS0(1,2) / RP0(1,2))**2
+  Write(io,101) wert,0.0_dp,3,25,6,6,"h0-t-t"
+  wert = (RS0(2,2) / RP0(1,2))**2
+  Write(io,101) wert,0.0_dp,3,35,6,6,"H0-t-t"
+  wert = (RP0(2,2) / RP0(1,2))**2
+  Write(io,101) 0.0_dp,wert,3,36,6,6,"A0-t-t"
+  Write(io,100) "#"
+  Write(io,101) wert1,0.0_dp,3,25,15,15,"h0-tau-tau"
+  Write(io,101) wert2,0.0_dp,3,35,15,15,"H0-tau-tau"
+  Write(io,101) 0.0_dp,wert3,3,36,15,15,"A0-tau-tau"
+  Write(io,100) "#"
+  Write(io,100) "Block HiggsBoundsInputHiggsCouplingsBosons"
+  wert1 = (RP0(2,2) * RS0(1,1) + RP0(1,2) * RS0(1,2) )**2
+  Write(io,102) wert1,3,25,24,24,"h0-W-W"
+  wert2 = (RP0(2,2) * RS0(2,1) + RP0(1,2) * RS0(2,2) )**2
+  Write(io,102) wert2,3,35,24,24,"H0-W-W"
+  Write(io,102) 0.0_dp,3,36,24,24,"A0-W-W"
+  Write(io,100) "#"
+  Write(io,102) wert1,3,25,23,23,"h0-Z-Z"
+  Write(io,102) wert2,3,35,23,23,"H0-Z-Z"
+  Write(io,102) 0.0_dp,3,36,23,23,"A0-Z-Z"
+  Write(io,100) "#"
+  Write(io,102) r_GlGlS0(1),3,25,21,21,"h0-g-g"
+  Write(io,102) r_GlGlS0(2),3,35,21,21,"H0-g-g"
+  Write(io,102) r_GlGlP0,3,36,21,21,"A0-g-g"
+  Write(io,100) "#"
+  Write(io,102) 0.0_dp,3,25,25,23,"h0-h0-Z"
+  Write(io,102) 0.0_dp,3,35,25,23,"H0-h0-Z"
+  wert = (RP0(2,1)*RS0(1,1) - RP0(2,2)*RS0(1,2))**2 
+  Write(io,102) wert,3,36,25,23,"A0-h0-Z"
+  Write(io,102) 0.0_dp,3,35,35,23,"H0-H0-Z"
+  wert = (RP0(2,1)*RS0(2,1) - RP0(2,2)*RS0(2,2))**2 
+  Write(io,102) wert,3,36,35,23,"A0-H0-Z"
+  Write(io,102) 0.0_dp,3,36,36,23,"A0-A0-Z"
+  Write(io,100) "#"
+  Write(io,103) 0.0_dp,4,25,21,21,23,"h0-g-g-Z"
+  Write(io,103) 0.0_dp,4,35,21,21,23,"H0-g-g-Z"
+  Write(io,103) 0.0_dp,4,36,21,21,23,"A0-g-g-Z"
+
+  Iname = Iname - 1
+
+100 Format(a)
+101 Format(1P,2x,e16.8,2x,e16.8,0P,5x,4i4,"  # ",a," eff. coupling^2, normalised to SM")
+102 Format(1P,2x,e16.8,0P,5x,4i4,"  # ",a," eff. coupling^2, normalised to SM")
+103 Format(1P,2x,e16.8,0P,5x,5i4,"  # ",a," eff. coupling^2, normalised to SM")
+
+200 Format("DECAY",1x,I9,3x,1P,E16.8,0P,3x,"# ",a)
+401 Format(3x,1P,e16.8,0p,3x,I2,3x,2(i9,1x),2x,"# BR(",a," -> ",a," ",a,")")
+
+ End Subroutine Write_HiggsBoundsInput
 
  Subroutine WriteComplexMatrix(n, matrix, OnlyDiagonal)
  !---------------------------------------------------------------

@@ -181,6 +181,8 @@ Contains
   Complex(dp) :: coup, g_u(3), g_d(3), g_l(3), g_c(2), g_sl(6), g_sd(6), g_su(6)
   Real(dp) :: g_W, g_Hp, m_W(1), m_Z(1), F_eff, gam
   Real(dp), Parameter :: mf_nu(3)=0._dp
+  Complex(dp), Parameter :: g_sd0(6) = 0._dp, g_su0(6) = 0._dp &
+      & , g_u0(3) = (1._dp,0._dp), g_d0(3)  = (1._dp,0._dp)
   Logical :: OnlySM
 
   Iname = Iname + 1
@@ -326,8 +328,10 @@ Contains
     & , g_l, ChiPm%m2, g_c, Spm(2)%m2, g_Hp, Sup%m2, g_su, Sdown%m2, g_sd   &
     & , Slept%m2, g_sl, c_GGS0(i1), coup )
    c_GGS0(i1) = c_GGS0(i1) * oo4pi * gauge(2)**2 * sinW2
+   
    Call CoupScalarGluon(S0(i1)%m2, mf_u2, g_u, mf_d2, g_d, Sup%m2, g_su &
                       & , Sdown%m2, g_sd, c_GlGlS0(i1), coup )
+   r_GlGlS0(i1) = Abs(c_GlGlS0(i1) / coup)**2
    c_GlGlS0(i1) = c_GlGlS0(i1) * oo4pi * gauge(3)**2
   End Do
 
@@ -344,7 +348,9 @@ Contains
   !------------------------------------------------------------------------
   ! loop induced couplings to photons and gluons
   !------------------------------------------------------------------------
-  Do i1=1,2
+  c_GlGlP0 = 0._dp
+  c_GGP0 = 0._dp
+  Do i1=2,2
    g_u = RP0(i1,2) * vev / vevSM(2)
    g_d = RP0(i1,1) * vev / vevSM(1)
    g_l = RP0(i1,1) * vev / vevSM(1)
@@ -355,6 +361,7 @@ Contains
    c_GGP0(i1) = c_GGP0(i1) * oo4pi * gauge(2)**2 * sinW2
    Call CoupPseudoScalarGluon(P0(i1)%m2, mf_u2, g_u, mf_d2, g_d, c_GlGlP0(i1) &
           & , coup )
+   r_GlGlP0 = Abs(c_GlGlP0(i1) / coup)
    c_GlGlP0(i1) = c_GlGlP0(i1) * oo4pi * gauge(3)**2
   End Do
 

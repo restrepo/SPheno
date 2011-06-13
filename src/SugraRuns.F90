@@ -39,6 +39,8 @@ Real(dp), Save :: vevs_DR_save(2)
 ! flag to decide if nu-Yukawas are given from outside or not
 Logical, Save :: Fixed_Nu_Yukawas = .False., Ynu_eq_Yu = .False.
 Logical, Save :: Off_GMSB=.False.
+! flag to decide that nu-Yukawas are given at m_R_3
+Logical, Save :: Ynu_at_MR3 = .False.
 ! check if in the super CKM basis are given
 Logical, Save :: l_Au=.False., l_Ad=.False., l_Al=.False., l_MD = .False. &
     & , l_MQ = .False., l_MU = .False., l_ME = .False. , l_ML = .False. 
@@ -1362,9 +1364,9 @@ Contains
   Else If (Size(g1).Eq.79) Then
     Call GToCouplings4(g1, gauge_0, Y_l_0, d3, Y_d_0, Y_u_0, d1, d2)
   Else If (Size(g1).Eq.93) Then
-   If (Fixed_Nu_Yukawas) Then ! do not use Y_nu from running but re-use
+   If ((Fixed_Nu_Yukawas).or.(Ynu_at_MR3)) Then ! do not use Y_nu from running but re-use
                               ! the ones given from outside -> dummy argument Ynu
-   
+                              ! or in case of Ynu_at_MR3
     Call GToCouplings3(g1, gauge_0, Y_l_0, Ynu, Y_d_0, Y_u_0, mNuL5)
    Else
     Call GToCouplings3(g1, gauge_0, Y_l_0, Y_nu_0, Y_d_0, Y_u_0, mNuL5)
@@ -2132,10 +2134,17 @@ Contains
           & , M2_E_0, M2_L_0, M2_D_0, M2_Q_0, M2_U_0, M2_H_0, mu_0, B_0, g2)
   Else If (Size(g2).Eq.267) Then
    If (Ynu_eq_Yu)  Y_nu_0 =  Y_u_0
-   A_nu_0 = AoY_nu_0 * Y_nu_0
-   Call ParametersToG2(gauge_0, y_l_0, Y_nu_0, y_d_0, y_u_0, Mi_0, A_l_0 &
-      & , A_nu_0, A_d_0, A_u_0, M2_E_0, M2_L_0, M2_R_0, M2_D_0, M2_Q_0   &
-      & , M2_U_0, M2_H_0, mu_0, B_0, g2)
+   If (Ynu_at_MR3) then
+    A_nu_0 = AoY_nu_0 * Ynu
+    Call ParametersToG2(gauge_0, y_l_0, Ynu, y_d_0, y_u_0, Mi_0, A_l_0  &
+       & , A_nu_0, A_d_0, A_u_0, M2_E_0, M2_L_0, M2_R_0, M2_D_0, M2_Q_0 &
+       & , M2_U_0, M2_H_0, mu_0, B_0, g2)
+   Else
+    A_nu_0 = AoY_nu_0 * Y_nu_0
+    Call ParametersToG2(gauge_0, y_l_0, Y_nu_0, y_d_0, y_u_0, Mi_0, A_l_0 &
+       & , A_nu_0, A_d_0, A_u_0, M2_E_0, M2_L_0, M2_R_0, M2_D_0, M2_Q_0   &
+       & , M2_U_0, M2_H_0, mu_0, B_0, g2)
+   End If
   Else If (Size(g2).Eq.277) Then
    Call FermionMass(Transpose(Y_l), 1._dp, mf, UL, UR, ierr)
    UL = Conjg(UL)
@@ -2148,10 +2157,18 @@ Contains
       & , M2_U_0, M2_H_0, M2_T_0, mu_0, B_0, MnuL5, g2)
   Else If (Size(g2).Eq.285) Then
    If (Ynu_eq_Yu)  Y_nu_0 =  Y_u_0
-   A_nu_0 = AoY_nu_0 * Y_nu_0
-   Call ParametersToG3(gauge_0, y_l_0, Y_nu_0, y_d_0, y_u_0, Mi_0, A_l_0 &
-      & , A_nu_0, A_d_0, A_u_0, M2_E_0, M2_L_0, M2_R_0, M2_D_0, M2_Q_0   &
-      & , M2_U_0, M2_H_0, mu_0, B_0, MnuL5, g2)
+   If (Ynu_at_MR3) then
+    A_nu_0 = AoY_nu_0 * Ynu
+    Call ParametersToG3(gauge_0, y_l_0, Ynu, y_d_0, y_u_0, Mi_0, A_l_0  &
+       & , A_nu_0, A_d_0, A_u_0, M2_E_0, M2_L_0, M2_R_0, M2_D_0, M2_Q_0 &
+       & , M2_U_0, M2_H_0, mu_0, B_0, MnuL5, g2)
+   Else
+    A_nu_0 = AoY_nu_0 * Y_nu_0
+    Call ParametersToG3(gauge_0, y_l_0, Y_nu_0, y_d_0, y_u_0, Mi_0, A_l_0 &
+       & , A_nu_0, A_d_0, A_u_0, M2_E_0, M2_L_0, M2_R_0, M2_D_0, M2_Q_0   &
+       & , M2_U_0, M2_H_0, mu_0, B_0, MnuL5, g2)
+   End If
+
   Else If (Size(g2).Eq.356) Then
    Call FermionMass(Transpose(Y_l), 1._dp, mf, UL, UR, ierr)
    UL = Conjg(UL)
@@ -3459,15 +3476,14 @@ Contains
     Call GToCouplings3(g1a, gauge_mR, Y_l_mR(1,:,:), Y_nu_mR(2,:,:) &
            & , Y_d_mR(1,:,:), Y_u_mR(1,:,:), MnuL5 )
 
+    If (Ynu_at_MR3) Y_nu_mR(3,:,:) = Y_nu_0
     Call CouplingsToG3(gauge_mR, Y_l_mR(1,:,:), Y_nu_mR(3,:,:), Y_d_mR(1,:,:) &
           & , Y_u_mR(1,:,:), MnuL5, g1a)
     m_lo = m_hi
    End If
-
    !---------------------------
    ! running from m_R3 -> m_GUT
    !---------------------------
-
    If (UseFixedGUTScale) Then
     tz = Log(MnuR(3)/GUT_scale)
     mGUT = GUT_scale
@@ -4226,7 +4242,6 @@ Contains
   ! boundary condition at the high scale
   !---------------------------------------
   If (HighScaleModel.Eq.'SUGRA_NuR') Then
-   g1a(22:39) = g1a(58:75) ! setting Y_nu = Y_u
    Call BoundaryHS(g1a,g2a)
 
   Else If (HighScaleModel.Eq.'SUGRA_NuR1') Then
@@ -4319,7 +4334,7 @@ Contains
     !--------------------------------------
     ! recalculating m_Nu_R, if necessary
     !--------------------------------------
-    If (.Not.Fixed_Nu_Yukawas) Then
+    If ((.Not.Fixed_Nu_Yukawas).and.(.not. Ynu_at_MR3)) Then
      mat3 = 0._dp
      mat3(1,1) = 1._dp / mf_nu(1)
      mat3(2,2) = 1._dp / mf_nu(2)
@@ -4370,6 +4385,9 @@ Contains
       & , A_d_mR(3,:,:), A_u_mR(3,:,:), M2_E_mR(3,:,:), M2_L_mR(3,:,:)       &
       & , M2_R_mR(3,:,:), M2_D_mR(3,:,:), M2_Q_mR(3,:,:), M2_U_mR(3,:,:)     &
       & , M2_H_mR, mu_mR, B_mR, MnuL5)
+
+   If (Ynu_at_MR3) Y_nu_mR(3,:,:) = Y_nu_0 ! to enhance numerical stability
+                                           ! and speed
 
    Do i1=1,3
     Do i2=1,3
@@ -4474,13 +4492,16 @@ Contains
    dt = tz / 50._dp
    Call odeint(g2a, 267, 0._dp, tz, delta, dt, 0._dp, rge267, kont)
 
-   Call GToParameters2(g2a, gauge_mR, y_l_mR, y_nu_mR, y_d_mR, y_u_mR, Mi_mR &
-          & , A_l_mR, A_nu_mR, A_d_mR, A_u_mR, M2_E_mR, M2_L_mR, M2_R_mR     &
-          & , M2_D_mR, M2_Q_mR, M2_U_mR, M2_H_mR, mu_mR, B_mR)
+   Call GToParameters2(g2a, gauge_mR, y_l_mR(1,:,:), y_nu_mR(1,:,:)          &
+      & , y_d_mR(1,:,:), y_u_mR(1,:,:), Mi_mR, A_l_mR(1,:,:), A_nu_mR(1,:,:) &
+      & , A_d_mR(1,:,:), A_u_mR(1,:,:), M2_E_mR(1,:,:), M2_L_mR(1,:,:)       &
+      & , M2_R_mR(1,:,:), M2_D_mR(1,:,:), M2_Q_mR(1,:,:), M2_U_mR(1,:,:)     &
+      & , M2_H_mR, mu_mR, B_mR)
 
-   Call ParametersToG(gauge_mR, y_l_mR, y_d_mR, y_u_mR, Mi_mR, A_l_mR, A_d_mR &
-             & , A_u_mR, M2_E_mR, M2_L_mR, M2_D_mR, M2_Q_mR, M2_U_mR, M2_H_mR &
-             & , mu_mR, B_mR, g2)
+   Call ParametersToG(gauge_mR, y_l_mR(1,:,:), y_d_mR(1,:,:), y_u_mR(1,:,:)  &
+      & , Mi_mR, A_l_mR(1,:,:), A_d_mR(1,:,:), A_u_mR(1,:,:), M2_E_mR(1,:,:) &
+      & , M2_L_mR(1,:,:), M2_D_mR(1,:,:), M2_Q_mR(1,:,:), M2_U_mR(1,:,:)     &
+      & , M2_H_mR, mu_mR, B_mR, g2)
 
    mudim = GetRenormalizationScale()
    mudim = Max(mudim, mZ2)
@@ -5677,6 +5698,8 @@ Contains
 
    If ((deltag0.Lt.delta).And.(j.Gt.1)) Then ! require at least two iterations
     FoundResult = .True.
+    B = B_loop
+    mu = mu_loop
     Exit
    Else
     mass_old = mass_new

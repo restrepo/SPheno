@@ -33,7 +33,7 @@ Use StandardModel
  ! bilinear Higgs parameters
  !----------------------------
  Complex(dp) :: phase_mu, mu, B, mu_mZ, B_mZ, mu_mR, B_mR, mu_0, B_0, B_MH3 &
-     & , mu_MH3, M_RS, M_phi, BM_rs, BM_phi
+     & , mu_MH3, M_RS, M_phi, BM_rs, BM_phi, mu_loop, B_loop
  !----------------------------
  ! bilinear R-parity parameters
  !----------------------------
@@ -922,12 +922,14 @@ Use Control
  !------------------------------------------------------------------
  Real(dp) :: RS0(2,2)
  Type(particle23) :: S0(2)
+ Real(dp) :: r_GlGlS0(2) ! ratio of h-g-g over SM values squared
  !------------------------------------------------------------------------
  ! pseudoscalar masses (G,A), masses squared, corresponding mixing matrix 
  ! total decay widths, partial decay widths, branching ratios
  !------------------------------------------------------------------------
 ! Real(dp) :: RP0(2,2)
  Type(particle2) :: P0(2)
+ Real(dp) :: r_GlGlP0 ! ratio of A-g-g over SM values squared
  !---------------------------------------------------------------------------
  ! charged scalar masses (G+,H+), masses squared, corresponding mixing matrix 
  ! total decay widths, partial decay widths, branching ratios

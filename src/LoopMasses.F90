@@ -872,6 +872,8 @@ Contains
    RSpm(2,2) = - RP0(1,1)
    RSpm(2,1) = RP0(1,2)
   End If
+  B_loop = B
+  mu_loop = mu
   B = B_T
   mu = mu_T
   !------------------------------------------------
