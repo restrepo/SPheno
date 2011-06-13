@@ -84,6 +84,7 @@ Integer, Parameter :: qp = Selected_real_kind(25,450)
  !------------------------------------------
  Integer, Save :: Iname, ErrorLevel=0, NumberOfOpenFiles=1, ErrCan=10
  Character (Len=40), Save :: NameOfUnit(40)
+ Logical :: Non_Zero_Exit = .False.
  !-------------------------
  ! for the error system 
  !-------------------------
@@ -232,7 +233,7 @@ Integer, Parameter :: qp = Selected_real_kind(25,450)
   & ,  "Two_Loop_Tadpoles: encountered negative stau mass squared   "    &
   & /)
 
- Integer, Private :: i_errors(1000)=0
+ Integer, Private :: i_errors(1100)=0
 
 !----------------------------
 ! numerical constants

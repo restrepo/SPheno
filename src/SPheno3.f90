@@ -126,7 +126,7 @@ Use SugraRuns
     & , uL_L, uL_R, uD_L, uD_R, uU_L, uU_R, Y_l, Y_d, Y_u                      &
     & , Mi, A_l, A_d, A_u, M2_E, M2_L, M2_D, M2_Q, M2_U, M2_H, mu, B           &
     & , m_GUT)
-Write(*,*) "kont",kont
+
  !-------------------------------------------------------------------
  ! Calculation of the branching ratios and widths provided L_BR is
  ! set .TRUE. (default) and that the routine Sugra has finished
@@ -231,7 +231,7 @@ Write(*,*) "kont",kont
 ! End If
 
  Call closing() ! closes the files
-
+ If ((kont.Ne.0).And.Non_Zero_Exit) Stop 99
 
 Contains
 
@@ -1341,7 +1341,9 @@ Contains
  !---------------------------------------
   If (file_exists) Then
    kont = 1
+
    Call LesHouches_Input(kont, HighScaleModel, Ecms, Pm, Pp, ISR, F_GMSB)
+
    LesHouches_Format = .True.
   Else
    LesHouches_Format = .False.

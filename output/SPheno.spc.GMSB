@@ -1,11 +1,11 @@
 # SUSY Les Houches Accord 2.beta - MSSM spectrum + Decays
-# SPheno v3beta36
+# SPheno v3beta42
 # W. Porod, Comput. Phys. Commun. 153 (2003) 275-315, hep-ph/0301101
 # in case of problems send email to porod@physik.uni-wuerzburg.de
-# Created: 13.10.2009,  23:25
+# Created: 01.11.2009,  20:44
 Block SPINFO         # Program information
      1   SPheno      # spectrum calculator
-     2   v3beta36    # version number
+     2   v3beta42    # version number
      3               # potential numerical problem, check file Messages.out
 #
 Block SPhenoINFO     # SPheno specific information
@@ -299,15 +299,15 @@ DECAY   1000004     2.58545695E+01   # ~c_L
      2.97281551E-01    2     1000024         3   # BR(~c_L -> chi_1+ s)
      1.73547294E-02    2     1000037         3   # BR(~c_L -> chi_2+ s)
      5.23150549E-01    2     1000021         4   # BR(~c_L -> ~g c)
-DECAY   1000006     2.06068663E+01   # ~t_1
+DECAY   1000006     2.06082584E+01   # ~t_1
 #    BR                NDA      ID1      ID2
-     9.69510559E-02    2     1000022         6   # BR(~t_1 -> chi_10 t)
-     4.95701798E-02    2     1000023         6   # BR(~t_1 -> chi_20 t)
-     2.40646718E-01    2     1000025         6   # BR(~t_1 -> chi_30 t)
-     1.45881090E-01    2     1000035         6   # BR(~t_1 -> chi_40 t)
-     1.12401771E-01    2     1000024         5   # BR(~t_1 -> chi_1+ b)
-     3.51380663E-01    2     1000037         5   # BR(~t_1 -> chi_2+ b)
-     3.07127462E-03    2     1000023         4   # BR(~t_1 -> chi_20 c)
+     9.69445069E-02    2     1000022         6   # BR(~t_1 -> chi_10 t)
+     4.95668313E-02    2     1000023         6   # BR(~t_1 -> chi_20 t)
+     2.40630463E-01    2     1000025         6   # BR(~t_1 -> chi_30 t)
+     1.45871236E-01    2     1000035         6   # BR(~t_1 -> chi_40 t)
+     1.12394178E-01    2     1000024         5   # BR(~t_1 -> chi_1+ b)
+     3.51356928E-01    2     1000037         5   # BR(~t_1 -> chi_2+ b)
+     3.13667280E-03    2     1000023         4   # BR(~t_1 -> chi_20 c)
 DECAY   2000006     2.82293581E+01   # ~t_2
 #    BR                NDA      ID1      ID2
      5.33163788E-03    2     1000022         6   # BR(~t_2 -> chi_10 t)
@@ -464,18 +464,18 @@ DECAY        25     2.32935042E-03   # h0
      3.92271435E-03    3         -24       -13        14   # BR(h0 -> W- W+* -> W- mu+ nu_mu)
      3.92271435E-03    3          24        15       -16   # BR(h0 -> W+ W-* -> W+ tau- nu_tau)
      3.92271435E-03    3         -24       -15        16   # BR(h0 -> W- W+* -> W- tau+ nu_tau)
-     1.30648669E-02    3          24        -2         1   # BR(h0 -> W+ W-* -> W+ u d)
-     1.30648669E-02    3         -24         2        -1   # BR(h0 -> W- W+* -> W- u d)
-     6.64209204E-04    3          24        -4         1   # BR(h0 -> W+ W-* -> W+ c d)
-     6.64209204E-04    3         -24         4        -1   # BR(h0 -> W- W+* -> W- c d)
-     6.64501425E-04    3          24        -2         3   # BR(h0 -> W+ W-* -> W+ u s)
-     6.64501425E-04    3         -24         2        -3   # BR(h0 -> W- W+* -> W- u s)
-     1.30444087E-02    3          24        -4         3   # BR(h0 -> W+ W-* -> W+ c s)
-     1.30444087E-02    3         -24         4        -3   # BR(h0 -> W- W+* -> W- c s)
-     1.31940497E-07    3          24        -2         5   # BR(h0 -> W+ W-* -> W+ u b)
-     1.31940497E-07    3         -24         2        -5   # BR(h0 -> W- W+* -> W- u b)
-     2.08823692E-05    3          24        -4         5   # BR(h0 -> W+ W-* -> W+ c b)
-     2.08823692E-05    3         -24         4        -5   # BR(h0 -> W- W+* -> W- c b)
+     1.30249885E-02    3          24        -2         1   # BR(h0 -> W+ W-* -> W+ u d)
+     1.30249885E-02    3         -24         2        -1   # BR(h0 -> W- W+* -> W- u d)
+     7.04018662E-04    3          24        -4         1   # BR(h0 -> W+ W-* -> W+ c d)
+     7.04018662E-04    3         -24         4        -1   # BR(h0 -> W- W+* -> W- c d)
+     7.04345735E-04    3          24        -2         3   # BR(h0 -> W+ W-* -> W+ u s)
+     7.04345735E-04    3         -24         2        -3   # BR(h0 -> W- W+* -> W- u s)
+     1.30019490E-02    3          24        -4         3   # BR(h0 -> W+ W-* -> W+ c s)
+     1.30019490E-02    3         -24         4        -3   # BR(h0 -> W- W+* -> W- c s)
+     1.66038377E-07    3          24        -2         5   # BR(h0 -> W+ W-* -> W+ u b)
+     1.66038377E-07    3         -24         2        -5   # BR(h0 -> W- W+* -> W- u b)
+     2.35325707E-05    3          24        -4         5   # BR(h0 -> W+ W-* -> W+ c b)
+     2.35325707E-05    3         -24         4        -5   # BR(h0 -> W- W+* -> W- c b)
      1.09268911E-03    3          23        12       -12   # BR(h0 -> Z0 nu_i nu_i)
      1.91220594E-04    3          23        11       -11   # BR(h0 -> Z0 e- e+)
      1.91220594E-04    3          23        13       -13   # BR(h0 -> Z0 mu- mu+)
@@ -531,13 +531,13 @@ XS 11 -11   500.0  0.00  0.00  0  # e+ e- XS
      1.38341994E+01    2     1000022   1000023    # chi_10 chi_20
      6.49170107E+01    2          25        23    # h0 Z
 Block SPhenoLowEnergy  # low energy observables
-    1    4.14344188E-04   # BR(b -> s gamma)
-    2    1.66060872E-06   # BR(b -> s mu+ mu-)
-    3    4.25776738E-05   # BR(b -> s nu nu)
-    4    4.80746490E-09   # BR(Bs -> mu+ mu-)
-    5    7.74442703E-05   # BR(B_u -> tau nu)
-    6    2.39838715E-01   # |Delta(M_Bd)| [ps^-1] 
-    7    1.72901857E+01   # |Delta(M_Bs)| [ps^-1] 
+    1    4.14395080E-04   # BR(b -> s gamma)
+    2    1.66192043E-06   # BR(b -> s mu+ mu-)
+    3    4.26140932E-05   # BR(b -> s nu nu)
+    4    5.41808476E-09   # BR(Bs -> mu+ mu-)
+    5    9.74584848E-05   # BR(B_u -> tau nu)
+    6    2.78769482E-01   # |Delta(M_Bd)| [ps^-1] 
+    7    1.94850125E+01   # |Delta(M_Bs)| [ps^-1] 
    10    3.64901718E-14   # Delta(g-2)_electron
    11    1.75988727E-09   # Delta(g-2)_muon
    12    3.49200204E-07   # Delta(g-2)_tau

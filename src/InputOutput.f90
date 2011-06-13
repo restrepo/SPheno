@@ -24,7 +24,7 @@ Real(dp), Save, Private :: SigMin=1.e-3_dp
 ! contains information on possible inconsitencies in the input
 Integer, Save, Private :: in_kont(2)
 ! version number
-Character(len=8), Save, Private :: version="v3beta36"
+Character(len=8), Save, Private :: version="v3beta42"
 ! name of 'input-program'
 Character(len=40), Private :: sp_info 
 ! tempory variables for Higgs mixing in case of NMSSM
@@ -798,7 +798,7 @@ Contains
   Integer :: i_mod=-1, i_sm=-1, i_par=-1, set_mod_par(25)=-1 &
     & , i1, p_max, p_act, i_sp, i_model=-1, i_particles=-1
   Real(dp) :: wert, Abs_Mu2, cosb2, cos2b, sinb2, RG0(3,3) &
-    & , mat_D(3,3), R2(2,2)
+    & , mat_D(3,3), R2(2,2), s12, s13, s23, c12, c13, c23
   Logical :: check, calc_ferm, check_alpha(2)
   Complex(dp) :: lam_vS
   Logical, Save :: l_open = .True.
@@ -865,6 +865,25 @@ Contains
    If (read_line(1:5).Eq."BLOCK") Then ! assigning values for the select case
     If (read_line(7:12).Eq."MODSEL") Then
      Call Read_MODSEL(99, i_particles, i_model, i_cpv, kont)
+     If (i_cpv.Eq.0) Then ! one has to recalculated the CKM to the real case
+                                     ! because InitializeStandardModel assumes a non-zero phase
+     s12 = lam_wolf
+     s23 = s12**2 * A_wolf
+     s13 = s23 * lam_wolf * Sqrt(eta_wolf**2+rho_wolf**2) 
+     c12 = Sqrt(1._dp-s12*s12)
+     c23 = Sqrt(1._dp-s23*s23)
+     c13 = Sqrt(1._dp-s13*s13)
+
+     CKM(1,1) = c12 * c13
+     CKM(1,2) = s12 * c13
+     CKM(1,3) = s13      
+     CKM(2,1) = -s12*c23 -c12*s23*s13 
+     CKM(2,2) = c12*c23 -s12*s23*s13 
+     CKM(2,3) = s23 * c13
+     CKM(3,1) = s12*s23 -c12*c23*s13 
+     CKM(3,2) = -c12*s23 - s12*c23*s13 
+     CKM(3,3) = c23 * c13
+    End If
 
     Else If (read_line(7:14).Eq."SMINPUTS") Then
      Call Read_SMinput(99)
@@ -2222,6 +2241,9 @@ Contains
       gamW = wert
 
 
+     Case(80) ! exit for sure with non-zero value if a problem occurs
+      If (wert.Eq.1) Non_Zero_Exit = .True.      
+
      Case(90) ! add R-parity at low energies
       If (wert.Eq.1) Add_Rparity = .True.      
 
@@ -3143,7 +3165,7 @@ Contains
   !--------------------------------------------------------------------- 
   ! mixing matrices for shifts to super-CKM basis
   !--------------------------------------------------------------------- 
-  Integer :: ierr, i_errors(1000)
+  Integer :: ierr, i_errors(1100)
   Real(dp) :: Yu(3), Yd(3)
   Complex(dp), Dimension(3,3) :: CKM_Q
   Complex(dp), Dimension(6,6) :: RUsq_ckm, RDsq_ckm
@@ -8195,7 +8217,7 @@ Contains
   Character(len=10) :: Zeit
   Logical, Save :: l_open = .True. ! in case of a loop I want to open the
                                    ! output only once 
-  Integer :: i_errors(1000)
+  Integer :: i_errors(1100)
 
   Q = Sqrt( GetRenormalizationScale() )
 

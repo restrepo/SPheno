@@ -1,5 +1,5 @@
 SPheno output file
-Version v3beta36 ,  created: 13.10.2009,  23:25
+Version v3beta42 ,  created: 01.11.2009,  20:44
   
   
  Running masses have been used for the boundary conditions at mZ
@@ -323,14 +323,14 @@ Parameters at the scale    1029.5061278
   Total width :                     25.85456947
   
  stop_1
-   neutralino_1 t                    1.99785745    9.69510559
-   neutralino_2 t                    1.02148607    4.95701798
-   neutralino_3 t                    4.95897475   24.06467182
-   neutralino_4 t                    3.00615212   14.58810898
-   chargino_1 b                      2.31624826   11.24017707
-   chargino_2 b                      7.24085436   35.13806635
-   neutralino_2 c                    0.06328935    0.30712746
-  Total width :                     20.60686633
+   neutralino_1 t                    1.99785745    9.69445069
+   neutralino_2 t                    1.02148607    4.95668313
+   neutralino_3 t                    4.95897475   24.06304627
+   neutralino_4 t                    3.00615212   14.58712357
+   chargino_1 b                      2.31624826   11.23941780
+   chargino_2 b                      7.24085436   35.13569280
+   neutralino_2 c                    0.06464136    0.31366728
+  Total width :                     20.60825840
   
  stop_2
    neutralino_1 t                    0.15050871    0.53316379
@@ -520,13 +520,13 @@ Parameters at the scale    1029.5061278
   
   
  Low energy constraints 
-  10^4 BR(b -> s gamma) :   4.1434420E+00
-  BR(b -> s mu+ mu-)    :   1.6606087E-06
-  BR(b -> s nu nu)      :   4.2577674E-05
-  BR(B_s -> mu+ mu)     :   4.8074649E-09
-  BR(B_u -> tau nu)     :   7.7444270E-05
-  Delta(M_B_d)          :(   2.3983872E-01,   1.8573792E-07)
-  Delta(M_B_s)          :(   1.7290186E+01,   3.7512722E-06)
+  10^4 BR(b -> s gamma) :   4.1439509E+00
+  BR(b -> s mu+ mu-)    :   1.6619204E-06
+  BR(b -> s nu nu)      :   4.2614093E-05
+  BR(B_s -> mu+ mu)     :   5.4180848E-09
+  BR(B_u -> tau nu)     :   9.7458485E-05
+  Delta(M_B_d)          :(   2.7876948E-01,   1.9352945E-07)
+  Delta(M_B_s)          :(   1.9485013E+01,   3.8766732E-06)
   Delta(a_e)            :   3.6490172E-14
   Delta(a_mu)           :   1.7598873E-09
   Delta(a_tau)          :   3.4920020E-07

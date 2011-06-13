@@ -3892,7 +3892,11 @@ Contains
      & , c_SmpCN_L(8,5,7), c_SmpCN_R(8,5,7), c_DNSd_L(3,7,6), c_DNSd_R(3,7,6)
   Complex(dp) :: Rsu(2,2), Rsd(2,2), coupLC, coupRC, Yuk, Ylep(3)
   Real(dp) :: g1, gp1, N7a(7,7), work, test(2), cosW
-
+  ! for approximate diagonalization
+  complex(dp) :: mat4(4,4), N4(4,4), Xi(3,4), mat42(4,4), mat3(3,3), mat32(3,3) &
+    & , Vnu(3,3), Minv(4,4)
+  real(dp) :: mN4(4),  N4R(4,4), XiR(3,4), MinvR(4,4), E4R(4), mat3R(3,3), mnu(3)  &
+    & , VnuR(3,3) , mat4R(4,4), R1(7,7), R2(7,7)
   Iname = Iname + 1
   NameOfUnit(Iname) = 'NeutralinoMass_Loop_RP'
 
@@ -4124,18 +4128,133 @@ Contains
      End If
     End Do
    End Do
-   mN1L2 = mN1L**2
 
+!-------------------------------------------------------------------------
+! there is a huge hierarchy between neutrinos and neutralinos
+! therefore lets try seesaw approximation if the first attempt fails
+!-------------------------------------------------------------------------
+   If (kont.eq.-1006) then
+    kont = 0
+    mat4R = Real(mat7(4:7,4:7) ,dp)
+    Call EigenSystem(mat4R, mN4, N4R, kont, test)
+    Do i1=1,4
+     Do i2=i1+1,4
+      If (Abs(mN4(i1)).Gt.Abs(mN4(i2))) Then
+       work = mN4(i1)
+       mN4(i1) = mN4(i2)
+       mN4(i2) = work
+       E4R = N4R(i1,:)
+       N4R(i1,:) = N4R(i2,:)
+       N4R(i2,:) = E4R
+      End If
+     End Do
+    End Do
+
+    XiR = Real(mat7(1:3,4:7),dp)
+    MinvR = 0._dp
+    do i1=1,4
+     do i2=1,4
+      do i3=1,4
+       MinvR(i1,i2) = MinvR(i1,i2) + N4R(i3,i1) * N4R(i3,i2)  / mN4(i3)
+      end do
+     end do
+    end do  
+    mat3R = mat7(1:3,1:3) - MatMul( XiR, MatMul(MinvR, Transpose(XiR) ) )
+    Call EigenSystem(mat3R, mnu, VnuR, kont, test)
+    Do i1=1,3
+     Do i2=i1+1,3
+      If (Abs(mNu(i1)).Gt.Abs(mNu(i2))) Then
+       work = mNu(i1)
+       mNu(i1) = mNu(i2)
+       mNu(i2) = work
+       E4R(1:3) = VNUR(i1,:)
+       VNUR(i1,:) = VNUR(i2,:)
+       VNUR(i2,:) = E4R(1:3)
+      End If
+     End Do
+    End Do
+
+    R1 = 0._dp
+    R1(1:3,1:3) = VnuR
+    R1(4:7,4:7) = N4R 
+    XiR = MatMul(XiR,MinvR)
+    R2(1:3,1:3) = - 0.5_dp * Matmul(XiR, Transpose(XiR))
+    R2(4:7,4:7) = - 0.5_dp * Matmul(Transpose(XiR), XiR)
+    do i1=1,7
+     R2(i1,i1) = 1._dp + R2(i1,i1)
+    end do
+    R2(1:3,4:7) = - XiR
+    R2(4:7,1:3) = Transpose(XiR)
+    
+    N1L = matmul(R1,R2)
+    mn1l(1:3) = mnu
+    mn1l(4:7) = mn4
+    mN1L2 = mN1L**2
+   end if  ! seesaw approximation
+ 
   Else
-
-   Call EigenSystemQP(mat7, mN1L, N1L, kont, test)
+   mat72 = Matmul( Transpose(Conjg( mat7)),  mat7)
+   Call EigenSystemQP(mat72, mN1L2, N1L, kont, test)
    mat72 = Matmul(Conjg(N1L), Matmul( mat7, Transpose( Conjg( N1L ) ) ) )
    Do i1=1,7
     phaseM =   Sqrt( mat72(i1,i1)   / Abs( mat72(i1,i1) ) )
     N1L(i1,:) = phaseM * N1L(i1,:)
    End Do
-   mN1L2 = mN1L**2 
+   mN1L = Sqrt( mN1L2 )
+!-------------------------------------------------------------------------
+! there is a huge hierarchy between neutrinos and neutralinos
+! therefore lets try seesaw approximation if the first attempt fails
+!-------------------------------------------------------------------------
+   If (kont.eq.-1006) then
+    kont = 0
+    mat4 = mat7(4:7,4:7) 
+    mat42 = Matmul( Transpose(Conjg( mat4)),  mat4)
+    Call EigenSystem(mat42, mN4, N4, kont, test)
+    mat42 = Matmul(Conjg(N4), Matmul( mat4, Transpose( Conjg( N4 ) ) ) )
+    Do i1=1,4
+     phaseM =   Sqrt( mat42(i1,i1)   / Abs( mat42(i1,i1) ) )
+     N4(i1,:) = phaseM * N4(i1,:)
+    End Do
+    mN4 = Sqrt( mN4)
 
+    Xi = mat7(1:3,4:7)
+    Minv = 0._dp
+    do i1=1,4
+     do i2=1,4
+      do i3=1,4
+       Minv(i1,i2) = Minv(i1,i2) + Conjg(N4(i3,i1) * N4(i3,i2) ) / mN4(i3)
+      end do
+     end do
+    end do  
+    mat3 = mat7(1:3,1:3) - MatMul( Xi, MatMul(MinvR, Transpose(Xi) ) )
+
+    mat32 = Matmul( Transpose(Conjg( mat3)),  mat3)
+    Call EigenSystem(mat32, mnu, Vnu, kont, test)
+    mat32 = Matmul(Conjg(Vnu), Matmul( mat3, Transpose( Conjg( Vnu) ) ) )
+    Do i1=1,3
+     phaseM =   Sqrt( mat32(i1,i1)   / Abs( mat32(i1,i1) ) )
+     Vnu(i1,:) = phaseM * Vnu(i1,:)
+    End Do
+    mNu = Sqrt( mNu)
+
+    R1 = 0._dp
+    R1(1:3,1:3) = Conjg(Vnu)
+    R1(4:7,4:7) = Conjg(N4) 
+    XiR = MatMul(Xi,Minv)
+    R2(1:3,1:3) = - 0.5_dp * Matmul(Xi, Transpose(Conjg(Xi)))
+    R2(4:7,4:7) = - 0.5_dp * Matmul(Transpose(Conjg(Xi)), Xi)
+    do i1=1,7
+     R2(i1,i1) = 1._dp + R2(i1,i1)
+    end do
+    R2(1:3,4:7) = - Xi
+    R2(4:7,1:3) = Transpose(Conjg(Xi))
+    
+    N1L = matmul(R1,R2)
+    mn1l(1:3) = mnu
+    mn1l(4:7) = mn4
+    mN1l2 = mN1L**2
+   end if  ! seesaw approximation
+ 
   End If
 
   N1L = Matmul(N1L, N)

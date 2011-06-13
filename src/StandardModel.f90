@@ -496,10 +496,10 @@ Contains
  !------------
  ! CKM matrix
  !------------
-  s12 = 0.220_dp
-  s23 = 0.039_dp 
-  s13 = 0.0031_dp
-  phase = 0._dp
+   s12 = lam_wolf
+   s23 = s12**2 * A_wolf
+   s13 = s23 * lam_wolf * Sqrt(eta_wolf**2+rho_wolf**2) 
+   phase = Atan(eta_wolf/rho_wolf)
 
   c12 = Sqrt(1._dp-s12*s12)
   c23 = Sqrt(1._dp-s23*s23)
