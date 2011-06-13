@@ -299,7 +299,7 @@ Contains
    End If
   End If
 
-!  If (i_run.Eq.1) Then
+  If (i_run.Eq.1) Then
    !--------------------------------------------------------------------------
    ! shifting light fermion masses to DR-scheme, only gluon and photon part
    ! except for m_t
@@ -345,17 +345,17 @@ Contains
    uD_R_T = uD_R
    uL_L_T = uL_L
    uL_R_T = uL_R
-!  Else 
+  Else 
    !--------------------------------------------------------------------------
    ! take Yukawas from previous run
    !--------------------------------------------------------------------------
-!   Y_l = Yl_mZ
-!   Y_d = Yd_mZ
-!   Y_u = Yu_mZ
-!   Call FermionMass(Y_l,vevs_DR(1),mf_l_DR,uL_L_T,uL_R_T,kont)
-!   Call FermionMass(Y_d,vevs_DR(1),mf_d_DR,uD_L_T,uD_R_T,kont)
-!   Call FermionMass(Y_u,vevs_DR(2),mf_u_DR,uU_L_T,uU_R_T,kont)
-!  End If ! i_run.eq.1
+   Y_l = Yl_mZ
+   Y_d = Yd_mZ
+   Y_u = Yu_mZ
+   Call FermionMass(Y_l,vevs_DR(1),mf_l_DR,uL_L_T,uL_R_T,kont)
+   Call FermionMass(Y_d,vevs_DR(1),mf_d_DR,uD_L_T,uD_R_T,kont)
+   Call FermionMass(Y_u,vevs_DR(2),mf_u_DR,uU_L_T,uU_R_T,kont)
+  End If ! i_run.eq.1
    !---------------------------------------------
    ! shifting mixing matrices to superCKM basis 
    !---------------------------------------------
@@ -501,17 +501,8 @@ Contains
      Else
       mf_d_DR(i1) = mf_d_DR_SM(i1) + Real(SigDown,dp)
      End If
-!if (FermionMassResummation) then
-!if (i1.eq.3) write(34,234) i_run,i_loop,0 &
-! & ,mf_d_DR_SM(i1) / (1- Real(SigDown,dp) / mf_d_DR(i1) )    &
-! & ,mf_d_DR_SM(i1) + Real(SigDown,dp),mf_d_DR_SM(i1),mf_d_DR(i1)
-!else
-!if (i1.eq.3) write(34,234) i_run,i_loop,1 &
-! & ,mf_d_DR_SM(i1) / (1- Real(SigDown,dp) / mf_d_DR(i1) )    &
-! & ,mf_d_DR_SM(i1) + Real(SigDown,dp),mf_d_DR_SM(i1),mf_d_DR(i1)
-!end if
      Y_d(i1,i1) = sqrt2 * mf_d_DR(i1) / vevs_DR(1)
-234 format(3i3,1p,4e18.10)
+
      p2 = mf_u_DR(i1)**2
      If (i1.Lt.3) Then
       Call Sigma_Fermion(p2, i1, mf_u_dR, Y_u, id3C, id3C, gSU2, gSU3,sinW2_DR&
@@ -2891,7 +2882,7 @@ Contains
    End If
 
     !--------------------------------------
-    ! recalculating m_Nu_R, if nexcessary
+    ! recalculating m_Nu_R, if necessary
     !--------------------------------------
     If (.Not.Fixed_Nu_Yukawas) Then
      mat3 = 0._dp

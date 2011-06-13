@@ -24,7 +24,7 @@ Real(dp), Save, Private :: SigMin=1.e-3_dp
 ! contains information on possible inconsitencies in the input
 Integer, Save, Private :: in_kont(2)
 ! version number
-Character(len=8), Save, Private :: version="v3beta30"
+Character(len=8), Save, Private :: version="v3beta32"
 ! name of 'input-program'
 Character(len=40), Private :: sp_info 
 ! tempory variables for Higgs mixing in case of NMSSM

@@ -272,7 +272,7 @@ Contains
     & , cpl_DGSd_L(3,6), cpl_DGSd_R(3,6), cpl_DNSd_L(3,4,6), cpl_DNSd_R(3,4,6) &
     & , cpl_CCZ_L(2,2), cpl_CCZ_R(2,2), cpl_SnSnZ(3,3), cpl_SlSlZ(6,6)
   Real(dp) :: mf_t(3), BtoSEE, EDM_e(3), EDM_mu(3), EDM_tau(3), gU1, gSU2  &
-     & , cosW, sinW2
+     & , cosW, sinW2, KtoPiNuNu
   Complex(dp) :: c7(7), c7p(6), c8(7), c8p(6)
 
   Y_l_mZ = Transpose(Y_l) 
@@ -461,6 +461,15 @@ Contains
 !              &           , uD_R , Y_l_mZ, vevSM)
   BR_Bu_TauNu = Bm_to_l_nu(3,1, mSpm2_T(2), tanb, RSpm_T, Y_d_mZ, uU_L &
               &           , uD_R , Y_l_mZ, vevSM)
+
+  !------------------------
+  ! K -> pi nu nu
+  !------------------------
+   call K_To_PiNuNu(gauge_mZ, mf_d_mZ, mf_u_mZ, mW, mZ, Y_d_mZ, uD_L, uD_R, Y_u_mZ &
+   & , uU_L, uU_R, Y_l_mZ, mSneutrino2_T, Rsneut_T, mSlepton2_T, Rslepton_T        &
+   & , mSpm2_T, RSpm_T, mC_T, U_T, V_T, mSup2_T, RSup_T, mSdown2_T, RSdown_T       &
+   & , mglu_T, phase_Glu_T, mN_T, N_T, vevSM, .False., KtoPiNuNu)
+
   !------------------------------------------------------------------
   ! leptonic electric dipole moments
   !------------------------------------------------------------------
@@ -501,11 +510,11 @@ Contains
   BrTautoEGamma = 0._dp
   BrTautoMuGamma = 0._dp
   If (GenerationMixing) Then
-   Call LtoLpGamma(2, 1, mSneut2, mC, cpl_CLSn_L, cpl_CLSn_R, mSlepton2, mN &
+   Call LtoLpGamma(2, 1, mSneutrino2_T, mC_T, cpl_CLSn_L, cpl_CLSn_R, mSlepton2_T, mN_T &
                   &, cpl_LNSl_L, cpl_LNSl_R, GMutoEGamma, BrMutoEGamma)
-   Call LtoLpGamma(3, 1, mSneut2, mC, cpl_CLSn_L, cpl_CLSn_R, mSlepton2, mN &
+   Call LtoLpGamma(3, 1, mSneutrino2_T, mC_T, cpl_CLSn_L, cpl_CLSn_R, mSlepton2_T, mN_T &
                  &, cpl_LNSl_L, cpl_LNSl_R, GTautoEGamma, BrTautoEGamma)
-   Call LtoLpGamma(3, 2, mSneut2, mC, cpl_CLSn_L, cpl_CLSn_R, mSlepton2, mN &
+   Call LtoLpGamma(3, 2, mSneutrino2_T, mC_T, cpl_CLSn_L, cpl_CLSn_R, mSlepton2_T, mN_T &
                  &, cpl_LNSl_L, cpl_LNSl_R, GTautoMuGamma, BrTautoMuGamma)
   End If
   !------------------------------------------------------------------
@@ -526,14 +535,14 @@ Contains
 !   Call BR_lj_to_3li(3, 2, gU1, gSU2, Y_l, mSlepton2, RSlepton, mN, N &
 !          & , mSneut2, RSneut, mC, U, V, mS02, RS0, mP02, RP0, A_l, mu, vevSM  &
 !          & , BrTau3Mu)
-   Call BR_lj_to_3li(2, 1, gU1, gSU2, Y_l_mZ, mSlepton2_T, RSlepton_T, mN_T   &
-          & , N_T, mSneutrino2_T, RSneut_T, mC_T, U_T, V_T, mS02_T, RS0_T     &
+   Call BR_lj_to_3li(2, 1, gU1, gSU2, Y_l_mZ, uL_L, uL_R, mSlepton2_T, RSlepton_T   &
+          & , mN_T, N_T, mSneutrino2_T, RSneut_T, mC_T, U_T, V_T, mS02_T, RS0_T     &
           & , mP02_T, RP0_T, A_l_mZ, mu_mZ, vevSM, BrMu3e)
-   Call BR_lj_to_3li(3, 1, gU1, gSU2, Y_l_mZ, mSlepton2_T, RSlepton_T, mN_T   &
-          & , N_T, mSneutrino2_T, RSneut_T, mC_T, U_T, V_T, mS02_T, RS0_T     &
+   Call BR_lj_to_3li(3, 1, gU1, gSU2, Y_l_mZ, uL_L, uL_R, mSlepton2_T, RSlepton_T   &
+          & , mN_T, N_T, mSneutrino2_T, RSneut_T, mC_T, U_T, V_T, mS02_T, RS0_T     &
           & , mP02_T, RP0_T, A_l_mZ, mu_mZ, vevSM, BrTau3e)
-   Call BR_lj_to_3li(3, 2, gU1, gSU2, Y_l_mZ, mSlepton2_T, RSlepton_T, mN_T   &
-          & , N_T, mSneutrino2_T, RSneut_T, mC_T, U_T, V_T, mS02_T, RS0_T     &
+   Call BR_lj_to_3li(3, 2, gU1, gSU2, Y_l_mZ, uL_L, uL_R, mSlepton2_T, RSlepton_T   &
+          & , mN_T, N_T, mSneutrino2_T, RSneut_T, mC_T, U_T, V_T, mS02_T, RS0_T     &
           & , mP02_T, RP0_T, A_l_mZ, mu_mZ, vevSM, BrTau3Mu)
   End If
   !-------------

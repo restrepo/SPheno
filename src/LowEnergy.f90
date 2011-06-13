@@ -68,20 +68,22 @@ Private :: F1, F2, F3, F4, F3Gamma
 Contains 
 
 
- Subroutine BR_lj_to_3li(j, i, gp, g, Y_l, mSlep2, RSl, mN, N, mSnu2, RSn &
-                      & , mC, U, V, mS02, RS0, mP02, RP0, A_l, mu, vevSM  &
-                      & , Br)
+ Subroutine BR_lj_to_3li(j, i, gp, g, Y_l, uL_L, uL_R, mSlep2, RSl, mN, N &
+                      & , mSnu2, RSn, mC, U, V, mS02, RS0, mP02, RP0, A_l &
+                      & , mu, vevSM, Br)
  !-------------------------------------------------------------------------
  ! calculates the lepton number violating decay of lepton into 3 lighter
  ! leptons
  ! Formulas by E. Arganda and M.J. Herrero, Phys. Rev. D73, 055003 (2006).
  ! Based on routines by E. Arganda and M.J. Herrero
+ ! 20.07.2009: adding lepton mixing matrices, thanks to António Figueiredo
  !-------------------------------------------------------------------------
  Implicit None
   Integer, Intent(in) :: j, i ! index of decaying lepton and the index of
                               ! daughters
   Real(dp), Intent(in) :: gp, g             ! U(1) and SU(2) gauge couplings
   Complex(dp), Intent(in) :: Y_L(3,3)       ! lepton Yukawa couplings
+  Complex(dp), Intent(in) :: uL_L(3,3), uL_R(3,3) ! the corresponding mixing matrices
   Real(dp), Intent(in) :: mSlep2(6)         ! slepton masses squared
   Complex(dp), Intent(in) :: RSl(6,6)       ! slepton mixing matrix
   Real(dp), Intent(in) :: mN(4)             ! neutralino masses
@@ -126,9 +128,9 @@ Contains
   c_LNSl_R = 0._dp
   Do i1=1,6
    Do i2=1,4
-    Call CoupNeutralinoSlepton3(i, i2, i1, gp, g, RSl, id3c, id3c, Y_l, N &
+    Call CoupNeutralinoSlepton3(i, i2, i1, gp, g, RSl, uL_L, uL_R, Y_l, N &
                                   &, c_LNSl_L(i,i2,i1), c_LNSl_R(i,i2,i1) )
-    Call CoupNeutralinoSlepton3(j, i2, i1, gp, g, RSl, id3c, id3c, Y_l, N &
+    Call CoupNeutralinoSlepton3(j, i2, i1, gp, g, RSl, uL_L, uL_R, Y_l, N &
                                   &, c_LNSl_L(j,i2,i1), c_LNSl_R(j,i2,i1) )
    End Do
   End Do
@@ -137,10 +139,10 @@ Contains
   c_CLSn_R = 0._dp
   Do i1=1,3
    Do i2=1,2
-    Call CoupCharginoSfermion3(i2, j, i1, g, -0.5_dp, RSn, Y_l, mat0, id3c &
-                  & , id3c, U, V, c_CLSn_L(i2, j, i1), c_CLSn_R(i2, j, i1) )
-    Call CoupCharginoSfermion3(i2, i, i1, g, -0.5_dp, RSn, Y_l, mat0, id3c &
-                  & , id3c, U, V, c_CLSn_L(i2, i, i1), c_CLSn_R(i2, i, i1) )
+    Call CoupCharginoSfermion3(i2, j, i1, g, -0.5_dp, RSn, Y_l, mat0, uL_L &
+                  & , uL_R, U, V, c_CLSn_L(i2, j, i1), c_CLSn_R(i2, j, i1) )
+    Call CoupCharginoSfermion3(i2, i, i1, g, -0.5_dp, RSn, Y_l, mat0, uL_L &
+                  & , uL_R, U, V, c_CLSn_L(i2, i, i1), c_CLSn_R(i2, i, i1) )
    End Do
   End Do
 
@@ -169,8 +171,8 @@ Contains
     Call CoupSneutrinoZ3(i1, i2, g, sinW2, RSn, QSnu(i1,i2) )
    End Do
   End Do
-  Qslepton = - Qslepton ! sign difference in paper by 
-  Qsnu = - Qsnu ! sign difference in paper by 
+  Qslepton = - Qslepton ! sign difference in paper by Arganda/Herrero
+  Qsnu = - Qsnu ! sign difference in paper by  Arganda/Herrero
 
   Call CoupFermionZ(-0.5_dp, -1._dp, g, sinW2, c_Zee_L,c_Zee_R)
 
@@ -227,10 +229,10 @@ Contains
   c_HLL_R = 0._dp
   Do i1=1,3
    Do i2=1,2
-    Call CoupFermionScalar3(i1, i1, i2, -0.5_dp, Y_l, id3c, id3c, RS0 &
+    Call CoupFermionScalar3(i1, i1, i2, -0.5_dp, Y_l, uL_L, uL_R, RS0 &
                           & , c_HLL_L(i2,i1), c_HLL_R(i2,i1) )
    End Do
-   Call CoupFermionPseudoScalar3(i1, i1, 2, -0.5_dp, Y_l, id3c, id3c, RP0 &
+   Call CoupFermionPseudoScalar3(i1, i1, 2, -0.5_dp, Y_l, uL_L, uL_R, RP0 &
                           & , c_HLL_L(3,i1), c_HLL_R(3,i1) )
   End Do
 
@@ -1060,6 +1062,7 @@ Contains
   CKM =  Matmul(RuL, Transpose(Conjg(RdL)) )
 
   cpl_uWd = g * oosqrt2 * CKM
+
   norm = 0.5_dp * cpl_uWd(3,3) * Conjg(cpl_uWd(3,i_f)) / mW**2
 
   cpl_CSQQp_L = 0._dp
@@ -6047,6 +6050,203 @@ end if
   End If
 
  End Function FeynFunctionE
+
+  Subroutine K_To_PiNuNu(gauge, mf_d, mf_u, mW, mZ,Y_d, RdL, RdR, Y_u      &
+   & ,RuL, RuR, Y_l, mSneut2, Rsneut, mSlepton2, Rslepton, mSpm2, RSpm     & 
+   & ,mC, U, V, mSup2, RSup, mSdown2, RSdown, mglu, phi_g, mN, N, vevSM    &
+   & ,l_QCD, KtoPiNuNu, c11_o, c11p_o)
+ !-------------------------------------------
+ ! gives BR(K->pi nu nu) using formulas 5.10 of
+ ! Bobeth et al., NPB630 (2002) 87
+ ! input: all running quantities are given at Q=M_W
+ !  gauge(i) ............. U(1), SU(2) and SU(3) MSbar gauge couplings
+ !  mf_d(i) .............. MSbar d-quark masses
+ !  mf_u(i) .............. MSbar u-quark masses
+ !  mW ............... W-boson mass
+ !  Y_d(i,j) ............. MSbar d-type Yukawa couplings
+ !  RdL(j,j), RdR(i,j) ... mixing matrix of left- and right d-quarks 
+ !  Y_u(i,j) ............. MSbar u-type Yukawa couplings
+ !  RuL(j,j), RuR(i,j) ... mixing matrix of left- and right u-quarks
+ !  Y_l(i,j) ............. MSbar lepton Yukawa couplings
+ !  mSneut2(i) ........... sneutrino masses squared
+ !  RSneut(i,j) .......... sneutrino mixing matrix
+ !  mSlepton2(i) ......... slepton masses squared
+ !  RSlepton(i,j) ........ slepton mixing matrix
+ !  mSpm2(i) ............. mass of G+ and H+ squared
+ !  RSpm(i,j) ............ mixing matrix of G+ and H+
+ !  mC(i) ................ chargino masses
+ !  U(i,j), V(i,j) ....... chargino mixing matrices
+ !  mSup2(i) ............. u-squark masses squared
+ !  RSup(i,j) ............ u-squark mixing matrix
+ !  mSdown2(i) ........... d-squark masses squared
+ !  RSdown(i,j) .......... d-squark mixing matrix
+ !  mglu ................. gluino mass
+ !  phi_g ................ phase of M_3
+ !  mN(i) ................ neutralino masses
+ !  N(i,j) ............... neutralino mixing matrix
+ !  vevSM(i) ............. MSSM vevs (v_d, v_u)
+ !  l_QCD ................ if true, then QCD corrections will be included
+ !                         this is not yet completed
+ ! output:
+ !  BtoSNuNu ............. BR(b -> s nu nu) 
+ !  Wilson coefficients at m_W (including the various contributions)
+ !                              all are optional
+ !  c11_o(i) .............. C_11: 1 ... total
+ !                                2 ... SM contribution  
+ !                                3 ... H+ contribution  
+ !                                4 ... chargino contribution  
+ !                                5 ... neutralino contribution  
+ !                                6 ... gluino contribution  
+ !  c11p_o(i) ............. C'_11: 1 ... total
+ !                                 2 ... SM contribution  
+ !                                 3 ... H+ contribution  
+ !                                 4 ... chargino contribution  
+ !                                 5 ... neutralino contribution  
+ !                                 6 ... gluino contribution  
+ ! written by Joel Jones, 10.05.09
+ !-------------------------------------------
+ Implicit None
+  Real(dp), Intent(in) :: mf_d(3), gauge(3), mf_u(3), mW, mSpm2(2), mC(2)   &
+    & , mSup2(6), mSdown2(6), mglu, mN(4), vevSM(2), mSneut2(3), mSlepton2(6) &
+    & , mZ
+  Complex(dp), Intent(in), Dimension(3,3) :: RdL, RdR, RuL, RuR, Y_d, Y_u, Y_l
+  Complex(dp), Intent(in) :: U(2,2), V(2,2), RSpm(2,2), RSup(6,6)    &
+    & , Rsneut(3,3), RSdown(6,6), phi_g, N(4,4), Rslepton(6,6)
+  Logical, Intent(in) :: l_QCD
+  Real(dp), Intent(out) :: KToPiNuNu
+  Complex(dp), Intent(out), Optional :: c11_o(3,6), c11p_o(3,6)
+
+  Integer :: i1, i2, i3, i4
+  Real(dp) :: g, gp, gs
+  Complex(dp) :: cpl_CDSu_L(2,3,6), cpl_CDSu_R(2,3,6), RSup_in(6,6), mix(6,6)  &
+    & , cpl_DGSd_L(3,6), cpl_DGSd_R(3,6), cpl_DNSd_L(3,4,6), cpl_DNSd_R(3,4,6)
+  Complex(dp) :: c11(3), c11p(3), c11_c(6), c11p_c(6)
+  Complex(dp) :: kappa_q, cpl_CNuSl_L(2,3,6), cpl_CNuSl_R(2,3,6)    &
+             & , cpl_NuNSn_R(3,4,3)
+  Real(dp) :: mC2(2), mN2(4), a_s, sW2, tanb, e2, mG2, mW2, a_ew
+  Real(dp), Parameter :: T3=-0.5_dp, ed = -1._dp / 3._dp
+  Complex(dp), Parameter :: Null3(3,3) = 0._dp
+  !JJP
+  Real(dp) ::mu,a_mu,mf_up(3),mf_dp(3),beta0,n_flav,mSup2p(6),mSdown2p(6)
+ 
+  Iname = Iname + 1
+  NameOfUnit(Iname) = "K_To_PiNuNu"
+
+
+  !---------------
+  ! couplings
+  !---------------
+  gp = gauge(1)
+  g = gauge(2)
+  gs = gauge(3)
+
+  a_s = gauge(3)**2 * oo4pi
+
+  CKM =  Matmul(RuL, Transpose(Conjg(RdL)) )
+
+  cpl_CDSu_L = 0._dp
+  cpl_CDSu_R = 0._dp
+  If (GenerationMixing) Then
+   RSup_in = RSup
+  Else ! need to reorder things to be in agreement with ordering of scalar ups
+   RSup_in = 0._dp
+   RSup_in(1,1) = RSup(1,1)
+   RSup_in(1,4) = RSup(1,2)
+   RSup_in(4,1) = RSup(2,1)
+   RSup_in(4,4) = RSup(2,2)
+   RSup_in(2,2) = RSup(3,3)
+   RSup_in(2,5) = RSup(3,4)
+   RSup_in(5,2) = RSup(4,3)
+   RSup_in(5,5) = RSup(4,4)
+   RSup_in(3,3) = RSup(5,5)
+   RSup_in(3,6) = RSup(5,6)
+   RSup_in(6,3) = RSup(6,5)
+   RSup_in(6,6) = RSup(6,6)
+   mix = 0._dp
+   mix(1:3,1:3) = rUL
+   mix(4:6,4:6) = rUr
+   RSup_in = Matmul(RSup_in, mix)
+  End If   
+
+  Do i1=1,3 !Maybe 1,2?
+   Do i2=1,2
+    Do i3=1,6
+     Call CoupCharginoSfermion3(i2, i1, i3, g, -0.5_dp, RSup_in, Y_D, Y_U &
+           &, RdL, RdR, U, V, cpl_CDSu_L(i2, i1, i3), cpl_CDSu_R(i2, i1, i3) )
+    End Do
+   End Do
+  End Do
+
+  cpl_DGSd_L = 0._dp
+  cpl_DGSd_R = 0._dp
+  cpl_DNSd_L = 0._dp
+  cpl_DNSd_R = 0._dp
+  cpl_NuNSn_R = 0._dp
+  cpl_CNuSl_L = 0._dp
+  cpl_CNuSl_R = 0._dp
+
+   Do i1=1,6
+    Do i3=1,3 !Maybe 1,2?
+     Call CoupGluinoSquark3(gs, phi_g, i3, i1, Rsdown, RdL, RdR     &
+                          & , cpl_DGSd_L(i3,i1), cpl_DGSd_R(i3,i1) )
+     Do i2=1,4
+      Call CoupNeutralinoSfermion3(i3, i2, i1, gp, g, T3, ed, RSdown, RdL, RdR&
+                        & , Y_d, N, cpl_DNSd_L(i3,i2,i1), cpl_DNSd_R(i3,i2,i1))
+     End Do
+    End Do
+   End Do
+   Do i1=1,3
+    Do i2=1,4
+     Do i3=1,3  
+      Call  CoupNeutralinoSneutrino3(i1, i2, i3, gp, g, N, Rsneut, id3C &
+        & , cpl_NuNSn_R(i1,i2,i3))
+     End Do
+    End Do
+    Do i2=1,2
+     Do i3=1,6
+     Call CoupCharginoSfermion3(i2, i1, i3, g, 0.5_dp, RSlepton, Y_l &
+        & , Null3, id3C, id3C, U, V, cpl_CNuSl_L(i2,i1,i3)                  &
+        & , cpl_CNuSl_R(i2,i1,i3))
+     End Do
+    End Do
+   End Do
+
+  mW2 = mW**2
+  mG2 = mglu**2
+  mC2 = mC**2
+  mN2 = mN**2
+  tanb = vevSM(2) / vevSM(1)
+
+  a_s = gauge(3)**2 * oo4pi
+  sW2 = gauge(1)**2 / (gauge(1)**2 + gauge(2)**2)
+  e2 = 4._dp * pi * gauge(2)**2 * sW2
+  kappa_q = 8._dp * Sqrt2 * G_F * e2 * CKM(3,1) * Conjg( CKM(3,2) )
+  kappa_q = 1._dp / kappa_q
+
+  c11 = 0._dp
+  c11p = 0._dp
+
+  Do i1=1,3
+   Call C_11_11p(2, 1, i1, mZ, mf_d, mf_u, mf_l, mW2, mSpm2(2), mG2, mC2    &
+     & ,mN2, mSneut2, mSlepton2, mSup2, mSdown2, tanb, U, V, N, RSup, RSdown &
+     & , cpl_CDSu_L, cpl_CDSu_R, cpl_CNuSl_R, cpl_NuNSn_R, cpl_DNSd_L         &
+     & , cpl_DNSd_R, cpl_DGSd_L, cpl_DGSd_R, a_s, kappa_q, e2, sW2, l_QCD    &
+     & , c11(i1), c11p(i1), c11_c, c11p_c)
+   If (Present(c11_o)) c11_o(i1,:) = c11_c
+   If (Present(c11p_o)) c11p_o(i1,:) = c11p_c
+  End Do
+
+  KToPiNuNu = 0._dp
+  Do i1=1,3
+   KToPiNuNu = KToPiNuNu + Aimag( Conjg(CKM(3,2)) * CKM(3,1) *      &
+        & ( C11(i1)+C11p(i1) ))**2
+  End Do
+  KToPiNuNu = 2._dp * 1.17e-4_dp * 0.944_dp * KToPiNuNu
+
+  Iname = Iname - 1
+
+ End Subroutine K_To_PiNuNu
+
 
   Real(dp) Function S0(x)
   Implicit None
