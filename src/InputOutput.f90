@@ -24,7 +24,7 @@ Real(dp), Save, Private :: SigMin=1.e-3_dp
 ! contains information on possible inconsitencies in the input
 Integer, Save, Private :: in_kont(2)
 ! version number
-Character(len=8), Save, Private :: version="v3beta32"
+Character(len=8), Save, Private :: version="v3beta36"
 ! name of 'input-program'
 Character(len=40), Private :: sp_info 
 ! tempory variables for Higgs mixing in case of NMSSM
@@ -81,7 +81,7 @@ Contains
   ! these variables are only used in GMSB and will be set correctly below
   !-----------------------------------------------------------------------
   F_GMSB = 1.e12_dp
-  m32 = 1.e10_dp ! set an abitrary large gravitino mass
+  m32 = 1.e20_dp ! set an abitrary large gravitino mass
 
   If (HighScaleModel.Eq."mSugra") Then
    !-----------------------------------------------------------
@@ -849,7 +849,7 @@ Contains
   ! these variables are only used in GMSB and will be set correctly below
   !-----------------------------------------------------------------------
   Fgmsb = 1.e12_dp
-  m32 = 1.e10_dp ! set an abitrary large gravitino mass
+  m32 = 1.e20_dp ! set an abitrary large gravitino mass in eV
 
   kont = 0
 
@@ -1141,8 +1141,16 @@ Contains
   !---------------------------------------------
   ! saving parameters in the super CKm basis
   !---------------------------------------------
-  If (l_Ad) Ad_sckm = A_d_0
-  If (l_Au) Au_sckm = A_u_0
+  If (l_Ad) Then
+   A_D_0 = Transpose(A_D_0)   ! SLHA convention contain a transpose
+   A_D = A_D_0
+   Ad_sckm = A_d_0
+  End If
+  If (l_Au) Then
+   A_U_0 = Transpose(A_U_0)   ! SLHA convention contain a transpose
+   A_U = A_U_0
+   Au_sckm = A_u_0
+  End If
   If (l_MD) M2D_sckm = M2_D_0
   If (l_MQ) M2D_sckm = M2_Q_0
   If (l_MU) M2D_sckm = M2_U_0
@@ -1206,12 +1214,14 @@ Contains
     Else 
      Write(ErrCan,*) "Higgs sector has not been specified consistently. Aborting"
      kont = -307
+     Call AddError(307)
      Return
     End If
 
    End If ! i_mod.eq.0
 
      kont = -305 ! model has not specified completly
+     Call AddError(305)
      If ((i_model.Eq.0).And.(Sum(set_mod_par(1:25)).Eq.23)) kont = 0 ! MSSM
      If ((i_model.Eq.1).And.(Sum(set_mod_par(1:5)).Eq.5)) kont = 0 ! mSugra 
      If ((i_model.Eq.2).And.(Sum(set_mod_par(1:5)).Eq.5)) Then ! GMSB 
@@ -1338,10 +1348,10 @@ Contains
    A_lam = Ao_lam * lam
    A_nu(1,:) = AoY_nu(1,:) * Y_nu(1,:) 
    A_pns = Ao_hpns * h_pns
-   If (lam_vs.ne.0._dp) then ! calulate either h0 or v_P
+   If (lam_vs.Ne.0._dp) Then ! calulate either h0 or v_P
     If ((h0.Ne.0._dp).And.(vP.Eq.0._dp)) vp = sqrt2 * lam_vs / h0
-    If ((h0.eq.0._dp).And.(vP.nE.0._dp)) h0 = sqrt2 * lam_vs / vp
-   End if 
+    If ((h0.Eq.0._dp).And.(vP.Ne.0._dp)) h0 = sqrt2 * lam_vs / vp
+   End If 
    !----------------------------------------------------
    ! check if 1st and 2nd generation parameters are set
    !----------------------------------------------------
@@ -1506,9 +1516,9 @@ Contains
  Contains
 
   Subroutine Read_Neutrino_Bounds(io, kont)
-  implicit none
+  Implicit None
    Integer, Intent(in) :: io
-   Integer, intent(inout) :: kont
+   Integer, Intent(inout) :: kont
 
     Do 
      Read(io,*,End=200) read_line
@@ -1903,6 +1913,7 @@ Contains
       sp_info = Trim(sp_info)//" "//Trim(read_line)
      Else If (i_sp.Eq.4) Then ! there is some inconsistency, exit
       kont = -306
+      Call AddError(306)
       Iname = Iname - 1
       Return
      Else
@@ -1941,7 +1952,7 @@ Contains
        Write(ErrCan,*) "Error in routine "//NameOfUnit(Iname)
        Write(ErrCan,*) "MSSM, Unknown entry for Block MODSEL ",i_mod
        kont = -302
-       Call AddError(kont)
+       Call AddError(-kont)
        Return
       Else If (i_mod.Eq.0) Then
        HighScaleModel = "MSSM"
@@ -2006,7 +2017,7 @@ Contains
        Write(ErrCan,*) "Error in routine "//NameOfUnit(Iname)
        Write(ErrCan,*) "NMSSM, Unknown entry for Block MODSEL ",i_mod
        kont = -302
-       Call AddError(kont)
+       Call AddError(-kont)
        Return
       End If
 
@@ -2018,7 +2029,7 @@ Contains
        Write(ErrCan,*) "Error in routine "//NameOfUnit(Iname)
        Write(ErrCan,*) "Unknown entry for Block MODSEL ",i_test,i_mod
        kont = -302
-       Call AddError(kont)
+       Call AddError(-kont)
        Return
       End If
 
@@ -2028,7 +2039,7 @@ Contains
        Write(ErrCan,*) "Error in routine "//NameOfUnit(Iname)
        Write(ErrCan,*) "Unknown entry for Block MODSEL ",i_test,i_mod
        kont = -302
-       Call AddError(kont)
+       Call AddError(-kont)
        Return
       End If
 
@@ -2041,7 +2052,7 @@ Contains
        Write(ErrCan,*) "Error in routine "//NameOfUnit(Iname)
        Write(ErrCan,*) "GenerationMixing, Unknown entry for Block MODSEL ",i_mod
        kont = -302
-       Call AddError(kont)
+       Call AddError(-kont)
        Return
       End If
 
@@ -2051,7 +2062,7 @@ Contains
     If ((i_rp.Eq.1).And.(i_model.Eq.0)) Then
      HighScaleModel = "RPexplicit"
      check = SetHighScaleModel("RPexplicit")
-    Else If ((i_rp.Eq.1).And.(i_model.ge.2).and.(i_model.le.4)) Then
+    Else If ((i_rp.Eq.1).And.(i_model.Ge.1).And.(i_model.Le.3)) Then
      Add_Rparity = .True.
     End If
 
@@ -2248,7 +2259,7 @@ Contains
      Write(ErrCan,*) &
      "You must first specify the model before the model parameters can be set."
      kont = -303
-     Call AddError(kont)
+     Call AddError(-kont)
      Return
     End If
 !    Write(ErrCan,*) "Reading EXTPAR"
@@ -2267,36 +2278,36 @@ Contains
       If (i_model.Eq.1) Call SetGUTScale(wert)     ! Sugra
       If (i_model.Eq.3) Call SetGUTScale(wert)     ! AMSB
      Else If (i_par.Eq.1) Then 
-      If (i_c.Eq.0) Mi(1) = Mi(1) + wert
-      If (i_c.Eq.0) Mi_0(1) = Mi_0(1) + wert  
-      If (i_c.Eq.1) Mi(1) = Mi(1) + (0._dp,1._dp) * wert
-      If (i_c.Eq.1) Mi_0(1) = Mi_0(1) + (0._dp,1._dp) * wert  
+      If (i_c.Eq.0) Mi(1) = Cmplx(0._dp, Aimag(Mi(1)), dp) + wert
+      If (i_c.Eq.0) Mi_0(1) = Cmplx(0._dp, Aimag(Mi_0(1)), dp) + wert  
+      If (i_c.Eq.1) Mi(1) = Real(Mi(1),dp) + (0._dp,1._dp) * wert
+      If (i_c.Eq.1) Mi_0(1) = Real(Mi_0(1),dp) + (0._dp,1._dp) * wert  
       set_mod_par(1) = 1
      Else If (i_par.Eq.2) Then 
-      If (i_c.Eq.0) Mi(2) = Mi(2) + wert 
-      If (i_c.Eq.0) Mi_0(2) = Mi_0(2) + wert  
-      If (i_c.Eq.1) Mi(2) = Mi(2) + (0._dp,1._dp) * wert 
-      If (i_c.Eq.1) Mi_0(2) = Mi_0(2) + (0._dp,1._dp) * wert  
+      If (i_c.Eq.0) Mi(2) = Cmplx(0._dp, Aimag(Mi(2)), dp) + wert
+      If (i_c.Eq.0) Mi_0(2) = Cmplx(0._dp, Aimag(Mi_0(2)), dp) + wert  
+      If (i_c.Eq.1) Mi(2) = Real(Mi(2),dp) + (0._dp,1._dp) * wert
+      If (i_c.Eq.1) Mi_0(2) = Real(Mi_0(2),dp) + (0._dp,1._dp) * wert  
       set_mod_par(2) = 1
      Else If (i_par.Eq.3) Then 
-      If (i_c.Eq.0) Mi(3) = Mi(3) + wert 
-      If (i_c.Eq.0) Mi_0(3) = Mi_0(3) + wert  
-      If (i_c.Eq.1) Mi(3) = Mi(3) + wert 
-      If (i_c.Eq.1) Mi_0(3) = Mi_0(3) + (0._dp,1._dp) * wert  
+      If (i_c.Eq.0) Mi(3) = Cmplx(0._dp, Aimag(Mi(3)), dp) + wert
+      If (i_c.Eq.0) Mi_0(3) = Cmplx(0._dp, Aimag(Mi_0(3)), dp) + wert  
+      If (i_c.Eq.1) Mi(3) = Real(Mi(3),dp) + (0._dp,1._dp) * wert
+      If (i_c.Eq.1) Mi_0(3) = Real(Mi_0(3),dp) + (0._dp,1._dp) * wert  
       set_mod_par(3) = 1
      Else If (i_par.Eq.11) Then 
-      If (i_c.Eq.0) AoY_u = AoY_u + wert 
-      If (i_c.Eq.1) AoY_u = AoY_u + (0._dp,1._dp) * wert 
+      If (i_c.Eq.0) AoY_u = Cmplx(0._dp, Aimag(AoY_u), dp) + wert 
+      If (i_c.Eq.1) AoY_u = Real(AoY_u,dp) + (0._dp,1._dp) * wert 
       AoY_u_0 = AoY_u 
       set_mod_par(4) = 1
      Else If (i_par.Eq.12) Then 
-      If (i_c.Eq.0) AoY_d = AoY_d + wert 
-      If (i_c.Eq.1) AoY_d = AoY_d + (0._dp,1._dp) * wert 
+      If (i_c.Eq.0) AoY_d = Cmplx(0._dp, Aimag(AoY_d), dp) + wert 
+      If (i_c.Eq.1) AoY_d = Real(AoY_d,dp) + (0._dp,1._dp) * wert 
       AoY_d_0 = AoY_d 
       set_mod_par(5) = 1
      Else If (i_par.Eq.13) Then 
-      If (i_c.Eq.0) AoY_l = AoY_l + wert 
-      If (i_c.Eq.1) AoY_l = AoY_l + (0._dp,1._dp) * wert 
+      If (i_c.Eq.0) AoY_l = Cmplx(0._dp, Aimag(AoY_l), dp) + wert 
+      If (i_c.Eq.1) AoY_l = Real(AoY_l,dp) + (0._dp,1._dp) * wert 
       AoY_l_0 = AoY_l 
       set_mod_par(6) = 1
      Else If ((i_par.Eq.21).And.(i_c.Eq.0)) Then 
@@ -2311,8 +2322,8 @@ Contains
 
      Else If (i_par.Eq.23) Then
       If ((i_model.Eq.0).Or.(HighScaleModel.Eq."NMSSM")) Then 
-       If (i_c.Eq.0) mu = mu + wert
-       If (i_c.Eq.1) mu = mu + (0._dp,1._dp) * wert
+       If (i_c.Eq.0) mu = Cmplx(0._dp, Aimag(mu), dp) + wert
+       If (i_c.Eq.1) mu = Real(mu) + (0._dp,1._dp) * wert
        set_mod_par(9) = 1
       Else
        Write(ErrCan,*) "mu can only be specified in the general MSSM and is"
@@ -2339,7 +2350,7 @@ Contains
        mP0(2) = wert
        mP02(2) = wert**2
        set_mod_par(10) = 1
-      Else If (HighScaleModel.eq."RPspon") Then 
+      Else If (HighScaleModel.Eq."RPspon") Then 
        mP0(2) = wert
        mP02(2) = wert**2
       Else
@@ -2412,21 +2423,22 @@ Contains
      ! NMSSM
      !------------------------------
      Else If (i_par.Eq.61) Then 
-      If (i_c.Eq.0) h0 = h0 + wert
-      If (i_c.Eq.1) h0 = h0 + (0._dp,1._dp) * wert
+      If (i_c.Eq.0) h0 = Cmplx(0._dp, Aimag(h0),dp) + wert
+      If (i_c.Eq.1) h0 = Real(h0,dp) + (0._dp,1._dp) * wert
      Else If (i_par.Eq.62) Then 
-      If (i_c.Eq.0) lam = lam + 2._dp * wert          ! different convention 
-      If (i_c.Eq.1) lam = lam  + (0._dp,2._dp) * wert ! with respect to Cyril
+      ! different convention with respect to Cyril
+      If (i_c.Eq.0) lam = Cmplx(0._dp, Aimag(lam),dp) + 2._dp * wert
+      If (i_c.Eq.1) lam = Real(lam,dp)  + (0._dp,2._dp) * wert
      Else If (i_par.Eq.63) Then 
-      If (i_c.Eq.0) Ao_h0 = Ao_h0 + wert
-      If (i_c.Eq.1) Ao_lam = Ao_lam + (0._dp,1._dp) * wert
+      If (i_c.Eq.0) Ao_h0 = Cmplx(0._dp, Aimag(Ao_h0),dp) + wert
+      If (i_c.Eq.1) Ao_lam = Real(Ao_lam,dp) + (0._dp,1._dp) * wert
      Else If (i_par.Eq.64) Then 
-      If (i_c.Eq.0) Ao_lam = Ao_lam + wert
-      If (i_c.Eq.1) Ao_lam = Ao_lam + (0._dp,1._dp) * wert
+      If (i_c.Eq.0) Ao_lam = Cmplx(0._dp, Aimag(Ao_lam),dp) + wert
+      If (i_c.Eq.1) Ao_lam = Real(Ao_lam,dp) + (0._dp,1._dp) * wert
      Else If (i_par.Eq.65) Then
-      If ((HighScaleModel.Eq."NMSSM").or.(HighScaleModel.Eq."RPspon")) Then 
-       If (i_c.Eq.0) lam_vS = lam_vS + wert
-       If (i_c.Eq.1) lam_vS = lam_vS + (0._dp,1._dp) * wert
+      If ((HighScaleModel.Eq."NMSSM").Or.(HighScaleModel.Eq."RPspon")) Then 
+       If (i_c.Eq.0) lam_vS = Cmplx(0._dp, Aimag(lam_vS),dp) + wert
+       If (i_c.Eq.1) lam_vS = Real(lam_vS,dp) + (0._dp,1._dp) * wert
        set_mod_par(9) = 1
       Else
        Write(ErrCan,*) "Attempt to use i_par == 65"
@@ -2482,29 +2494,30 @@ Contains
      ! and spontaneous R-parity breaking
      !---------------------------------------
       Else If (i_par.Eq.91) Then
-       If (i_c.Eq.0) h02 = h02 + wert
-       If (i_c.Eq.1) h02 = h02 + (0._dp,1._dp) * wert
+       If (i_c.Eq.0) h02 = Cmplx(0._dp, Aimag(h02),dp) + wert
+       If (i_c.Eq.1) h02 = Real(h02,dp) + (0._dp,1._dp) * wert
       Else If (i_par.Eq.92) Then 
-       If (i_c.Eq.0) lam2 = lam2 + 2._dp * wert          ! different convention 
-       If (i_c.Eq.1) lam2 = lam2 + (0._dp,2._dp) * wert  ! with respect to Cyril
+        ! different convention  with respect to Cyril
+       If (i_c.Eq.0) lam2 = Cmplx(0._dp, Aimag(lam2),dp) + 2._dp * wert
+       If (i_c.Eq.1) lam2 = Real(lam2,dp) + (0._dp,2._dp) * wert 
       Else If (i_par.Eq.93) Then 
-       If (i_c.Eq.0) lam112 = lam112 + wert          
-       If (i_c.Eq.1) lam112 = lam112 + (0._dp,1._dp) * wert
+       If (i_c.Eq.0) lam112 = Cmplx(0._dp, Aimag(lam112),dp) + wert          
+       If (i_c.Eq.1) lam112 = Real(lam112,dp) + (0._dp,1._dp) * wert
       Else If (i_par.Eq.94) Then 
-       If (i_c.Eq.0) lam122 = lam122 + wert          
-       If (i_c.Eq.1) lam122 = lam122 + (0._dp,1._dp) * wert
+       If (i_c.Eq.0) lam122 = Cmplx(0._dp, Aimag(lam122),dp) + wert          
+       If (i_c.Eq.1) lam122 = Real(lam122,dp) + (0._dp,1._dp) * wert
       Else If (i_par.Eq.95) Then 
-       If (i_c.Eq.0) Ao_h02 = Ao_h02 + wert
-       If (i_c.Eq.1) Ao_h02 = Ao_h02 + (0._dp,1._dp) * wert
+       If (i_c.Eq.0) Ao_h02 = Cmplx(0._dp, Aimag(Ao_h02),dp) + wert
+       If (i_c.Eq.1) Ao_h02 = Real(Ao_h02,dp) + (0._dp,1._dp) * wert
       Else If (i_par.Eq.96) Then 
-       If (i_c.Eq.0) Ao_lam222 = Ao_lam222 + wert
-       If (i_c.Eq.1) Ao_lam222 = Ao_lam222 + (0._dp,1._dp) * wert
+       If (i_c.Eq.0) Ao_lam222 = Cmplx(0._dp, Aimag(Ao_lam222),dp) + wert
+       If (i_c.Eq.1) Ao_lam222 = Real(Ao_lam222,dp) + (0._dp,1._dp) * wert
       Else If (i_par.Eq.97) Then 
-       If (i_c.Eq.0) Ao_lam112 = Ao_lam112 + wert
-       If (i_c.Eq.1) Ao_lam112 = Ao_lam112 + (0._dp,1._dp) * wert
+       If (i_c.Eq.0) Ao_lam112 = Cmplx(0._dp, Aimag(Ao_lam112),dp) + wert
+       If (i_c.Eq.1) Ao_lam112 = Real(Ao_lam112,dp) + (0._dp,1._dp) * wert
       Else If (i_par.Eq.98) Then 
-       If (i_c.Eq.0) Ao_lam122 = Ao_lam122 + wert
-       If (i_c.Eq.1) Ao_lam122 = Ao_lam122 + (0._dp,1._dp) * wert
+       If (i_c.Eq.0) Ao_lam122 = Cmplx(0._dp, Aimag(Ao_lam122),dp) + wert
+       If (i_c.Eq.1) Ao_lam122 = Real(Ao_lam122,dp) + (0._dp,1._dp) * wert
       Else If (i_par.Eq.99) Then 
        M2_R(2,2) = wert**2
       Else If (i_par.Eq.100) Then 
@@ -2560,7 +2573,7 @@ Contains
      Write(ErrCan,*) &
      "You must first specify the model before the model parameters can be set."
      kont = -303
-     Call AddError(kont)
+     Call AddError(-kont)
      Return
     End If
 
@@ -2599,8 +2612,8 @@ Contains
      Else If (i_par.Eq.2) Then 
       If (i_model.Eq.1) Then ! mSugra, M_1/2
        set_mod_par(2) = 1
-       If (i_c.Eq.0) Mi_0 =  Mi_0 + wert
-       If (i_c.Eq.1) Mi_0 =  Mi_0 + (0._dp,1._dp) * wert
+       If (i_c.Eq.0) Mi_0 =  Cmplx(0._dp, Aimag(Mi_0),dp) + wert
+       If (i_c.Eq.1) Mi_0 =  Real(Mi_0,dp) + (0._dp,1._dp) * wert
       Else If ((i_model.Eq.2).And.(i_c.Eq.0)) Then ! GMSB, M_M
        set_mod_par(2) = 1
        MlambdaS = wert
@@ -2618,21 +2631,21 @@ Contains
      Else If (i_par.Eq.4) Then 
       If ((i_model.Ge.0).And.(i_model.Le.3)) Then ! MSSM, mSugra, GMSB, AMSB, sign_mu
        set_mod_par(4) = 1
-       If (i_c.Eq.0) phase_mu = phase_mu + wert
-       If (i_c.Eq.1) phase_mu = phase_mu + (0._dp,1._dp) * wert
+       If (i_c.Eq.0) phase_mu = Cmplx(0._dp, Aimag(phase_mu),dp) + wert
+       If (i_c.Eq.1) phase_mu = Real(phase_mu) + (0._dp,1._dp) * wert
       End If
 
      Else If (i_par.Eq.5) Then 
       If (i_model.Eq.1) Then ! mSugra, A_0
        set_mod_par(5) = 1
-       If (i_c.Eq.0) AoY_d_0 = Aimag(AoY_d_0) + wert
+       If (i_c.Eq.0) AoY_d_0 = Cmplx(0._dp, Aimag(AoY_d_0),dp) + wert
        If (i_c.Eq.1) AoY_d_0 = Real(AoY_d_0,dp) + (0._dp,1._dp) * wert
        AoY_l_0 = AoY_d_0
        AoY_u_0 = AoY_d_0
        AoY_nu_0 = AoY_d_0
        AoT_0 = AoY_d_0
-       If (i_c.Eq.0) Alam12_0 =  Alam12_0 + wert
-       If (i_c.Eq.1) Alam12_0 =  Alam12_0 + (0._dp,1._dp) * wert
+       If (i_c.Eq.0) Alam12_0 =  Cmplx(0._dp, Aimag(Alam12_0),dp) + wert
+       If (i_c.Eq.1) Alam12_0 =  Real(Alam12_0,dp) + (0._dp,1._dp) * wert
       Else If ((i_model.Eq.2).And.(i_c.Eq.0)) Then ! GMSB, n_5
        set_mod_par(5) = 1
        n5plets = wert
@@ -2652,19 +2665,19 @@ Contains
       D_SO_10 = wert
 
      Else If (i_par.Eq.9) Then ! SUGRA_SU5, real(lambda(m_GUT))
-      If (i_c.Eq.0) lam_0 = lam_0 + wert
-      If (i_c.Eq.1) lam_0 = lam_0 + (0._dp,0.1_dp) * wert
+      If (i_c.Eq.0) lam_0 = Cmplx(0._dp, Aimag(lam_0),dp) + wert
+      If (i_c.Eq.1) lam_0 = Real(lam_0,dp) + (0._dp,0.1_dp) * wert
  
      Else If (i_par.Eq.10) Then ! SUGRA_SU5, real(lambda'(m_GUT))
-      If (i_c.Eq.0) lamp_0 = lamp_0 + wert
-      If (i_c.Eq.1) lamp_0 = lamp_0 + (0._dp,0.1_dp) * wert
+      If (i_c.Eq.0) lamp_0 = Cmplx(0._dp, Aimag(lamp_0), dp) + wert
+      If (i_c.Eq.1) lamp_0 = Real(lamp_0,dp) + (0._dp,0.1_dp) * wert
  
      Else 
       Write(ErrCan,*) "Error in routine "//NameOfUnit(Iname)
       If (i_c.Eq.0) Write(ErrCan,*) "Unknown entry for Block MINPAR ",i_par 
       If (i_c.Eq.1) Write(ErrCan,*) "Unknown entry for Block IMMINPAR ",i_par 
       Call AddError(304)
-      If (ErrorLevel.eq.2) call TerminateProgram
+      If (ErrorLevel.Eq.2) Call TerminateProgram
      End If 
 
     End Do ! i_par
@@ -2801,22 +2814,29 @@ Contains
      Write(ErrCan,*) "Problem while reading "//mat_name//" in routine"// &
         & Trim(NameOfUnit(Iname))//", index i1=",i1
      Iname = Iname - 2
-     kont = -305 
+     kont = -308
+     Call AddError(308)
      Call TerminateProgram()
     End If
     If ((i2.Lt.1).Or.(i2.Gt.nmax)) Then
      Write(ErrCan,*) "Problem while reading "//mat_name//" in routine"// &
         & Trim(NameOfUnit(Iname))//", index i2=",i2
      Iname = Iname - 2
-     kont = -305 
+     kont = -308
+     Call AddError(308)
      Call TerminateProgram()
     End If
 
     If (ic.Eq.0) Then
-     mat(i1,i2) = Cmplx(0._dp, Aimag(mat(i1,i2)), dp) + wert
-     If (Present(fill).And.(i1.Ne.i2)) mat(i2,i1) = Cmplx(0._dp, Aimag(mat(i2,i1)), dp) + wert
+     mat(i1,i2) = Cmplx(0._dp,Aimag(mat(i1,i2)),dp) + wert
+     If (Present(fill).And.(i1.Ne.i2)) &
+       &  mat(i2,i1) = Cmplx(0._dp, Aimag(mat(i2,i1)), dp) + wert
     Else If (ic.Eq.1) Then
      mat(i1,i2) = Real(mat(i1,i2),dp) + Cmplx(0._dp, wert, dp)
+     !-------------------------------------------------------------
+     ! if fill==1 -> matrix is hermitian
+     ! if fill==2 -> matrix is complex symmetric
+     !-------------------------------------------------------------
      If (Present(fill).And.(i1.Ne.i2)) Then
       If (fill.Eq.1) mat(i2,i1) = Real(mat(i2,i1),dp) - Cmplx(0._dp, wert, dp)
       If (fill.Eq.2) mat(i2,i1) = Real(mat(i2,i1),dp) + Cmplx(0._dp, wert, dp)
@@ -2861,14 +2881,16 @@ Contains
      Write(ErrCan,*) "Problem while reading "//mat_name//" in routine"// &
         & Trim(NameOfUnit(Iname))//", index i1=",i1
      Iname = Iname - 2
-     kont = -305 
+     kont = -309
+     Call AddError(309) 
      Call TerminateProgram()
     End If
     If ((i2.Lt.1).Or.(i2.Gt.nmax)) Then
      Write(ErrCan,*) "Problem while reading "//mat_name//" in routine"// &
         & Trim(NameOfUnit(Iname))//", index i2=",i2
      Iname = Iname - 2
-     kont = -305 
+     kont = -309
+     Call AddError(309) 
      Call TerminateProgram()
     End If
 
@@ -2912,7 +2934,8 @@ Contains
      Write(ErrCan,*) "Problem while reading "//vec_name//" in routine"// &
         & Trim(NameOfUnit(Iname))//", index i1=",i1
      Iname = Iname - 2
-     kont = -305 
+     kont = -310
+     Call AddError(310)
      Call TerminateProgram()
     End If
 
@@ -2957,7 +2980,8 @@ Contains
      Write(ErrCan,*) "Problem while reading "//vec_name//" in routine"// &
         & Trim(NameOfUnit(Iname))//", index i1=",i1
      Iname = Iname - 2
-     kont = -305 
+     kont = -311
+     Call AddError(311)
      Call TerminateProgram()
     End If
 
@@ -3001,22 +3025,25 @@ Contains
      Write(ErrCan,*) "Problem while reading "//mat_name//" in routine"// &
         & Trim(NameOfUnit(Iname))//", index i1=",i1
      Iname = Iname - 2
-     kont = -305 
+     kont = -312
+     Call AddError(312)
      Call TerminateProgram()
     End If
     If ((i2.Lt.1).Or.(i2.Gt.nmax)) Then
      Write(ErrCan,*) "Problem while reading "//mat_name//" in routine"// &
         & Trim(NameOfUnit(Iname))//", index i2=",i2
      Iname = Iname - 2
-     kont = -305 
+     kont = -312 
+     Call AddError(312)
      Call TerminateProgram()
     End If
     If ((i3.Lt.1).Or.(i3.Gt.nmax)) Then
      Write(ErrCan,*) "Problem while reading "//mat_name//" in routine"// &
         & Trim(NameOfUnit(Iname))//", index i3=",i3
      Iname = Iname - 2
-     kont = -305 
-     Call TerminateProgram()
+     kont = -312
+      Call AddError(312)
+    Call TerminateProgram()
     End If
 
     If (ic.Eq.0) mat(i1,i2,i3) = Cmplx(0._dp, Aimag(mat(i1,i2,i3)), dp) + wert
@@ -3039,13 +3066,13 @@ Contains
       & , BrTauToMuGamma, BrMu3e, BrTau3e, BrTau3Mu, BR_Z_e_mu, BR_Z_e_tau &
       & , BR_Z_mu_tau  &
       & , Rho_parameter, Ecms, Pm, Pp, ISR, SigSup, SigSdown, SigSle &
-      & , SigSn, SigChi0, SigC, SigS0, SigSP, SigHp, omega)
+      & , SigSn, SigChi0, SigC, SigS0, SigSP, SigHp, omega, f_name)
  !--------------------------------------------------------------------
  ! writes out data using the Les Houches standard as defined in 
  ! hep-ph/0311123
  ! input:
  !   - HighScaleModel ........ string specifiying the model 
- !   - M_GUT ................. scale of high scale theory, in general a GUT theor
+ !   - M_GUT ................. scale of high scale theory, in general a GUT theory
  !   - BRbtosgamma ........... 10^4 BR(b -> s gamma)
  !   - a_mu .................. SUSY contribution to (g-2)_muon
  !   - Rho_parameter ......... rho parameter
@@ -3062,6 +3089,8 @@ Contains
  !   - SigC .................. cross sections of charginos
  !   - SigSP ................. cross sections of neutral Higgs bosons
  !   - SigHp ................. cross section of charged Higgs boson
+ !   - omega ................. relic density omega h^2, optional
+ !   - f_name ................ alternative name of output file, optional
  !--------------------------------------------------------------------
  Implicit None
   Integer, Intent(in) :: io_L, io, kont
@@ -3076,6 +3105,7 @@ Contains
   Character(len=15), Intent(in) :: HighScaleModel
   Logical, Intent(in) :: ISR(:)
   Real(dp), Intent(in), Optional :: Omega
+  Character(len=*), Intent(in), Optional :: f_name
 
   Integer :: i1, i2, i3, i4, id_sle(6), id_f, id_fp, id_su(6) &
       & , id_sd(6), i_zaehl, n_min, c_min, ii, jj
@@ -3393,7 +3423,11 @@ Contains
 
   Call Date_and_time(datum,zeit)
   If (l_open) Then
-   Open(io_L,file="SPheno.spc",status="unknown")
+   If (Present(f_name)) Then
+    Open(io_L,file=Trim(f_name),status="unknown")
+   Else
+    Open(io_L,file="SPheno.spc",status="unknown")
+   End If
    l_open = .False.
   End If
   !--------------------------------------------------------
@@ -3405,7 +3439,7 @@ Contains
    Write(io_L,100) "# SPheno "//version
    Write(io_L,100) &
      & "# W. Porod, Comput. Phys. Commun. 153 (2003) 275-315, hep-ph/0301101"
-   Write(io_L,100) "# in case of problems send email to porod@ific.uv.es"
+   Write(io_L,100) "# in case of problems send email to porod@physik.uni-wuerzburg.de"
    Write(io_L,100) "# Created: "//Datum(7:8)//"."//Datum(5:6)//"."//Datum(1:4) &
      & //",  "//Zeit(1:2)//":"//Zeit(3:4)
    Write(io_L,100) "Block SPINFO         # Program information"
@@ -3489,11 +3523,11 @@ Contains
     Write(io_L,101) 4, Real(phase_mu,dp),"# cos(phase_mu)"
     Write(io_L,101) 5,Real(AoY_l_0(1,1),dp),"# A0"
     Write(io_L,100) "#"
-    if ((aimag(mu).ne.0._dp).or.(aimag(AoY_l_0(1,1)).ne.0._dp)) then
+    If ((Aimag(mu).Ne.0._dp).Or.(Aimag(AoY_l_0(1,1)).Ne.0._dp)) Then
      Write(io_L,100) "Block IMMINPAR  # Input parameters, imaginary part"
      Write(io_L,101) 4, Aimag(phase_mu),"# sin(phase_mu)"
      Write(io_L,101) 5, Aimag(AoY_l_0(1,1)),"# Im(A0)"
-    end if
+    End If
 
     Write(io,*) "mSugra input at the GUT scale", m_GUT
     If (Aimag(Mi_0(1)).Eq.0._dp) Then
@@ -3877,11 +3911,11 @@ Contains
    End Do
   Else 
    Write(io_L,106) "Block Au Q=",Q,"# (SUSY scale)"
-   if (abs(y_u(1,1)).gt.0._dp) &
+   If (Abs(y_u(1,1)).Gt.0._dp) &
         & Write(io_L,107) 1,1,Real(Au_sckm(1,1)/y_u(1,1),dp), "# A_u(Q)^DRbar"
-   if (abs(y_u(2,2)).gt.0._dp) &
+   If (Abs(y_u(2,2)).Gt.0._dp) &
         & Write(io_L,107) 2,2,Real(Au_sckm(2,2)/y_u(2,2),dp), "# A_c(Q)^DRbar"
-   if (abs(y_u(3,3)).gt.0._dp) &
+   If (Abs(y_u(3,3)).Gt.0._dp) &
         & Write(io_L,107) 3,3,Real(Au_sckm(3,3)/y_u(3,3),dp), "# A_t(Q)^DRbar"
   End If
   If (Maxval(Abs(Aimag(Au_sckm))).Gt.0._dp) Then
@@ -3895,11 +3929,11 @@ Contains
     End Do
    Else 
     Write(io_L,106) "Block IMAu Q=",Q,"# (SUSY scale)"
-    if (abs(y_u(1,1)).gt.0._dp) &
+    If (Abs(y_u(1,1)).Gt.0._dp) &
         & Write(io_L,107) 1,1,Aimag(Au_sckm(1,1)/y_u(1,1)), "# Im(A_u)(Q)^DRbar"
-    if (abs(y_u(2,2)).gt.0._dp) &
+    If (Abs(y_u(2,2)).Gt.0._dp) &
         & Write(io_L,107) 2,2,Aimag(Au_sckm(2,2)/y_u(2,2)), "# Im(A_c)(Q)^DRbar"
-    if (abs(y_u(3,3)).gt.0._dp) &
+    If (Abs(y_u(3,3)).Gt.0._dp) &
         & Write(io_L,107) 3,3,Aimag(Au_sckm(3,3)/y_u(3,3)), "# Im(A_t)(Q)^DRbar"
    End If
   End If
@@ -3914,11 +3948,11 @@ Contains
    End Do
   Else 
    Write(io_L,106) "Block Ad Q=",Q,"# (SUSY scale)"
-   if (abs(y_d(1,1)).gt.0._dp) &
+   If (Abs(y_d(1,1)).Gt.0._dp) &
         & Write(io_L,107) 1,1,Real(Ad_sckm(1,1)/y_d(1,1),dp), "# A_d(Q)^DRbar"
-   if (abs(y_d(2,2)).gt.0._dp) &
+   If (Abs(y_d(2,2)).Gt.0._dp) &
         & Write(io_L,107) 2,2,Real(Ad_sckm(2,2)/y_d(2,2),dp), "# A_s(Q)^DRbar"
-   if (abs(y_d(3,3)).gt.0._dp) &
+   If (Abs(y_d(3,3)).Gt.0._dp) &
         & Write(io_L,107) 3,3,Real(Ad_sckm(3,3)/y_d(3,3),dp), "# A_b(Q)^DRbar"
   End If
   If (Maxval(Abs(Aimag(Ad_sckm))).Gt.0._dp) Then
@@ -3932,11 +3966,11 @@ Contains
     End Do
    Else 
     Write(io_L,106) "Block IMAd Q=",Q,"# (SUSY scale)"
-    if (abs(y_d(1,1)).gt.0._dp) &
+    If (Abs(y_d(1,1)).Gt.0._dp) &
         & Write(io_L,107) 1,1,Aimag(Ad_sckm(1,1)/y_d(1,1)), "# Im(A_d)(Q)^DRbar"
-    if (abs(y_d(2,2)).gt.0._dp) &
+    If (Abs(y_d(2,2)).Gt.0._dp) &
         & Write(io_L,107) 2,2,Aimag(Ad_sckm(2,2)/y_d(2,2)), "# Im(A_s)(Q)^DRbar"
-    if (abs(y_d(3,3)).gt.0._dp) &
+    If (Abs(y_d(3,3)).Gt.0._dp) &
         & Write(io_L,107) 3,3,Aimag(Ad_sckm(3,3)/y_d(3,3)), "# Im(A_b)(Q)^DRbar"
    End If
   End If
@@ -3962,11 +3996,11 @@ Contains
    End Do
   Else 
    Write(io_L,106) "Block Ae Q=",Q,"# (SUSY scale)"
-   if (abs(y_l(1,1)).gt.0._dp) &
+   If (Abs(y_l(1,1)).Gt.0._dp) &
         & Write(io_L,107) 1,1,Real(A_l(1,1)/y_l(1,1),dp), "# A_e(Q)^DRbar"
-   if (abs(y_l(2,2)).gt.0._dp) &
+   If (Abs(y_l(2,2)).Gt.0._dp) &
         & Write(io_L,107) 2,2,Real(A_l(2,2)/y_l(2,2),dp), "# A_mu(Q)^DRbar"
-   if (abs(y_l(3,3)).gt.0._dp) &
+   If (Abs(y_l(3,3)).Gt.0._dp) &
         & Write(io_L,107) 3,3,Real(A_l(3,3)/y_l(3,3),dp), "# A_tau(Q)^DRbar"
   End If
   If (Maxval(Abs(Aimag(A_l))).Gt.0._dp) Then
@@ -3979,11 +4013,11 @@ Contains
     End Do
    Else 
     Write(io_L,106) "Block IMAe Q=",Q,"# (SUSY scale)"
-    if (abs(y_l(1,1)).gt.0._dp) &
+    If (Abs(y_l(1,1)).Gt.0._dp) &
         & Write(io_L,107) 1,1,Aimag(A_l(1,1)/y_l(1,1)), "# Im(A_e)(Q)^DRbar"
-    if (abs(y_l(2,2)).gt.0._dp) &
+    If (Abs(y_l(2,2)).Gt.0._dp) &
         & Write(io_L,107) 2,2,Aimag(A_l(2,2)/y_l(2,2)), "# Im(A_mu)(Q)^DRbar"
-    if (abs(y_l(3,3)).gt.0._dp) &
+    If (Abs(y_l(3,3)).Gt.0._dp) &
         & Write(io_L,107) 3,3,Aimag(A_l(3,3)/y_l(3,3)), "# Im(A_tau)(Q)^DRbar"
    End If
   End If
@@ -4835,7 +4869,7 @@ Contains
      Write(io_L,105) 1,2,Aimag(U(1,2)),"# U(1,2)"
      Write(io_L,105) 2,1,Aimag(U(2,1)),"# U(2,1)"
      Write(io_L,105) 2,2,Aimag(U(2,2)),"# U(2,2)"
-    end if
+    End If
     Write(io_L,100) "Block Vmix  # chargino V mixing matrix"
     Write(io_L,105) 1,1,Real(V(1,1),dp),"# V(1,1)"
     Write(io_L,105) 1,2,Real(V(1,2),dp),"# V(1,2)"
@@ -4847,7 +4881,7 @@ Contains
      Write(io_L,105) 1,2,Aimag(V(1,2)),"# V(1,2)"
      Write(io_L,105) 2,1,Aimag(V(2,1)),"# V(2,1)"
      Write(io_L,105) 2,2,Aimag(v(2,2)),"# V(2,2)"
-    end if
+    End If
    Else   
     Write(io_L,100) "Block RVUmix  # chargino-lepton U mixing matrix"
     Do i1=1,n_c + delta_c_rp
@@ -4876,7 +4910,7 @@ Contains
     Write(io_L,105) 1,2,Aimag(U(1,2)),"# U(1,2)"
     Write(io_L,105) 2,1,Aimag(U(2,1)),"# U(2,1)"
     Write(io_L,105) 2,2,Aimag(U(2,2)),"# U(2,2)"
-   end if
+   End If
    Write(io_L,100) "Block Vmix  # chargino V mixing matrix"
    Write(io_L,105) 1,1,Real(V(1,1),dp),"# V(1,1)"
    Write(io_L,105) 1,2,Real(V(1,2),dp),"# V(1,2)"
@@ -4888,7 +4922,7 @@ Contains
     Write(io_L,105) 1,2,Aimag(V(1,2)),"# V(1,2)"
     Write(io_L,105) 2,1,Aimag(V(2,1)),"# V(2,1)"
     Write(io_L,105) 2,2,Aimag(v(2,2)),"# V(2,2)"
-   end if
+   End If
   End If
 
 
@@ -7876,7 +7910,7 @@ Contains
     Lnames(177+i3) = Trim(c_grav)//" "//Trim(c_lm(i3))
     id_d_2(177+i3,1) = id_grav
     id_d_2(177+i3,2) = id_l(i3)
-   end do
+   End Do
 
    If ( HighScaleModel.Eq."NMSSM") Then
     gT = gT_Spm(i1+1)
@@ -7910,11 +7944,11 @@ Contains
      Do i3=i2,3
       If (BR(i_zaehl).Gt.BrMin)  Write(io_L,202) BR(i_zaehl),3,id_l(i2),-id_l(i3),id_sm(1) &
       & ,Trim(c_m)//" ->  "//Trim(c_lm(i2))//" "//Trim(c_lp(i3))//" "//Trim(c_sm(1))//")"
-       if ((i2.ne.i3).and.(BR(i_zaehl).Gt.BrMin) ) &
+       If ((i2.Ne.i3).And.(BR(i_zaehl).Gt.BrMin) ) &
       & Write(io_L,202) BR(i_zaehl+1),3,id_l(i3),-id_l(i2),id_sm(1) &
       & ,Trim(c_m)//" ->  "//Trim(c_lm(i3))//" "//Trim(c_lp(i2))//" "//Trim(c_sm(1))//")"
        i_zaehl = i_zaehl + 1
-       if (i2.ne.i3) i_zaehl = i_zaehl + 1
+       If (i2.Ne.i3) i_zaehl = i_zaehl + 1
       End Do
      End Do
 
@@ -8113,10 +8147,10 @@ Contains
    End If
   End If
   
-  If (Present(omega)) then
+  If (Present(omega)) Then
    Write(io_L,100) "Block Omega # omega h^2"
    Write(io_L,101) 1,omega," # omega h^2"   
-  end if
+  End If
 
 !  Close(io_L)
 

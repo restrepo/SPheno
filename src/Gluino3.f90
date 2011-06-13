@@ -1328,7 +1328,6 @@ Contains
 
  End Function GluStoWB
 
-
  Real(dp) Function GluinoToStopC(mglu, mStop2, Rstop, mSbottom2, mP02 &
         & , tanb, yukB, mu, A_b, c_GUSu_R, kont)
  Implicit None
@@ -1364,7 +1363,7 @@ Contains
    mat3(3,3) = mstop2(4)
 
    Call EigenSystem(mat3, mass2, Rsf, kont,test)
-   If (kont.Eq.-8) then
+   If (kont.Eq.-14) then
     Write(ErrCan,*) "Possible numerical problem in "//NameOfUnit(Iname)
     Write(ErrCan,*) "test =",test
     If (ErrorLevel.Eq.2) Call TerminateProgram

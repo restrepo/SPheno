@@ -1,11 +1,12 @@
 # SUSY Les Houches Accord 2.beta - MSSM spectrum + Decays
-# SPheno v3beta32
+# SPheno v3beta36
 # W. Porod, Comput. Phys. Commun. 153 (2003) 275-315, hep-ph/0301101
-# in case of problems send email to porod@ific.uv.es
-# Created: 10.08.2009,  14:22
+# in case of problems send email to porod@physik.uni-wuerzburg.de
+# Created: 13.10.2009,  23:25
 Block SPINFO         # Program information
      1   SPheno      # spectrum calculator
-     2   v3beta32    # version number
+     2   v3beta36    # version number
+     3               # potential numerical problem, check file Messages.out
 #
 Block SPhenoINFO     # SPheno specific information
     1      2         # using 2-loop RGEs
@@ -293,7 +294,7 @@ DECAY   2000006     6.65774882E+00   # ~t_2
      1.53314437E-01    2     1000037         5   # BR(~t_2 -> chi_2+ b)
      3.74068497E-01    2     1000006        23   # BR(~t_2 -> ~t_1 Z)
      5.36452792E-02    2     1000006        25   # BR(~t_2 -> ~t_1 h0)
-DECAY   1000024     7.73197016E-02   # chi_1+
+DECAY   1000024     7.73197015E-02   # chi_1+
 #    BR                NDA      ID1      ID2
      1.84705900E-03    2    -2000013        14   # BR(chi_1+ -> ~mu_R+ nu_mu)
      5.35902130E-01    2    -1000015        16   # BR(chi_1+ -> ~tau_1+ nu_tau)
@@ -319,9 +320,7 @@ DECAY   1000037     3.26424583E+00   # chi_2+
      2.70852036E-01    2     1000023        24   # BR(chi_2+ -> chi_20 W+)
      2.26569923E-01    2     1000024        23   # BR(chi_2+ -> chi_1+ Z)
      1.79682487E-01    2     1000024        25   # BR(chi_2+ -> chi_1+ h0)
-DECAY   1000022     1.24481179E-16   # chi_10
-#    BR                NDA      ID1      ID2
-     1.00000000E+00    2     1000039        22   # BR(chi_10 -> Gravitino photon)
+DECAY   1000022     0.00000000E+00   # chi_10
 DECAY   1000023     8.34176840E-02   # chi_20
 #    BR                NDA      ID1      ID2
      1.21325616E-02    2     2000011       -11   # BR(chi_20 -> ~e_R- e+)
@@ -482,7 +481,7 @@ DECAY        35     8.87615376E-01   # H0
      1.60820409E-02    2     1000022   1000022   # BR(H0 -> chi_10 chi_10)
      5.09341547E-02    2     1000022   1000023   # BR(H0 -> chi_10 chi_20)
      2.06435125E-02    2     1000023   1000023   # BR(H0 -> chi_20 chi_20)
-     5.35475647E-02    2    -1000024   1000024   # BR(H0 -> chi_1- chi_1+)
+     5.35475648E-02    2    -1000024   1000024   # BR(H0 -> chi_1- chi_1+)
      1.84721024E-03    2          23        23   # BR(H0 -> Z0 Z0)
      3.75847098E-03    2          24       -24   # BR(H0 -> W- W+)
      9.76942358E-03    2          25        25   # BR(H0 -> h0 h0)
@@ -516,16 +515,16 @@ DECAY       -37     7.51177041E-01   # H-
      1.40630516E-03    2    -1000024   1000023   # BR(H- -> chi_1- chi_20)
      2.32549922E-03    2         -24        25   # BR(H- ->  W- h0)
 Block SPhenoLowEnergy  # low energy observables
-    1    3.16694779E-04   # BR(b -> s gamma)
-    2    1.89594505E-06   # BR(b -> s mu+ mu-)
-    3    4.73114789E-05   # BR(b -> s nu nu)
-    4    4.69809354E-09   # BR(Bs -> mu+ mu-)
-    5    7.81070742E-05   # BR(B_u -> tau nu)
-    6    2.34371230E-01   # |Delta(M_Bd)| [ps^-1] 
-    7    1.66444940E+01   # |Delta(M_Bs)| [ps^-1] 
+    1    3.13345890E-04   # BR(b -> s gamma)
+    2    1.89561411E-06   # BR(b -> s mu+ mu-)
+    3    4.73104302E-05   # BR(b -> s nu nu)
+    4    4.69784033E-09   # BR(Bs -> mu+ mu-)
+    5    7.80655322E-05   # BR(B_u -> tau nu)
+    6    2.34380365E-01   # |Delta(M_Bd)| [ps^-1] 
+    7    1.66443935E+01   # |Delta(M_Bs)| [ps^-1] 
    10    5.15081688E-14   # Delta(g-2)_electron
    11    2.58711880E-09   # Delta(g-2)_muon
-   12    5.38299710E-07   # Delta(g-2)_tau
+   12    5.38299709E-07   # Delta(g-2)_tau
    13    0.00000000E+00   # electric dipole moment of the electron
    14    0.00000000E+00   # electric dipole moment of the muon
    15    0.00000000E+00   # electric dipole moment of the tau

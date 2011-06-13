@@ -91,7 +91,8 @@ Contains
    Write (ErrCan,*) 'Error in Subroutine '//NameOfUnit(Iname)
    Write (ErrCan,*) 'Dimensions to not match: ',N1,N2,N3
    If (ErrorLevel.Ge.-1) Call TerminateProgram
-   kont = -99
+   kont = -1001
+   Call AddError(1001)
    Return
   End If
 
@@ -165,7 +166,10 @@ Contains
    End Do
 
    If (test(1).Gt.0._dp) Then
-    If ( (test(2)/test(1)).Gt.MinimalPrecision) kont = -8
+    If ( (test(2)/test(1)).Gt.MinimalPrecision) Then
+     kont = -1002
+     Call AddError(1002)
+    End If
    End If
 
    Deallocate( testR )
@@ -243,7 +247,10 @@ Contains
    End Do
 
    If (test(1).Gt.0._dp) Then
-    If ( (test(2)/test(1)).Gt.MinimalPrecision) kont = -8
+    If ( (test(2)/test(1)).Gt.MinimalPrecision) Then
+     kont = -1002
+     Call AddError(1002)
+    End If
    End If
 
    Deallocate(ZR, Ctest, Rot, ar2, ai2)
@@ -305,7 +312,8 @@ Contains
    Write (ErrCan,*) 'Error in Subroutine '//NameOfUnit(Iname)
    Write (ErrCan,*) 'Dimensions to not match: ',N1,N2,N3
    If (ErrorLevel.Ge.-1) Call TerminateProgram
-   kont = -99
+   kont = -1003
+   Call AddError(1003)
    Return
   End If
 
@@ -369,6 +377,8 @@ Contains
      Write(ErrCan,*) "Problem for real diagonlization in"//NameOfUnit(Iname)
      Write(ErrCan,*) "relative precision is ",AbsTest
      Write(ErrCan,*) " "
+     kont = -1004
+     Call AddError(1004)
    End If
 
    Deallocate( testR )
@@ -585,7 +595,8 @@ Contains
    Write (ErrCan,*) 'Error in Subroutine '//NameOfUnit(Iname)
    Write (ErrCan,*) 'Dimensions to not match: ',N1,N2,N3
    If (ErrorLevel.Ge.-1) Call TerminateProgram
-   kont = -99
+   kont = -1005
+   Call AddError(1005)
    Return 
   End If
 
@@ -598,7 +609,7 @@ Contains
   Ar = Zero
   Work = Real( Matrix, qp )
 
-   Call JacobiQP(Work, n1, n1, wr, ar, nrot)
+  Call JacobiQP(Work, n1, n1, wr, ar, nrot)
 
   Do n2=1,n1-1
    Do n3=n2+1,n1
@@ -643,8 +654,11 @@ Contains
    End Do
 
   If (test(1).Gt.0._dp) Then
-    If ( (test(2)/test(1)).Gt.MinimalPrecision) kont = -8
+   If ( (test(2)/test(1)).Gt.MinimalPrecision) Then
+    kont = -1006
+    Call AddError(1006)
    End If
+  End If
 
   Deallocate(AR,WR,Work,testR)
 
@@ -683,7 +697,8 @@ Contains
    Write (ErrCan,*) 'Error in Subroutine '//NameOfUnit(Iname)
    Write (ErrCan,*) 'Dimensions to not match: ',N1,N2,N3
    If (ErrorLevel.Ge.-1) Call TerminateProgram
-   kont = -99
+   kont = -1007
+   Call AddError(1007)
    Return 
   End If
 
@@ -693,7 +708,7 @@ Contains
 
   Work = Matrix
 
-   Call JacobiQP(Work, n1, n1, wr, ar, nrot)
+  Call JacobiQP(Work, n1, n1, wr, ar, nrot)
 
   Do n2=1,n1-1
    Do n3=n2+1,n1
@@ -1030,8 +1045,9 @@ Contains
      End If
      iterate: Do 
       If (J .Eq. 30) Then
-       Write(ErrCan,*) "To many iteration in tqli2",j
-       kont = -15
+       Write(ErrCan,*) "To many iteration in tql2",j
+       kont = -1010
+       Call AddError(1010)
        Return
       End If
       J = J + 1
@@ -1113,7 +1129,8 @@ Contains
   If (n.Ne.Size(e)) Then
    Write(ErrCan,*) "Error in Tqli_QP",n,Size(e)
    If (ErrorLevel.Gt.-2) Call TerminateProgram
-   kont = -10
+   kont = -1008
+   Call AddError(1008)
   End If
 
   If (Present(z)) Then
@@ -1121,7 +1138,8 @@ Contains
    If ((n.Ne.Size(z,dim=1)).Or.(n.Ne.Size(z,dim=2)) ) Then
     Write(ErrCan,*) "Error in Tqli_QP",n,Size(z,dim=1),Size(z,dim=2)
     If (ErrorLevel.Gt.-2) Call TerminateProgram
-    kont = -15
+    kont = -1008
+    Call AddError(1008)
    End If
   End If
 
@@ -1143,7 +1161,8 @@ Contains
      If (m.Eq.l) Exit iterate
        If(iter.Eq.30) Then
          Write(ErrCan,*) 'too many iterations in Tqli_QP',iter
-         kont = -15
+         kont = -1009
+         Call AddError(1009)
          Return
        End If
        iter=iter+1

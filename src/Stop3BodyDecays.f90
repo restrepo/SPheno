@@ -608,7 +608,7 @@ Contains
    mat3(3,3) = mstop2(4)
 
    Call EigenSystem(mat3, mass2, Rsf, kont, test)
-   If ((kont.Eq.-8).Or.(kont.Eq.-9)) Then
+   If ((kont.Eq.-14).Or.(kont.Eq.-16)) Then
     Write(ErrCan,*) "Possible numerical problem in "//NameOfUnit(Iname)
     Write(ErrCan,*) "test =",test
     Write(ErrCan,*) " "

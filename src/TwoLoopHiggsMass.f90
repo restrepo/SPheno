@@ -2882,7 +2882,8 @@ Contains
    Write(ErrCan,*) "Problem in "//NameOfUnit(Iname)
    Write(ErrCan,*)&
  "Stop masses squared for 2-loop calculation of pseudoscalar mass are negativ."
-   kont = -313
+   kont = -601
+   Call AddError(601)
    Iname = Iname - 1
    Return
   End If 
@@ -2894,7 +2895,8 @@ Contains
    Write(ErrCan,*) "Problem in "//NameOfUnit(Iname)
    Write(ErrCan,*) &
          & "Sbottommasses for 2-loop calculation of  Tadpoles are negativ."
-   kont = -314
+   kont = -602
+   Call AddError(602)
    Iname = Iname - 1
    Return
   End If 
@@ -2907,7 +2909,8 @@ Contains
    Write(ErrCan,*) "Problem in "//NameOfUnit(Iname)
    Write(ErrCan,*) &
      "Staumasses for 2-loop calculation of  Tadpoles are negativ."
-   kont = -315
+   kont = -603
+   Call AddError(603)
    Iname = Iname - 1
    Return
   End If 
@@ -3280,7 +3283,8 @@ Contains
    Write(ErrCan,*) "Problem in "//NameOfUnit(Iname)
    Write(ErrCan,*)&
      "Stop masses squared for 2-loop calculation of pseudoscalar mass are negativ."
-   kont = -313
+   kont = -604
+   Call AddError(604)
    Iname = Iname - 1
    Return
   End If 
@@ -3292,7 +3296,8 @@ Contains
    Write(ErrCan,*) "Problem in "//NameOfUnit(Iname)
    Write(ErrCan,*) &
      "Sbottommasses for 2-loop calculation of  Tadpoles are negativ."
-   kont = -314
+   kont = -605
+   Call AddError(605)
    Iname = Iname - 1
    Return
   End If 
@@ -3305,7 +3310,8 @@ Contains
    Write(ErrCan,*) "Problem in "//NameOfUnit(Iname)
    Write(ErrCan,*) &
      "Staumasses for 2-loop calculation of  Tadpoles are negativ."
-   kont = -315
+   kont = -606
+   Call AddError(606)
    Iname = Iname - 1
    Return
   End If 
@@ -4476,7 +4482,8 @@ Contains
    Write(ErrCan,*) "Problem in "//NameOfUnit(Iname)
    Write(ErrCan,*) &
      & "Stop masses squared for 2-loop calculation of Tadpoles are negativ."
-   kont = -313
+   kont = -607
+   Call AddError(607)
    Iname = Iname - 1
    Return
   End If 
@@ -4491,7 +4498,8 @@ Contains
    Write(ErrCan,*) "Problem in "//NameOfUnit(Iname)
    Write(ErrCan,*) &
        & "Sbottommasses for 2-loop calculation of  Tadpoles are negativ."
-   kont = -314
+   kont = -608
+   Call AddError(608)
    Iname = Iname - 1
    Return
   End If 
@@ -4507,7 +4515,8 @@ Contains
    Write(ErrCan,*) "Problem in "//NameOfUnit(Iname)
    Write(ErrCan,*) &
      "Staumasses for 2-loop calculation of  Tadpoles are negativ."
-   kont = -315
+   kont = -609
+   Call AddError(609)
    Iname = Iname - 1
    Return
   End If 

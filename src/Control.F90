@@ -87,7 +87,7 @@ Integer, Parameter :: qp = Selected_real_kind(25,450)
  !-------------------------
  ! for the error system 
  !-------------------------
- Character(len=60) :: Math_Error(19) =                                &
+ Character(len=60) :: Math_Error(26) =                                &
   & (/ "Routine OdeInt, stepsize smaller than minimum:              " &
   &  , "Routine OdeInt, maximal value > 10^36:                      " &
   &  , "Routine OdeInt, too many steps:                             " &
@@ -95,6 +95,10 @@ Integer, Parameter :: qp = Selected_real_kind(25,450)
   &  , "Routine OdeIntB, stepsize smaller than minimum:             " &
   &  , "Routine OdeIntB, maximal value > 10^36:                     " &
   &  , "Routine OdeIntB, too many steps:                            " &
+  &  , "Routine OdeIntC, boundary condition not fullfilled:         " &
+  &  , "Routine OdeIntC, stepsize smaller than minimum:             " &
+  &  , "Routine OdeIntC, maximal value > 10^36:                     " &
+  &  , "Routine OdeIntC, too many steps:                            " &
   &  , "Routine rkqs, stepsize underflow:                           " &
   &  , "Routine ComplexEigenSystem, array dimensions do not match:  " &
   &  , "Routine ComplexEigenSystem, numerical precision not reached:" &
@@ -107,23 +111,62 @@ Integer, Parameter :: qp = Selected_real_kind(25,450)
   &  , "Routine Kappa, precision problem:                           " &
   &  , "Routine IntRomb: step size to small:                        " &
   &  , "Routine IntRomb: too many steps:                            " &
+  &  , "Routine GaussJ: singular matrix                             " &
+  &  , "Routine InverseMatrix: inversion failed                     " &
+  &  , "Routine InvMat3: inversion failed, det(M)=0                 " &
+  & /)
+ Character(len=60) :: MathQP_Error(10) =                              &
+  & (/ "Routine ComplexEigenSystemDP, array dimensions do not match:" &
+  &  , "Routine ComplexEigenSystemDP, numer. precision not reached: " &
+  &  , "Routine ComplexEigenSystemQP, array dimensions do not match:" &
+  &  , "Routine ComplexEigenSystemQP, numer. precision not reached: " &
+  &  , "Routine RealEigenSystem_DP, array dimensions do not match:  " &
+  &  , "Routine RealEigenSystem_DP, numerical precision not reached:" &
+  &  , "Routine RealEigenSystem_QP, array dimensions do not match:  " &
+  &  , "Routine Tqli_QP, array dimensions do not match:             " &
+  &  , "Routine Tqli_QP, too many iterations:                       " &
+  &  , "Routine Tql2_QP, too many iterations:                       " &
   & /)
  Character(len=60) :: SM_Error(2) =                                   &
   & (/ "Routine CalculateRunningMasses: Q_low > m_b(m_b)            " &
   & ,  "Routine CalculateRunningMasses: Max(Q_low,m_b(m_b) > Q_max  " &
   & /)
- Character(len=60) :: SusyM_Error(9) =                                   &
-  & (/ "Routine CharginoMass2: diagonalization failed               "    &
+ Character(len=60) :: SusyM_Error(33) =                                  &
+  & (/ "Routine ChargedScalarMassEps1nt: negative mass squared      "    &
+  & ,  "Routine ChargedScalarMassEps3nt: negative mass squared      "    &
+  & ,  "Routine ChargedScalarMassLam3nt: negative mass squared      "    &
+  & ,  "Routine CharginoMass3: |y_tau|^2 < 0                        "    &
+  & ,  "Routine CharginoMass5: |y_tau|^2 < 0                        "    &
+  & ,  "Routine PseudoScalarMassEps1nt: negative mass squared       "    &
+  & ,  "Routine PseudoScalarMassEps3nt: negative mass squared       "    &
+  & ,  "Routine PseudoScalarMassMSSMnt: negative mass squared       "    &
+  & ,  "Routine PseudoScalarMassSpon1Gen: negative mass squared     "    &
+  & ,  "Routine ScalarMassEps1nt: negative mass squared             "    &
+  & ,  "Routine ScalarMassEps3nt: negative mass squared             "    &
+  & ,  "Routine ScalarMassMSSMeff: negative mass squared            "    &
+  & ,  "Routine ScalarMassMSSMnt: negative mass squared             "    &
+  & ,  "Routine ScalarMassNMSSMeff: L*k*tanbq*mu = 0                "    &
+  & ,  "Routine ScalarMassNMSSMeff: mS0^2_1 < 0                     "    &
+  & ,  "Routine ScalarMassNMSSMeff: mP0^2_1 < 0                     "    &
+  & ,  "Routine ScalarMassNMSSMeff: mH+^2 < 0                       "    &
+  & ,  "Routine ScalarMassSpon1Gen: negative mass squared           "    &
+  & ,  "Routine SdownMass3Lam: negative mass squared                "    &
+  & ,  "Routine SfermionMass1Eps1: negative mass squared            "    &
+  & ,  "Routine SfermionMass1Eps3: negative mass squared            "    &
+  & ,  "Routine SfermionMass1MSSM: negative mass squared            "    &
+  & ,  "Routine SfermionMass3MSSM: negative mass squared            "    &
+  & ,  "Routine SquarkMass3Eps: negative mass squared               "    &
+  & ,  "Routine TreeMassesEps1: negative sneutrino mass squared     "    &
   & ,  "Routine TreeMassesMSSM: negative sneutrino mass squared     "    &
-  & ,  "Routine CharginoMass2: numerical problem in diagonalization "    &
-  & ,  "Routine NeutralinoMass: numerical problem in diagonalization"    &
-  & ,  "Routine NeutralinoMass4: diagonalization failed             "    &
-  & ,  "ScalarMassMSSMeff: numerical problem in diagonalization     "    &
-  & ,  "ScalarMassMSSMeff: encountered a negative mass squared      "    &
-  & ,  "Routine ScalarMassMSSMeff: diagonalization failed           "    &
-  & ,  "SfermionMass1mssm: encountered a negative mass squared      "    &
+  & ,  "Routine TreeMassesMSSM: negative pseudoscalar mass squared  "    &
+  & ,  "Routine TreeMassesMSSM: negative charged higgs mass squared "    &
+  & ,  "Routine TreeMassesMSSM2: negative sneutrino mass squared    "    &
+  & ,  "Routine TreeMassesMSSM2: negative pseudoscalar mass squared "    &
+  & ,  "Routine TreeMassesMSSM2: negative charged higgs mass squared"    &
+  & ,  "Routine TreeMassesMSSM3: negative sneutrino mass squared    "    &
+  & ,  "Routine TreeMassesNMSSM: negative sneutrino mass squared    "    &
   & /)
- Character(len=60) :: InOut_Error(7) =                                   &
+ Character(len=60) :: InOut_Error(12) =                                  &
   & (/ "Routine LesHouches_Input: unknown error occured:            "    &
   & ,  "Routine LesHouches_Input: Unknown entry for Block MODSEL    "    &
   & ,  "LesHouches_Input: model must be specified before parameters "    &
@@ -131,21 +174,28 @@ Integer, Parameter :: qp = Selected_real_kind(25,450)
   & ,  "LesHouches_Input: model has not been specified completly    "    &
   & ,  "LesHouches_Input: a serious error has been part of the input"    &
   & ,  "LesHouches_Input: Higgs sector has not been fully specified "    &
+  & ,  "ReadMatrixC: indices exceed the given boundaries            "    &
+  & ,  "ReadMatrixR: indices exceed the given boundaries            "    &
+  & ,  "ReadVectorC: index exceeds the given boundaries             "    &
+  & ,  "ReadVectorR: index exceeds the given boundaries             "    &
+  & ,  "ReadTensorC: indices exceed the given boundaries            "    &
   & /)
- Character(len=60) :: Sugra_Error(6) =                                   &
+ Character(len=60) :: Sugra_Error(12) =                                  &
   & (/ "Routine BoundaryEW: negative scalar mass as input           "    &
-  & ,  "Routine BoundaryEW2: negative scalar mass as input          "    &
+  & ,  "Routine BoundaryEW: mZ^2(mZ) < 0                            "    &
+  & ,  "Routine BoundaryEW: sin^2(theta_DR) < 0                     "    &
+  & ,  "Routine BoundaryEW: mW^2 < 0                                "    &
+  & ,  "Routine BoundaryEW: m_l_DR/m_l < 0.1 or m_l_DR/m_l > 10     "    &
+  & ,  "Routine BoundaryEW: m_d_DR/m_d < 0.1 or m_d_DR/m_d > 10     "    &
+  & ,  "Routine BoundaryEW: m_u_DR/m_u < 0.1 or m_u_DR/m_u > 10     "    &
   & ,  "Routine RunRGE: entering non-perturbative regime            "    &
-  & ,  "Routine RunRGE: g1 and g2 did not meet at the high scale    "    &
+  & ,  "Routine RunRGE: g1 and g2 do not meet at the high scale     "    &
+  & ,  "Routine RunRGE: entering non-perturbative regime at M_GUT   "    &
+  & ,  "Routine RunRGE: entering non-perturbative regime at M_H3    "    &
   & ,  "Routine Sugra: run did not converge                         "    &
-  & ,  "Routine RunRGE: m_nu_R > m_GUT                              "    &
   & /)
- Character(len=60) :: LoopMass_Error(16) =                               &
-  & (/ "CharginoMass_Loop: numerical problem in diagonalization     "    &
-  & ,  "Routine CharginoMass_Loop: diagonalization failed           "    &
-  & ,  "NeutralinoMass_Loop: numerical problem in diagonalization   "    &
-  & ,  "Routine NeutralinoMass_Loop: diagonalization failed         "    &
-  & ,  "SleptonMass_1L: encountered a negative mass squared         "    &
+ Character(len=60) :: LoopMass_Error(24) =                               &
+  & (/ "SleptonMass_1L: encountered a negative mass squared         "    &
   & ,  "SleptonMass_1L: p^2 iteration did not converge              "    &
   & ,  "SneutrinoMass_1L: encountered a negative mass squared       "    &
   & ,  "SneutrinoMass_1L: p^2 iteration did not converge            "    &
@@ -157,6 +207,18 @@ Integer, Parameter :: qp = Selected_real_kind(25,450)
   & ,  "LoopMassesMSSM: |mu|^2 > 10^20 in the 1-loop calculation    "    &
   & ,  "LoopMassesMSSM: |mu|^2 < 0 in the 1-loop calculation        "    &
   & ,  "LoopMassesMSSM: mZ^2(mZ) < 0                                "    &
+  & ,  "LoopMassesMSSM2: m_h0^2 <0 in the 1-loop calculation        "    &
+  & ,  "LoopMassesMSSM2: m_H+^2 <0 in the 1-loop calculation        "    &
+  & ,  "LoopMassesMSSM2: m_A0^2 <0 in the 1-loop calculation        "    &
+  & ,  "LoopMassesMSSM2: |mu|^2 > 10^20 in the 1-loop calculation   "    &
+  & ,  "LoopMassesMSSM2: |mu|^2 < 0 in the 1-loop calculation       "    &
+  & ,  "LoopMassesMSSM2: mZ^2(mZ) < 0                               "    &
+  & ,  "LoopMassesMSSM3: m_h0^2 <0 in the 1-loop calculation        "    &
+  & ,  "LoopMassesMSSM3: m_H+^2 <0 in the 1-loop calculation        "    &
+  & ,  "LoopMassesMSSM3: m_A0^2 <0 in the 1-loop calculation        "    &
+  & ,  "LoopMassesMSSM3: |mu|^2 > 10^20 in the 1-loop calculation   "    &
+  & ,  "LoopMassesMSSM3: |mu|^2 < 0 in the 1-loop calculation       "    &
+  & ,  "LoopMassesMSSM3: mZ^2(mZ) < 0                               "    &
   & /)
  Character(len=60) :: TwoLoopHiggs_Error(9) =                            &
   & (/ "PiPseudoScalar2: encountered negative stop mass squared     "    &
@@ -489,6 +551,10 @@ Contains
   Do i1=1,100
    If (i_errors(i1).Gt.0) Write(io,*) Trim(Math_Error(i1)),i_errors(i1)
   End Do
+! module MathematicsQP
+  Do i1=1,100
+   If (i_errors(1000+i1).Gt.0) Write(io,*) Trim(Math_Error(i1)),i_errors(i1)
+  End Do
 ! module StandardModel
   Do i1=1,100
    If (i_errors(100+i1).Gt.0) Write(io,*) Trim(SM_Error(i1)),i_errors(100+i1)
@@ -513,14 +579,14 @@ Contains
   End Do
 
 ! module LoopMasses
-  Do i1=1,50
+  Do i1=1,100
    If (i_errors(500+i1).Gt.0) Write(io,*) &
       &    Trim(LoopMass_Error(i1)),i_errors(500+i1)
   End Do
 
 ! module TwoLoopHiggs
-  Do i1=1,50
-   If (i_errors(550+i1).Gt.0) Write(io,*) &
+  Do i1=1,100
+   If (i_errors(600+i1).Gt.0) Write(io,*) &
       &    Trim(LoopMass_Error(i1)),i_errors(550+i1)
   End Do
 

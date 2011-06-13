@@ -787,7 +787,7 @@ Contains
   ! following. Therefore, the error flag is reset to zero. 
   ! This is of course dangerous and has to be improved.
   !-----------------------------------------------------------------------
-  If (kont.Eq.-8) kont = 0
+  If (kont.Eq.-14) kont = 0
 
   
   If ((L_BR).And.(kont.Eq.0)) Then

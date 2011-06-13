@@ -176,8 +176,8 @@ Contains
  NameOfUnit(Iname) = 'CoupChargedScalarFermion1'
 
  If ((i.Lt.1).Or.(i.Gt.n_Spm)) Then
-  Write (10,*) 'Problem in Subroutine '//NameOfUnit(Iname)
-  Write (10,*) 'index i out of range: (i,n_Spm) = ',i,n_Spm 
+  Write(ErrCan,*) 'Problem in Subroutine '//NameOfUnit(Iname)
+  Write(ErrCan,*) 'index i out of range: (i,n_Spm) = ',i,n_Spm 
   Call TerminateProgram
  End If
 
@@ -226,8 +226,8 @@ Contains
  NameOfUnit(Iname) = 'CoupChargedScalarFermion3'
 
  If ((i.Lt.1).Or.(i.Gt.n_Spm)) Then
-  Write (10,*) 'Problem in Subroutine '//NameOfUnit(Iname)
-  Write (10,*) 'index i out of range: (i,n_Spm) = ',i,n_Spm 
+  Write(ErrCan,*) 'Problem in Subroutine '//NameOfUnit(Iname)
+  Write(ErrCan,*) 'index i out of range: (i,n_Spm) = ',i,n_Spm 
   Call TerminateProgram
  End If
 
@@ -342,7 +342,7 @@ Contains
   End Do
 
  End Select
- 
+
  coupL = coupL * Conjg( RSpm(i,1) )
  coupR = coupR * RSpm(i,2)
 
@@ -389,18 +389,18 @@ Contains
     &     .Or.((n_P0.Eq.6).And.(n_Spm.Eq.8))   & ! Munyoz Model
     &     .Or.((n_P0.Eq.7).And.(n_Spm.Eq.8))   & ! Munyoz Model 2 nuC
     &     ) ) Then 
-  Write (10,*) 'Error in Subroutine ',NameOfUnit(Iname)
-  Write (10,*) 'model is not consistent, (n_P0,n_Spm) = ',n_P0,n_Spm
+  Write(ErrCan,*) 'Error in Subroutine ',NameOfUnit(Iname)
+  Write(ErrCan,*) 'model is not consistent, (n_P0,n_Spm) = ',n_P0,n_Spm
   Call TerminateProgram
  End If
  If ((i.Lt.1).Or.(i.Gt.n_Spm)) Then
-  Write (10,*) 'Problem in Subroutine ',NameOfUnit(Iname)
-  Write (10,*) 'index i out of range: (i,n_Spm) = ',i,n_Spm 
+  Write(ErrCan,*) 'Problem in Subroutine ',NameOfUnit(Iname)
+  Write(ErrCan,*) 'index i out of range: (i,n_Spm) = ',i,n_Spm 
   Call TerminateProgram
  End If
  If ((j.Lt.1).Or.(j.Gt.n_P0)) Then
-  Write (10,*) 'Problem in Subroutine ',NameOfUnit(Iname)
-  Write (10,*) 'index j out of range: (j,n_P0) = ',j,n_P0
+  Write(ErrCan,*) 'Problem in Subroutine ',NameOfUnit(Iname)
+  Write(ErrCan,*) 'index j out of range: (j,n_P0) = ',j,n_P0
   Call TerminateProgram
  End If
 
@@ -426,9 +426,9 @@ Contains
     &  + Conjg( RSpm(i,5) ) * RP0(j,5)
 
  Else
-  Write (10,*) 'Error in Subroutine '//NameOfUnit(Iname)//'  !'
-  Write (10,*) 'The combination of ',n_Spm,' charged scalars'
-  Write (10,*) 'and ',n_P0,' pseudoscalars is not possible.'
+  Write(ErrCan,*) 'Error in Subroutine '//NameOfUnit(Iname)//'  !'
+  Write(ErrCan,*) 'The combination of ',n_Spm,' charged scalars'
+  Write(ErrCan,*) 'and ',n_P0,' pseudoscalars is not possible.'
   Call TerminateProgram
  End If
 
@@ -476,18 +476,18 @@ Contains
     &     .Or.((n_S0.Eq.6).And.(n_Spm.Eq.8))   & ! Munyoz model
     &     .Or.((n_S0.Eq.7).And.(n_Spm.Eq.8))   & ! Munyoz model 2 nuC
     &     ) ) Then
-  Write (10,*) 'Error in Subroutine ',NameOfUnit(Iname)
-  Write (10,*) 'model is not consistent, (n_S0,n_Spm) = ',n_S0,n_Spm
+  Write(ErrCan,*) 'Error in Subroutine ',NameOfUnit(Iname)
+  Write(ErrCan,*) 'model is not consistent, (n_S0,n_Spm) = ',n_S0,n_Spm
   Call TerminateProgram
  End If
  If ((i.Lt.1).Or.(i.Gt.n_Spm)) Then
-  Write (10,*) 'Problem in Subroutine ',NameOfUnit(Iname)
-  Write (10,*) 'index i out of range: (i,n_Spm) = ',i,n_Spm 
+  Write(ErrCan,*) 'Problem in Subroutine ',NameOfUnit(Iname)
+  Write(ErrCan,*) 'index i out of range: (i,n_Spm) = ',i,n_Spm 
   Call TerminateProgram
  End If
  If ((j.Lt.1).Or.(j.Gt.n_S0)) Then
-  Write (10,*) 'Problem in Subroutine ',NameOfUnit(Iname)
-  Write (10,*) 'index j out of range: (j,n_S0) = ',j,n_S0
+  Write(ErrCan,*) 'Problem in Subroutine ',NameOfUnit(Iname)
+  Write(ErrCan,*) 'index j out of range: (j,n_S0) = ',j,n_S0
   Call TerminateProgram
  End If
 
@@ -513,9 +513,9 @@ Contains
     &  + Conjg( RSpm(i,5) ) * RS0(j,5)
 
  Else
-  Write (10,*) 'Error in Subroutine '//NameOfUnit(Iname)//'  !'
-  Write (10,*) 'The combination of ',n_Spm,' charged scalars'
-  Write (10,*) 'and ',n_S0,' scalars is not possible.'
+  Write(ErrCan,*) 'Error in Subroutine '//NameOfUnit(Iname)//'  !'
+  Write(ErrCan,*) 'The combination of ',n_Spm,' charged scalars'
+  Write(ErrCan,*) 'and ',n_S0,' scalars is not possible.'
   Call TerminateProgram
  End If
 
@@ -553,13 +553,13 @@ Contains
   n_Spm = Size( RSpm, Dim=1)
 
   If ((i.Lt.1).Or.(i.Gt.n_Spm)) Then
-   Write (10,*) 'Problem in Subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index i out of range: (i,n_Spm) = ',i,n_Spm 
+   Write(ErrCan,*) 'Problem in Subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index i out of range: (i,n_Spm) = ',i,n_Spm 
    Call TerminateProgram
   End If
   If ((j.Lt.1).Or.(j.Gt.n_Spm)) Then
-   Write (10,*) 'Problem in Subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index j out of range: (j,n_Spm) = ',j,n_Spm 
+   Write(ErrCan,*) 'Problem in Subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index j out of range: (j,n_Spm) = ',j,n_Spm 
    Call TerminateProgram
   End If
 
@@ -635,11 +635,11 @@ Contains
   !------
   If ((n_char.Eq.2).And.(n_neut.Eq.4)) Then
    If ((i.Lt.1).Or.(i.Gt.2)) Then
-    Write (10,*) 'Chargino index out of range, i, n_char',i,n_char
+    Write(ErrCan,*) 'Chargino index out of range, i, n_char',i,n_char
     Call TerminateProgram
    End If
    If ((j.Lt.1).Or.(j.Gt.4)) Then
-    Write (10,*) 'Neutralino index out of range, j, n_neut',j,n_neut
+    Write(ErrCan,*) 'Neutralino index out of range, j, n_neut',j,n_neut
     Call TerminateProgram
    End If
 
@@ -650,11 +650,11 @@ Contains
   !------
   Else If ((n_char.Eq.2).And.(n_neut.Eq.5)) Then
    If ((i.Lt.1).Or.(i.Gt.2)) Then
-    Write (10,*) 'Chargino index out of range, i, n_char',i,n_char
+    Write(ErrCan,*) 'Chargino index out of range, i, n_char',i,n_char
     Call TerminateProgram
    End If
    If ((j.Lt.1).Or.(j.Gt.5)) Then
-    Write (10,*) 'Neutralino index out of range, j, n_neut',j,n_neut
+    Write(ErrCan,*) 'Neutralino index out of range, j, n_neut',j,n_neut
     Call TerminateProgram
    End If
 
@@ -665,11 +665,11 @@ Contains
   !----------------------------
   Else If ((n_char.Eq.3).And.(n_neut.Eq.5)) Then
    If ((i.Lt.1).Or.(i.Gt.3)) Then
-    Write (10,*) 'Chargino index out of range, i, n_char',i,n_char
+    Write(ErrCan,*) 'Chargino index out of range, i, n_char',i,n_char
     Call TerminateProgram
    End If
    If ((j.Lt.1).Or.(j.Gt.5)) Then
-    Write (10,*) 'Neutralino index out of range, j, n_neut',j,n_neut
+    Write(ErrCan,*) 'Neutralino index out of range, j, n_neut',j,n_neut
     Call TerminateProgram
    End If
 
@@ -681,11 +681,11 @@ Contains
   !----------------------------
   Else If ((n_char.Eq.5).And.(n_neut.Eq.7)) Then
    If ((i.Lt.1).Or.(i.Gt.5)) Then
-    Write (10,*) 'Chargino index out of range, i, n_char',i,n_char
+    Write(ErrCan,*) 'Chargino index out of range, i, n_char',i,n_char
     Call TerminateProgram
    End If
    If ((j.Lt.1).Or.(j.Gt.7)) Then
-    Write (10,*) 'Neutralino index out of range, j, n_neut',j,n_neut
+    Write(ErrCan,*) 'Neutralino index out of range, j, n_neut',j,n_neut
     Call TerminateProgram
    End If
 
@@ -698,11 +698,11 @@ Contains
   !----------------------------
   Else If ((n_char.Eq.5).And.(n_neut.Eq.8)) Then
    If ((i.Lt.1).Or.(i.Gt.5)) Then
-    Write (10,*) 'Chargino index out of range, i, n_char',i,n_char
+    Write(ErrCan,*) 'Chargino index out of range, i, n_char',i,n_char
     Call TerminateProgram
    End If
    If ((j.Lt.1).Or.(j.Gt.8)) Then
-    Write (10,*) 'Neutralino index out of range, j, n_neut',j,n_neut
+    Write(ErrCan,*) 'Neutralino index out of range, j, n_neut',j,n_neut
     Call TerminateProgram
    End If
 
@@ -715,11 +715,11 @@ Contains
   !----------------------------
   Else If ((n_char.Eq.5).And.(n_neut.Eq.9)) Then
    If ((i.Lt.1).Or.(i.Gt.5)) Then
-    Write (10,*) 'Chargino index out of range, i, n_char',i,n_char
+    Write(ErrCan,*) 'Chargino index out of range, i, n_char',i,n_char
     Call TerminateProgram
    End If
    If ((j.Lt.1).Or.(j.Gt.9)) Then
-    Write (10,*) 'Neutralino index out of range, j, n_neut',j,n_neut
+    Write(ErrCan,*) 'Neutralino index out of range, j, n_neut',j,n_neut
     Call TerminateProgram
    End If
 
@@ -732,11 +732,11 @@ Contains
   !------------
   Else If ((n_char.Eq.5).And.((n_neut.Eq.14).or.(n_neut.eq.10))) Then
    If ((i.Lt.1).Or.(i.Gt.5)) Then
-    Write (10,*) 'Chargino index out of range, i, n_char',i,n_char
+    Write(ErrCan,*) 'Chargino index out of range, i, n_char',i,n_char
     Call TerminateProgram
    End If
    If ((j.Lt.1).Or.(j.Gt.n_neut)) Then
-    Write (10,*) 'Neutralino index out of range, j, n_neut',j,n_neut
+    Write(ErrCan,*) 'Neutralino index out of range, j, n_neut',j,n_neut
     Call TerminateProgram
    End If
 
@@ -745,9 +745,9 @@ Contains
         &   + U(i,4) * Conjg( N(j,6) ) + U(i,5) * Conjg( N(j,7) ) ) * oosqrt2
 
   Else
-   Write (10,*) 'Error in Subroutine CoupCharginoNeutralinoW.'
-   Write (10,*) 'Model (n_char,n_neut) (',n_char,n_neut,')'
-   Write (10,*) 'is not defined.'
+   Write(ErrCan,*) 'Error in Subroutine CoupCharginoNeutralinoW.'
+   Write(ErrCan,*) 'Model (n_char,n_neut) (',n_char,n_neut,')'
+   Write(ErrCan,*) 'is not defined.'
    Call TerminateProgram
   End If
 
@@ -788,12 +788,12 @@ Contains
   n_char = Size( U, Dim=1)
 
   If ((i.Lt.1).Or.(i.Gt.n_char)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index i out of range: (i,n_char) = ',i,n_char
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index i out of range: (i,n_char) = ',i,n_char
    Call TerminateProgram
   Else If ((j.Lt.1).Or.(j.Gt.n_char)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index j out of range: (j,n_char) = ',j,n_char
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index j out of range: (j,n_char) = ',j,n_char
    Call TerminateProgram
   End If
 
@@ -840,12 +840,12 @@ Contains
   n_char = Size( U, Dim=1)
 
   If ((i.Lt.1).Or.(i.Gt.n_char)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index i out of range: (i,n_char) = ',i,n_char
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index i out of range: (i,n_char) = ',i,n_char
    Call TerminateProgram
   Else If ((j.Lt.1).Or.(j.Gt.n_char)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index j out of range: (j,n_char) = ',j,n_char
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index j out of range: (j,n_char) = ',j,n_char
    Call TerminateProgram
   End If
  
@@ -939,9 +939,9 @@ Contains
      &      .Or.((n_N.Eq.7).And.(n_P0.Eq.5)) & ! 3-generation epsilon model
      & ) ) Then
    If (ErrorLevel.Ge.-1) Then
-    Write(10,*) 'Problem in Subroutine ',NameOfUnit(Iname)
-    Write(10,*) 'Model with (n_N,n_P0) = ',n_N,n_P0
-    Write(10,*) 'not yet included. Setting coupling to 0.'
+    Write(ErrCan,*) 'Problem in Subroutine ',NameOfUnit(Iname)
+    Write(ErrCan,*) 'Model with (n_N,n_P0) = ',n_N,n_P0
+    Write(ErrCan,*) 'not yet included. Setting coupling to 0.'
     coupL = 0
     coupR = 0
    End If
@@ -956,18 +956,18 @@ Contains
   ! Checking for correct index range
   !----------------------------------
   If ((i.Lt.1).Or.(i.Gt.n_N)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index i out of range:',i
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index i out of range:',i
    Call TerminateProgram
 
   Else If ((j.Lt.1).Or.(j.Gt.n_N)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index j out of range:',j
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index j out of range:',j
    Call TerminateProgram
 
   Else If ((k.Lt.1).Or.(k.Gt.n_P0)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index k out of range:',k
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index k out of range:',k
    Call TerminateProgram
   End If
 
@@ -1046,9 +1046,9 @@ Contains
      &      .Or.((n_N.Eq.7).And.(n_P0.Eq.5)) & ! 3-generation epsilon model
      & ) ) Then
    If (ErrorLevel.Ge.-1) Then
-    Write(10,*) 'Problem in Subroutine ',NameOfUnit(Iname)
-    Write(10,*) 'Model with (n_N,n_P0) = ',n_N,n_P0
-    Write(10,*) 'not yet included. Setting coupling to 0.'
+    Write(ErrCan,*) 'Problem in Subroutine ',NameOfUnit(Iname)
+    Write(ErrCan,*) 'Model with (n_N,n_P0) = ',n_N,n_P0
+    Write(ErrCan,*) 'not yet included. Setting coupling to 0.'
     coupL = 0
     coupR = 0
    End If
@@ -1063,18 +1063,18 @@ Contains
   ! Checking for correct index range
   !----------------------------------
   If ((i.Lt.1).Or.(i.Gt.n_N)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index i out of range:',i
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index i out of range:',i
    Call TerminateProgram
 
   Else If ((j.Lt.1).Or.(j.Gt.n_N)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index j out of range:',j
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index j out of range:',j
    Call TerminateProgram
 
   Else If ((k.Lt.1).Or.(k.Gt.n_P0)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index k out of range:',k
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index k out of range:',k
    Call TerminateProgram
   End If
  
@@ -1151,9 +1151,9 @@ Contains
      &      .Or.((n_N.Eq.7).And.(n_S0.Eq.5)) & ! 3-generation epsilon model
      & ) ) Then
    If (ErrorLevel.Ge.-1) Then
-    Write(10,*) 'Problem in Subroutine ',NameOfUnit(Iname)
-    Write(10,*) 'Model with (n_N,n_S0) = ',n_N,n_S0
-    Write(10,*) 'not yet included. Setting coupling to 0.'
+    Write(ErrCan,*) 'Problem in Subroutine ',NameOfUnit(Iname)
+    Write(ErrCan,*) 'Model with (n_N,n_S0) = ',n_N,n_S0
+    Write(ErrCan,*) 'not yet included. Setting coupling to 0.'
     coupL = 0
     coupR = 0
    End If
@@ -1168,18 +1168,18 @@ Contains
   ! Checking for correct index range
   !----------------------------------
   If ((i.Lt.1).Or.(i.Gt.n_N)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index i out of range:',i
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index i out of range:',i
    Call TerminateProgram
 
   Else If ((j.Lt.1).Or.(j.Gt.n_N)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index j out of range:',j
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index j out of range:',j
    Call TerminateProgram
 
   Else If ((k.Lt.1).Or.(k.Gt.n_S0)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index k out of range:',k
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index k out of range:',k
    Call TerminateProgram
   End If
  
@@ -1260,9 +1260,9 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
      &      .Or.((n_N.Eq.7).And.(n_S0.Eq.5)) & ! 3-generation epsilon model
      & ) ) Then
    If (ErrorLevel.Ge.-1) Then
-    Write(10,*) 'Problem in Subroutine ',NameOfUnit(Iname)
-    Write(10,*) 'Model with (n_N,n_S0) = ',n_N,n_S0
-    Write(10,*) 'not yet included. Setting coupling to 0.'
+    Write(ErrCan,*) 'Problem in Subroutine ',NameOfUnit(Iname)
+    Write(ErrCan,*) 'Model with (n_N,n_S0) = ',n_N,n_S0
+    Write(ErrCan,*) 'not yet included. Setting coupling to 0.'
     coupL = 0
     coupR = 0
    End If
@@ -1277,18 +1277,18 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
   ! Checking for correct index range
   !----------------------------------
   If ((i.Lt.1).Or.(i.Gt.n_N)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index i out of range:',i
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index i out of range:',i
    Call TerminateProgram
 
   Else If ((j.Lt.1).Or.(j.Gt.n_N)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index j out of range:',j
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index j out of range:',j
    Call TerminateProgram
 
   Else If ((k.Lt.1).Or.(k.Gt.n_S0)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index k out of range:',k
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index k out of range:',k
    Call TerminateProgram
   End If
  
@@ -1359,9 +1359,9 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
   !---------------------------
   If (.Not.( (n_N.Eq.4).Or.(n_N.Eq.5).Or.(n_N.Eq.7).Or.(n_N.Eq.14) ) ) Then
    If (ErrorLevel.Ge.-1) Then
-    Write(10,*) 'Problem in Subroutine ',NameOfUnit(Iname)
-    Write(10,*) 'Model with n_N = ',n_N
-    Write(10,*) 'not yet included. Setting coupling to 0.'
+    Write(ErrCan,*) 'Problem in Subroutine ',NameOfUnit(Iname)
+    Write(ErrCan,*) 'Model with n_N = ',n_N
+    Write(ErrCan,*) 'not yet included. Setting coupling to 0.'
     coupL = 0
     coupR = 0
    End If
@@ -1376,13 +1376,13 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
   ! Checking for correct index range
   !----------------------------------
   If ((i.Lt.1).Or.(i.Gt.n_N)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index i out of range:',i
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index i out of range:',i
    Call TerminateProgram
 
   Else If ((j.Lt.1).Or.(j.Gt.n_N)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index j out of range:',j
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index j out of range:',j
    Call TerminateProgram
 
   End If
@@ -1441,9 +1441,9 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
   If (.Not.( (n_N.Eq.4).Or.(n_N.Eq.5).Or.((n_N.Ge.7).and.(n_N.Le.10)) &
            .Or.(n_N.Eq.14) ) ) Then
    If (ErrorLevel.Ge.-1) Then
-    Write(10,*) 'Problem in Subroutine ',NameOfUnit(Iname)
-    Write(10,*) 'Model with n_N = ',n_N
-    Write(10,*) 'not yet included. Setting coupling to 0.'
+    Write(ErrCan,*) 'Problem in Subroutine ',NameOfUnit(Iname)
+    Write(ErrCan,*) 'Model with n_N = ',n_N
+    Write(ErrCan,*) 'not yet included. Setting coupling to 0.'
     coupL = 0
     coupR = 0
    End If
@@ -1458,13 +1458,13 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
   ! Checking for correct index range
   !----------------------------------
   If ((i.Lt.1).Or.(i.Gt.n_N)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index i out of range:',i
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index i out of range:',i
    Call TerminateProgram
 
   Else If ((j.Lt.1).Or.(j.Gt.n_N)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index j out of range:',j
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index j out of range:',j
    Call TerminateProgram
 
   End If
@@ -1532,9 +1532,9 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
    &    + RP0(i,5)*RS0(j,5)
 
   Else
-   Write (10,*) 'Problem in Subroutine CoupPseudoscalarScalarZ'
-   Write (10,*) 'Model with n_S0 = ',n_S0,' is not yet included '
-   Write (10,*) 'Setting the coupling to 0 '
+   Write(ErrCan,*) 'Problem in Subroutine CoupPseudoscalarScalarZ'
+   Write(ErrCan,*) 'Model with n_S0 = ',n_S0,' is not yet included '
+   Write(ErrCan,*) 'Setting the coupling to 0 '
   End If
 
   coup = (0._dp,-0.5_dp) * g *coup  / cosW
@@ -1611,12 +1611,12 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
   n_sferp = Size( Rsfp, Dim=1)
 
   If ((i.Lt.1).Or.(i.Gt.n_Sfer)) Then
-   Write (10,*) 'Error in Soubroutine '//NameOfUnit(Iname)
-   Write (10,*) 'Sfermion index i = ',i
+   Write(ErrCan,*) 'Error in Soubroutine '//NameOfUnit(Iname)
+   Write(ErrCan,*) 'Sfermion index i = ',i
    Call TerminateProgram
   Else If ((j.Lt.1).Or.(j.Gt.n_sferp)) Then
-   Write (10,*) 'Error in Soubroutine '//NameOfUnit(Iname)
-   Write (10,*) 'Sfermion index j = ',j
+   Write(ErrCan,*) 'Error in Soubroutine '//NameOfUnit(Iname)
+   Write(ErrCan,*) 'Sfermion index j = ',j
    Call TerminateProgram
   End If
 
@@ -1671,12 +1671,12 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
   n_sfer = Size( Rsf, Dim=1 )
 
   If ((i.Lt.1).Or.(i.Gt.n_sfer)) Then
-   Write (10,*) 'Error in Soubroutine '//NameOfUnit(Iname)
-   Write (10,*) 'Sfermion index i = ',i
+   Write(ErrCan,*) 'Error in Soubroutine '//NameOfUnit(Iname)
+   Write(ErrCan,*) 'Sfermion index i = ',i
    Call TerminateProgram
   Else If ((j.Lt.1).Or.(j.Gt.n_sfer)) Then
-   Write (10,*) 'Error in Soubroutine '//NameOfUnit(Iname)
-   Write (10,*) 'Sfermion index j = ',j
+   Write(ErrCan,*) 'Error in Soubroutine '//NameOfUnit(Iname)
+   Write(ErrCan,*) 'Sfermion index j = ',j
    Call TerminateProgram
   End If
 
@@ -1739,12 +1739,12 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
   n_sfer = Size( Rsf, Dim=1 )
 
   If ((i.Lt.1).Or.(i.Gt.n_sfer)) Then
-   Write (10,*) 'Error in Soubroutine '//NameOfUnit(Iname)
-   Write (10,*) 'Sfermion index i = ',i
+   Write(ErrCan,*) 'Error in Soubroutine '//NameOfUnit(Iname)
+   Write(ErrCan,*) 'Sfermion index i = ',i
    Call TerminateProgram
   Else If ((j.Lt.1).Or.(j.Gt.n_sfer)) Then
-   Write (10,*) 'Error in Soubroutine '//NameOfUnit(Iname)
-   Write (10,*) 'Sfermion index j = ',j
+   Write(ErrCan,*) 'Error in Soubroutine '//NameOfUnit(Iname)
+   Write(ErrCan,*) 'Sfermion index j = ',j
    Call TerminateProgram
   End If
 
@@ -2673,18 +2673,18 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
  NameOfUnit(Iname) = 'CoupChargedScalarPseudoscalar3'
 
  If ((i.Lt.1).Or.(i.Gt.2)) Then
-  Write (10,*) 'Problem in Subroutine ',NameOfUnit(Iname)
-  Write (10,*) 'index i out of range: (i,n_Spm) = ',i
+  Write(ErrCan,*) 'Problem in Subroutine ',NameOfUnit(Iname)
+  Write(ErrCan,*) 'index i out of range: (i,n_Spm) = ',i
   Call TerminateProgram
  End If
  If ((j.Lt.1).Or.(j.Gt.2)) Then
-  Write (10,*) 'Problem in Subroutine ',NameOfUnit(Iname)
-  Write (10,*) 'index j out of range: (j,n_Spm) = ',j
+  Write(ErrCan,*) 'Problem in Subroutine ',NameOfUnit(Iname)
+  Write(ErrCan,*) 'index j out of range: (j,n_Spm) = ',j
   Call TerminateProgram
  End If
  If ((k.Lt.1).Or.(k.Gt.2)) Then
-  Write (10,*) 'Problem in Subroutine ',NameOfUnit(Iname)
-  Write (10,*) 'index k out of range: (k,n_S0) = ',k
+  Write(ErrCan,*) 'Problem in Subroutine ',NameOfUnit(Iname)
+  Write(ErrCan,*) 'index k out of range: (k,n_S0) = ',k
   Call TerminateProgram
  End If
 
@@ -2774,18 +2774,18 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
  NameOfUnit(Iname) = 'CoupChargedScalarScalar3'
 
  If ((i.Lt.1).Or.(i.Gt.2)) Then
-  Write (10,*) 'Problem in Subroutine ',NameOfUnit(Iname)
-  Write (10,*) 'index i out of range: (i,n_Spm) = ',i
+  Write(ErrCan,*) 'Problem in Subroutine ',NameOfUnit(Iname)
+  Write(ErrCan,*) 'index i out of range: (i,n_Spm) = ',i
   Call TerminateProgram
  End If
  If ((j.Lt.1).Or.(j.Gt.2)) Then
-  Write (10,*) 'Problem in Subroutine ',NameOfUnit(Iname)
-  Write (10,*) 'index j out of range: (j,n_Spm) = ',j
+  Write(ErrCan,*) 'Problem in Subroutine ',NameOfUnit(Iname)
+  Write(ErrCan,*) 'index j out of range: (j,n_Spm) = ',j
   Call TerminateProgram
  End If
  If ((k.Lt.1).Or.(k.Gt.2)) Then
-  Write (10,*) 'Problem in Subroutine ',NameOfUnit(Iname)
-  Write (10,*) 'index k out of range: (k,n_S0) = ',k
+  Write(ErrCan,*) 'Problem in Subroutine ',NameOfUnit(Iname)
+  Write(ErrCan,*) 'index k out of range: (k,n_S0) = ',k
   Call TerminateProgram
  End If
 
@@ -2889,18 +2889,18 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
   NameOfUnit(Iname) = 'CoupCharginoPseudoScalarMSSMa'
 
   If ((i.Lt.1).Or.(i.Gt.2)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index i out of range:',i
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index i out of range:',i
    Call TerminateProgram
 
   Else If ((j.Lt.1).Or.(j.Gt.2)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index j out of range:',j
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index j out of range:',j
    Call TerminateProgram
 
   Else If ((k.Lt.1).Or.(k.Gt.2)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index k out of range:',k
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index k out of range:',k
    Call TerminateProgram
   End If
  
@@ -2945,18 +2945,18 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
   NameOfUnit(Iname) = 'CoupCharginoPseudoScalarMSSM'
 
   If ((i.Lt.1).Or.(i.Gt.2)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index i out of range:',i
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index i out of range:',i
    Call TerminateProgram
 
   Else If ((j.Lt.1).Or.(j.Gt.2)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index j out of range:',j
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index j out of range:',j
    Call TerminateProgram
 
   Else If ((k.Lt.1).Or.(k.Gt.2)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index k out of range:',k
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index k out of range:',k
    Call TerminateProgram
   End If
  
@@ -2999,18 +2999,18 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
   NameOfUnit(Iname) = 'CoupCharginoScalarMSSMa'
 
   If ((i.Lt.1).Or.(i.Gt.2)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index i out of range:',i
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index i out of range:',i
    Call TerminateProgram
 
   Else If ((j.Lt.1).Or.(j.Gt.2)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index j out of range:',j
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index j out of range:',j
    Call TerminateProgram
 
   Else If ((k.Lt.1).Or.(k.Gt.2)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index k out of range:',k
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index k out of range:',k
    Call TerminateProgram
   End If
  
@@ -3056,18 +3056,18 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
   NameOfUnit(Iname) = 'CoupCharginoScalarMSSM'
 
   If ((i.Lt.1).Or.(i.Gt.2)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index i out of range:',i
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index i out of range:',i
    Call TerminateProgram
 
   Else If ((j.Lt.1).Or.(j.Gt.2)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index j out of range:',j
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index j out of range:',j
    Call TerminateProgram
 
   Else If ((k.Lt.1).Or.(k.Gt.2)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index k out of range:',k
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index k out of range:',k
    Call TerminateProgram
   End If
  
@@ -3120,13 +3120,13 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
   n_char = Size(U, Dim=1)
 
   If ((i.Lt.1).Or.(i.Gt.n_char)) Then
-   Write (10,*) 'Error in Subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index i out of range: (i,n_char) = ',i,n_char
+   Write(ErrCan,*) 'Error in Subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index i out of range: (i,n_char) = ',i,n_char
    Call TerminateProgram
   End If 
   If ((j.Lt.1).Or.(j.Gt.2)) Then
-   Write (10,*) 'Error in Subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index j out of range: ',j
+   Write(ErrCan,*) 'Error in Subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index j out of range: ',j
    Call TerminateProgram
   End If 
 
@@ -3182,16 +3182,16 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
   NameOfUnit(Iname) = 'CoupCSCharginoNeutralinoMSSM'
 
   If ((i.Lt.1).Or.(i.Gt.2)) Then
-   Write (10,*) 'Error in Subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'Chargino index out of range (i,n_char) = ',i
+   Write(ErrCan,*) 'Error in Subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'Chargino index out of range (i,n_char) = ',i
    Call TerminateProgram
   Elseif ((j.Lt.1).Or.(j.Gt.4)) Then
-   Write (10,*) 'Error in Subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'Neutralino index out of range (i,n_neut) = ',j
+   Write(ErrCan,*) 'Error in Subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'Neutralino index out of range (i,n_neut) = ',j
    Call TerminateProgram
   Elseif ((k.Lt.1).Or.(k.Gt.2)) Then
-   Write (10,*) 'Error in Subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'Scalar index out of range (i,n_Spm) = ',k
+   Write(ErrCan,*) 'Error in Subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'Scalar index out of range (i,n_Spm) = ',k
    Call TerminateProgram
   End If
 
@@ -5648,18 +5648,18 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
   n_sfer = Size(RSfu, Dim=1)
 
   If ((i.Lt.1).Or.(i.Gt.2)) Then
-   Write (10,*) 'Problem in Subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index i out of range: i = ',i
+   Write(ErrCan,*) 'Problem in Subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index i out of range: i = ',i
    Call TerminateProgram
   End If
   If ((j.Lt.1).Or.(j.Gt.6)) Then
-   Write (10,*) 'Problem in Subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'down-type sfermion index j out of range: j = ',j
+   Write(ErrCan,*) 'Problem in Subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'down-type sfermion index j out of range: j = ',j
    Call TerminateProgram
   End If
   If ((k.Lt.1).Or.(k.Gt.n_sfer)) Then
-   Write (10,*) 'Problem in Subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'up-type sfermion index k out of range: k = ',k
+   Write(ErrCan,*) 'Problem in Subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'up-type sfermion index k out of range: k = ',k
    Call TerminateProgram
   End If
 
@@ -5865,18 +5865,18 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
   NameOfUnit(Iname) = 'CoupChargedScalarSfermion3MSSM1'
 
   If ((i.Lt.1).Or.(i.Gt.2)) Then
-   Write (10,*) 'Problem in Subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index i out of range: i = ',i
+   Write(ErrCan,*) 'Problem in Subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index i out of range: i = ',i
    Call TerminateProgram
   End If
   If ((j.Lt.1).Or.(j.Gt.2)) Then
-   Write (10,*) 'Problem in Subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'down-type sfermion index j out of range: j = ',j
+   Write(ErrCan,*) 'Problem in Subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'down-type sfermion index j out of range: j = ',j
    Call TerminateProgram
   End If
   If ((k.Lt.1).Or.(k.Gt.2)) Then
-   Write (10,*) 'Problem in Subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'up-type sfermion index k out of range: k = ',k
+   Write(ErrCan,*) 'Problem in Subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'up-type sfermion index k out of range: k = ',k
    Call TerminateProgram
   End If
 
@@ -6013,18 +6013,18 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
 
   If (ErrorLevel.Ge.-1) Then
    If ((i.Lt.1).Or.(i.Gt.n_char)) Then
-    Write (10,*) 'Error in Subroutine ',NameOfUnit(Iname)
-    Write (10,*) 'index i out of range: (i,n_char) = ',i,n_char
+    Write(ErrCan,*) 'Error in Subroutine ',NameOfUnit(Iname)
+    Write(ErrCan,*) 'index i out of range: (i,n_char) = ',i,n_char
     Call TerminateProgram
    End If 
    If ((j.Lt.1).Or.(j.Gt.3)) Then
-    Write (10,*) 'Error in Subroutine ',NameOfUnit(Iname)
-    Write (10,*) 'index j out of range: ',j
+    Write(ErrCan,*) 'Error in Subroutine ',NameOfUnit(Iname)
+    Write(ErrCan,*) 'index j out of range: ',j
     Call TerminateProgram
    End If 
    If ((k.Lt.1).Or.(k.Gt.6)) Then
-    Write (10,*) 'Error in Subroutine ',NameOfUnit(Iname)
-    Write (10,*) 'index k out of range: ',k
+    Write(ErrCan,*) 'Error in Subroutine ',NameOfUnit(Iname)
+    Write(ErrCan,*) 'index k out of range: ',k
     Call TerminateProgram
    End If 
   End If
@@ -8491,18 +8491,18 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
   NameOfUnit(Iname) = 'CoupChargedScalarSfermion3Eps1'
 
   If ((i.Lt.1).Or.(i.Gt.4)) Then
-   Write (10,*) 'Problem in Subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index i out of range: i = ',i
+   Write(ErrCan,*) 'Problem in Subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index i out of range: i = ',i
    Call TerminateProgram
   End If
   If ((j.Lt.1).Or.(j.Gt.2)) Then
-   Write (10,*) 'Problem in Subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'down-type sfermion index j out of range: j = ',j
+   Write(ErrCan,*) 'Problem in Subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'down-type sfermion index j out of range: j = ',j
    Call TerminateProgram
   End If
   If ((k.Lt.1).Or.(k.Gt.2)) Then
-   Write (10,*) 'Problem in Subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'up-type sfermion index k out of range: k = ',k
+   Write(ErrCan,*) 'Problem in Subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'up-type sfermion index k out of range: k = ',k
    Call TerminateProgram
   End If
 
@@ -8567,18 +8567,18 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
   NameOfUnit(Iname) = 'CoupCharginoPseudoScalarEps1'
 
   If ((i.Lt.1).Or.(i.Gt.3)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index i out of range:',i
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index i out of range:',i
    Call TerminateProgram
 
   Else If ((j.Lt.1).Or.(j.Gt.3)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index j out of range:',j
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index j out of range:',j
    Call TerminateProgram
 
   Else If ((k.Lt.1).Or.(k.Gt.3)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index k out of range:',k
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index k out of range:',k
    Call TerminateProgram
   End If
  
@@ -8628,18 +8628,18 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
   NameOfUnit(Iname) = 'CoupCharginoScalarEps1'
 
   If ((i.Lt.1).Or.(i.Gt.3)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index i out of range:',i
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index i out of range:',i
    Call TerminateProgram
 
   Else If ((j.Lt.1).Or.(j.Gt.3)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index j out of range:',j
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index j out of range:',j
    Call TerminateProgram
 
   Else If ((k.Lt.1).Or.(k.Gt.3)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index k out of range:',k
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index k out of range:',k
    Call TerminateProgram
   End If
  
@@ -8707,23 +8707,23 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
      &     .Or.((n_char.Eq.3).And.(n_neut.Eq.5).And.(n_Spm.Eq.4))  & ! 1-gen.
      &     .Or.((n_char.Eq.5).And.(n_neut.Eq.7).And.(n_Spm.Eq.8))  & ! 3-gen.
      &     ) ) Then
-   Write (10,*) 'Error in Subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'model not consistent defined (n_char,n_neut,n_Spm)=' &
+   Write(ErrCan,*) 'Error in Subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'model not consistent defined (n_char,n_neut,n_Spm)=' &
               & ,n_char,n_neut,n_Spm
    Call TerminateProgram
   End If
 
   If ((i.Lt.1).Or.(i.Gt.n_char)) Then
-   Write (10,*) 'Error in Subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'Chargino index out of range (i,n_char) = ',i,n_char
+   Write(ErrCan,*) 'Error in Subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'Chargino index out of range (i,n_char) = ',i,n_char
    Call TerminateProgram
   Else If ((j.Lt.1).Or.(j.Gt.n_neut)) Then
-   Write (10,*) 'Error in Subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'Neutralino index out of range (i,n_neut) = ',j,n_neut
+   Write(ErrCan,*) 'Error in Subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'Neutralino index out of range (i,n_neut) = ',j,n_neut
    Call TerminateProgram
   Else If ((k.Lt.1).Or.(k.Gt.n_Spm)) Then
-   Write (10,*) 'Error in Subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'Scalar index out of range (i,n_Spm) = ',k,n_Spm
+   Write(ErrCan,*) 'Error in Subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'Scalar index out of range (i,n_Spm) = ',k,n_Spm
    Call TerminateProgram
   End If
 
@@ -8786,8 +8786,8 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
     coupR = coupR + RSpm(k,i1) * qr(i1)
    End Do
   Else
-   Write (10,*) 'Error in Subroutine '//NameofUnit(Iname)
-   Write (10,*) 'Model ',n_Spm,' is not defined.'
+   Write(ErrCan,*) 'Error in Subroutine '//NameofUnit(Iname)
+   Write(ErrCan,*) 'Model ',n_Spm,' is not defined.'
    Call TerminateProgram
   End If
 
@@ -9840,18 +9840,18 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
   NameOfUnit(Iname) = 'CoupChargedScalarSfermion3Eps3'
 
   If ((i.Lt.1).Or.(i.Gt.8)) Then
-   Write (10,*) 'Problem in Subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index i out of range: i = ',i
+   Write(ErrCan,*) 'Problem in Subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index i out of range: i = ',i
    Call TerminateProgram
   End If
   If ((j.Lt.1).Or.(j.Gt.2)) Then
-   Write (10,*) 'Problem in Subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'down-type sfermion index j out of range: j = ',j
+   Write(ErrCan,*) 'Problem in Subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'down-type sfermion index j out of range: j = ',j
    Call TerminateProgram
   End If
   If ((k.Lt.1).Or.(k.Gt.2)) Then
-   Write (10,*) 'Problem in Subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'up-type sfermion index k out of range: k = ',k
+   Write(ErrCan,*) 'Problem in Subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'up-type sfermion index k out of range: k = ',k
    Call TerminateProgram
   End If
 
@@ -9923,18 +9923,18 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
   NameOfUnit(Iname) = 'CoupCharginoPseudoScalarEps3'
 
   If ((i.Lt.1).Or.(i.Gt.5)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index i out of range:',i
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index i out of range:',i
    Call TerminateProgram
 
   Else If ((j.Lt.1).Or.(j.Gt.5)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index j out of range:',j
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index j out of range:',j
    Call TerminateProgram
 
   Else If ((k.Lt.1).Or.(k.Gt.5)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index k out of range:',k
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index k out of range:',k
    Call TerminateProgram
   End If
 
@@ -9999,18 +9999,18 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
   NameOfUnit(Iname) = 'CoupCharginoScalarEps3'
 
   If ((i.Lt.1).Or.(i.Gt.5)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index i out of range:',i
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index i out of range:',i
    Call TerminateProgram
 
   Else If ((j.Lt.1).Or.(j.Gt.5)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index j out of range:',j
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index j out of range:',j
    Call TerminateProgram
 
   Else If ((k.Lt.1).Or.(k.Gt.5)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index k out of range:',k
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index k out of range:',k
    Call TerminateProgram
   End If
  
@@ -10868,8 +10868,8 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
  NameOfUnit(Iname) = 'CoupChargedScalarFermion3Lam'
 
  If ((i.Lt.1).Or.(i.Gt.n_Spm)) Then
-  Write (10,*) 'Problem in Subroutine '//NameOfUnit(Iname)
-  Write (10,*) 'index i out of range: (i,n_Spm) = ',i,n_Spm 
+  Write(ErrCan,*) 'Problem in Subroutine '//NameOfUnit(Iname)
+  Write(ErrCan,*) 'index i out of range: (i,n_Spm) = ',i,n_Spm 
   Call TerminateProgram
  End If
 
@@ -11031,18 +11031,18 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
   NameOfUnit(Iname) = 'CoupCharginoPseudoScalarLam3'
 
   If ((i.Lt.1).Or.(i.Gt.5)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index i out of range:',i
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index i out of range:',i
    Call TerminateProgram
 
   Else If ((j.Lt.1).Or.(j.Gt.5)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index j out of range:',j
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index j out of range:',j
    Call TerminateProgram
 
   Else If ((k.Lt.1).Or.(k.Gt.5)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index k out of range:',k
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index k out of range:',k
    Call TerminateProgram
   End If
 
@@ -11117,18 +11117,18 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
   NameOfUnit(Iname) = 'CoupCharginoScalarLam3'
 
   If ((i.Lt.1).Or.(i.Gt.5)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index i out of range:',i
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index i out of range:',i
    Call TerminateProgram
 
   Else If ((j.Lt.1).Or.(j.Gt.5)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index j out of range:',j
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index j out of range:',j
    Call TerminateProgram
 
   Else If ((k.Lt.1).Or.(k.Gt.5)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index k out of range:',k
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index k out of range:',k
    Call TerminateProgram
   End If
 
@@ -11210,18 +11210,18 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
 
   If (ErrorLevel.Ge.-1) Then
    If ((i.Lt.1).Or.(i.Gt.n_char)) Then
-    Write (10,*) 'Error in Subroutine ',NameOfUnit(Iname)
-    Write (10,*) 'index i out of range: (i,n_char) = ',i,n_char
+    Write(ErrCan,*) 'Error in Subroutine ',NameOfUnit(Iname)
+    Write(ErrCan,*) 'index i out of range: (i,n_char) = ',i,n_char
     Call TerminateProgram
    End If 
    If ((j.Lt.1).Or.(j.Gt.3)) Then
-    Write (10,*) 'Error in Subroutine ',NameOfUnit(Iname)
-    Write (10,*) 'index j out of range: ',j
+    Write(ErrCan,*) 'Error in Subroutine ',NameOfUnit(Iname)
+    Write(ErrCan,*) 'index j out of range: ',j
     Call TerminateProgram
    End If 
    If ((k.Lt.1).Or.(k.Gt.6)) Then
-    Write (10,*) 'Error in Subroutine ',NameOfUnit(Iname)
-    Write (10,*) 'index k out of range: ',k
+    Write(ErrCan,*) 'Error in Subroutine ',NameOfUnit(Iname)
+    Write(ErrCan,*) 'index k out of range: ',k
     Call TerminateProgram
    End If 
   End If
@@ -11384,23 +11384,23 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
   n_Spm = Size(Rspm, Dim=1)
 
   If (.Not.((n_char.Eq.5).And.(n_neut.Eq.7).And.(n_Spm.Eq.8)) ) Then
-   Write (10,*) 'Error in Subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'model not consistent defined (n_char,n_neut,n_Spm)=' &
+   Write(ErrCan,*) 'Error in Subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'model not consistent defined (n_char,n_neut,n_Spm)=' &
               & ,n_char,n_neut,n_Spm
    Call TerminateProgram
   End If
 
   If ((i.Lt.1).Or.(i.Gt.n_char)) Then
-   Write (10,*) 'Error in Subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'Chargino index out of range (i,n_char) = ',i,n_char
+   Write(ErrCan,*) 'Error in Subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'Chargino index out of range (i,n_char) = ',i,n_char
    Call TerminateProgram
   Else If ((j.Lt.1).Or.(j.Gt.n_neut)) Then
-   Write (10,*) 'Error in Subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'Neutralino index out of range (i,n_neut) = ',j,n_neut
+   Write(ErrCan,*) 'Error in Subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'Neutralino index out of range (i,n_neut) = ',j,n_neut
    Call TerminateProgram
   Else If ((k.Lt.1).Or.(k.Gt.n_Spm)) Then
-   Write (10,*) 'Error in Subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'Scalar index out of range (i,n_Spm) = ',k,n_Spm
+   Write(ErrCan,*) 'Error in Subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'Scalar index out of range (i,n_Spm) = ',k,n_Spm
    Call TerminateProgram
   End If
 
@@ -11791,18 +11791,18 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
   ! Checking for correct index range
   !----------------------------------
   If ((i.Lt.1).Or.(i.Gt.n_N)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index i out of range:',i
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index i out of range:',i
    Call TerminateProgram
 
   Else If ((j.Lt.1).Or.(j.Gt.n_N)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index j out of range:',j
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index j out of range:',j
    Call TerminateProgram
 
   Else If ((k.Lt.1).Or.(k.Gt.n_P0)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index k out of range:',k
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index k out of range:',k
    Call TerminateProgram
   End If
  
@@ -11889,18 +11889,18 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
   ! Checking for correct index range
   !----------------------------------
   If ((i.Lt.1).Or.(i.Gt.n_N)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index i out of range:',i
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index i out of range:',i
    Call TerminateProgram
 
   Else If ((j.Lt.1).Or.(j.Gt.n_N)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index j out of range:',j
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index j out of range:',j
    Call TerminateProgram
 
   Else If ((k.Lt.1).Or.(k.Gt.n_S0)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index k out of range:',k
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index k out of range:',k
    Call TerminateProgram
   End If
  
@@ -11985,23 +11985,23 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
 
   If ( .not.((n_char.Eq.5).And.(n_neut.Eq.10).And.(n_Spm.Eq.8))  & ! 1-gen.,spon
      &     )  Then
-   Write (10,*) 'Error in Subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'model not consistent defined (n_char,n_neut,n_Spm)=' &
+   Write(ErrCan,*) 'Error in Subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'model not consistent defined (n_char,n_neut,n_Spm)=' &
               & ,n_char,n_neut,n_Spm
    Call TerminateProgram
   End If
 
   If ((i.Lt.1).Or.(i.Gt.n_char)) Then
-   Write (10,*) 'Error in Subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'Chargino index out of range (i,n_char) = ',i,n_char
+   Write(ErrCan,*) 'Error in Subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'Chargino index out of range (i,n_char) = ',i,n_char
    Call TerminateProgram
   Else If ((j.Lt.1).Or.(j.Gt.n_neut)) Then
-   Write (10,*) 'Error in Subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'Neutralino index out of range (i,n_neut) = ',j,n_neut
+   Write(ErrCan,*) 'Error in Subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'Neutralino index out of range (i,n_neut) = ',j,n_neut
    Call TerminateProgram
   Else If ((k.Lt.1).Or.(k.Gt.n_Spm)) Then
-   Write (10,*) 'Error in Subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'Scalar index out of range (i,n_Spm) = ',k,n_Spm
+   Write(ErrCan,*) 'Error in Subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'Scalar index out of range (i,n_Spm) = ',k,n_Spm
    Call TerminateProgram
   End If
 
@@ -12189,7 +12189,7 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
        &  , vevSM, vL, vR, vS, vP, Ahn, Ah, Ah0, Almbd, muhat, Mphi, MR      &
        &  , RS0, RP0, coup)
   !-----------------------------------------------------------------------
-  ! i, j  ........... pseudoscalar indeces
+  ! i, j  ........... pseudoscalar indices
   ! k ............... scalar index
   !-----------------------------------------------------------------------
   Implicit None
@@ -13607,18 +13607,18 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
   NameOfUnit(Iname) = 'Coup_Chip_Chim_P0_NMSSM'
 
   If ((i.Lt.1).Or.(i.Gt.2)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index i out of range:',i
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index i out of range:',i
    Call TerminateProgram
 
   Else If ((j.Lt.1).Or.(j.Gt.2)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index j out of range:',j
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index j out of range:',j
    Call TerminateProgram
 
   Else If ((k.Lt.1).Or.(k.Gt.3)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index k out of range:',k
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index k out of range:',k
    Call TerminateProgram
   End If
  
@@ -13663,18 +13663,18 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
   NameOfUnit(Iname) = 'Coup_Chip_Chim_S0_NMSSM'
 
   If ((i.Lt.1).Or.(i.Gt.2)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index i out of range:',i
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index i out of range:',i
    Call TerminateProgram
 
   Else If ((j.Lt.1).Or.(j.Gt.2)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index j out of range:',j
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index j out of range:',j
    Call TerminateProgram
 
   Else If ((k.Lt.1).Or.(k.Gt.3)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index k out of range:',k
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index k out of range:',k
    Call TerminateProgram
   End If
  
@@ -13726,16 +13726,16 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
   NameOfUnit(Iname) = 'Coup_Chip_Chi0_Sm_NMSSM'
 
   If ((i.Lt.1).Or.(i.Gt.2)) Then
-   Write (10,*) 'Error in Subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'Chargino index out of range (i,n_char) = ',i
+   Write(ErrCan,*) 'Error in Subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'Chargino index out of range (i,n_char) = ',i
    Call TerminateProgram
   Elseif ((j.Lt.1).Or.(j.Gt.5)) Then
-   Write (10,*) 'Error in Subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'Neutralino index out of range (i,n_neut) = ',j
+   Write(ErrCan,*) 'Error in Subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'Neutralino index out of range (i,n_neut) = ',j
    Call TerminateProgram
   Elseif ((k.Lt.1).Or.(k.Gt.2)) Then
-   Write (10,*) 'Error in Subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'Scalar index out of range (i,n_Spm) = ',k
+   Write(ErrCan,*) 'Error in Subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'Scalar index out of range (i,n_Spm) = ',k
    Call TerminateProgram
   End If
 
@@ -13793,18 +13793,18 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
   ! Checking for correct index range
   !----------------------------------
   If ((i.Lt.1).Or.(i.Gt.n_N)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index i out of range:',i
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index i out of range:',i
    Call TerminateProgram
 
   Else If ((j.Lt.1).Or.(j.Gt.n_N)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index j out of range:',j
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index j out of range:',j
    Call TerminateProgram
 
   Else If ((k.Lt.1).Or.(k.Gt.n_P0)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index k out of range:',k
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index k out of range:',k
    Call TerminateProgram
   End If
  
@@ -13877,18 +13877,18 @@ Subroutine CoupNeutralinoScalar(i,j,k,N,RS0,gp,g,coupL,coupR)
   ! Checking for correct index range
   !----------------------------------
   If ((i.Lt.1).Or.(i.Gt.n_N)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index i out of range:',i
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index i out of range:',i
    Call TerminateProgram
 
   Else If ((j.Lt.1).Or.(j.Gt.n_N)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index j out of range:',j
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index j out of range:',j
    Call TerminateProgram
 
   Else If ((k.Lt.1).Or.(k.Gt.n_S0)) Then
-   Write (10,*) 'Problem in subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'index k out of range:',k
+   Write(ErrCan,*) 'Problem in subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'index k out of range:',k
    Call TerminateProgram
   End If
  

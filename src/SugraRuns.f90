@@ -5,7 +5,7 @@ Module SugraRuns
  Use LoopCouplings
  Use LoopMasses
  Use LoopFunctions
- Use Mathematics, Only: Li2, odeint, odeintB
+ Use Mathematics, Only: Li2, odeint, odeintB, odeintC
  Use Model_Data, Only: MnuR
  Use RGEs
  Use StandardModel
@@ -181,7 +181,8 @@ Contains
    mZ2_mZ = Real(dmZ2+mZ2,dp)
    If (mZ2_mZ.Lt.0._dp) Then
     Iname = Iname - 1
-    kont = -407 
+    kont = -402
+    Call AddError(402) 
     Return
    End If
    mZ2_run = mZ2_mZ
@@ -197,7 +198,8 @@ Contains
    mZ2_mZ = Real(dmZ2+mZ2,dp)
    If (mZ2_mZ.Lt.0._dp) Then
     Iname = Iname - 1
-    kont = -407 
+    kont = -402
+    Call AddError(402) 
     Return
    End If
    mZ2_run = mZ2_mZ
@@ -226,7 +228,8 @@ Contains
    CosW2SinW2 = pi * alphamZ / (sqrt2 * mZ2 * G_F * (1-delta_r) )
    sinW2_DR = 0.5_dp - Sqrt(0.25_dp - CosW2SinW2)
    If (sinW2_DR.Lt.0._dp) Then
-    kont = -412
+    kont = -403
+    Call AddError(403)
     Iname = Iname -1
     Return
    End If
@@ -234,7 +237,6 @@ Contains
    sinW2_old = sinW2_DR
    delta_rw = delta_rho*(1._dp-delta_r) + delta_r
    If ((0.25_dp-alphamz*pi/(sqrt2*G_F*mz2*rho*(1._dp-delta_rw))).Lt.0._dp) Then
-    kont = -406
     If (Errorlevel.Ge.0) Then
      Write(Errcan,*) "Problem in subroutine "//NameofUnit(Iname)
      Write(Errcan,*) "In the calculation of mW", &
@@ -246,7 +248,8 @@ Contains
      Write(ErrCan,*) "delta_r, cosW2SinW2, delta_rw"
      Write(ErrCan,*) delta_r, cosW2SinW2, delta_rw
     End If
-    kont = -411
+    kont = -404
+    Call AddError(404)
     Iname = Iname - 1
     Return
    End If
@@ -549,17 +552,20 @@ Contains
    If (    (Minval(Abs(mf_l_DR/mf_l)).Lt.0.1_dp)  &
      & .Or.(Maxval(Abs(mf_l_DR/mf_l)).Gt.10._dp) ) Then
     Iname = Iname - 1
-    kont = -408
+    kont = -405
+    Call AddError(405)
     Return
    Else If (    (Minval(Abs(mf_d_DR/mf_d)).Lt.0.1_dp)  &
           & .Or.(Minval(Abs(mf_d_DR/mf_d)).Gt.10._dp) ) Then
     Iname = Iname - 1
-    kont = -409
+    kont = -406
+    Call AddError(406)
     Return
    Else If (    (Minval(Abs(mf_u_DR/mf_u)).Lt.0.1_dp)  &
           & .Or.(Minval(Abs(mf_u_DR/mf_u)).Gt.10._dp) ) Then
     Iname = Iname - 1
-    kont = -410
+    kont = -407
+    Call AddError(407)
     Return
    End If
 
@@ -1437,7 +1443,6 @@ Contains
    End If
    M2_H_0 = fGMSB * (n5plets + 3*n10plets)                  &
          &       * ( 1.5_dp * Mhlf2(2) + 0.3_dp * Mhlf2(1) )
-   M2_H_0(2) = M2_H_0(1)
    M2_E_0(1,1) = fGMSB * (n5plets + 3*n10plets) * 1.2_dp * Mhlf2(1)
    M2_L_0(1,1) = M2_H_0(1)
    M2_D_0(1,1) = fGMSB * (n5plets + 3*n10plets)              &
@@ -1467,6 +1472,7 @@ Contains
    !----------------------------------
    ! gaugino mass parameters 
    !----------------------------------
+   Mi_0 = 0._dp
    Do i1=1,3
     Mi_0(i1) = m_32 * b_1(i1) * gauge2(i1) * oo16pi2
    End Do
@@ -2211,7 +2217,7 @@ Contains
 
    If (kont.Ne.0) Then
     Write(*,*) "Initialization failed, please send the input files used to"
-    Write(*,*) "porod@physik.unizh.ch so that the problem can be analized"
+    Write(*,*) "porod@physik.uni-wuerzburg.de so that the problem can be analyzed"
     Write(*,*) "kont",kont
     Iname = Iname - 1
     Return
@@ -2413,8 +2419,8 @@ Contains
 !    If (Abs(g1(i1)).Gt.1.e-12) Write(errcan,*)  i1,g1(i1),oo4pi*g1(i1)**2
 !   end do
    Write(errcan,*) " "
-   kont = -403
-   Call AddError(403)
+   kont = -408
+   Call AddError(408)
    Iname = Iname - 1
    Return
   End If
@@ -2780,8 +2786,8 @@ Contains
   If (.Not.FoundUnification) Then
    Write (ErrCan,*) 'SUGRA: no unification found'
    SugraErrors(1) = .True.
-   kont = -404
-   Call AddError(404)
+   kont = -409
+   Call AddError(409)
    Iname = Iname - 1
    Return
   End If
@@ -3066,8 +3072,8 @@ Contains
     Write(ErrCan,*) "Non perturbative regime at M_GUT"
     If (ErrorLevel.Ge.2) Call TerminateProgram
     Write(errcan,*) " "
-    kont = -403
-    Call AddError(403)
+    kont = -410
+    Call AddError(410)
     Iname = Iname - 1
     Return
    End If
@@ -3089,8 +3095,8 @@ Contains
     Write(ErrCan,*) "Non perturbative regime at M_H3"
     If (ErrorLevel.Ge.2) Call TerminateProgram
     Write(errcan,*) " "
-    kont = -403
-    Call AddError(403)
+    kont = -411
+    Call AddError(411)
     Iname = Iname - 1
     Return
    End If
@@ -3154,8 +3160,8 @@ Contains
     Write(ErrCan,*) "Non perturbative regime at M_GUT"
     If (ErrorLevel.Ge.2) Call TerminateProgram
     Write(errcan,*) " "
-    kont = -403
-    Call AddError(403)
+    kont = -410
+    Call AddError(410)
     Iname = Iname - 1
     Return
    End If
@@ -3177,8 +3183,8 @@ Contains
     Write(ErrCan,*) "Non perturbative regime at M_H3"
     If (ErrorLevel.Ge.2) Call TerminateProgram
     Write(errcan,*) " "
-    kont = -403
-    Call AddError(403)
+    kont = -411
+    Call AddError(411)
     Iname = Iname - 1
     Return
    End If
@@ -3835,7 +3841,8 @@ Contains
    Write (ErrCan,*) 'has been found after',niter,' iterations.'
    Write (ErrCan,*) 'required delta',delta 
    Write (ErrCan,*) 'found delta',deltag0
-   kont = -405
+   kont = -412
+   Call AddError(412)
   End If
 
   Deallocate( mass_old, mass_new, diff_m )

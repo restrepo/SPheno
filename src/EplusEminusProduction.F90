@@ -2163,8 +2163,8 @@ Write(*,*) i1,msf
 
   n_S0 = Size( mS0 )
   If ( (i.Lt.1).Or.(i.Gt.n_S0) ) Then
-   Write (10,*) 'Error: in subroutine '//NameOfUnit(Iname)//' the production'
-   Write (10,*) 'of Higgs ',i,' should be calculated. IMPOSSIBLE !'
+   Write(ErrCan,*) 'Error: in subroutine '//NameOfUnit(Iname)//' the production'
+   Write(ErrCan,*) 'of Higgs ',i,' should be calculated. IMPOSSIBLE !'
    Call TerminateProgram
   End If
 
@@ -2196,9 +2196,9 @@ Write(*,*) i1,msf
    smin = (mS0(i)+mZ)**2
    smax = s
    If ((smin.Lt.(mZ2+25._dp)).And.(smax.Gt.(mZ2-25._dp))) Then
-    Write (10,*) 'Warning from subroutine '//NameOfUnit(Iname)
-    Write (10,*) 'Inclusion of ISR corrections near m_Z '
-    Write (10,*) 'The result has to be taken with great care!!!'
+    Write(ErrCan,*) 'Warning from subroutine '//NameOfUnit(Iname)
+    Write(ErrCan,*) 'Inclusion of ISR corrections near m_Z '
+    Write(ErrCan,*) 'The result has to be taken with great care!!!'
    End If
    beta = 2._dp * Alpha * ( Log(s/mf_l2(1)) - 1._dp ) / Pi
    zmax = Log(1._dp - smin / s)
@@ -2666,9 +2666,9 @@ Write(*,*) i1,msf
     Call BeamStrahlungInitzialization(Design,Ebeam)
    Else
     If (ErrorLevel.Ge.0) Then
-     Write (10,*) 'Warning from subroutine ',NameOfUnit(Iname)
-     Write (10,*) 'Machine design for Beamstrahlung not defined!'
-     Write (10,*) 'Using therefore the design: TESLA500.'
+     Write(ErrCan,*) 'Warning from subroutine ',NameOfUnit(Iname)
+     Write(ErrCan,*) 'Machine design for Beamstrahlung not defined!'
+     Write(ErrCan,*) 'Using therefore the design: TESLA500.'
      If (ErrorLevel.Eq.2) Call TerminateProgram
     End If
     Call BeamStrahlungInitzialization('TESLA500',Ebeam)
@@ -2698,9 +2698,9 @@ Write(*,*) i1,msf
    smin = (mSn(i)+mSn(j))**2
    smax = s
    If ((smin.Lt.(mZ2+25._dp)).And.(smax.Gt.(mZ2-25._dp))) Then
-    Write (10,*) 'Warning from subroutine '//NameOfUnit(Iname)//' '
-    Write (10,*) 'Inclusion of ISR corrections near m_Z '
-    Write (10,*) 'The result has to be taken with great care!!!'
+    Write(ErrCan,*) 'Warning from subroutine '//NameOfUnit(Iname)//' '
+    Write(ErrCan,*) 'Inclusion of ISR corrections near m_Z '
+    Write(ErrCan,*) 'The result has to be taken with great care!!!'
    End If
    beta = 2._dp * Alpha * ( Log(s/mf_l2(1)) - 1._dp ) / Pi
    zmax = Log(1._dp - smin / s)
@@ -3167,8 +3167,8 @@ Write(*,*) i1,msf
   sigma = 0._dp
 
   If ( (i.Lt.1).Or.(i.Gt.6).Or.(j.Lt.1).Or.(j.Gt.6) ) Then
-   Write (10,*) 'Error: in subroutine'//NameOfUnit(Iname)//'the combination'
-   Write (10,*) i,j,' should be calculated. IMPOSSIBLE !!!!'
+   Write(ErrCan,*) 'Error: in subroutine'//NameOfUnit(Iname)//'the combination'
+   Write(ErrCan,*) i,j,' should be calculated. IMPOSSIBLE !!!!'
    Call TerminateProgram
   End If
 
@@ -3215,9 +3215,9 @@ Write(*,*) i1,msf
     Call BeamStrahlungInitzialization(Design,Ebeam)
    Else
     If (ErrorLevel.Ge.0) Then
-     Write (10,*) 'Warning from subroutine ',NameOfUnit(Iname)
-     Write (10,*) 'Machine design for Beamstrahlung not defined!'
-     Write (10,*) 'Using therefore the design: TESLA500.'
+     Write(ErrCan,*) 'Warning from subroutine ',NameOfUnit(Iname)
+     Write(ErrCan,*) 'Machine design for Beamstrahlung not defined!'
+     Write(ErrCan,*) 'Using therefore the design: TESLA500.'
      If (ErrorLevel.Eq.2) Call TerminateProgram
     End If
     Call BeamStrahlungInitzialization('TESLA500',Ebeam)
@@ -3247,9 +3247,9 @@ Write(*,*) i1,msf
    smin = (msf(i)+msf(j))**2
    smax = s
    If ((smin.Lt.(mZ2+25._dp)).And.(smax.Gt.(mZ2-25._dp))) Then
-    Write (10,*) 'Warning from subroutine '//NameOfUnit(Iname)//' '
-    Write (10,*) 'Inclusion of ISR corrections near m_Z '
-    Write (10,*) 'The result has to be taken with great care!!!'
+    Write(ErrCan,*) 'Warning from subroutine '//NameOfUnit(Iname)//' '
+    Write(ErrCan,*) 'Inclusion of ISR corrections near m_Z '
+    Write(ErrCan,*) 'The result has to be taken with great care!!!'
    End If
    beta = 2._dp * Alpha * ( Log(s/mf_l2(1)) - 1._dp ) / Pi
    zmax = Log(1._dp - smin / s)
@@ -4576,9 +4576,9 @@ Write(*,*) i1,msf
     Call BeamStrahlungInitzialization(Design,Ebeam)
    Else
     If (ErrorLevel.Ge.0) Then
-     Write (10,*) 'Warning from subroutine ',NameOfUnit(Iname)
-     Write (10,*) 'Machine design for Beamstrahlung not defined!'
-     Write (10,*) 'Using therefore the design: TESLA500.'
+     Write(ErrCan,*) 'Warning from subroutine ',NameOfUnit(Iname)
+     Write(ErrCan,*) 'Machine design for Beamstrahlung not defined!'
+     Write(ErrCan,*) 'Using therefore the design: TESLA500.'
      If (ErrorLevel.Eq.2) Call TerminateProgram
     End If
     Call BeamStrahlungInitzialization('TESLA500',Ebeam)
@@ -4840,9 +4840,9 @@ Write(*,*) i1,msf
     Call BeamStrahlungInitzialization(Design,Ebeam)
    Else
     If (ErrorLevel.Ge.0) Then
-     Write (10,*) 'Warning from subroutine ',NameOfUnit(Iname)
-     Write (10,*) 'Machine design for Beamstrahlung not defined!'
-     Write (10,*) 'Using therefore the design: TESLA500.'
+     Write(ErrCan,*) 'Warning from subroutine ',NameOfUnit(Iname)
+     Write(ErrCan,*) 'Machine design for Beamstrahlung not defined!'
+     Write(ErrCan,*) 'Using therefore the design: TESLA500.'
      If (ErrorLevel.Eq.2) Call TerminateProgram
     End If
     Call BeamStrahlungInitzialization('TESLA500',Ebeam)
@@ -5104,9 +5104,9 @@ Write(*,*) i1,msf
     Call BeamStrahlungInitzialization(Design,Ebeam)
    Else
     If (ErrorLevel.Ge.0) Then
-     Write (10,*) 'Warning from subroutine ',NameOfUnit(Iname)
-     Write (10,*) 'Machine design for Beamstrahlung not defined!'
-     Write (10,*) 'Using therefore the design: TESLA500.'
+     Write(ErrCan,*) 'Warning from subroutine ',NameOfUnit(Iname)
+     Write(ErrCan,*) 'Machine design for Beamstrahlung not defined!'
+     Write(ErrCan,*) 'Using therefore the design: TESLA500.'
      If (ErrorLevel.Eq.2) Call TerminateProgram
     End If
     Call BeamStrahlungInitzialization('TESLA500',Ebeam)

@@ -1625,6 +1625,13 @@ Contains
   Integer :: i1, i2, SumI
  
   Iname = Iname + 1
+if (iname.eq.41) then
+write(10,*) "here is a problem"
+ do i1=1,40
+write(10,*) i1," "//trim(NameOfUnit(i1) )
+end do
+end if
+
   NameOfUnit(Iname) = 'GToParameters'
 
   gauge = g1(1:3)

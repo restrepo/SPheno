@@ -1,11 +1,12 @@
 # SUSY Les Houches Accord 2.beta - MSSM spectrum + Decays
-# SPheno v3beta32
+# SPheno v3beta36
 # W. Porod, Comput. Phys. Commun. 153 (2003) 275-315, hep-ph/0301101
-# in case of problems send email to porod@ific.uv.es
-# Created: 10.08.2009,  14:22
+# in case of problems send email to porod@physik.uni-wuerzburg.de
+# Created: 13.10.2009,  23:25
 Block SPINFO         # Program information
      1   SPheno      # spectrum calculator
-     2   v3beta32    # version number
+     2   v3beta36    # version number
+     3               # potential numerical problem, check file Messages.out
 #
 Block SPhenoINFO     # SPheno specific information
     1      2         # using 2-loop RGEs
@@ -537,9 +538,9 @@ Block SPhenoLowEnergy  # low energy observables
     5    7.74442703E-05   # BR(B_u -> tau nu)
     6    2.39838715E-01   # |Delta(M_Bd)| [ps^-1] 
     7    1.72901857E+01   # |Delta(M_Bs)| [ps^-1] 
-   10    3.64901720E-14   # Delta(g-2)_electron
-   11    1.75988729E-09   # Delta(g-2)_muon
-   12    3.49200207E-07   # Delta(g-2)_tau
+   10    3.64901718E-14   # Delta(g-2)_electron
+   11    1.75988727E-09   # Delta(g-2)_muon
+   12    3.49200204E-07   # Delta(g-2)_tau
    13    0.00000000E+00   # electric dipole moment of the electron
    14    0.00000000E+00   # electric dipole moment of the muon
    15    0.00000000E+00   # electric dipole moment of the tau

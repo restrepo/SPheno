@@ -321,9 +321,9 @@ Contains
   !---------------------------
   ! tadpoles at 2-loop
   !---------------------------
-   Call Two_Loop_Tadpoles_MSSM(g(3), mglu_sign, mP02(2), vevs_DR     &
-          & , Real(M2_D(3,3)), Real(M2_U(3,3)), Real(M2_Q(3,3))      &
-          & , Real(M2_E(3,3)), Real(M2_L(3,3)), A_d(3,3), A_u(3,3)   &
+   Call Two_Loop_Tadpoles_MSSM(g(3), mglu_sign, mP02(2), vevs_DR           &
+          & , Real(M2_D(3,3),dp), Real(M2_U(3,3),dp), Real(M2_Q(3,3),dp)   &
+          & , Real(M2_E(3,3),dp), Real(M2_L(3,3),dp), A_d(3,3), A_u(3,3)   &
           & , A_l(3,3), Y_d(3,3), Y_u(3,3), Y_l(3,3), mu, tadpoles_2L, kont)
    If (kont.Ne.0) Then
     Iname = Iname - 1
@@ -421,8 +421,8 @@ Contains
  ! tadpoles at 2-loop
  !---------------------------
   Call Two_Loop_Tadpoles_MSSM(g(3), mglu_sign, mP02(2), vevs_DR      &
-          & , Real(M2_D(3,3)), Real(M2_U(3,3)), Real(M2_Q(3,3))      &
-          & , Real(M2_E(3,3)), Real(M2_L(3,3)), A_d(3,3), A_u(3,3)   &
+          & , Real(M2_D(3,3),dp), Real(M2_U(3,3),dp), Real(M2_Q(3,3),dp)      &
+          & , Real(M2_E(3,3),dp), Real(M2_L(3,3),dp), A_d(3,3), A_u(3,3)   &
           & , A_l(3,3), Y_d(3,3), Y_u(3,3), Y_l(3,3), mu, tadpoles_2L, kont)
   If (kont.Ne.0) Then
    Iname = Iname - 1
@@ -2674,7 +2674,7 @@ Contains
     Call EigenSystem(mat22, mC2_L, v2, ierr, test)
    End If
 
-   If ((ierr.Eq.-8).Or.(ierr.Eq.-9)) Then
+   If ((ierr.Eq.-14).Or.(ierr.Eq.-16)) Then
      Write(ErrCan,*) "Possible numerical problem in "//NameOfUnit(Iname)
      Write(ErrCan,*) "test =",test
      Write(ErrCan,*) " "
@@ -2747,7 +2747,7 @@ Contains
    End If
    u2 = Conjg(u2)
 
-   If ((ierr.Eq.-8).Or.(ierr.Eq.-9)) Then
+   If ((ierr.Eq.-14).Or.(ierr.Eq.-16)) Then
      Write(ErrCan,*) "Possible numerical problem in "//NameOfUnit(Iname)
      Write(ErrCan,*) "test =",test
      Write(ErrCan,*) " "
@@ -3725,7 +3725,7 @@ Contains
 
    End If
 
-   If ((kont.Eq.-8).Or.(kont.Eq.-9)) Then
+   If ((kont.Eq.-14).Or.(kont.Eq.-16)) Then
      Write(ErrCan,*) "Possible numerical problem in "//NameOfUnit(Iname)
      Write(ErrCan,*) "test =",test
      Write(ErrCan,*) " "
@@ -3950,8 +3950,6 @@ Contains
   End If
 
   If (Maxval(Abs(Aimag(mat7a))).Eq.0._dp) Then ! matrix is reel
-!Write(*,*) "Ich bin hier, oder??"
-!Write(*,*) mN
    Call EigenSystemQP(Real(mat7a,dp), mN, N7a, kont, test)
 
    N = N7a
@@ -3971,15 +3969,12 @@ Contains
 
   Else
 
-!   mat72 = Matmul( Transpose(Conjg( mat7 ) ), mat7 )
-!   Call EigenSystemQP(mat72, mN2, N, kont, test)
    Call EigenSystemQP(mat7a, mN, N, kont, test)
    mat72 = Matmul(Conjg(N), Matmul( mat7a, Transpose( Conjg( N ) ) ) )
    Do i1=1,7
     phaseM =   Sqrt( mat72(i1,i1)   / Abs( mat72(i1,i1) ) )
     N(i1,:) = phaseM * N(i1,:)
    End Do
-!   mN = Sqrt( mN2 )
    mN2 = mN**2 
 
   End If
@@ -4026,8 +4021,6 @@ Contains
     Do i2=1,2
      Do i3=1,7
       Call CoupNeutralinoSup(i3, i2, gU1, gSU2, RSu, Yuk, N, coupLC, coupRC)
-If ((aimag(coupLC).ne.0._dp).or.(aimag(coupLC).ne.0._dp)) &
- & Write(*,*) "C_L,R",i1,i2,i3,yuk,rsu(1,1),rsu(1,2),coupLC,coupRC
       c_UNSu_L(i1, i3, (i1-1)*2 + i2 ) = coupLC
       c_UNSu_R(i1, i3, (i1-1)*2 + i2 ) = coupRC
      End Do
@@ -4054,8 +4047,6 @@ If ((aimag(coupLC).ne.0._dp).or.(aimag(coupLC).ne.0._dp)) &
     Do i3 = 1,n_neut
      Call CoupCSCharginoNeutralino(i1, i2, i3, N, U, V, RSpm, Ylep     &
                   &, gU1, gSU2, c_SmpCN_L(i1,i2,i3), c_SmpCN_R(i1,i2,i3) )
-!     If ((i3.Eq.7).And.(i2.Eq.5)) &
-!         & Write(*,*) i3,i2,i1, c_SmpCN_L(i1,i2,i3), c_SmpCN_R(i1,i2,i3)
     End Do
    End Do
   End Do
@@ -4076,7 +4067,6 @@ If ((aimag(coupLC).ne.0._dp).or.(aimag(coupLC).ne.0._dp)) &
     Do i3=1,n_P0
      Call CoupNeutralinoPseudoscalar(i1, i2, i3, N, RP0, gU1, gSU2, &
                                   & c_NNP0_L(i1,i2,i3), c_NNP0_R(i1,i2,i3) )
-!      Write(*,*) "P0",i1,i2,i3,aimag(c_NNP0_L(i1,i2,i3)),aimag( c_NNP0_R(i1,i2,i3))
     End Do
    End Do
   End Do
@@ -4088,7 +4078,6 @@ If ((aimag(coupLC).ne.0._dp).or.(aimag(coupLC).ne.0._dp)) &
     Do i3=1,n_S0
      Call CoupNeutralinoScalar(i1, i2, i3, N, RS0, gU1, gSU2, &
                              & c_NNS0_L(i1,i2,i3), c_NNS0_R(i1,i2,i3) )
-!      Write(*,*) "S0",i1,i2,i3,real(c_NNS0_L(i1,i2,i3)), real(c_NNS0_R(i1,i2,i3))
     End Do
    End Do
   End Do
@@ -4119,19 +4108,9 @@ If ((aimag(coupLC).ne.0._dp).or.(aimag(coupLC).ne.0._dp)) &
   end do
 
   If (Maxval(Abs(Aimag(mat7))).Eq.0._dp) Then ! matrix is reel
-!Write(*,*) "Ich bin hier, oder??"
-!Write(*,*) mN
-   Call EigenSystemQP(Real(mat7), mN1L, N7a, kont, test)
+   Call EigenSystemQP(Real(mat7,dp), mN1L, N7a, kont, test)
 
    N1L = N7a
-!   Do i1=1,7 
-!    If (mN1L(i1).Lt.0._dp) Then
-!     mN1L(i1) = - mN1L(i1)
-!     N1L(i1,:) = (0._dp,1._dp) * N7a(i1,:)
-!    Else
-!     N1L(i1,:) =N7a(i1,:)
-!    End If
-!   End Do
 
    Do i1=1,6
     Do i2=i1+1,7
@@ -4149,15 +4128,12 @@ If ((aimag(coupLC).ne.0._dp).or.(aimag(coupLC).ne.0._dp)) &
 
   Else
 
-!   mat72 = Matmul( Transpose(Conjg( mat7 ) ), mat7 )
-!   Call EigenSystemQP(mat72, mN1L2, N1L, kont, test)
    Call EigenSystemQP(mat7, mN1L, N1L, kont, test)
    mat72 = Matmul(Conjg(N1L), Matmul( mat7, Transpose( Conjg( N1L ) ) ) )
    Do i1=1,7
     phaseM =   Sqrt( mat72(i1,i1)   / Abs( mat72(i1,i1) ) )
     N1L(i1,:) = phaseM * N1L(i1,:)
    End Do
-!   mN1L = Sqrt( mN1L2 )
    mN1L2 = mN1L**2 
 
   End If
@@ -4172,7 +4148,7 @@ If ((aimag(coupLC).ne.0._dp).or.(aimag(coupLC).ne.0._dp)) &
   end do
 
   If ((kont.Ne.0).And.(ErrorLevel.Gt.-1)) Then
-   Write (ErrCan,*) 'Warning in subroutine NeutralinoMass_Loop, ierr =',kont
+   Write (ErrCan,*) 'Warning in subroutine NeutralinoMass_Loop_RP, ierr =',kont
    Write(Errcan,*) "test",test
    Write (ErrCan,*) 'M1,M2 ',M1,M2
    Write (ErrCan,*) 'gp,g ',gU1, gSU2
@@ -4351,7 +4327,7 @@ If ((aimag(coupLC).ne.0._dp).or.(aimag(coupLC).ne.0._dp)) &
 
   End If
 
-  If ((ierr.Eq.-8).Or.(ierr.Eq.-9)) Then
+  If ((ierr.Eq.-14).Or.(ierr.Eq.-16)) Then
     Write(ErrCan,*) "Possible numerical problem in "//NameOfUnit(Iname)
     Write(ErrCan,*) "test =",test
     Write(ErrCan,*) " "
@@ -5442,8 +5418,8 @@ If ((aimag(coupLC).ne.0._dp).or.(aimag(coupLC).ne.0._dp)) &
  !-----------------
  ! charged Higgs
  !-----------------
-  sumI = 0.5_dp * gSU2**2 * ( Real( Floop(p2,mSpm2(2),mW2) )  &
-       &                    + mW2 * Real( B0(p2,mW2,mSpm2(2)) ) )
+  sumI = 0.5_dp * gSU2**2 * ( Real( Floop(p2,mSpm2(2),mW2),dp )  &
+       &                    + mW2 * Real( B0(p2,mW2,mSpm2(2)), dp ) )
   If (WriteOut) Write(ErrCan,*) "W + S+ ",sumI
   res = res + sumI
 
@@ -5766,7 +5742,7 @@ If (WriteOut) Write(ErrCan,*) "Sl Sl P0 P0",i1,sumI(1,1),sumI(1,2)&
   sumI = 0._dp
   Do i1=1,n_char
    G0m2 = Real( Gloop(p2, mC2(i1), mC2(i1)),dp )
-   B0m2 = 4._dp * mC2(i1) * Real( B0(p2, mC2(i1), mC2(i1)) )
+   B0m2 = 4._dp * mC2(i1) * Real( B0(p2, mC2(i1), mC2(i1)), dp )
    Do i3=1,n_P0
     sumI(i3,i3) =                                                           &
        &  (Abs(c_CCP0_L(i1,i1,i3))**2 + Abs(c_CCP0_R(i1,i1,i3))**2) * G0m2  &
@@ -5790,7 +5766,7 @@ If (WriteOut) Write(ErrCan,*) "Sl Sl P0 P0",i1,sumI(1,1),sumI(1,2)&
     Do i3=1,n_s0
      sumI(i3,i3) =                                                           &
           &  (Abs(c_CCP0_L(i1,i2,i3))**2 +Abs(c_CCP0_R(i1,i2,i3))**2) * G0m2 &
-          & - Real( Conjg(c_CCP0_R(i1,i2,i3)) * c_CCP0_L(i1,i2,i3) ) * B0m2
+          & - Real( Conjg(c_CCP0_R(i1,i2,i3)) * c_CCP0_L(i1,i2,i3),dp ) * B0m2
     Do i4=i3+1,n_P0     
      sumI(i3,i4) = ( Conjg(c_CCP0_L(i1,i2,i3))*c_CCP0_L(i1,i2,i4)          &
             &   + Conjg(c_CCP0_R(i1,i2,i3))* c_CCP0_R(i1,i2,i4) ) * G0m2   &
@@ -6179,7 +6155,7 @@ If (WriteOut) Write(ErrCan,*) "N N P0",i1,i2,sumI(1,1),sumI(1,2)&
  !------------------------------
   Do i1=1,n_char
    G0m2 = Real( Gloop(p2, mC2(i1), mC2(i1)),dp )
-   B0m2 = 4._dp * mC2(i1) * Real( B0(p2, mC2(i1), mC2(i1)) )
+   B0m2 = 4._dp * mC2(i1) * Real( B0(p2, mC2(i1), mC2(i1)), dp )
    Do i3=1,n_s0
     sumI(i3,i3) =                                                           &
         &  (Abs(c_CCS0_L(i1,i1,i3))**2 + Abs(c_CCS0_R(i1,i1,i3))**2) * G0m2 &
@@ -6201,7 +6177,7 @@ If (WriteOut) Write(ErrCan,*) "N N P0",i1,i2,sumI(1,1),sumI(1,2)&
     Do i3=1,n_s0
      sumI(i3,i3) =                                                           &
           &  (Abs(c_CCS0_L(i1,i2,i3))**2 +Abs(c_CCS0_R(i1,i2,i3))**2) * G0m2 &
-          & - Real( Conjg(c_CCS0_R(i1,i2,i3)) * c_CCS0_L(i1,i2,i3) ) * B0m2
+          & - Real( Conjg(c_CCS0_R(i1,i2,i3)) * c_CCS0_L(i1,i2,i3), dp ) * B0m2
     Do i4=i3+1,n_S0     
      sumI(i3,i4) = ( Conjg(c_CCS0_L(i1,i2,i3))*c_CCS0_L(i1,i2,i4)          &
             &   + Conjg(c_CCS0_R(i1,i2,i3))* c_CCS0_R(i1,i2,i4) ) * G0m2   &
@@ -6295,7 +6271,8 @@ If (WriteOut) Write(ErrCan,*) "N N P0",i1,i2,sumI(1,1),sumI(1,2)&
 
  End Subroutine PiScalar
 
-Subroutine PiScalar_NMSSM(p2, c_DDS0_L, c_UUS0_L, c_LLS0_L                    &
+
+ Subroutine PiScalar_NMSSM(p2, c_DDS0_L, c_UUS0_L, c_LLS0_L                   &
      & , mDSquark2, c_SdSdS0S0, mUSquark2, c_SuSuS0S0, mSlepton2, c_SlSlS0S0  &
      & , mSneutrino2, c_SnSnS0S0, c_SdSdS0, c_SuSuS0, c_SlSlS0, c_SnSnS0      &
      & , mS02, mP02, mSpm2, c_SpmS0W, c_S0WW, c_P0S0Z, c_S0ZZ, c_S0S0WW       &
@@ -6611,7 +6588,7 @@ If (WriteOut) Write(ErrCan,*) "Sl Sl S0 S0",i1,sumI(1,1),sumI(1,2)&
   sumI = 0._dp
   Do i1=1,n_char
    G0m2 = Real(Gloop(p2, mC2(i1), mC2(i1)),dp)
-   B0m2 = 4._dp * mC2(i1) * Real(B0(p2, mC2(i1), mC2(i1)))
+   B0m2 = 4._dp * mC2(i1) * Real(B0(p2, mC2(i1), mC2(i1)), dp)
    Do i3=1,n_s0
     sumI(i3,i3) =                                                           &
        &  (Abs(c_CCS0_L(i1,i1,i3))**2 + Abs(c_CCS0_R(i1,i1,i3))**2) * G0m2  &
@@ -6637,7 +6614,7 @@ If (WriteOut) Write(ErrCan,*) "Sl Sl S0 S0",i1,sumI(1,1),sumI(1,2)&
     Do i3=1,n_s0
      sumI(i3,i3) =                                                           &
           &  (Abs(c_CCS0_L(i1,i2,i3))**2 +Abs(c_CCS0_R(i1,i2,i3))**2) * G0m2 &
-          & - Real(Conjg(c_CCS0_R(i1,i2,i3)) * c_CCS0_L(i1,i2,i3)) * B0m2
+          & - Real(Conjg(c_CCS0_R(i1,i2,i3)) * c_CCS0_L(i1,i2,i3), dp) * B0m2
     Do i4=i3+1,n_S0
      sumI(i3,i4) = (Conjg(c_CCS0_L(i1,i2,i3))*c_CCS0_L(i1,i2,i4)          &
             &   + Conjg(c_CCS0_R(i1,i2,i3))* c_CCS0_R(i1,i2,i4)) * G0m2   &
@@ -6764,6 +6741,7 @@ If (WriteOut) Write(ErrCan,*) "N N S0",i1,i2,sumI(1,1),sumI(1,2)&
   res = oo16pi2 * res
 
  End Subroutine PiScalar_NMSSM
+
  Subroutine PiSlepton(p2, mSlepton2, c_Sq4e, c_Sq4Z, c_Sq2Z, c_Sq2W, mSneut2  &
         & , c_Sq4W, mN, mN2, c_FNSf_L, c_FNSf_R, mC2, c_CFpSf_L, c_CFpSf_R    &
         & , mP02, c_P0SfSf, c_P0P0SfSf, mS02, c_S0SfSf, c_S0S0SfSf            &
@@ -9817,9 +9795,9 @@ If (WriteOut) Write(ErrCan,*) "N N S0",i1,i2,sumI(1,1),sumI(1,2)&
  !------------------
  ! Inititalisation
  !------------------
-  SigL = Cmplx( 0._dp )
-  SigR = Cmplx( 0._dp )
-  SigS = Cmplx( 0._dp )
+  SigL = ZeroC
+  SigR = ZeroC
+  SigS = ZeroC
 
  !---------------------
  ! quark - squark
@@ -12229,7 +12207,7 @@ If (WriteOut) Write(ErrCan,*) "N N S0",i1,i2,sumI(1,1),sumI(1,2)&
     Call Chop(mat6) ! to avoid numerical problems 
     Call EigenSystem(mat6,mi6,Rsf,kont, test)
 
-    If ((kont.Eq.-8).Or.(kont.Eq.-9)) Then
+    If ((kont.Eq.-14).Or.(kont.Eq.-16)) Then
      Write(ErrCan,*) "Possible numerical problem in "//NameOfUnit(Iname)
      Write(ErrCan,*) "test =",test
      Write(ErrCan,*) " "
@@ -12306,7 +12284,8 @@ If (WriteOut) Write(ErrCan,*) "N N S0",i1,i2,sumI(1,1),sumI(1,2)&
 
      If (ErrorLevel.Eq.2) Call TerminateProgram
     End If
-    kont = -303
+    kont = -501
+    Call AddError(501)
     mass(i1) = 0._dp
    End If
   End Do
@@ -12335,7 +12314,7 @@ If (WriteOut) Write(ErrCan,*) "N N S0",i1,i2,sumI(1,1),sumI(1,2)&
     Call Chop(mat6) ! to avoid numerical problems 
     Call EigenSystem(mat6,mi6,Rsf,kont, test)
 
-    If ((kont.Eq.-8).Or.(kont.Eq.-9)) Then
+    If ((kont.Eq.-14).Or.(kont.Eq.-16)) Then
      Write(ErrCan,*) "Possible numerical problem in "//NameOfUnit(Iname)
      Write(ErrCan,*) "test =",test
      Write(ErrCan,*) " "
@@ -12417,15 +12396,16 @@ If (WriteOut) Write(ErrCan,*) "N N S0",i1,i2,sumI(1,1),sumI(1,2)&
 
      If (ErrorLevel.Eq.2) Call TerminateProgram
     End If
-    kont = -303
+    kont = -501
+    Call AddError(501)
     mass(i1) = 0._dp
    End If
   End Do
    If (Maxval(test_m2).Lt. 0.1_dp*delta) Exit
    If (i_count.Gt.30) Then
     Write(*,*) "Problem in SleptonMassLoop",test_m2,mass2
-    kont = - 506
-     Call AddError(506)
+    kont = - 502
+     Call AddError(502)
     Exit
    End If
   End Do ! i_count
@@ -12820,7 +12800,7 @@ If (WriteOut) Write(ErrCan,*) "N N S0",i1,i2,sumI(1,1),sumI(1,2)&
 #ifdef GENERATIONMIXING
    If (GenerationMixing) Then
     Call EigenSystem(mat3,mi2,Rsf,kont, test)
-    If ((kont.Eq.-8).Or.(kont.Eq.-9)) Then
+    If ((kont.Eq.-14).Or.(kont.Eq.-16)) Then
      Write(ErrCan,*) "Possible numerical problem in "//NameOfUnit(Iname)
      Write(ErrCan,*) "test =",test
      Write(ErrCan,*) " "
@@ -12860,7 +12840,8 @@ If (WriteOut) Write(ErrCan,*) "N N S0",i1,i2,sumI(1,1),sumI(1,2)&
 
      If (ErrorLevel.Eq.2) Call TerminateProgram
     End If
-    kont = -302
+    kont = -503
+    Call AddError(503)
     mass(i1) = 0._dp
    End If
   End Do
@@ -12890,7 +12871,7 @@ If (WriteOut) Write(ErrCan,*) "N N S0",i1,i2,sumI(1,1),sumI(1,2)&
    If (GenerationMixing) Then
     Call Chop(mat3) ! to avoid numerical problems with tiny numbers
     Call EigenSystem(mat3,mi2,Rsf,kont, test)
-    If ((kont.Eq.-8).Or.(kont.Eq.-9)) Then
+    If ((kont.Eq.-14).Or.(kont.Eq.-16)) Then
      Write(ErrCan,*) "Possible numerical problem in "//NameOfUnit(Iname)
      Write(ErrCan,*) "test =",test
      Write(ErrCan,*) " "
@@ -12935,15 +12916,16 @@ If (WriteOut) Write(ErrCan,*) "N N S0",i1,i2,sumI(1,1),sumI(1,2)&
 
      If (ErrorLevel.Eq.2) Call TerminateProgram
     End If
-    kont = -302
+    kont = -503
+    Call AddError(503)
     mass(i1) = 0._dp
    End If
   End Do
    If (Maxval(test_m2).Lt. 0.1_dp*delta) Exit
    If (i_count.Gt.30) Then
     Write(*,*) "Problem in SneutrinoMassLoop",test_m2,mass2
-    kont = - 508
-     Call AddError(508)
+    kont = - 504
+     Call AddError(504)
     Exit
    End If
   End Do ! i_count
@@ -13405,7 +13387,6 @@ If (WriteOut) Write(ErrCan,*) "N N S0",i1,i2,sumI(1,1),sumI(1,2)&
      Do i2=1,6
       Do i3=1,6
        Call CoupSfermion4Y(i2, i3, i1, i1, Yuk, Rsup, c_SuSf4(i1,i2,i3), 1)
-       If (i2.Ne.i3) c_SuSf4(i1,i2,i3) = 3._dp * c_SuSf4(i1,i2,i3) ! colour
        Call CoupSfermion4G(i2, i3, i1, i1, gU1, gSU2, e, T3, RSup, 3, coupC, 1)
        c_SuSf4(i1,i2,i3) = c_SuSf4(i1,i2,i3) + coupC
        Call CoupSfermion4Y(i1, i1, i2, i3, -T3, Y_d, RSdown, T3, Y_u, id6c &
@@ -13619,7 +13600,7 @@ If (WriteOut) Write(ErrCan,*) "N N S0",i1,i2,sumI(1,1),sumI(1,2)&
     mat6 = mat6a - PiSf(i1,:,:)
     Call Chop(mat6) ! to avoid numerical problems
     Call EigenSystem(mat6,mi6,Rsf,kont,test)
-    If ((kont.Eq.-8).Or.(kont.Eq.-9)) Then
+    If ((kont.Eq.-14).Or.(kont.Eq.-16)) Then
      Write(ErrCan,*) "Possible numerical problem in "//NameOfUnit(Iname)
      Write(errcan,*) "t3",t3 
      Write(ErrCan,*) "test =",test
@@ -13691,7 +13672,8 @@ If (WriteOut) Write(ErrCan,*) "N N S0",i1,i2,sumI(1,1),sumI(1,2)&
 
      If (ErrorLevel.Eq.2) Call TerminateProgram
     End If
-    kont = - 301
+    kont = - 505
+    Call AddError(505)
     mass(i1) = 0._dp
    End If
   End Do
@@ -13720,7 +13702,7 @@ If (WriteOut) Write(ErrCan,*) "N N S0",i1,i2,sumI(1,1),sumI(1,2)&
     mat6 = mat6a - PiSf(i1,:,:)
     Call Chop(mat6) ! to avoid numerical problems
     Call EigenSystem(mat6,mi6,Rsf,kont,test)
-    If ((kont.Eq.-8).Or.(kont.Eq.-9)) Then
+    If ((kont.Eq.-14).Or.(kont.Eq.-16)) Then
      Write(ErrCan,*) "Possible numerical problem in "//NameOfUnit(Iname)
      Write(errcan,*) "t3",t3 
      Write(ErrCan,*) "test =",test
@@ -13797,15 +13779,16 @@ If (WriteOut) Write(ErrCan,*) "N N S0",i1,i2,sumI(1,1),sumI(1,2)&
 
      If (ErrorLevel.Eq.2) Call TerminateProgram
     End If
-    kont = - 301
+    kont = - 505
+    Call AddError(505)
     mass(i1) = 0._dp
    End If
   End Do
    If (Maxval(test_m2).Lt. 0.1_dp*delta) Exit
    If (i_count.Gt.30) Then
     Write(*,*) "Problem in SquarkMassLoop",test_m2,mass2
-     kont = - 510
-     Call AddError(510)
+     kont = - 506
+     Call AddError(506)
     Exit
    End If
   End Do ! i_count
@@ -13837,32 +13820,38 @@ If (WriteOut) Write(ErrCan,*) "N N S0",i1,i2,sumI(1,1),sumI(1,2)&
  Case(-9)
   Write(ErrCan,*) "Problem in unit "//name
   Write(ErrCan,*) "m_h0^2 <0 in the 1-loop calculation", WriteWert
-  kont = -309
+  kont = -507
+  Call AddError(507)
 
  Case(-8)
   Write(ErrCan,*) "Problem in unit "//name
   Write(ErrCan,*) "m_H+^2 <0 in the 1-loop calculation", WriteWert
-  kont = -308
+  kont = -508
+  Call AddError(507)
 
  Case(-7)
   Write(ErrCan,*) "Problem in unit "//name
   Write(ErrCan,*) "m_A0^2 <0 in the 1-loop calculation", WriteWert
-  kont = -307
+  kont = -509
+  Call AddError(509)
 
  Case(-6)
   Write(ErrCan,*) "Problem in unit "//name
   Write(ErrCan,*) "|mu|^2 > 10^20 in the 1-loop calculation", WriteWert
-  kont = -306
+  kont = -510
+  Call AddError(510)
 
  Case(-5)
   Write(ErrCan,*) "Problem in unit "//name
   Write(ErrCan,*) "|mu|^2 < 0 in the 1-loop calculation", WriteWert
-  kont = -305
+  kont = -511
+  Call AddError(511)
 
  Case(-4)
   Write(ErrCan,*) "Problem in unit "//name
   Write(ErrCan,*) "mZ^2(mZ) < 0",WriteWert
-  kont = -304
+  kont = -512
+  Call AddError(512)
 
  Case(1)
   Write(ErrCan,*) "Problem in unit "//name
@@ -13901,7 +13890,14 @@ If (WriteOut) Write(ErrCan,*) "N N S0",i1,i2,sumI(1,1),sumI(1,2)&
   Write(ErrCan,*) "An unknown error has occured :",n
   If  (ErrorLevel.Ge.0) Call TerminateProgram
  End Select
-
+ If ((n.lt.0).and.(Index(name,"_2").gt.0)) then
+  kont = kont - 6
+  Call AddError(-kont)
+ End If
+ If ((n.lt.0).and.(Index(name,"_3").gt.0)) then
+  kont = kont - 12
+  Call AddError(-kont)
+ End If
  !---------------------------------------
  ! in these cases the Program terminates
  !---------------------------------------

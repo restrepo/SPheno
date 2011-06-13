@@ -1619,30 +1619,57 @@ Contains
   num_ci = 0
  End Subroutine ClearCache
 
-
  Real(dp) Function D0_Bagger(m12, m22, m32, m42)
  !-----------------------------------------------------------------------
  ! calculates the function D_0 as defined in J. Bagger at al, Nucl.Phys.B
  ! written by Werner Porod, 12.8.1999
  ! 18.05.2001: porting to f90
+ ! 21.09.09: adding expansion for the case m12=m22, m32=m42
+ !                 m12 ~= m32
  !-----------------------------------------------------------------------
  Implicit None
 
   Real(dp), Intent(in) :: m12, m22, m32, m42
 
-  If ((m12.Eq.m22).and.(m32.eq.m42)) Then
-   D0_Bagger = (2._dp * (m42-m12) - (m12+m42) * Log(m42/m12) )  &
+  Real(dp) :: Dm
+  !-------------------------------------------------------------------
+  ! recursion s1(i1+1) = (-1)^i1 * s1(i1) * i1 (i1+3)/(i1+1)**2
+  !-------------------------------------------------------------------
+  Real(dp), Parameter :: s1(0:16) = (/ 1._dp, -1._dp, 0.9_dp, -0.8_dp, 5._dp/7._dp &
+               & , -9._dp/14._dp, 7._dp/12._dp, -8._dp/15._dp, 27._dp/55._dp       &
+               & , -5._dp/11._dp, 11._dp/26._dp, -36._dp/91._dp, 13._dp/35._dp    &
+               & , -0.35_dp, 45._dp/136._dp, -16._dp/51._dp, 17._dp/57._dp /)
+  Integer :: i1
+
+  If ((m12.Eq.m22).And.(m32.Eq.m42)) Then
+   Dm = Abs(m12/m42 - 1._dp)
+   If (m12.Eq.m42) Then
+    D0_Bagger = 1._dp / (6._dp * m12**2)
+   Else If (Dm.Lt.1.e-2_dp) Then
+    Dm = (m42-m12) / m12
+    D0_Bagger = s1(16) * Dm
+    Do i1=15,1,-1
+     D0_Bagger = (D0_Bagger + s1(i1)) * Dm
+    End Do
+    D0_Bagger = (D0_Bagger + s1(0)) / (6._dp * m12**2)
+   Else
+    D0_Bagger = (2._dp * (m42-m12) - (m12+m42) * Log(m42/m12) )  &
            & / (m12-m42)**3
-  Else If ((m12.Eq.m22).and.(m12.eq.m42)) Then
+   End If
+
+  Else If ((m12.Eq.m22).And.(m12.Eq.m42)) Then
    D0_Bagger =  (m32**2 - m42**2 - 2._dp*m32*m42*Log(m32/m42))  &
            & / (2._dp*(m32 - m42)**3*m42)
-  Else If ((m12.Eq.m22).and.(m12.eq.m32)) Then
+
+  Else If ((m12.Eq.m22).And.(m12.Eq.m32)) Then
    D0_Bagger = (m32**2 - m42**2 + 2._dp*m32*m42*Log(m42/m32)) &
            & / (2._dp*m32*(m32 - m42)**3)
+
   Else If (m12.Eq.m22) Then
    D0_Bagger = ( m42 * Log(m42/m12) / (m12-m42)**2                 &
              & - m32 * Log(m32/m12) / (m12-m32)**2 ) / (m32-m42)   &
              & - 1._dp / ( (m12-m32) * (m12-m42) )
+
   Else
    D0_Bagger = (C0_3m(m12,m32,m42) - C0_3m(m22,m32,m42)) / (m12 - m22)
   End If
@@ -1654,24 +1681,54 @@ Contains
  ! calculates the function D_0 as defined in J. Bagger at al, Nucl.Phys.B
  ! written by Werner Porod, 12.8.1999
  ! 18.05.2001: porting to f90
+ ! 21.09.09: adding expansion for the case m12=m22, m32=m42
+ !                 m12 ~= m32
  !-----------------------------------------------------------------------
  Implicit None
 
   Real(dp), Intent(in) :: m12,m22,m32,m42
 
-  If ((m12.Eq.m22).and.(m32.eq.m42)) Then
-   D27_Bagger = ( m42**2 -m12**2 - 2._dp * m12 * m42 * Log(m42/m12) )  &
+   Real(dp) :: Dm
+  !-------------------------------------------------------------------
+  ! recursion s1(i1+1) = (-1)^i1 * s1(i1) * (i1+3)/(i1+1)
+  !-------------------------------------------------------------------
+  Real(dp), Parameter :: s1(0:16) = (/ - 1._dp, 0.5_dp, - 0.3_dp, 0.2_dp, -1._dp/7._dp &
+                  & , 3._dp/28._dp, -1._dp/12._dp, 1._dp/15._dp, -3._dp/55._dp         &
+                  & , 1._dp/22._dp, -1._dp/26._dp, 3._dp/91._dp, -1._dp/35._dp         &
+                  & , 0.025_dp, -3._dp/136._dp, 1._dp/51._dp, -1._dp/57._dp /)
+  Integer :: i1
+
+ If ((m12.Eq.m22).and.(m32.eq.m42)) Then
+   
+   Dm = Abs(m12/m42 - 1._dp)
+   If (m12.Eq.m42) Then
+    D27_Bagger = - 1._dp / (3._dp * m12)
+   Else If (Dm.Lt.1.e-2_dp) Then
+    Dm = (m42-m12) / m12
+    D27_Bagger = s1(16) * Dm
+    Do i1=15,1,-1
+     D27_Bagger = (D27_Bagger + s1(i1)) * Dm
+    End Do
+    D27_Bagger = (D27_Bagger + s1(0)) / (3._dp * m12)
+   Else
+    D27_Bagger = ( m42**2 -m12**2 - 2._dp * m12 * m42 * Log(m42/m12) )  &
            & / (m12-m42)**3
+   end if
+
   Else If ((m12.Eq.m22).and.(m12.eq.m42)) Then
    D27_Bagger = (3._dp*m32**2 - 4._dp*m32*m42 + m42**2               &
             & - 2*m32**2*Log(m32/m42))/(2._dp*(m32 - m42)**3)
+
   Else If ((m12.Eq.m22).and.(m12.eq.m32)) Then
    D27_Bagger = -(m32**2 - 4._dp*m32*m42 + 3._dp*m42**2           &
             & - 2._dp*m42**2*Log(m42/m32))/(2._dp*(m32 - m42)**3)
+
+
   Else If (m12.Eq.m22) Then
    D27_Bagger = ( m42**2 * Log(m42/m12) / (m12-m42)**2                 & 
               & - m32**2 * Log(m32/m12) / (m12-m32)**2 ) / (m32-m42)   &
               &  - m12 / ( (m12-m32) * (m12-m42) )
+
   Else
    D27_Bagger = ( m12 * C0_3m(m12,m32,m42)     &
               & - m22 * C0_3m(m22,m32,m42) ) / (m12 - m22)
@@ -2838,8 +2895,8 @@ Contains
    End If
    If ( cy(3) == 0 ) cy(1) = 1
    If ( cy(4) == 0 ) cy(2) = 1
-   If ( Aimag(cy(1))==0 ) cy(1) = Cmplx(Real(cy(1)),-Aimag(cy(3)),dp)
-   If ( Aimag(cy(2))==0 ) cy(2) = Cmplx(Real(cy(2)),-Aimag(cy(4)),dp)
+   If ( Aimag(cy(1))==0 ) cy(1) = Cmplx(Real(cy(1),dp),-Aimag(cy(3)),dp)
+   If ( Aimag(cy(2))==0 ) cy(2) = Cmplx(Real(cy(2),dp),-Aimag(cy(4)),dp)
    If ( Aimag(cy(1)) > 0 .Neqv. Aimag(cy(3)) < 0 ) Then
      If ( Abs(Real(cy(1),dp)) >= Abs(Real(cy(3),dp)) ) Then
       cy(1) = Cmplx(Real(cy(1),dp),-Aimag(cy(3)),dp)
@@ -3520,8 +3577,6 @@ Contains
  !  #] calculations:
   End Subroutine ffclgy
 
-
-
  Subroutine ffcrr(crr,ipi12,cy,cy1,cz,cz1,cdyz,ld2yzz,cd2yzz,czz, &
                 & czz1,isoort,ieps,ier)
  !------------------------------------------------------------------------
@@ -3659,7 +3714,7 @@ Contains
   Else If ( xa < 1+Sqrt(2._dp) .And. xa < 2*xr ) Then
     iclas2 = 2
     cc2p = cz1 * cfact
-      If ( Abs(Aimag(cc2p)) < precc*Abs(Real(cc2p)) ) cc2p = Real(cc2p,dp)
+      If ( Abs(Aimag(cc2p)) < precc*Abs(Real(cc2p,dp)) ) cc2p = Real(cc2p,dp)
   Else
     iclas2 = 3
     If ( 1/xa < xclogm ) Then
@@ -7178,7 +7233,7 @@ outer:  Do i=1,itime
  !
  !		first z-,z+
  !
-      dyzp = -Real(cmipj(1,3),dp)*Real(wm)/(2*Real(xpi(6),dp))  &
+      dyzp = -Real(cmipj(1,3),dp)*Real(wm,dp)/(2*Real(xpi(6),dp))  &
         &    -Real(cmipj(2,2),dp)/(2*Real(sdel2,dp))
       dyzm = -Real(cmipj(1,3),dp)*Real(wp,dp)/(2*Real(xpi(6),dp)) &
         &    -Real(cmipj(2,2),dp)/(2*Real(sdel2,dp))
@@ -10390,7 +10445,7 @@ Goto 200
     f_3_0 = 0._dp
     r = y - 1._dp
     Do i1=6,1,-1
-     f_3_0 = r * (f_3_0 + (-1._dp)**i1 / Real(i1+2))
+     f_3_0 = r * (f_3_0 + (-1._dp)**i1 / Real(i1+2,dp))
     End Do
     f_3_0 = f_3_0 + 0.5_dp
    Else
@@ -10481,7 +10536,7 @@ Goto 200
     f_4_0 = 0._dp
     r = y - 1._dp
     Do i1=6,1,-1
-     f_4_0 = r * (f_4_0 + (-1._dp)**i1 / Real(i1+2))
+     f_4_0 = r * (f_4_0 + (-1._dp)**i1 / Real(i1+2,dp))
     End Do
     f_4_0 = f_4_0 + 0.5_dp
    Else

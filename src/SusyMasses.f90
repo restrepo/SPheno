@@ -3,7 +3,6 @@ Module SusyMasses
 ! load modules
 Use Control
 Use Mathematics
-Use MathematicsQP
 Use StandardModel, Only: mW, mW2, mZ, mZ2, mf_l, mf_l2, mf_u, mf_u2, mf_d &
     & , mf_d2, AlphaS_mB, alphaS_mZ, G_F, FermionMass
 ! load modules
@@ -120,7 +119,6 @@ Contains
 
  End Subroutine ChargedScalarMassEps1
 
-
  Subroutine ChargedScalarMassEps1nt(MH1sq,MH2sq,bi,Bmu,vevSM,vevL,mL2,mR2,A &
   &                                ,yuk,gp,g,mSpm,mSpm2,RSpm,kont           &
   &                                ,NoSymmetryBreaking)
@@ -216,7 +214,7 @@ Contains
   End Do
 
   Call EigenSystem(mat4,mSpm2,RSpm,ierr, test)
-  If ((ierr.Eq.-8).Or.(ierr.Eq.-9)) Then
+  If ((ierr.Eq.-14).Or.(ierr.Eq.-16)) Then
     Write(ErrCan,*) "Possible numerical problem in "//NameOfUnit(Iname)
     Write(ErrCan,*) "test =",test
     Write(ErrCan,*) " "
@@ -225,20 +223,20 @@ Contains
   End If
   
   If (ierr.Ne.0) Then
-   Write (10,*) 'In subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'subroutine eisch1 gives ierr = ',ierr
-   Write (10,*) 'MH1sq ',MH1sq
-   Write (10,*) 'MH2sq ',MH2sq
-   Write (10,*) 'bi ',bi
-   Write (10,*) 'Bmu ',Bmu
-   Write (10,*) 'vevSM ',vevSM
-   Write (10,*) 'vevL ',vevL
-   Write (10,*) 'g ',g
-   Write (10,*) 'yuk ',yuk
-   Write (10,*) 'ML2 ',ML2
-   Write (10,*) 'MR2 ',MR2
-   Write (10,*) 'A ',A
-   Write (10,*) '  '
+   Write(ErrCan,*) 'In subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'subroutine Eigensystem gives ierr = ',ierr
+   Write(ErrCan,*) 'MH1sq ',MH1sq
+   Write(ErrCan,*) 'MH2sq ',MH2sq
+   Write(ErrCan,*) 'bi ',bi
+   Write(ErrCan,*) 'Bmu ',Bmu
+   Write(ErrCan,*) 'vevSM ',vevSM
+   Write(ErrCan,*) 'vevL ',vevL
+   Write(ErrCan,*) 'g ',g
+   Write(ErrCan,*) 'yuk ',yuk
+   Write(ErrCan,*) 'ML2 ',ML2
+   Write(ErrCan,*) 'MR2 ',MR2
+   Write(ErrCan,*) 'A ',A
+   Write(ErrCan,*) '  '
    kont = ierr
    Iname = Iname - 1
    Return
@@ -250,24 +248,25 @@ Contains
      mSpm(i1) = Sqrt( mSpm2(i1) )
     Else
      If (ErrorLevel.Ge.0) Then
-      Write (10,*) 'Warnning from Subroutine '//NameOfUnit(Iname)
-      Write (10,*) 'a mass squarred is negative :',i1,mSpm2(i1) 
-      Write (10,*) 'MH1sq ',MH1sq
-      Write (10,*) 'MH2sq ',MH2sq
-      Write (10,*) 'bi ',bi
-      Write (10,*) 'Bmu ',Bmu
-      Write (10,*) 'vevSM ',vevSM
-      Write (10,*) 'vevL ',vevL
-      Write (10,*) 'g ',g
-      Write (10,*) 'yuk ',yuk
-      Write (10,*) 'ML2 ',ML2
-      Write (10,*) 'MR2 ',MR2
-      Write (10,*) 'A ',A
-      Write (10,*) '  '
+      Write(ErrCan,*) 'Warning from Subroutine '//NameOfUnit(Iname)
+      Write(ErrCan,*) 'a mass squared is negative :',i1,mSpm2(i1) 
+      Write(ErrCan,*) 'MH1sq ',MH1sq
+      Write(ErrCan,*) 'MH2sq ',MH2sq
+      Write(ErrCan,*) 'bi ',bi
+      Write(ErrCan,*) 'Bmu ',Bmu
+      Write(ErrCan,*) 'vevSM ',vevSM
+      Write(ErrCan,*) 'vevL ',vevL
+      Write(ErrCan,*) 'g ',g
+      Write(ErrCan,*) 'yuk ',yuk
+      Write(ErrCan,*) 'ML2 ',ML2
+      Write(ErrCan,*) 'MR2 ',MR2
+      Write(ErrCan,*) 'A ',A
+      Write(ErrCan,*) '  '
      End If
      mSpm(i1) = 0._dp
      If (ErrorLevel.Eq.2) Call TerminateProgram
-     kont = -101
+     kont = -201
+    Call AddError(201)
     End If
    End Do
 
@@ -282,24 +281,25 @@ Contains
      mSpm(i1) = Sqrt( mSpm2(i1) )
     Else
      If (ErrorLevel.Ge.0) Then
-      Write (10,*) 'Warnning from Subroutine '//NameOfUnit(Iname)
-      Write (10,*) 'a mass squarred is negative :',i1,mSpm2(i1) 
-      Write (10,*) 'MH1sq ',MH1sq
-      Write (10,*) 'MH2sq ',MH2sq
-      Write (10,*) 'bi ',bi
-      Write (10,*) 'Bmu ',Bmu
-      Write (10,*) 'vevSM ',vevSM
-      Write (10,*) 'vevL ',vevL
-      Write (10,*) 'g ',g
-      Write (10,*) 'yuk ',yuk
-      Write (10,*) 'ML2 ',ML2
-      Write (10,*) 'MR2 ',MR2
-      Write (10,*) 'A ',A
-      Write (10,*) '  '
+      Write(ErrCan,*) 'Warning from Subroutine '//NameOfUnit(Iname)
+      Write(ErrCan,*) 'a mass squared is negative :',i1,mSpm2(i1) 
+      Write(ErrCan,*) 'MH1sq ',MH1sq
+      Write(ErrCan,*) 'MH2sq ',MH2sq
+      Write(ErrCan,*) 'bi ',bi
+      Write(ErrCan,*) 'Bmu ',Bmu
+      Write(ErrCan,*) 'vevSM ',vevSM
+      Write(ErrCan,*) 'vevL ',vevL
+      Write(ErrCan,*) 'g ',g
+      Write(ErrCan,*) 'yuk ',yuk
+      Write(ErrCan,*) 'ML2 ',ML2
+      Write(ErrCan,*) 'MR2 ',MR2
+      Write(ErrCan,*) 'A ',A
+      Write(ErrCan,*) '  '
      End If
      mSpm(i1) = 0._dp
      If (ErrorLevel.Eq.2) Call TerminateProgram
-     kont = -101
+     kont = -201
+    Call AddError(201)
     End If
    End Do
   End If
@@ -505,7 +505,7 @@ Contains
   End Do
 
   Call EigenSystem(mat8,mSpm2,RSpm,ierr, test)
-  If ((ierr.Eq.-8).Or.(ierr.Eq.-9)) Then
+  If ((ierr.Eq.-14).Or.(ierr.Eq.-16)) Then
     Write(ErrCan,*) "Possible numerical problem in "//NameOfUnit(Iname)
     Write(ErrCan,*) "test =",test
     Write(ErrCan,*) " "
@@ -545,8 +545,8 @@ Contains
      mSpm(i1) = Sqrt( mSpm2(i1) )
     Else
      If (ErrorLevel.Ge.0) Then
-      Write (ErrCan,*) 'Warnning from Subroutine '//NameOfUnit(Iname)
-      Write (ErrCan,*) 'a mass squarred is negative :',i1,mSpm2(i1) 
+      Write (ErrCan,*) 'Warning from Subroutine '//NameOfUnit(Iname)
+      Write (ErrCan,*) 'a mass squared is negative :',i1,mSpm2(i1) 
       Write (ErrCan,*) 'MH1sq ',MH1sq
       Write (ErrCan,*) 'MH2sq ',MH2sq
       Write (ErrCan,*) 'bi ',bi
@@ -568,7 +568,8 @@ Contains
      End If
      mSpm(i1) = 0._dp
      If (ErrorLevel.Eq.2) Call TerminateProgram
-     kont = -101
+     kont = -202
+    Call AddError(202)
     End If
    End Do
 
@@ -583,8 +584,8 @@ Contains
      mSpm(i1) = Sqrt( mSpm2(i1) )
     Else
      If (ErrorLevel.Ge.0) Then
-      Write (ErrCan,*) 'Warnning from Subroutine '//NameOfUnit(Iname)
-      Write (ErrCan,*) 'a mass squarred is negative :',i1,mSpm2(i1) 
+      Write (ErrCan,*) 'Warning from Subroutine '//NameOfUnit(Iname)
+      Write (ErrCan,*) 'a mass squared is negative :',i1,mSpm2(i1) 
 !       Write (ErrCan,*) 'MH1sq ',MH1sq
 !       Write (ErrCan,*) 'MH2sq ',MH2sq
 !       Write (ErrCan,*) 'bi ',bi
@@ -617,7 +618,8 @@ Contains
      End If
      mSpm(i1) = 0._dp
      If (ErrorLevel.Eq.2) Call TerminateProgram
-     kont = -101
+     kont = -202
+    Call AddError(202)
     End If
    End Do
   End If
@@ -701,7 +703,6 @@ Contains
   Iname = Iname - 1
 
  End Subroutine ChargedScalarMassLam3
-
 
  Subroutine ChargedScalarMassLam3nt(MH1sq,MH2sq,bi,Bmu,vevSM,vevL,mL2,mR2,A   &
   &                                ,yuk, lam, Alam, gp,g,mSpm,mSpm2,RSpm,kont &
@@ -855,7 +856,7 @@ Contains
 ! 800 format(8e13.5)
 
   Call EigenSystem(mat8,mSpm2,RSpm,ierr, test)
-  If ((ierr.Eq.-8).Or.(ierr.Eq.-9)) Then
+  If ((ierr.Eq.-14).Or.(ierr.Eq.-16)) Then
     Write(ErrCan,*) "Possible numerical problem in "//NameOfUnit(Iname)
     Write(ErrCan,*) "test =",test
     Write(ErrCan,*) " "
@@ -864,26 +865,26 @@ Contains
   End If
 
   If (ierr.Ne.0) Then
-   Write (10,*) 'In subroutine ',NameOfUnit(Iname)
-   Write (10,*) 'subroutine EigenSystem gives ierr = ',ierr
-   Write (10,*) 'MH1sq ',MH1sq
-   Write (10,*) 'MH2sq ',MH2sq
-   Write (10,*) 'bi ',bi
-   Write (10,*) 'Bmu ',Bmu
-   Write (10,*) 'vevSM ',vevSM
-   Write (10,*) 'vevL ',vevL
-   Write (10,*) 'g ',g
-   Write (10,*) 'yuk ',yuk
-   Write (10,*) 'ML2(1,i1) ',(ML2(1,i1),i1=1,3)
-   Write (10,*) 'ML2(2,i1) ',(ML2(2,i1),i1=1,3)
-   Write (10,*) 'ML2(3,i1) ',(ML2(3,i1),i1=1,3)
-   Write (10,*) 'MR2(1,i1) ',(MR2(1,i1),i1=1,3)
-   Write (10,*) 'MR2(2,i1) ',(MR2(2,i1),i1=1,3)
-   Write (10,*) 'MR2(3,i1) ',(MR2(3,i1),i1=1,3)
-   Write (10,*) 'A(1,i1) ',(A(1,i1),i1=1,3)
-   Write (10,*) 'A(2,i1) ',(A(2,i1),i1=1,3)
-   Write (10,*) 'A(3,i1) ',(A(3,i1),i1=1,3)
-   Write (10,*) '  '
+   Write(ErrCan,*) 'In subroutine ',NameOfUnit(Iname)
+   Write(ErrCan,*) 'subroutine EigenSystem gives ierr = ',ierr
+   Write(ErrCan,*) 'MH1sq ',MH1sq
+   Write(ErrCan,*) 'MH2sq ',MH2sq
+   Write(ErrCan,*) 'bi ',bi
+   Write(ErrCan,*) 'Bmu ',Bmu
+   Write(ErrCan,*) 'vevSM ',vevSM
+   Write(ErrCan,*) 'vevL ',vevL
+   Write(ErrCan,*) 'g ',g
+   Write(ErrCan,*) 'yuk ',yuk
+   Write(ErrCan,*) 'ML2(1,i1) ',(ML2(1,i1),i1=1,3)
+   Write(ErrCan,*) 'ML2(2,i1) ',(ML2(2,i1),i1=1,3)
+   Write(ErrCan,*) 'ML2(3,i1) ',(ML2(3,i1),i1=1,3)
+   Write(ErrCan,*) 'MR2(1,i1) ',(MR2(1,i1),i1=1,3)
+   Write(ErrCan,*) 'MR2(2,i1) ',(MR2(2,i1),i1=1,3)
+   Write(ErrCan,*) 'MR2(3,i1) ',(MR2(3,i1),i1=1,3)
+   Write(ErrCan,*) 'A(1,i1) ',(A(1,i1),i1=1,3)
+   Write(ErrCan,*) 'A(2,i1) ',(A(2,i1),i1=1,3)
+   Write(ErrCan,*) 'A(3,i1) ',(A(3,i1),i1=1,3)
+   Write(ErrCan,*) '  '
    kont = ierr
    Iname = Iname - 1
    Return
@@ -895,30 +896,31 @@ Contains
      mSpm(i1) = Sqrt( mSpm2(i1) )
     Else
      If (ErrorLevel.Ge.0) Then
-      Write (10,*) 'Warnning from Subroutine '//NameOfUnit(Iname)
-      Write (10,*) 'a mass squarred is negative :',i1,mSpm2(i1) 
-      Write (10,*) 'MH1sq ',MH1sq
-      Write (10,*) 'MH2sq ',MH2sq
-      Write (10,*) 'bi ',bi
-      Write (10,*) 'Bmu ',Bmu
-      Write (10,*) 'vevSM ',vevSM
-      Write (10,*) 'vevL ',vevL
-      Write (10,*) 'g ',g
-      Write (10,*) 'yuk ',yuk
-      Write (10,*) 'ML2(1,i2) ',(ML2(1,i2),i2=1,3)
-      Write (10,*) 'ML2(2,i2) ',(ML2(2,i2),i2=1,3)
-      Write (10,*) 'ML2(3,i2) ',(ML2(3,i2),i2=1,3)
-      Write (10,*) 'MR2(1,i2) ',(MR2(1,i2),i2=1,3)
-      Write (10,*) 'MR2(2,i2) ',(MR2(2,i2),i2=1,3)
-      Write (10,*) 'MR2(3,i2) ',(MR2(3,i2),i2=1,3)
-      Write (10,*) 'A(1,i2) ',(A(1,i2),i2=1,3)
-      Write (10,*) 'A(2,i2) ',(A(2,i2),i2=1,3)
-      Write (10,*) 'A(3,i2) ',(A(3,i2),i2=1,3)
-      Write (10,*) '  '
+      Write(ErrCan,*) 'Warning from Subroutine '//NameOfUnit(Iname)
+      Write(ErrCan,*) 'a mass squared is negative :',i1,mSpm2(i1) 
+      Write(ErrCan,*) 'MH1sq ',MH1sq
+      Write(ErrCan,*) 'MH2sq ',MH2sq
+      Write(ErrCan,*) 'bi ',bi
+      Write(ErrCan,*) 'Bmu ',Bmu
+      Write(ErrCan,*) 'vevSM ',vevSM
+      Write(ErrCan,*) 'vevL ',vevL
+      Write(ErrCan,*) 'g ',g
+      Write(ErrCan,*) 'yuk ',yuk
+      Write(ErrCan,*) 'ML2(1,i2) ',(ML2(1,i2),i2=1,3)
+      Write(ErrCan,*) 'ML2(2,i2) ',(ML2(2,i2),i2=1,3)
+      Write(ErrCan,*) 'ML2(3,i2) ',(ML2(3,i2),i2=1,3)
+      Write(ErrCan,*) 'MR2(1,i2) ',(MR2(1,i2),i2=1,3)
+      Write(ErrCan,*) 'MR2(2,i2) ',(MR2(2,i2),i2=1,3)
+      Write(ErrCan,*) 'MR2(3,i2) ',(MR2(3,i2),i2=1,3)
+      Write(ErrCan,*) 'A(1,i2) ',(A(1,i2),i2=1,3)
+      Write(ErrCan,*) 'A(2,i2) ',(A(2,i2),i2=1,3)
+      Write(ErrCan,*) 'A(3,i2) ',(A(3,i2),i2=1,3)
+      Write(ErrCan,*) '  '
      End If
      mSpm(i1) = 0._dp
      If (ErrorLevel.Eq.2) Call TerminateProgram
-     kont = -101
+     kont = -203
+    Call AddError(203)
     End If
    End Do
 
@@ -933,30 +935,31 @@ Contains
      mSpm(i1) = Sqrt( mSpm2(i1) )
     Else
      If (ErrorLevel.Ge.0) Then
-      Write (10,*) 'Warnning from Subroutine '//NameOfUnit(Iname)
-      Write (10,*) 'a mass squarred is negative :',i1,mSpm2(i1) 
-      Write (10,*) 'MH1sq ',MH1sq
-      Write (10,*) 'MH2sq ',MH2sq
-      Write (10,*) 'bi ',bi
-      Write (10,*) 'Bmu ',Bmu
-      Write (10,*) 'vevSM ',vevSM
-      Write (10,*) 'vevL ',vevL
-      Write (10,*) 'g ',g
-      Write (10,*) 'yuk ',yuk
-      Write (10,*) 'ML2(1,i2) ',(ML2(1,i2),i2=1,3)
-      Write (10,*) 'ML2(2,i2) ',(ML2(2,i2),i2=1,3)
-      Write (10,*) 'ML2(3,i2) ',(ML2(3,i2),i2=1,3)
-      Write (10,*) 'MR2(1,i2) ',(MR2(1,i2),i2=1,3)
-      Write (10,*) 'MR2(2,i2) ',(MR2(2,i2),i2=1,3)
-      Write (10,*) 'MR2(3,i2) ',(MR2(3,i2),i2=1,3)
-      Write (10,*) 'A(1,i2) ',(A(1,i2),i2=1,3)
-      Write (10,*) 'A(2,i2) ',(A(2,i2),i2=1,3)
-      Write (10,*) 'A(3,i2) ',(A(3,i2),i2=1,3)
-      Write (10,*) '  '
+      Write(ErrCan,*) 'Warning from Subroutine '//NameOfUnit(Iname)
+      Write(ErrCan,*) 'a mass squared is negative :',i1,mSpm2(i1) 
+      Write(ErrCan,*) 'MH1sq ',MH1sq
+      Write(ErrCan,*) 'MH2sq ',MH2sq
+      Write(ErrCan,*) 'bi ',bi
+      Write(ErrCan,*) 'Bmu ',Bmu
+      Write(ErrCan,*) 'vevSM ',vevSM
+      Write(ErrCan,*) 'vevL ',vevL
+      Write(ErrCan,*) 'g ',g
+      Write(ErrCan,*) 'yuk ',yuk
+      Write(ErrCan,*) 'ML2(1,i2) ',(ML2(1,i2),i2=1,3)
+      Write(ErrCan,*) 'ML2(2,i2) ',(ML2(2,i2),i2=1,3)
+      Write(ErrCan,*) 'ML2(3,i2) ',(ML2(3,i2),i2=1,3)
+      Write(ErrCan,*) 'MR2(1,i2) ',(MR2(1,i2),i2=1,3)
+      Write(ErrCan,*) 'MR2(2,i2) ',(MR2(2,i2),i2=1,3)
+      Write(ErrCan,*) 'MR2(3,i2) ',(MR2(3,i2),i2=1,3)
+      Write(ErrCan,*) 'A(1,i2) ',(A(1,i2),i2=1,3)
+      Write(ErrCan,*) 'A(2,i2) ',(A(2,i2),i2=1,3)
+      Write(ErrCan,*) 'A(3,i2) ',(A(3,i2),i2=1,3)
+      Write(ErrCan,*) '  '
      End If
      mSpm(i1) = 0._dp
      If (ErrorLevel.Eq.2) Call TerminateProgram
-     kont = -101
+     kont = -203
+    Call AddError(203)
     End If
    End Do
   End If
@@ -964,8 +967,6 @@ Contains
   Iname = Iname - 1
 
  End Subroutine ChargedScalarMassLam3nt
-! Interface TreeMasses
-
 
  Subroutine CharginoMass2(M2,mu,vevs,g,mC,U,V,kont)
  !-----------------------------------------------------------------
@@ -1010,7 +1011,7 @@ Contains
    Call EigenSystem(mat22, mC2, v2, ierr, test)
   End If
 
-  If ((ierr.Eq.-8).Or.(ierr.Eq.-9)) Then
+  If ((ierr.Eq.-14).Or.(ierr.Eq.-16)) Then
     Write(ErrCan,*) "Possible numerical problem in "//NameOfUnit(Iname)
     Write(ErrCan,*) "test =",test
     Write(ErrCan,*) " "
@@ -1027,7 +1028,7 @@ Contains
   End If
   u2 = Conjg(u2)
 
-  If ((ierr.Eq.-8).Or.(ierr.Eq.-9)) Then
+  If ((ierr.Eq.-14).Or.(ierr.Eq.-16)) Then
     Write(ErrCan,*) "Possible numerical problem in "//NameOfUnit(Iname)
     Write(ErrCan,*) "test =",test
     Write(ErrCan,*) " "
@@ -1068,11 +1069,11 @@ Contains
 !  End if
 
   If (ierr.Ne.0) Then
-   Write (10,*) 'Warning in subroutine CharginoMass2, ierr = ',ierr
-   Write (10,*) 'M2,g ',M2,g
-   Write (10,*) 'mu ',mu
-   Write (10,*) 'vevs ',vevs
-   Write (10,*) ' '
+   Write(ErrCan,*) 'Warning in subroutine CharginoMass2, ierr = ',ierr
+   Write(ErrCan,*) 'M2,g ',M2,g
+   Write(ErrCan,*) 'mu ',mu
+   Write(ErrCan,*) 'vevs ',vevs
+   Write(ErrCan,*) ' '
    kont = ierr
    mC(1) = Abs(M2)
    mC(2) = Abs(mu)
@@ -1106,7 +1107,6 @@ Contains
   Call CharginoMass3(M2,bi,vevSM,vL1,g,mTau,mC,U,V,htau,kont)
 
  End Subroutine CharginoMass3a
-
 
  Subroutine CharginoMass3(M2,bi,vevSM,vevL,g,mTau,mC,U,V,htau,kont)
  !-----------------------------------------------------------------
@@ -1172,16 +1172,17 @@ Contains
   If (ht2.Gt.0._dp) Then
    htau = Sqrt( ht2 )
   Else
-   Write (10,*) 'Servere Warning from routine CharginoMass3 !'
-   Write (10,*) 'Abs(h_tau)**2 < 0 :',ht2
-   Write (10,*) 'Taking the square root from the negative !'
-   Write (10,*) 'The Parameters are :'
-   Write (10,*) ' g_SU(2) ',g
-   Write (10,*) ' vevSM    ',vevSM
-   Write (10,*) ' vevL    ',vevL
-   Write (10,*) ' mu,eps_3 ',bi
-   Write (10,*) ' M2 ',M2
-   kont = -102
+   Write(ErrCan,*) 'Servere Warning from routine CharginoMass3 !'
+   Write(ErrCan,*) 'Abs(h_tau)**2 < 0 :',ht2
+   Write(ErrCan,*) 'Taking the square root from the negative !'
+   Write(ErrCan,*) 'The Parameters are :'
+   Write(ErrCan,*) ' g_SU(2) ',g
+   Write(ErrCan,*) ' vevSM    ',vevSM
+   Write(ErrCan,*) ' vevL    ',vevL
+   Write(ErrCan,*) ' mu,eps_3 ',bi
+   Write(ErrCan,*) ' M2 ',M2
+   kont = -204
+   Call AddError(204)
    htau = Sqrt( -ht2 )
   Endif
 
@@ -1203,7 +1204,7 @@ Contains
    Call EigenSystem(mat32, mC2, v3, ierr, test)
   End If
 
-  If ((ierr.Eq.-8).Or.(ierr.Eq.-9)) Then
+  If ((ierr.Eq.-14).Or.(ierr.Eq.-16)) Then
     Write(ErrCan,*) "Possible numerical problem in "//NameOfUnit(Iname)
     Write(ErrCan,*) "test =",test
     Write(ErrCan,*) " "
@@ -1220,7 +1221,7 @@ Contains
   End If
   u3 = Conjg(u3)
 
-  If ((ierr.Eq.-8).Or.(ierr.Eq.-9)) Then
+  If ((ierr.Eq.-14).Or.(ierr.Eq.-16)) Then
     Write(ErrCan,*) "Possible numerical problem in "//NameOfUnit(Iname)
     Write(ErrCan,*) "test =",test
     Write(ErrCan,*) " "
@@ -1235,12 +1236,12 @@ Contains
   End Do
 
   If (ierr.Ne.0) Then
-   Write (10,*) 'Warning in subroutine CharginoMass3, ierr = ',ierr
-   Write (10,*) 'M2,g ',M2,g
-   Write (10,*) 'mu,eps ',bi
-   Write (10,*) 'vevSM ',vevSM
-   Write (10,*) 'vevL ',vevL
-   Write (10,*) ' '
+   Write(ErrCan,*) 'Warning in subroutine CharginoMass3, ierr = ',ierr
+   Write(ErrCan,*) 'M2,g ',M2,g
+   Write(ErrCan,*) 'mu,eps ',bi
+   Write(ErrCan,*) 'vevSM ',vevSM
+   Write(ErrCan,*) 'vevL ',vevL
+   Write(ErrCan,*) ' '
    kont = ierr
    Iname = Iname - 1
    Return
@@ -1330,16 +1331,17 @@ Contains
    If (ht2.Gt.0._dp) Then
     yuk_L(i1) = Sqrt( ht2 )
    Else
-    Write (10,*) 'Servere Warning from routine CharginoMass5!!!'
-    Write (10,*) 'Abs(h_tau)**2 < 0 :',i1,ht2
-    Write (10,*) 'Taking the square root from the negative!!!'
-    Write (10,*) 'The Parameters are :'
-    Write (10,*) ' g_SU(2) ',g
-    Write (10,*) ' vevSM    ',vevSM
-    Write (10,*) ' vevL    ',vevL
-    Write (10,*) ' mu,eps_i ',bi
-    Write (10,*) ' M2 ',M2
-    kont = -102
+    Write(ErrCan,*) 'Servere Warning from routine CharginoMass5!!!'
+    Write(ErrCan,*) 'Abs(h_tau)**2 < 0 :',i1,ht2
+    Write(ErrCan,*) 'Taking the square root from the negative!!!'
+    Write(ErrCan,*) 'The Parameters are :'
+    Write(ErrCan,*) ' g_SU(2) ',g
+    Write(ErrCan,*) ' vevSM    ',vevSM
+    Write(ErrCan,*) ' vevL    ',vevL
+    Write(ErrCan,*) ' mu,eps_i ',bi
+    Write(ErrCan,*) ' M2 ',M2
+    kont = -205
+    Call AddError(205)
     yuk_L(i1) = Sqrt( -ht2 )
    Endif
   Enddo
@@ -1378,7 +1380,7 @@ Contains
    Call EigenSystem(mat52, mC2, v5, ierr, test)
   End If
 
-  If ((ierr.Eq.-8).Or.(ierr.Eq.-9)) Then
+  If ((ierr.Eq.-14).Or.(ierr.Eq.-16)) Then
     Write(ErrCan,*) "Possible numerical problem in "//NameOfUnit(Iname)
     Write(ErrCan,*) "test =",test
     Write(ErrCan,*) " "
@@ -1395,7 +1397,7 @@ Contains
   End If
   u5 = Conjg(u5)
 
-  If ((ierr.Eq.-8).Or.(ierr.Eq.-9)) Then
+  If ((ierr.Eq.-14).Or.(ierr.Eq.-16)) Then
     Write(ErrCan,*) "Possible numerical problem in "//NameOfUnit(Iname)
     Write(ErrCan,*) "test =",test
     Write(ErrCan,*) " "
@@ -1409,18 +1411,13 @@ Contains
    v5(i1,:) = phaseM * v5(i1,:)
   End Do
 
-!  mat52 = Matmul( Matmul( Conjg(u5), mat5), Transpose( Conjg(v5) ) )
-!  Do i1=1,5
-!   write(10,*) "mat5",i1,mat52(i1,:)
-!  End Do
-
-  If (ierr.Ne.0) Then
-   Write (10,*) 'Warning in subroutine CharginoMass5, ierr = ',ierr
-   Write (10,*) 'M2,g ',M2,g
-   Write (10,*) 'mu,eps ',bi
-   Write (10,*) 'vevSM ',vevSM
-   Write (10,*) 'vevL ',vevL
-   Write (10,*) ' '
+ If (ierr.Ne.0) Then
+   Write(ErrCan,*) 'Warning in subroutine CharginoMass5, ierr = ',ierr
+   Write(ErrCan,*) 'M2,g ',M2,g
+   Write(ErrCan,*) 'mu,eps ',bi
+   Write(ErrCan,*) 'vevSM ',vevSM
+   Write(ErrCan,*) 'vevL ',vevL
+   Write(ErrCan,*) ' '
    kont = ierr
    Iname = Iname - 1
    Return
@@ -1508,7 +1505,7 @@ Contains
     Call EigenSystem(mat52, mC2, v5, ierr, test)
    End If
 
-  If ((ierr.Eq.-8).Or.(ierr.Eq.-9)) Then
+  If ((ierr.Eq.-14).Or.(ierr.Eq.-16)) Then
     Write(ErrCan,*) "Possible numerical problem in "//NameOfUnit(Iname)
     Write(ErrCan,*) "test =",test
     Write(ErrCan,*) " "
@@ -1525,7 +1522,7 @@ Contains
    End If
    u5 = Conjg(u5)
 
-  If ((ierr.Eq.-8).Or.(ierr.Eq.-9)) Then
+  If ((ierr.Eq.-14).Or.(ierr.Eq.-16)) Then
     Write(ErrCan,*) "Possible numerical problem in "//NameOfUnit(Iname)
     Write(ErrCan,*) "test =",test
     Write(ErrCan,*) " "
@@ -1540,12 +1537,12 @@ Contains
    End Do
 
    If (ierr.Ne.0) Then
-    Write (10,*) 'Warning in subroutine CharginoMass5Lam, ierr = ',ierr
-    Write (10,*) 'M2,g ',M2,g
-    Write (10,*) 'mu,eps ',bi
-    Write (10,*) 'vevSM ',vevSM
-    Write (10,*) 'vevL ',vevL
-    Write (10,*) ' '
+    Write(ErrCan,*) 'Warning in subroutine CharginoMass5Lam, ierr = ',ierr
+    Write(ErrCan,*) 'M2,g ',M2,g
+    Write(ErrCan,*) 'mu,eps ',bi
+    Write(ErrCan,*) 'vevSM ',vevSM
+    Write(ErrCan,*) 'vevL ',vevL
+    Write(ErrCan,*) ' '
     kont = ierr
     Iname = Iname - 1
     Return
@@ -1568,8 +1565,8 @@ Contains
 
   Do i1=1,3
    If(Abs(mL(i1)-Abs(mC(i1)))/mL(i1).Gt.0.01) Then
-    Write (10,*) 'Problem with lepton masses in Subroutine CharginoMass5Lam:'
-    Write (10,*) 'm_l(i1), mC(i1) :',mL(i1), mC(i1)
+    Write(ErrCan,*) 'Problem with lepton masses in Subroutine CharginoMass5Lam:'
+    Write(ErrCan,*) 'm_l(i1), mC(i1) :',mL(i1), mC(i1)
    End If
   End Do
 
@@ -1669,7 +1666,7 @@ Contains
 
   End If
 
-  If ((ierr.Eq.-8).Or.(ierr.Eq.-9)) Then
+  If ((ierr.Eq.-14).Or.(ierr.Eq.-16)) Then
     Write(ErrCan,*) "Possible numerical problem in "//NameOfUnit(Iname)
     Write(ErrCan,*) "test =",test
     Write(ErrCan,*) " "
@@ -1808,7 +1805,7 @@ Contains
 
   End If
 
-  If ((ierr.Eq.-8).Or.(ierr.Eq.-9)) Then
+  If ((ierr.Eq.-14).Or.(ierr.Eq.-16)) Then
     Write(ErrCan,*) "Possible numerical problem in "//NameOfUnit(Iname)
     Write(ErrCan,*) "test =",test
     Write(ErrCan,*) " "
@@ -1938,7 +1935,7 @@ Contains
   end if
 
   If (ierr.Ne.0) Then
-   If ((ierr.Eq.-8).Or.(ierr.Eq.-9)) Then
+   If ((ierr.Eq.-14).Or.(ierr.Eq.-16)) Then
     Write(ErrCan,*) "Possible numerical problem in "//NameOfUnit(Iname)
     Write(ErrCan,*) "test =",test
     Write(ErrCan,*) " "
@@ -2068,7 +2065,7 @@ Contains
 
   End If
 
-  If ((ierr.Eq.-8).Or.(ierr.Eq.-9)) Then
+  If ((ierr.Eq.-14).Or.(ierr.Eq.-16)) Then
     Write(ErrCan,*) "Possible numerical problem in "//NameOfUnit(Iname)
     Write(ErrCan,*) "test =",test
     Write(ErrCan,*) " "
@@ -2161,7 +2158,7 @@ Contains
 
   End If
 
-  If ((ierr.Eq.-8).Or.(ierr.Eq.-9)) Then
+  If ((ierr.Eq.-14).Or.(ierr.Eq.-16)) Then
     Write(ErrCan,*) "Possible numerical problem in "//NameOfUnit(Iname)
     Write(ErrCan,*) "test =",test
     Write(ErrCan,*) " "
@@ -2235,7 +2232,7 @@ Contains
    i2 = 2*i1-1
    Rsf = RUsquark(i2:i2+1,i2:i2+1)
    Do i2=1,2
-    Write(10,*) 2*(i1 -1) +i2,mSup2(2*(i1 -1) +i2),A0( mSup2(2*(i1 -1) +i2) )
+    Write(ErrCan,*) 2*(i1 -1) +i2,mSup2(2*(i1 -1) +i2),A0( mSup2(2*(i1 -1) +i2) )
     A0m = A0( mSup2(2*(i1 -1) +i2) )
     sumI = 0._dp
     Do i3=1,5
@@ -2326,7 +2323,6 @@ Contains
 
  End Subroutine PseudoScalarMassEps1
 
-
  Subroutine PseudoScalarMassEps1nT(MH1sq,MH2sq,ML2,bi,B,vevSM,vevL,gp,g, &
                                  & mP0,mP02,RP0,kont,NoSymmetryBreaking)
  !-----------------------------------------------------------------------
@@ -2382,7 +2378,7 @@ Contains
 
   Call EigenSystem(mat3,mP02,RP0,ierr, test)
 
-  If ((ierr.Eq.-8).Or.(ierr.Eq.-9)) Then
+  If ((ierr.Eq.-14).Or.(ierr.Eq.-16)) Then
     Write(ErrCan,*) "Possible numerical problem in "//NameOfUnit(Iname)
     Write(ErrCan,*) "test =",test
     Write(ErrCan,*) " "
@@ -2391,15 +2387,15 @@ Contains
   End If
   
   If ((ierr.Ne.0).And.(ErrorLevel.Ge.-1)) Then
-   Write (10,*) 'Warnning from Subroutine '//NameOfUnit(Iname)
-   Write (10,*) 'Diagonalizatio failed, ierr :',ierr
-   Write (10,*) 'MH1sq, MH2sq ', MH1sq, MH2sq 
-   Write (10,*) 'vevSM ',vevSM
-   Write (10,*) 'vevL ',vevL
-   Write (10,*) 'gp, g', g, gp
-   Write (10,*) 'bi ',bi 
-   Write (10,*) 'B ',B
-   Write (10,*) 'ML2 ',ML2
+   Write(ErrCan,*) 'Warning from Subroutine '//NameOfUnit(Iname)
+   Write(ErrCan,*) 'Diagonalization failed, ierr :',ierr
+   Write(ErrCan,*) 'MH1sq, MH2sq ', MH1sq, MH2sq 
+   Write(ErrCan,*) 'vevSM ',vevSM
+   Write(ErrCan,*) 'vevL ',vevL
+   Write(ErrCan,*) 'gp, g', g, gp
+   Write(ErrCan,*) 'bi ',bi 
+   Write(ErrCan,*) 'B ',B
+   Write(ErrCan,*) 'ML2 ',ML2
    kont = ierr
    Iname = Iname - 1
    Return
@@ -2411,19 +2407,20 @@ Contains
      mP0(i1) = Sqrt( mP02(i1) )
     Else
      If (ErrorLevel.Ge.0) Then
-      Write (10,*) 'Warnning from Subroutine '//NameOfUnit(Iname)
-      Write (10,*) 'a mass squarred is negative :',i1,mP02(i1) 
-      Write (10,*) 'MH1sq, MH2sq ', MH1sq, MH2sq
-      Write (10,*) 'ML2 ',ML2 
-      Write (10,*) 'vevSM ',vevSM
-      Write (10,*) 'vevL ',vevL
-      Write (10,*) 'gp, g', g, gp
-      Write (10,*) 'bi ',bi
-      Write (10,*) 'B ',B
+      Write(ErrCan,*) 'Warning from Subroutine '//NameOfUnit(Iname)
+      Write(ErrCan,*) 'a mass squared is negative :',i1,mP02(i1) 
+      Write(ErrCan,*) 'MH1sq, MH2sq ', MH1sq, MH2sq
+      Write(ErrCan,*) 'ML2 ',ML2 
+      Write(ErrCan,*) 'vevSM ',vevSM
+      Write(ErrCan,*) 'vevL ',vevL
+      Write(ErrCan,*) 'gp, g', g, gp
+      Write(ErrCan,*) 'bi ',bi
+      Write(ErrCan,*) 'B ',B
      End If
      mP0(i1) = 0._dp
      If (ErrorLevel.Eq.2) Call TerminateProgram
-     kont = -103
+     kont = -206
+     Call AddError(206)
     End If
    End Do
 
@@ -2438,19 +2435,20 @@ Contains
      mP0(i1) = Sqrt( mP02(i1) )
     Else
      If (ErrorLevel.Ge.0) Then
-      Write (10,*) 'Warnning from Subroutine '//NameOfUnit(Iname)
-      Write (10,*) 'a mass squarred is negative :',i1,mP02(i1) 
-      Write (10,*) 'MH1sq, MH2sq ', MH1sq, MH2sq 
-      Write (10,*) 'vevSM ',vevSM
-      Write (10,*) 'vevL ',vevL
-      Write (10,*) 'gp, g', g, gp
-      Write (10,*) 'bi ',bi 
-      Write (10,*) 'B ',B
-      Write (10,*) 'ML2 ',ML2
+      Write(ErrCan,*) 'Warning from Subroutine '//NameOfUnit(Iname)
+      Write(ErrCan,*) 'a mass squared is negative :',i1,mP02(i1) 
+      Write(ErrCan,*) 'MH1sq, MH2sq ', MH1sq, MH2sq 
+      Write(ErrCan,*) 'vevSM ',vevSM
+      Write(ErrCan,*) 'vevL ',vevL
+      Write(ErrCan,*) 'gp, g', g, gp
+      Write(ErrCan,*) 'bi ',bi 
+      Write(ErrCan,*) 'B ',B
+      Write(ErrCan,*) 'ML2 ',ML2
      End If
      mP0(i1) = 0._dp
      If (ErrorLevel.Eq.2) Call TerminateProgram
-     kont = -103
+     kont = -206
+     Call AddError(206)
     End If
    End Do
   End If
@@ -2527,7 +2525,6 @@ Contains
 
  End Subroutine PseudoScalarMassEps3
 
-
  Subroutine PseudoScalarMassEps3nT(MH1sq,MH2sq,ML2,bi,B,vevSM,vevL,gp,g, &
                                  & mP0,mP02,RP0,kont,NoSymmetryBreaking)
  !-----------------------------------------------------------------------
@@ -2597,7 +2594,7 @@ Contains
 
   Call EigenSystem(mat5,mP02,RP0,ierr, test)
 
-  If ((ierr.Eq.-8).Or.(ierr.Eq.-9)) Then
+  If ((ierr.Eq.-14).Or.(ierr.Eq.-16)) Then
     Write(ErrCan,*) "Possible numerical problem in "//NameOfUnit(Iname)
     Write(ErrCan,*) "test =",test
     Write(ErrCan,*) " "
@@ -2606,15 +2603,15 @@ Contains
   End If
   
   If ((ierr.Ne.0).And.(ErrorLevel.Ge.-1)) Then
-   Write (10,*) 'Warnning from Subroutine '//NameOfUnit(Iname)
-   Write (10,*) 'Diagonalizatio failed, ierr :',ierr
-   Write (10,*) 'MH1sq, MH2sq ', MH1sq, MH2sq 
-   Write (10,*) 'vevSM ',vevSM
-   Write (10,*) 'vevL ',vevL
-   Write (10,*) 'gp, g', g, gp
-   Write (10,*) 'bi ',bi 
-   Write (10,*) 'B ',B
-   Write (10,*) 'ML2 ',ML2
+   Write(ErrCan,*) 'Warning from Subroutine '//NameOfUnit(Iname)
+   Write(ErrCan,*) 'Diagonalization failed, ierr :',ierr
+   Write(ErrCan,*) 'MH1sq, MH2sq ', MH1sq, MH2sq 
+   Write(ErrCan,*) 'vevSM ',vevSM
+   Write(ErrCan,*) 'vevL ',vevL
+   Write(ErrCan,*) 'gp, g', g, gp
+   Write(ErrCan,*) 'bi ',bi 
+   Write(ErrCan,*) 'B ',B
+   Write(ErrCan,*) 'ML2 ',ML2
    kont = ierr
    Iname = Iname - 1
    Return
@@ -2626,19 +2623,20 @@ Contains
      mP0(i1) = Sqrt( mP02(i1) )
     Else
      If (ErrorLevel.Ge.0) Then
-      Write (10,*) 'Warnning from Subroutine '//NameOfUnit(Iname)
-      Write (10,*) 'a mass squarred is negative :',i1,mP02(i1) 
-      Write (10,*) 'MH1sq, MH2sq ', MH1sq, MH2sq
-      Write (10,*) 'ML2 ',ML2 
-      Write (10,*) 'vevSM ',vevSM
-      Write (10,*) 'vevL ',vevL
-      Write (10,*) 'gp, g', g, gp
-      Write (10,*) 'bi ',bi
-      Write (10,*) 'B ',B
+      Write(ErrCan,*) 'Warning from Subroutine '//NameOfUnit(Iname)
+      Write(ErrCan,*) 'a mass squared is negative :',i1,mP02(i1) 
+      Write(ErrCan,*) 'MH1sq, MH2sq ', MH1sq, MH2sq
+      Write(ErrCan,*) 'ML2 ',ML2 
+      Write(ErrCan,*) 'vevSM ',vevSM
+      Write(ErrCan,*) 'vevL ',vevL
+      Write(ErrCan,*) 'gp, g', g, gp
+      Write(ErrCan,*) 'bi ',bi
+      Write(ErrCan,*) 'B ',B
      End If
      mP0(i1) = 0._dp
      If (ErrorLevel.Eq.2) Call TerminateProgram
-     kont = -103
+     kont = -207
+     Call AddError(207)
     End If
    End Do
 
@@ -2653,19 +2651,20 @@ Contains
      mP0(i1) = Sqrt( mP02(i1) )
     Else
      If (ErrorLevel.Ge.0) Then
-      Write (10,*) 'Warnning from Subroutine '//NameOfUnit(Iname)
-      Write (10,*) 'a mass squarred is negative :',i1,mP02(i1) 
-      Write (10,*) 'MH1sq, MH2sq ', MH1sq, MH2sq 
-      Write (10,*) 'vevSM ',vevSM
-      Write (10,*) 'vevL ',vevL
-      Write (10,*) 'gp, g', g, gp
-      Write (10,*) 'bi ',bi 
-      Write (10,*) 'B ',B
-      Write (10,*) 'ML2 ',ML2
+      Write(ErrCan,*) 'Warning from Subroutine '//NameOfUnit(Iname)
+      Write(ErrCan,*) 'a mass squared is negative :',i1,mP02(i1) 
+      Write(ErrCan,*) 'MH1sq, MH2sq ', MH1sq, MH2sq 
+      Write(ErrCan,*) 'vevSM ',vevSM
+      Write(ErrCan,*) 'vevL ',vevL
+      Write(ErrCan,*) 'gp, g', g, gp
+      Write(ErrCan,*) 'bi ',bi 
+      Write(ErrCan,*) 'B ',B
+      Write(ErrCan,*) 'ML2 ',ML2
      End If
      mP0(i1) = 0._dp
      If (ErrorLevel.Eq.2) Call TerminateProgram
-     kont = -103
+     kont = -207
+     Call AddError(207)
     End If
    End Do
   End If
@@ -2715,7 +2714,6 @@ Contains
 
  End Subroutine PseudoScalarMassMSSM
 
-
  Subroutine PseudoScalarMassMSSMnT(MH1sq,MH2sq,mu,B,vevSM,gp,g, &
                                  & mP0,mP02,RP0,kont,NoSymmetryBreaking)
  !-----------------------------------------------------------------------
@@ -2762,7 +2760,7 @@ Contains
   mat2(2,1) = mat2(1,2)
 
   Call EigenSystem(mat2,mP02,RP0,ierr, test)
-  If ((ierr.Eq.-8).Or.(ierr.Eq.-9)) Then
+  If ((ierr.Eq.-14).Or.(ierr.Eq.-16)) Then
     Write(ErrCan,*) "Possible numerical problem in "//NameOfUnit(Iname)
     Write(ErrCan,*) "test =",test
     Write(ErrCan,*) " "
@@ -2771,13 +2769,13 @@ Contains
   End If
   
   If ((ierr.Ne.0).And.(ErrorLevel.Ge.-1)) Then
-   Write (10,*) 'Warnning from Subroutine '//NameOfUnit(Iname)
-   Write (10,*) 'Diagonalizatio failed, ierr :',ierr
-   Write (10,*) 'MH1sq, MH2sq ', MH1sq, MH2sq 
-   Write (10,*) 'vevSM ',vevSM
-   Write (10,*) 'gp, g', g, gp
-   Write (10,*) 'mu ',mu
-   Write (10,*) 'B ',B
+   Write(ErrCan,*) 'Warning from Subroutine '//NameOfUnit(Iname)
+   Write(ErrCan,*) 'Diagonalization failed, ierr :',ierr
+   Write(ErrCan,*) 'MH1sq, MH2sq ', MH1sq, MH2sq 
+   Write(ErrCan,*) 'vevSM ',vevSM
+   Write(ErrCan,*) 'gp, g', g, gp
+   Write(ErrCan,*) 'mu ',mu
+   Write(ErrCan,*) 'B ',B
    kont = ierr
    Iname = Iname - 1
    Return
@@ -2789,17 +2787,18 @@ Contains
      mP0(i1) = Sqrt( mP02(i1) )
     Else
      If (ErrorLevel.Ge.0) Then
-      Write (10,*) 'Warnning from Subroutine '//NameOfUnit(Iname)
-      Write (10,*) 'a mass squarred is negative :',i1,mP02(i1) 
-      Write (10,*) 'MH1sq, MH2sq ', MH1sq, MH2sq 
-      Write (10,*) 'vevSM ',vevSM
-      Write (10,*) 'gp, g', g, gp
-      Write (10,*) 'mu ',mu
-      Write (10,*) 'B ',B
+      Write(ErrCan,*) 'Warning from Subroutine '//NameOfUnit(Iname)
+      Write(ErrCan,*) 'a mass squared is negative :',i1,mP02(i1) 
+      Write(ErrCan,*) 'MH1sq, MH2sq ', MH1sq, MH2sq 
+      Write(ErrCan,*) 'vevSM ',vevSM
+      Write(ErrCan,*) 'gp, g', g, gp
+      Write(ErrCan,*) 'mu ',mu
+      Write(ErrCan,*) 'B ',B
      End If
      mP0(i1) = 0._dp
      If (ErrorLevel.Eq.2) Call TerminateProgram
-     kont = -103
+     kont = -208
+     Call AddError(208)
     End If
    End Do
 
@@ -2813,17 +2812,18 @@ Contains
     mP0(2) = Sqrt( mP02(2) )
    Else
     If (ErrorLevel.Ge.0) Then
-     Write (10,*) 'Warnning from Subroutine '//NameOfUnit(Iname)
-     Write (10,*) 'a mass squarred is negative :',2,mP02(2) 
-     Write (10,*) 'MH1sq, MH2sq ', MH1sq, MH2sq 
-     Write (10,*) 'vevSM ',vevSM
-     Write (10,*) 'gp, g', g, gp
-     Write (10,*) 'mu ',mu
-     Write (10,*) 'B ',B
+     Write(ErrCan,*) 'Warning from Subroutine '//NameOfUnit(Iname)
+     Write(ErrCan,*) 'a mass squared is negative :',2,mP02(2) 
+     Write(ErrCan,*) 'MH1sq, MH2sq ', MH1sq, MH2sq 
+     Write(ErrCan,*) 'vevSM ',vevSM
+     Write(ErrCan,*) 'gp, g', g, gp
+     Write(ErrCan,*) 'mu ',mu
+     Write(ErrCan,*) 'B ',B
     End If
     mP0(2) = 0._dp
     If (ErrorLevel.Eq.2) Call TerminateProgram
-    kont = -103
+    kont = -208
+    Call AddError(208)
    End If
   End If
 
@@ -2881,7 +2881,6 @@ Contains
   Iname = Iname - 1
 
  End Subroutine ScalarMassEps1
-
 
  Subroutine ScalarMassEps1nT(MH1sq,MH2sq,ML2,bi,B,vevSM,vevL,gp,g,mStop2,mT2, &
                             & mS0,mS02,RS0,kont)
@@ -2941,7 +2940,7 @@ Contains
 
   Call EigenSystem(mat3,mS02,RS0,ierr, test)
 
-  If ((ierr.Eq.-8).Or.(ierr.Eq.-9)) Then
+  If ((ierr.Eq.-14).Or.(ierr.Eq.-16)) Then
     Write(ErrCan,*) "Possible numerical problem in "//NameOfUnit(Iname)
     Write(ErrCan,*) "test =",test
     Write(ErrCan,*) " "
@@ -2950,8 +2949,8 @@ Contains
   End If
   
   If ((ierr.Ne.0).And.(ErrorLevel.Ge.-1)) Then
-   Write (ErrCan,*) 'Warnning from Subroutine '//NameOfUnit(Iname)
-   Write (ErrCan,*) 'Diagonalizatio failed, ierr :',ierr
+   Write (ErrCan,*) 'Warning from Subroutine '//NameOfUnit(Iname)
+   Write (ErrCan,*) 'Diagonalization failed, ierr :',ierr
    Write (ErrCan,*) 'MH1sq, MH2sq ', MH1sq, MH2sq 
    Write (ErrCan,*) 'vevSM ',vevSM
    Write (ErrCan,*) 'vevL ',vevL
@@ -2969,8 +2968,8 @@ Contains
     mS0(i1) = Sqrt( mS02(i1) )
    Else
     If (ErrorLevel.Ge.0) Then
-     Write (ErrCan,*) 'Warnning from Subroutine '//NameOfUnit(Iname)
-     Write (ErrCan,*) 'a mass squarred is negative :',i1,mS02(i1) 
+     Write (ErrCan,*) 'Warning from Subroutine '//NameOfUnit(Iname)
+     Write (ErrCan,*) 'a mass squared is negative :',i1,mS02(i1) 
      Write (ErrCan,*) 'MH1sq, MH2sq ', MH1sq, MH2sq
      Write (ErrCan,*) 'ML2 ',ML2 
      Write (ErrCan,*) 'vevSM ',vevSM
@@ -2981,7 +2980,8 @@ Contains
     End If
     mS0(i1) = 0._dp
     If (ErrorLevel.Eq.2) Call TerminateProgram
-    kont = -104
+    kont = -210
+    Call AddError(210)
    End If
   End Do
 
@@ -3059,7 +3059,6 @@ Contains
 
  End Subroutine ScalarMassEps3
 
-
  Subroutine ScalarMassEps3nT(MH1sq,MH2sq,ML2,bi,B,vevSM,vevL,gp,g, &
                             & mStop2,mTop2,mS0,mS02,RS0,kont)
  !-----------------------------------------------------------------------
@@ -3133,7 +3132,7 @@ Contains
 
   Call EigenSystem(mat5,mS02,RS0,ierr, test)
 
-  If ((ierr.Eq.-8).Or.(ierr.Eq.-9)) Then
+  If ((ierr.Eq.-14).Or.(ierr.Eq.-16)) Then
     Write(ErrCan,*) "Possible numerical problem in "//NameOfUnit(Iname)
     Write(ErrCan,*) "test =",test
     Write(ErrCan,*) " "
@@ -3142,15 +3141,15 @@ Contains
   End If
   
   If ((ierr.Ne.0).And.(ErrorLevel.Ge.-1)) Then
-   Write (10,*) 'Warnning from Subroutine '//NameOfUnit(Iname)
-   Write (10,*) 'Diagonalizatio failed, ierr :',ierr
-   Write (10,*) 'MH1sq, MH2sq ', MH1sq, MH2sq 
-   Write (10,*) 'vevSM ',vevSM
-   Write (10,*) 'vevL ',vevL
-   Write (10,*) 'gp, g', g, gp
-   Write (10,*) 'bi ',bi 
-   Write (10,*) 'B ',B
-   Write (10,*) 'ML2 ',ML2
+   Write(ErrCan,*) 'Warning from Subroutine '//NameOfUnit(Iname)
+   Write(ErrCan,*) 'Diagonalization failed, ierr :',ierr
+   Write(ErrCan,*) 'MH1sq, MH2sq ', MH1sq, MH2sq 
+   Write(ErrCan,*) 'vevSM ',vevSM
+   Write(ErrCan,*) 'vevL ',vevL
+   Write(ErrCan,*) 'gp, g', g, gp
+   Write(ErrCan,*) 'bi ',bi 
+   Write(ErrCan,*) 'B ',B
+   Write(ErrCan,*) 'ML2 ',ML2
    kont = ierr
    Iname = Iname - 1
    Return
@@ -3161,19 +3160,20 @@ Contains
     mS0(i1) = Sqrt( mS02(i1) )
    Else
     If (ErrorLevel.Ge.0) Then
-     Write (10,*) 'Warnning from Subroutine '//NameOfUnit(Iname)
-     Write (10,*) 'a mass squarred is negative :',i1,mS02(i1) 
-     Write (10,*) 'MH1sq, MH2sq ', MH1sq, MH2sq
-     Write (10,*) 'ML2 ',ML2 
-     Write (10,*) 'vevSM ',vevSM
-     Write (10,*) 'vevL ',vevL
-     Write (10,*) 'gp, g', g, gp
-     Write (10,*) 'bi ',bi
-     Write (10,*) 'B ',B
+     Write(ErrCan,*) 'Warning from Subroutine '//NameOfUnit(Iname)
+     Write(ErrCan,*) 'a mass squared is negative :',i1,mS02(i1) 
+     Write(ErrCan,*) 'MH1sq, MH2sq ', MH1sq, MH2sq
+     Write(ErrCan,*) 'ML2 ',ML2 
+     Write(ErrCan,*) 'vevSM ',vevSM
+     Write(ErrCan,*) 'vevL ',vevL
+     Write(ErrCan,*) 'gp, g', g, gp
+     Write(ErrCan,*) 'bi ',bi
+     Write(ErrCan,*) 'B ',B
     End If
     mS0(i1) = 0._dp
     If (ErrorLevel.Eq.2) Call TerminateProgram
-    kont = -104
+    kont = -211
+    Call AddError(211)
    End If
   End Do
 
@@ -3277,7 +3277,7 @@ Contains
 
   Call RealEigenSystem(Mat,E2,S2,ierr, test)
 
-  If ((ierr.Eq.-8).Or.(ierr.Eq.-9)) Then
+  If ((ierr.Eq.-14).Or.(ierr.Eq.-16)) Then
     Write(ErrCan,*) "Possible numerical problem in "//NameOfUnit(Iname)
     Write(ErrCan,*) "test =",test
     Write(ErrCan,*) " "
@@ -3290,11 +3290,12 @@ Contains
    mS0 = Sqrt(E2)
    RS0 = S2
   Else If ((ierr.Eq.0).And.(E2(1).Le.0._dp)) Then
-   kont = -104
+   kont = -212
+   Call AddError(212)
    If (ErrorLevel.Ge.0) Then
-    Write (10,*) 'Warning from ',NameOfUnit(Iname)
-    Write (10,*) 'm_h^2 = ',E2(1)
-    Write (10,*) 'Setting m_h  to the sqrt(abs(m^2_h))'
+    Write(ErrCan,*) 'Warning from ',NameOfUnit(Iname)
+    Write(ErrCan,*) 'm_h^2 = ',E2(1)
+    Write(ErrCan,*) 'Setting m_h  to the sqrt(abs(m^2_h))'
     If (ErrorLevel.Eq.2) Call TerminateProgram
    End If
    mS02 = E2
@@ -3303,8 +3304,8 @@ Contains
   Else 
    kont = ierr
    If (ErrorLevel.Ge.0) Then
-    Write (10,*) 'Warning from ',NameOfUnit(Iname)
-    Write (10,*) 'diagonalization failed'
+    Write(ErrCan,*) 'Warning from ',NameOfUnit(Iname)
+    Write(ErrCan,*) 'diagonalization failed'
     If (ErrorLevel.Eq.2) Call TerminateProgram
    End If
   End If
@@ -3367,7 +3368,6 @@ Contains
 
  End Subroutine ScalarMassMSSM
 
-
  Subroutine ScalarMassMSSMnT(MH1sq,MH2sq,mu,B,vevSM,gp,g,mS0,mS02,RS0,kont)
  !-----------------------------------------------------------------------
  ! calculates the scalar masses in the MSSM 
@@ -3411,7 +3411,7 @@ Contains
 
   Call EigenSystem(mat2,mS02,RS0,ierr, test)
 
-  If ((ierr.Eq.-8).Or.(ierr.Eq.-9)) Then
+  If ((ierr.Eq.-14).Or.(ierr.Eq.-16)) Then
     Write(ErrCan,*) "Possible numerical problem in "//NameOfUnit(Iname)
     Write(ErrCan,*) "test =",test
     Write(ErrCan,*) " "
@@ -3420,13 +3420,13 @@ Contains
   End If
   
   If ((ierr.Ne.0).And.(ErrorLevel.Ge.-1)) Then
-   Write (10,*) 'Warnning from Subroutine '//NameOfUnit(Iname)
-   Write (10,*) 'Diagonalizatio failed, ierr :',ierr
-   Write (10,*) 'MH1sq, MH2sq ', MH1sq, MH2sq 
-   Write (10,*) 'vevSM ',vevSM
-   Write (10,*) 'gp, g', g, gp
-   Write (10,*) 'mu ',mu
-   Write (10,*) 'B ',B
+   Write(ErrCan,*) 'Warning from Subroutine '//NameOfUnit(Iname)
+   Write(ErrCan,*) 'Diagonalization failed, ierr :',ierr
+   Write(ErrCan,*) 'MH1sq, MH2sq ', MH1sq, MH2sq 
+   Write(ErrCan,*) 'vevSM ',vevSM
+   Write(ErrCan,*) 'gp, g', g, gp
+   Write(ErrCan,*) 'mu ',mu
+   Write(ErrCan,*) 'B ',B
    kont = ierr
    Iname = Iname - 1
    Return
@@ -3437,17 +3437,18 @@ Contains
     mS0(i1) = Sqrt( mS02(i1) )
    Else
     If (ErrorLevel.Ge.0) Then
-     Write (10,*) 'Warnning from Subroutine '//NameOfUnit(Iname)
-     Write (10,*) 'a mass squarred is negative :',i1,mS02(i1) 
-     Write (10,*) 'MH1sq, MH2sq ', MH1sq, MH2sq
-     Write (10,*) 'vevSM ',vevSM
-     Write (10,*) 'gp, g', g, gp
-     Write (10,*) 'mu ',mu
-     Write (10,*) 'B ',B
+     Write(ErrCan,*) 'Warning from Subroutine '//NameOfUnit(Iname)
+     Write(ErrCan,*) 'a mass squared is negative :',i1,mS02(i1) 
+     Write(ErrCan,*) 'MH1sq, MH2sq ', MH1sq, MH2sq
+     Write(ErrCan,*) 'vevSM ',vevSM
+     Write(ErrCan,*) 'gp, g', g, gp
+     Write(ErrCan,*) 'mu ',mu
+     Write(ErrCan,*) 'B ',B
     End If
     mS0(i1) = 0._dp
     If (ErrorLevel.Eq.2) Call TerminateProgram
-    kont = -104
+    kont = -213
+    Call AddError(213)
    End If
   End Do
 
@@ -3624,7 +3625,8 @@ Contains
  Al = Al_in + 3._dp*oo16pi2*(HTq**2*AT+HBq**2*AB)*T
 
   If(L*k*tanbq*mu == 0._dp)Then
-    kont = 10
+    kont = -214
+    Call AddError(214)
     Return
   End If
 
@@ -3877,8 +3879,9 @@ Contains
         & +(mS02(I)-4._dp*MB**2)*BB)
     End If
   End Do
-  If(mS02(1)<1._dp)Then
-    kont = kont+1
+  If(mS02(1)<0._dp)Then
+    kont = -215
+    Call AddError(215)
   Else
     Do I = 1,3
       mS0(I) = Sqrt(mS02(I))
@@ -3943,8 +3946,9 @@ Contains
     End If
   End Do
 
-  If(mP02(2)<1._dp)Then
-    kont = kont+2
+  If(mP02(2)<0._dp)Then
+    kont = -216
+    Call AddError(216)
   Else
     Do I = 1,3
       mP0(I) = Sqrt(mP02(I))
@@ -3973,8 +3977,9 @@ Contains
     mSpm2(2) = mSpm2(2)/ (1._dp-(2._dp*rt*cb**2+2._dp*rb*sb**2) &
            &  *Log(mSpm2(2)/MT**2))
   End If
-  If(mSpm2(2)<1._dp)Then
-    kont = kont+4
+  If(mSpm2(2)<0._dp)Then
+    kont = -217
+    Call AddError(217)
   Else
     mSpm(2) = Sqrt(mSpm2(2))
   End If
@@ -3983,7 +3988,6 @@ Contains
 
  End Subroutine ScalarMassNMSSMeff
   
-
 
  Subroutine SdownMass3Lam(M_L2, M_R2, Af, bi, vevSM, vevL, Yuk, lamp, &
    &  Alam, g, gp, kont, msf, msf2, Rsf)
@@ -4068,7 +4072,7 @@ Contains
 
   Call EigenSystem(mat6,msf2,Rsf,ierr, test)
 
-   If ((ierr.Eq.-8).Or.(ierr.Eq.-9)) Then
+   If ((ierr.Eq.-14).Or.(ierr.Eq.-16)) Then
     Write(ErrCan,*) "Possible numerical problem in "//NameOfUnit(Iname)
     Write(ErrCan,*) "test =",test
     Write(ErrCan,*) " "
@@ -4077,16 +4081,16 @@ Contains
   End If
   
  If ((ierr.Ne.0).And.(ErrorLevel.Ge.0)) Then
-   Write (10,*) 'Diagonalization did not work in routine SdownMass3Lam!'
-    Write(10, * ) 'msf2 ', msf2
-    Write(10, * ) 'M_L2, ',M_L2
-    Write(10, * ) 'M_R2, ',M_R2
-    Write(10, * ) 'A_f, ',Af
-    Write(10, * ) 'Y_f, ',Yuk
-    Write(10,*) 'A_lam',Alam
-    Write(10,*) 'lamp',lamp
-    Write(10, * ) 'bi, vevSM, vevL, g, gp'
-    Write(10, * ) bi, vevSM, vevL, g, gp
+   Write(ErrCan,*) 'Diagonalization did not work in routine SdownMass3Lam!'
+    Write(ErrCan, * ) 'msf2 ', msf2
+    Write(ErrCan, * ) 'M_L2, ',M_L2
+    Write(ErrCan, * ) 'M_R2, ',M_R2
+    Write(ErrCan, * ) 'A_f, ',Af
+    Write(ErrCan, * ) 'Y_f, ',Yuk
+    Write(ErrCan,*) 'A_lam',Alam
+    Write(ErrCan,*) 'lamp',lamp
+    Write(ErrCan, * ) 'bi, vevSM, vevL, g, gp'
+    Write(ErrCan, * ) bi, vevSM, vevL, g, gp
    kont = ierr
     If (ErrorLevel.Eq.2) Call TerminateProgram
    Iname = Iname - 1
@@ -4097,29 +4101,29 @@ Contains
    If (mSf2(i1).Gt.0._dp) Then
     mSf(i1) = Sqrt( mSf2(i1) )
    Else If (ErrorLevel.Ge.0) Then
-    Write(10, * ) 'Warning from routine SdownMass3Lam!'
-    Write(10, * ) 'in the calculation of the masses'
-    Write(10, * ) 'occurred a negative mass squared!!!'
-    Write(10, * ) 'msf2 ', msf2
-    Write(10, * ) 'M_L2, ',M_L2
-    Write(10, * ) 'M_R2, ',M_R2
-    Write(10, * ) 'A_f, ',Af
-    Write(10, * ) 'Y_f, ',Yuk
-    Write(10,*) 'A_lam',Alam
-    Write(10,*) 'lamp',lamp
-    Write(10, * ) 'bi, vevSM, vevL, g, gp'
-    Write(10, * ) bi, vevSM, vevL, g, gp
+    Write(ErrCan, * ) 'Warning from routine SdownMass3Lam!'
+    Write(ErrCan, * ) 'in the calculation of the masses'
+    Write(ErrCan, * ) 'occurred a negative mass squared!!!'
+    Write(ErrCan, * ) 'msf2 ', msf2
+    Write(ErrCan, * ) 'M_L2, ',M_L2
+    Write(ErrCan, * ) 'M_R2, ',M_R2
+    Write(ErrCan, * ) 'A_f, ',Af
+    Write(ErrCan, * ) 'Y_f, ',Yuk
+    Write(ErrCan,*) 'A_lam',Alam
+    Write(ErrCan,*) 'lamp',lamp
+    Write(ErrCan, * ) 'bi, vevSM, vevL, g, gp'
+    Write(ErrCan, * ) bi, vevSM, vevL, g, gp
 
     If (ErrorLevel.Eq.2) Call TerminateProgram
 
-    kont = -105
+    kont = -219
+    Call AddError(219)
     msf(i1) = 0._dp
    End If
   End Do
   Iname = Iname - 1
 
  End Subroutine SdownMass3Lam
-
 
 
  Subroutine SfermionMass1eps1(M_L2, M_R2, Af, bi, vevSM, vevL, Yuk, T3,  &
@@ -4194,16 +4198,17 @@ Contains
   msf2(1) = 0.5_dp * (trace-det)
   msf2(2) = 0.5_dp * (trace+det)
   If (msf2(1) .Le.0.) Then
-   Write(10, * ) 'Warning from routine SfermionMass1!'
-   Write(10, * ) 'in the calculation of the masses'
-   Write(10, * ) 'occurred a negative mass squared!!!'
-   Write(10, * ) 'msf2 ', msf2
+   Write(ErrCan, * ) 'Warning from routine SfermionMass1!'
+   Write(ErrCan, * ) 'in the calculation of the masses'
+   Write(ErrCan, * ) 'occurred a negative mass squared!!!'
+   Write(ErrCan, * ) 'msf2 ', msf2
    !       write(10,*) 'setting it to 0.'
    !       msf2(1) = 0._dp
-   Write(10, * ) 'M_L2, M_R2, Af, bi, vevSM, vevL, Yuk, T3, Yl, Yr, g, gp'
-   Write(10, * ) M_L2, M_R2, Af, bi, vevSM, vevL, Yuk, T3, Yl, Yr, g, gp
+   Write(ErrCan, * ) 'M_L2, M_R2, Af, bi, vevSM, vevL, Yuk, T3, Yl, Yr, g, gp'
+   Write(ErrCan, * ) M_L2, M_R2, Af, bi, vevSM, vevL, Yuk, T3, Yl, Yr, g, gp
 
-   kont = -105
+   kont = -220
+   Call AddError(220)
    msf(1) = 0._dp
    msf(2) = Sqrt(msf2(2) )
   Else
@@ -4318,16 +4323,17 @@ Contains
   msf2(1) = 0.5_dp * (trace-det)
   msf2(2) = 0.5_dp * (trace+det)
   If (msf2(1) .Le.0.) Then
-   Write(10, * ) 'Warning from routine SfermionMass1!'
-   Write(10, * ) 'in the calculation of the masses'
-   Write(10, * ) 'occurred a negative mass squared!!!'
-   Write(10, * ) 'msf2 ', msf2
+   Write(ErrCan, * ) 'Warning from routine SfermionMass1!'
+   Write(ErrCan, * ) 'in the calculation of the masses'
+   Write(ErrCan, * ) 'occurred a negative mass squared!!!'
+   Write(ErrCan, * ) 'msf2 ', msf2
    !       write(10,*) 'setting it to 0.'
    !       msf2(1) = 0._dp
-   Write(10, * ) 'M_L2, M_R2, Af, bi, vevSM, vevL, Yuk, T3, Yl, Yr, g, gp'
-   Write(10, * ) M_L2, M_R2, Af, bi, vevSM, vevL, Yuk, T3, Yl, Yr, g, gp
+   Write(ErrCan, * ) 'M_L2, M_R2, Af, bi, vevSM, vevL, Yuk, T3, Yl, Yr, g, gp'
+   Write(ErrCan, * ) M_L2, M_R2, Af, bi, vevSM, vevL, Yuk, T3, Yl, Yr, g, gp
 
-   kont = - 105
+   kont = -221
+   Call AddError(221)
    msf(1) = 0._dp
    msf(2) = Sqrt(msf2(2) )
   Else
@@ -4439,14 +4445,15 @@ Contains
   msf2(1) = 0.5_dp * (trace-det)
   msf2(2) = 0.5_dp * (trace+det)
   If (msf2(1) .Le.0.) Then
-   Write(10, * ) 'Warning from routine SfermionMass1mssm!'
-   Write(10, * ) 'in the calculation of the masses'
-   Write(10, * ) 'occurred a negative mass squared!!!'
-   Write(10, * ) 'msf2 ', msf2
-   Write(10, * ) 'M_L2, M_R2, Af, mu, vevs, Yuk, T3, Yl, Yr, g, gp'
-   Write(10, * ) M_L2, M_R2, Af, mu, vevs, Yuk, T3, Yl, Yr, g, gp
+   Write(ErrCan, * ) 'Warning from routine SfermionMass1mssm!'
+   Write(ErrCan, * ) 'in the calculation of the masses'
+   Write(ErrCan, * ) 'occurred a negative mass squared!!!'
+   Write(ErrCan, * ) 'msf2 ', msf2
+   Write(ErrCan, * ) 'M_L2, M_R2, Af, mu, vevs, Yuk, T3, Yl, Yr, g, gp'
+   Write(ErrCan, * ) M_L2, M_R2, Af, mu, vevs, Yuk, T3, Yl, Yr, g, gp
 
-   kont = - 105
+   kont = - 222
+   Call AddError(222)
    msf = Sqrt( Abs(msf2) )
 
   Else
@@ -4557,15 +4564,15 @@ Contains
                     &, m2, m22, Rsf2 )
 
     If ((ierr.Ne.0).And.(ErrorLevel.Ge.0)) Then
-     Write (10,*) 'Diagonalization did not work in routine SfermionMass3mssm!'
+     Write(ErrCan,*) 'Diagonalization did not work in routine SfermionMass3mssm!'
      msf2(2*i1-1:2*i1) = m22
-     Write(10, * ) 'msf2 ', msf2
-     Write(10, * ) 'M_L2, ',M_L2
-     Write(10, * ) 'M_R2, ',M_R2
-     Write(10, * ) 'A_f, ',Af
-     Write(10, * ) 'Y_f, ',Yuk
-     Write(10, * ) 'mu, vevs, T3, Yl, Yr, g, gp'
-     Write(10, * ) mu, vevs, T3, Yl, Yr, g, gp
+     Write(ErrCan, * ) 'msf2 ', msf2
+     Write(ErrCan, * ) 'M_L2, ',M_L2
+     Write(ErrCan, * ) 'M_R2, ',M_R2
+     Write(ErrCan, * ) 'A_f, ',Af
+     Write(ErrCan, * ) 'Y_f, ',Yuk
+     Write(ErrCan, * ) 'mu, vevs, T3, Yl, Yr, g, gp'
+     Write(ErrCan, * ) mu, vevs, T3, Yl, Yr, g, gp
      kont = ierr
      If (ErrorLevel.Eq.2) Call TerminateProgram
      Iname = Iname - 1
@@ -4626,7 +4633,7 @@ Contains
     Call EigenSystem(mat6,msf2,Rsf,ierr, test)
    End If
  
-   If ((ierr.Eq.-8).Or.(ierr.Eq.-9)) Then
+   If ((ierr.Eq.-14).Or.(ierr.Eq.-16)) Then
      Write(ErrCan,*) "Possible numerical problem in "//NameOfUnit(Iname)
      Write(ErrCan,*) "test =",test
      Write(ErrCan,*) "T_3, Y_l",T3,yl
@@ -4665,14 +4672,14 @@ Contains
   
 
    If ((ierr.Ne.0).And.(ErrorLevel.Ge.0)) Then
-     Write (10,*) 'Diagonalization did not work in routine SfermionMass3mssm!'
-     Write(10, * ) 'msf2 ', msf2
-     Write(10, * ) 'M_L2, ',M_L2
-     Write(10, * ) 'M_R2, ',M_R2
-     Write(10, * ) 'A_f, ',Af
-     Write(10, * ) 'Y_f, ',Yuk
-     Write(10, * ) 'mu, vevs, T3, Yl, Yr, g, gp'
-     Write(10, * ) mu, vevs, T3, Yl, Yr, g, gp
+     Write(ErrCan,*) 'Diagonalization did not work in routine SfermionMass3mssm!'
+     Write(ErrCan, * ) 'msf2 ', msf2
+     Write(ErrCan, * ) 'M_L2, ',M_L2
+     Write(ErrCan, * ) 'M_R2, ',M_R2
+     Write(ErrCan, * ) 'A_f, ',Af
+     Write(ErrCan, * ) 'Y_f, ',Yuk
+     Write(ErrCan, * ) 'mu, vevs, T3, Yl, Yr, g, gp'
+     Write(ErrCan, * ) mu, vevs, T3, Yl, Yr, g, gp
      kont = ierr
      If (ErrorLevel.Eq.2) Call TerminateProgram
      Iname = Iname - 1
@@ -4683,19 +4690,20 @@ Contains
     If (mSf2(i1).Gt.0._dp) Then
      mSf(i1) = Sqrt( mSf2(i1) )
     Else
-     kont = -105
+     kont = -223
+     Call AddError(223)
      msf(i1) = 0._dp
      If (ErrorLevel.Ge.0) Then
-      Write(10, * ) 'Warning from routine SfermionMass3mssm!'
-      Write(10, * ) 'in the calculation of the masses'
-      Write(10, * ) 'occurred a negative mass squared!!!'
-      Write(10, * ) 'msf2 ', msf2
-      Write(10, * ) 'M_L2, ',M_L2
-      Write(10, * ) 'M_R2, ',M_R2
-      Write(10, * ) 'A_f, ',Af
-      Write(10, * ) 'Y_f, ',Yuk
-      Write(10, * ) 'mu, vevs, T3, Yl, Yr, g, gp'
-      Write(10, * ) mu, vevs, T3, Yl, Yr, g, gp
+      Write(ErrCan, * ) 'Warning from routine SfermionMass3mssm!'
+      Write(ErrCan, * ) 'in the calculation of the masses'
+      Write(ErrCan, * ) 'occurred a negative mass squared!!!'
+      Write(ErrCan, * ) 'msf2 ', msf2
+      Write(ErrCan, * ) 'M_L2, ',M_L2
+      Write(ErrCan, * ) 'M_R2, ',M_R2
+      Write(ErrCan, * ) 'A_f, ',Af
+      Write(ErrCan, * ) 'Y_f, ',Yuk
+      Write(ErrCan, * ) 'mu, vevs, T3, Yl, Yr, g, gp'
+      Write(ErrCan, * ) mu, vevs, T3, Yl, Yr, g, gp
 
       If (ErrorLevel.Eq.2) Call TerminateProgram
      End If
@@ -4706,7 +4714,6 @@ Contains
   Iname = Iname - 1
 
  End Subroutine SfermionMass3mssm
-
 
 
  Subroutine SquarkMass3Eps(M_L2, M_R2, Af, bi, vevSM, T3, vevL, Yuk, &
@@ -4786,7 +4793,7 @@ Contains
 
   Call EigenSystem(mat6,msf2,Rsf,ierr, test)
 
-  If ((ierr.Eq.-8).Or.(ierr.Eq.-9)) Then
+  If ((ierr.Eq.-14).Or.(ierr.Eq.-16)) Then
     Write(ErrCan,*) "Possible numerical problem in "//NameOfUnit(Iname)
     Write(ErrCan,*) "test =",test
     Write(ErrCan,*) " "
@@ -4795,14 +4802,14 @@ Contains
   End If
   
   If ((ierr.Ne.0).And.(ErrorLevel.Ge.0)) Then
-   Write (10,*) 'Diagonalization did not work in routine SquarkMass3Eps!'
-    Write(10, * ) 'msf2 ', msf2
-    Write(10, * ) 'M_L2, ',M_L2
-    Write(10, * ) 'M_R2, ',M_R2
-    Write(10, * ) 'A_f, ',Af
-    Write(10, * ) 'Y_f, ',Yuk
-    Write(10, * ) 'bi, vevSM, vevL, T3, Yl, Yr, g, gp'
-    Write(10, * ) bi, vevSM, vevL, T3, Yl, Yr, g, gp
+   Write(ErrCan,*) 'Diagonalization did not work in routine SquarkMass3Eps!'
+    Write(ErrCan, * ) 'msf2 ', msf2
+    Write(ErrCan, * ) 'M_L2, ',M_L2
+    Write(ErrCan, * ) 'M_R2, ',M_R2
+    Write(ErrCan, * ) 'A_f, ',Af
+    Write(ErrCan, * ) 'Y_f, ',Yuk
+    Write(ErrCan, * ) 'bi, vevSM, vevL, T3, Yl, Yr, g, gp'
+    Write(ErrCan, * ) bi, vevSM, vevL, T3, Yl, Yr, g, gp
     kont = ierr
     If (ErrorLevel.Eq.2) Call TerminateProgram
     Iname = Iname - 1
@@ -4813,27 +4820,27 @@ Contains
    If (mSf2(i1).Gt.0._dp) Then
     mSf(i1) = Sqrt( mSf2(i1) )
    Else If (ErrorLevel.Ge.0) Then
-    Write(10, * ) 'Warning from routine SquarkMass3Eps!'
-    Write(10, * ) 'in the calculation of the masses'
-    Write(10, * ) 'occurred a negative mass squared!!!'
-    Write(10, * ) 'msf2 ', msf2
-    Write(10, * ) 'M_L2, ',M_L2
-    Write(10, * ) 'M_R2, ',M_R2
-    Write(10, * ) 'A_f, ',Af
-    Write(10, * ) 'Y_f, ',Yuk
-    Write(10, * ) 'bi, vevSM, vevL, T3, Yl, Yr, g, gp'
-    Write(10, * ) bi, vevSM, vevL, T3, Yl, Yr, g, gp
+    Write(ErrCan, * ) 'Warning from routine SquarkMass3Eps!'
+    Write(ErrCan, * ) 'in the calculation of the masses'
+    Write(ErrCan, * ) 'occurred a negative mass squared!!!'
+    Write(ErrCan, * ) 'msf2 ', msf2
+    Write(ErrCan, * ) 'M_L2, ',M_L2
+    Write(ErrCan, * ) 'M_R2, ',M_R2
+    Write(ErrCan, * ) 'A_f, ',Af
+    Write(ErrCan, * ) 'Y_f, ',Yuk
+    Write(ErrCan, * ) 'bi, vevSM, vevL, T3, Yl, Yr, g, gp'
+    Write(ErrCan, * ) bi, vevSM, vevL, T3, Yl, Yr, g, gp
 
     If (ErrorLevel.Eq.2) Call TerminateProgram
 
-    kont = -105
+    kont = -224
+    Call AddError(224)
     msf(i1) = 0._dp
    End If
   End Do
   Iname = Iname - 1
 
  End Subroutine SquarkMass3Eps
-
 
  Subroutine TreeMassesEps1(gp, g, vevSM, vevL, M1, M2, M3, mu, B              &
           &, M2_E, M2_L, A_l, Y_l, M2_D, M2_U, M2_Q, A_d, A_u, Y_d, Y_u       &
@@ -4912,11 +4919,12 @@ Contains
     Do i1=1,2
      mSneut2(i1) = Real(M2_L(i1,i1),dp)  + D_sneut
      If (mSneut2(i1).Lt.0._dp) Then
-      kont = -106
+      kont = -225
+      Call AddError(225)
       If (ErrorLevel.Ge.0) Then
-        Write (10,*) 'Error in Subroutine ',NameOfUnit(Iname)
-        Write (10,*) 'mSneutrino^2 ',i1,' <= 0 :',mSneut2(i1)
-        Write (10,*) 'setting it to 10.'
+        Write(ErrCan,*) 'Error in Subroutine ',NameOfUnit(Iname)
+        Write(ErrCan,*) 'mSneutrino^2 ',i1,' <= 0 :',mSneut2(i1)
+        Write(ErrCan,*) 'setting it to 10.'
         mSneut2(i1) = 10._dp
       End If
       If (ErrorLevel.Eq.2) Call TerminateProgram
@@ -5437,7 +5445,7 @@ Contains
     Call EigenSystem(mat3,mSneut2,Rsneut,ierr, test)
    End If
 
-    If ((ierr.Eq.-8).Or.(ierr.Eq.-9)) Then
+    If ((ierr.Eq.-14).Or.(ierr.Eq.-16)) Then
      Write(ErrCan,*) "Possible numerical problem in "//NameOfUnit(Iname)
      Write(ErrCan,*) "test =",test
      Write(ErrCan,*) " "
@@ -5446,8 +5454,8 @@ Contains
     End If
   
     If (ierr.Ne.0) Then
-     Write (10,*) 'Problems with the diagonalization of sneutrinos'
-     Write (10,*) 'in routine ',NameOfUnit(Iname),'. ierr = ',ierr
+     Write(ErrCan,*) 'Problems with the diagonalization of sneutrinos'
+     Write(ErrCan,*) 'in routine ',NameOfUnit(Iname),'. ierr = ',ierr
      kont = ierr
      Iname = Iname - 1
      Return
@@ -5457,12 +5465,13 @@ Contains
        mSneut(i1) = Sqrt( mSneut2(i1) )
       Else
        If (ErrorLevel.Ge.0) Then
-        Write (10,*) 'Warning from ',NameOfUnit(Iname),' mSneut2 ',i1
-        Write (10,*) '< 0, : ',mSneut2(i1),'is set to its modulus '
+        Write(ErrCan,*) 'Warning from ',NameOfUnit(Iname),' mSneut2 ',i1
+        Write(ErrCan,*) '< 0, : ',mSneut2(i1),'is set to its modulus '
        End If
        mSneut2(i1) = Abs(msneut2(i1))
        mSneut(i1) = Sqrt( mSneut2(i1) )
-       kont = -106
+       kont = -226
+       Call AddError(226)
        If (ErrorLevel.Eq.2) Call TerminateProgram
       End If
      Enddo
@@ -5524,11 +5533,12 @@ Contains
     Do i1=1,3
      mSneut2(i1) = Real(M2_L(i1,i1),dp)  + D_sneut
      If (mSneut2(i1).Lt.0._dp) Then
-      kont = -106
+      kont = -226
+      Call AddError(226)
       If (ErrorLevel.Ge.0) Then
-        Write (10,*) 'Error in Subroutine ',NameOfUnit(Iname)
-        Write (10,*) 'mSneutrino^2 ',i1,' <= 0 :',mSneut2(i1)
-        Write (10,*) 'setting it to 10.'
+        Write(ErrCan,*) 'Error in Subroutine ',NameOfUnit(Iname)
+        Write(ErrCan,*) 'mSneutrino^2 ',i1,' <= 0 :',mSneut2(i1)
+        Write(ErrCan,*) 'setting it to 10.'
         mSneut2(i1) = 10._dp
       End If
       If (ErrorLevel.Eq.2) Call TerminateProgram
@@ -5630,7 +5640,8 @@ Contains
     mP0(2) = Sqrt(mP02(2) )
    Else
     If (.Not.Slopy) Then
-     kont =-123
+     kont =-227
+     Call AddError(227)
      Iname = Iname - 1
      Return
     End If
@@ -5650,7 +5661,8 @@ Contains
     mSpm(2) = Sqrt(mSpm2(2) )
    Else
     If (.Not.Slopy) Then
-     kont =-124
+     kont =-228
+     Call AddError(228)
      Iname = Iname - 1
      Return
     End If
@@ -5810,7 +5822,7 @@ Contains
     mat3 =  M2_L + D_sneut * id3C
     Call ComplexEigenSystem(mat3,mSneut2,Rsneut,ierr, test)
 
-    If ((ierr.Eq.-8).Or.(ierr.Eq.-9)) Then
+    If (ierr.Eq.-14) Then
       Write(ErrCan,*) "Possible numerical problem in "//NameOfUnit(Iname)
       Write(ErrCan,*) "test =",test
       Write(ErrCan,*) " "
@@ -5819,8 +5831,8 @@ Contains
     End If
   
     If (ierr.Ne.0) Then
-     Write (10,*) 'Problems with the diagonalization of sneutrinos'
-     Write (10,*) 'in routine ',NameOfUnit(Iname),'. ierr = ',ierr
+     Write(ErrCan,*) 'Problems with the diagonalization of sneutrinos'
+     Write(ErrCan,*) 'in routine ',NameOfUnit(Iname),'. ierr = ',ierr
      kont = ierr
      Iname = Iname - 1
      Return
@@ -5829,10 +5841,11 @@ Contains
       If (mSneut2(i1).Ge.0._dp) Then
        mSneut(i1) = Sqrt( mSneut2(i1) )
       Else
-       kont = -106
+       kont = -229
+      Call AddError(229)
        If (ErrorLevel.Ge.0) Then
-        Write (10,*) 'Warning from ',NameOfUnit(Iname),' mSneut2 ',i1
-        Write (10,*) '< 0, : ',mSneut2(i1),'is set to 0 '
+        Write(ErrCan,*) 'Warning from ',NameOfUnit(Iname),' mSneut2 ',i1
+        Write(ErrCan,*) '< 0, : ',mSneut2(i1),'is set to 0 '
        End If
        mSneut2(i1) = 0
        mSneut(i1) = 0
@@ -5897,11 +5910,12 @@ Contains
     Do i1=1,3
      mSneut2(i1) = Real(M2_L(i1,i1),dp)  + D_sneut
      If (mSneut2(i1).Lt.0._dp) Then
-      kont = -106
+      kont = -229
+      Call AddError(229)
       If (ErrorLevel.Ge.0) Then
-        Write (10,*) 'Error in Subroutine ',NameOfUnit(Iname)
-        Write (10,*) 'mSneutrino^2 ',i1,' <= 0 :',mSneut2(i1)
-        Write (10,*) 'setting it to 10.'
+        Write(ErrCan,*) 'Error in Subroutine ',NameOfUnit(Iname)
+        Write(ErrCan,*) 'mSneutrino^2 ',i1,' <= 0 :',mSneut2(i1)
+        Write(ErrCan,*) 'setting it to 10.'
         mSneut2(i1) = 10._dp
       End If
       If (ErrorLevel.Eq.2) Call TerminateProgram
@@ -6003,7 +6017,8 @@ Contains
     mP0(2) = Sqrt(mP02(2) )
    Else
     If (.Not.Slopy) Then
-     kont =-123
+     kont =-230
+     Call AddError(230)
      Iname = Iname - 1
      Return
     End If
@@ -6024,7 +6039,8 @@ Contains
     mSpm(2) = Sqrt(mSpm2(2) )
    Else
     If (.Not.Slopy) Then
-     kont =-124
+     kont =-231
+     Call AddError(231)
      Iname = Iname - 1
      Return
     End If
@@ -6182,7 +6198,7 @@ Contains
     mat3 = M2_L + D_sneut * id3C
     Call ComplexEigenSystem(mat3,mSneut2,Rsneut,ierr, test)
 
-    If ((ierr.Eq.-8).Or.(ierr.Eq.-9)) Then
+    If (ierr.Eq.-14) Then
       Write(ErrCan,*) "Possible numerical problem in "//NameOfUnit(Iname)
       Write(ErrCan,*) "test =",test
       Write(ErrCan,*) " "
@@ -6199,7 +6215,8 @@ Contains
       If (mSneut2(i1).Ge.0._dp) Then
        mSneut(i1) = Sqrt( mSneut2(i1) )
       Else
-       kont = -106
+       kont = -232
+      Call AddError(232)
        If (ErrorLevel.Ge.0) Then
         Write(ErrCan,*) 'Warning from ',NameOfUnit(Iname),' mSneut2 ',i1
         Write(ErrCan,*) '< 0, : ',mSneut2(i1),'is set to 0 '
@@ -6254,7 +6271,8 @@ Contains
     Do i1=1,3
      mSneut2(i1) = Real(M2_L(i1,i1),dp)  + D_sneut
      If (mSneut2(i1).Lt.0._dp) Then
-      kont = -106
+      kont = -232
+      Call AddError(232)
       If (ErrorLevel.Ge.0) Then
         Write(ErrCan,*) 'Error in Subroutine ',NameOfUnit(Iname)
         Write(ErrCan,*) 'mSneutrino^2 ',i1,' <= 0 :',mSneut2(i1)
@@ -6469,7 +6487,7 @@ Contains
     mat3 =  M2_L + D_sneut * id3C
     Call ComplexEigenSystem(mat3,mSneut2,Rsneut,ierr, test)
 
-    If ((ierr.Eq.-8).Or.(ierr.Eq.-9)) Then
+    If (ierr.Eq.-14) Then
      Write(ErrCan,*) "Possible numerical problem in "//NameOfUnit(Iname)
      Write(ErrCan,*) "test =",test
      Write(ErrCan,*) " "
@@ -6492,7 +6510,8 @@ Contains
        End If
        mSneut2(i1) = abs(msneut2(i1))
        mSneut(i1) = Sqrt( mSneut2(i1) )
-       kont = -106
+       kont = -233
+       Call AddError(233)
        If (ErrorLevel.Eq.2) Call TerminateProgram
       End If
      Enddo
@@ -6529,7 +6548,8 @@ Contains
     Do i1=1,3
      mSneut2(i1) = Real(M2_L(i1,i1),dp)  + D_sneut
      If (mSneut2(i1).Lt.0._dp) Then
-      kont = -106
+      kont = -233
+       Call AddError(233)
       If (ErrorLevel.Ge.0) Then
         Write (ErrCan,*) 'Error in Subroutine ',NameOfUnit(Iname)
         Write (ErrCan,*) 'mSneutrino^2 ',i1,' <= 0 :',mSneut2(i1)

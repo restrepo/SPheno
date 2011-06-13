@@ -65,7 +65,7 @@ Contains
  !  kont ............ contains the error, =0 if everything is fine
  ! written by Werner Porod, 28.8.99
  !-----------------------------------------------------------------------
- implicit none
+ Implicit None
   Real(dp), Intent(in) ::  mf_l_in(3), mf_d_in(3), mf_u_in(3), Qlow, alpha &
      &  , alphas, Qhigh
   Real(dp), Intent(out) :: mf_l_out(3), mf_d_out(3), mf_u_out(3)
@@ -88,16 +88,18 @@ Contains
   !-------------------------------------------------------
   ! check if conditions on Qlow and Qhigh are fullfilled
   !-------------------------------------------------------
-  if (Qlow.gt.mf_d_in(3)) then
+  If (Qlow.Gt.mf_d_in(3)) Then
    Iname = Iname - 1
-   kont = - 1401
-   return
-  end if
-  if ((Qlow.gt.Qhigh).or.(Qhigh.lt.mf_d_in(3))) then
+   kont = -101
+   Call AddError(101)
+   Return
+  End If
+  If ((Qlow.Gt.Qhigh).Or.(Qhigh.Lt.mf_d_in(3))) Then
    Iname = Iname - 1
-   kont = - 1402
-   return
-  end if
+   kont = - 102
+   Call AddError(102)
+   Return
+  End If
 
   !-------------------------------------------------------------------------
   ! calculate first coupling at low scales, putting abritary fermion masses
@@ -107,16 +109,16 @@ Contains
   g10(2) = Sqrt(4._dp * Pi * alpha)
   g10(3:10)= 2._dp
 
-  if (Qhigh.gt.mf_d_in(3)) then ! allow that Qhigh==mb(mb)
+  If (Qhigh.Gt.mf_d_in(3)) Then ! allow that Qhigh==mb(mb)
    tz = Log(mf_d_in(3)/Qhigh) ! at mb(mb) we have to decouple the b-quark
    dt = tz / 50._dp
    Call odeint(g10, 10, 0._dp, tz, 1.e-7_dp, dt, 0._dp, RGE10_SM, kont)
-  end if
+  End If
   g9 = g10(1:9)
   !-------------------------------------------
   ! at mb(mb) we have to decouple the b-quark
   !--------------------------------------------
-  if (Qlow.lt.mf_d_in(3)) then
+  If (Qlow.Lt.mf_d_in(3)) Then
    as_nf = g9(1)**2 / (4._dp * Pi)
    as_nf_d_pi = as_nf / Pi
    as_nf_minus_1 = as_nf *(1._dp+ as_nf_d_pi**2 *(c_as(1) +c_as(2)*as_nf_d_pi))
@@ -124,7 +126,7 @@ Contains
    tz = Log(Qlow/mf_d_in(3)) 
    dt = tz / 50._dp
    Call odeint(g9, 9, 0._dp, tz, 1.e-7_dp, dt, 0._dp, RGE10_SM, kont)
-  end if
+  End If
   !--------------------------------------------------
   ! lepton masses at Qlow, note that aem is alpha/pi
   !--------------------------------------------------
@@ -142,7 +144,7 @@ Contains
   !-------------------------
   ! running back to mb(mb)
   !-------------------------
-  If (Qlow.lt.mf_d_in(3)) then
+  If (Qlow.Lt.mf_d_in(3)) Then
    tz = Log(Qlow/mf_d_in(3))
    dt = - tz / 50._dp
    Call odeint(g9, 9, tz, 0._dp, 1.e-7_dp, dt, 0._dp, RGE10_SM, kont)
@@ -152,7 +154,7 @@ Contains
    AlphaS_mB = as_nf
    g9(1) = Sqrt(4._dp * Pi * as_nf)
    g9(6:9) = g9(6:9) / (1._dp + as_nf_d_Pi**2 * (c_m(1) + c_m(2)*as_nf_d_Pi))  
-  end if
+  End If
   g10(1:9) = g9
   g10(10) = mf_d_in(3)
   !-------------------------
@@ -169,7 +171,7 @@ Contains
 
   Iname = Iname - 1
 
- end Subroutine CalculateRunningMasses
+ End Subroutine CalculateRunningMasses
 
  Subroutine FermionMass(Yuk,vev,mF,U_L,U_R,kont)
  !-----------------------------------------------------------------
@@ -213,7 +215,7 @@ Contains
    Call EigenSystem(mat32, mC2, v3, ierr, test)
   End If
 
-  If ((ierr.Eq.-8).Or.(ierr.Eq.-9)) Then
+  If ((ierr.Eq.-14).Or.(ierr.Eq.-16)) Then
     Write(ErrCan,*) "Possible numerical problem in "//NameOfUnit(Iname)
     Write(ErrCan,*) "test =",test
     Write(ErrCan,*) " "
@@ -230,7 +232,7 @@ Contains
   End If
   u3 = Conjg(u3)
 
-  If ((ierr.Eq.-8).Or.(ierr.Eq.-9)) Then
+  If ((ierr.Eq.-14).Or.(ierr.Eq.-16)) Then
     Write(ErrCan,*) "Possible numerical problem in "//NameOfUnit(Iname)
     Write(ErrCan,*) "test =",test
     Write(ErrCan,*) " "
@@ -251,10 +253,10 @@ Contains
   End Do
 
   If (ierr.Ne.0) Then
-   Write (10,*) 'Warning in subroutine FermionMass, ierr = ',ierr
-   Write (10,*) 'Yuk ',Yuk
-   Write (10,*) 'vev ',vev
-   Write (10,*) ' '
+   Write(ErrCan,*) 'Warning in subroutine FermionMass, ierr = ',ierr
+   Write(ErrCan,*) 'Yuk ',Yuk
+   Write(ErrCan,*) 'vev ',vev
+   Write(ErrCan,*) ' '
    kont = ierr
    mF(1) = Abs(yuk(1,1)*vev)
    mF(2) = Abs(yuk(2,2)*vev)
@@ -266,9 +268,9 @@ Contains
   Endif
 
   Do i1=1,2
-   If ((mC2(i1).lt.0._dp).and.(Abs(mc2(i1)/mc2(3)).lt.epsilon(1._dp))) &
+   If ((mC2(i1).Lt.0._dp).And.(Abs(mc2(i1)/mc2(3)).Lt.Epsilon(1._dp))) &
           &  mc2(i1) = 0._dp
-  end do
+  End Do
 
   mF = Sqrt(MC2) 
   U_L = u3
@@ -411,11 +413,11 @@ Contains
 
   Close(99)
 
-  call CalculateRunningMasses(mf_l, mf_d, mf_u, Q_light_quarks, alpha_mZ &
+  Call CalculateRunningMasses(mf_l, mf_d, mf_u, Q_light_quarks, alpha_mZ &
      &  , alphas_mZ, mZ, mf_l_mZ, mf_d_mZ, mf_u_mZ, kont)
 
   Iname = Iname - 1
-  return
+  Return
 !  200 Write(*,*) "File StandardModel.in does not exist, using default values."
 !  Write(ErrCan,*) "File StandardModel.in does not exist, using default values."
 
@@ -523,7 +525,7 @@ Contains
         & * (1._dp + 0.5_dp * Alpha * (6.25-Pi2)/Pi) / (192._dp*pi*pi2)
   GammaTau = hbar / TimeTau
 
-  call CalculateRunningMasses(mf_l, mf_d, mf_u, Q_light_quarks, alpha_mZ &
+  Call CalculateRunningMasses(mf_l, mf_d, mf_u, Q_light_quarks, alpha_mZ &
      &  , alphas_mZ, mZ, mf_l_mZ, mf_d_mZ, mf_u_mZ, kont)
 
   800  Format(f16.7)

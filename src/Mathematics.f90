@@ -71,7 +71,7 @@ Use Control
 
 ! private variables
  ! test of quality, used in ComplexEigensystem , RealEigensystem
- Real(Dp), Parameter, Private :: MinimalPrecision = 1.e-12_dp
+ Real(Dp), Parameter, Private :: MinimalPrecision = 10._dp * Epsilon(1._dp)
 ! for ode integration
  Integer, Private, Parameter :: MAXSTP=100000
 ! Real(dp), Private :: Path(2,MAXSTP)
@@ -149,7 +149,7 @@ Contains
   If (Present(acc)) Then
    comp = acc
   Else
-   comp = 1.e-10_dp
+   comp = 100._dp * Epsilon(1._dp)
   End If
 
   max_val = Maxval(Abs(mat))
@@ -511,7 +511,8 @@ Contains
    Write (ErrCan,*) 'Error in Subroutine '//NameOfUnit(Iname)
    Write (ErrCan,*) 'Dimensions to not match: ',N1,N2,N3
    If (ErrorLevel.Ge.-1) Call TerminateProgram
-   kont = -6
+   kont = -13
+   Call AddError(13)
    Iname = Iname - 1
    Return
   End If
@@ -570,7 +571,7 @@ Contains
    If(KONT/=0) Then
     Iname = Iname - 1
     Deallocate(AR,AI,WR,Work,Ctest)
-   
+    Deallocate(ZR, zi, work2)
     Return
    End If
    Call HTRIBK(AR, AI, WORK2, ZR, ZI)
@@ -618,10 +619,11 @@ Contains
   End Do
   If (test(1).Gt.0._dp) Then
    If (l_complex) Then
-    If ( (test(2)/test(1)).Gt.1.e5_dp*MinimalPrecision) kont = -8
+    If ( (test(2)/test(1)).Gt.1.e5_dp*MinimalPrecision) kont = -14
    Else 
-    If ( (test(2)/test(1)).Gt.MinimalPrecision) kont = -8
+    If ( (test(2)/test(1)).Gt.MinimalPrecision) kont = -14
    End If
+   Call AddError(14)
   End If
 
   Deallocate(AR,AI,WR,Work,Ctest)
@@ -758,6 +760,7 @@ Contains
       If (ErrorLevel.Ge.0) Then
        Write(ErrCan,*) 'Function DGAUSS ... too high accuracy required'
        Write(ErrCan,*) "Calling routine: ",NameOfUnit(Iname)
+       Call AddError(19)
       End If
       Return
     Endif
@@ -884,6 +887,7 @@ Contains
       If (ErrorLevel.Ge.0) Then
        Write(ErrCan,*) 'Subroutine DgaussInt ... TOO HIGH ACCURACY REQUIRED'
        Write(ErrCan,*) "Calling routine: ",NameOfUnit(Iname)
+       Call AddError(20)
       End If
       Deallocate(work,s8,s16)
       Return
@@ -1064,7 +1068,7 @@ Contains
 
 
   ipiv = 0
-kont = 0
+  kont = 0
   Do i=1,n
     big=0._dp
     Do j=1,n
@@ -1078,7 +1082,8 @@ kont = 0
             Endif
           Else If (ipiv(k)>1) Then
 !            pause 'singular matrix in gaussj'
-            kont = -14
+            kont = -24
+            Call AddError(24)
             Return
           Endif
         Enddo
@@ -1091,19 +1096,20 @@ kont = 0
         a(irow,l)=a(icol,l)
         a(icol,l)=dum
       Enddo
-If (Present(b)) Then
+     If (Present(b)) Then
       Do l=1,m
         dum=b(irow,l)
         b(irow,l)=b(icol,l)
         b(icol,l)=dum
       Enddo
-End If
+     End If
     Endif
     indxr(i)=irow
     indxc(i)=icol
     If (a(icol,icol)==0._dp) Then
 !        pause 'singular matrix in gaussj'
-        kont = -14
+        kont = -24
+        Call AddError(24)
         Return
     End If
     pivinv=1._dp/a(icol,icol)
@@ -1319,6 +1325,7 @@ End If
     If (x.Eq.a) Then ! stepsize to small
      Write (ErrCan,*) &
        & "IntRomb: step size to small, called by ",NameOfUnit(Iname)
+     Call AddError(22)
      IntRomb = s(j)
      Return
     End If
@@ -1340,6 +1347,7 @@ End If
  End Do
  Write (ErrCan,*) "IntRomb: too many steps, called by ",NameOfUnit(Iname) 
  Write (ErrCan,503) eps,IntRomb,Abs(dIntRomb)
+ Call AddError(23)
 503 Format(3e16.7)
 
  End Function IntRomb
@@ -1441,6 +1449,7 @@ End If
           Write(ErrCan,*) "Problem in function kappa",kappa
           Write(ErrCan,*) "x,y,z",x,y,z
           Write(ErrCan,*) "Calling Routine",NameOfUnit(Iname)
+          Call AddError(21)
           If (ErrorLevel.Ge.1) Call TerminateProgram
          End If
         End If
@@ -1451,6 +1460,7 @@ End If
   Iname = Iname - 1
 
  End Function Kappa
+
 
  Real(Dp) Function Li2(X)
  !---------------------------------------------------------------------
@@ -1881,6 +1891,9 @@ End If
   Real(dp) :: h,hdid,hnext,x !,xsav
   Real(dp), Dimension(len) :: dydx, y, yscal
 
+  Iname = Iname + 1
+  NameOfUnit(Iname) = "odeint"
+
   x=x1
   h=Sign(h1,x2-x1)
   nok=0
@@ -1899,7 +1912,10 @@ End If
    If ((x+h-x2)*(x+h-x1) > 0.0_dp) h=x2-x
 
    Call rkqs(y,dydx,x,h,eps,yscal,hdid,hnext,derivs,kont)
-   If (kont.Ne.0) Return
+   If (kont.Ne.0) Then
+    Iname = Iname - 1
+    Return
+   End If
 
    If (hdid == h) Then
     nok=nok+1
@@ -1909,28 +1925,35 @@ End If
 
    If ((x-x2)*(x2-x1) >= 0.0_dp) Then
     ystart(:)=y(:)
+    Iname = Iname - 1
     Return
    End If
 
    If (Abs(hnext) < hmin) Then
     kont = -1
+    Call AddError(1)
     Write(ErrCan,*) "Problem in OdeInt, stepsize smaller than minimum."
     If (ErrorLevel.Ge.1) Call TerminateProgram
+    Iname = Iname - 1
     Return
    End If
 
    If (Maxval(Abs(y)).Gt.1.e36_dp) Then
-    kont = -4
+    kont = -2
+    Call AddError(2)
     Write(ErrCan,*) "Problem in OdeInt, max val > 10^36.",Maxval(Abs(y))
     If (ErrorLevel.Ge.1) Call TerminateProgram
+    Iname = Iname - 1
     Return
    End If
    h=hnext
   End Do
 
-  kont = -2
+  kont = -3
+  Call AddError(3)
   Write(ErrCan,*) "Problem in OdeInt, too many steps."
   If (ErrorLevel.Ge.1) Call TerminateProgram
+  Iname = Iname - 1
 
  End Subroutine odeint
 
@@ -1950,9 +1973,11 @@ End If
   Real(dp) :: h,hdid,hnext,x,x_old, h_old
   Real(dp), Dimension(len) :: dydx, y, yscal, y_old
 
+  Iname = Iname + 1
+  NameOfUnit(Iname) = "odeintB"
+
   x=x1
   h=Sign(h1,x2-x1)
-
   nok=0
   nbad=0
   kount=0
@@ -1971,11 +1996,15 @@ End If
    If ((x+h-x2)*(x+h-x1) > 0.0_dp) h=x2-x
 
    Call rkqs(y,dydx,x,h,eps,yscal,hdid,hnext,derivs,kont)
-   If (kont.Ne.0) Return
+   If (kont.Ne.0) Then
+    Iname = Iname - 1
+    Return
+   End If
 
    If (((y(1)-y(2)).Gt.0._dp).And.((y(1)-y(2)).Lt.eps)) Then
     ystart(:)=y(:)
     xout = x
+    Iname = Iname - 1
     Return
    Else If (y(1).Gt.y(2)) Then
     y = y_old
@@ -1995,30 +2024,38 @@ End If
 
    If ((x-x2)*(x2-x1) >= 0.0_dp) Then
     Write(ErrCan,*) "Problem in OdeIntB, boundary condition not fullfilled"
-    kont = -3
+    kont = -4
+    Call AddError(4)
     ystart(:)=y(:)
+    Iname = Iname - 1
     Return
    End If
 
    If (Abs(hnext) < hmin) Then
-    kont = -1
+    kont = -5
+    Call AddError(5)
     Write(ErrCan,*) "Problem in OdeIntB, stepsize smaller than minimum."
     If (ErrorLevel.Ge.1) Call TerminateProgram
+    Iname = Iname - 1
     Return
    End If
 
    If (Maxval(Abs(y)).Gt.1.e36_dp) Then
-    kont = -4
+    kont = -6
+    Call AddError(6)
     Write(ErrCan,*) "Problem in OdeIntB, max val > 10^36.",Maxval(Abs(y))
     If (ErrorLevel.Ge.1) Call TerminateProgram
+    Iname = Iname - 1
     Return
    End If
    h=hnext
   End Do
 
-  kont = -2
+  kont = -7
   Write(ErrCan,*) "Problem in OdeInt, too many steps."
   If (ErrorLevel.Ge.1) Call TerminateProgram
+  Call AddError(7)
+  Iname = Iname - 1
 
  End Subroutine odeintB
 
@@ -2037,6 +2074,9 @@ End If
   Integer :: nstp
   Real(dp) :: h,hdid,hnext,x,x_old, h_old
   Real(dp), Dimension(len) :: dydx, y, yscal, y_old
+
+  Iname = Iname + 1
+  NameOfUnit(Iname) = "odeintC"
 
   x=x1
   h=Sign(h1,x2-x1)
@@ -2058,11 +2098,16 @@ End If
    If ((x+h-x2)*(x+h-x1) > 0.0_dp) h=x2-x
 
    Call rkqs(y,dydx,x,h,eps,yscal,hdid,hnext,derivs,kont)
-   If (kont.Ne.0) Return
+   If (kont.Ne.0) Then
+    Iname = Iname - 1
+    Return
+   End If
+
 
    If (((y(1)-y(2)).Lt.0._dp).And.(Abs(y(1)-y(2)).Lt.eps)) Then
     ystart(:)=y(:)
     xout = x
+    Iname = Iname - 1
     Return
    Else If (y(1).Lt.y(2)) Then
     y = y_old
@@ -2082,20 +2127,26 @@ End If
 
    If ((x-x2)*(x2-x1) >= 0.0_dp) Then
     Write(ErrCan,*) "Problem in OdeIntC, boundary condition not fullfilled"
-    kont = -3
+    kont = -8
+    Call AddError(8)
+    Iname = Iname - 1
     ystart(:)=y(:)
     Return
    End If
 
    If (Abs(hnext) < hmin) Then
-    kont = -1
+    kont = -9
+    Call AddError(9)
+    Iname = Iname - 1
     Write(ErrCan,*) "Problem in OdeIntC, stepsize smaller than minimum."
     If (ErrorLevel.Ge.1) Call TerminateProgram
     Return
    End If
 
    If (Maxval(Abs(y)).Gt.1.e36_dp) Then
-    kont = -4
+    kont = -10
+    Call AddError(10)
+    Iname = Iname - 1
     Write(ErrCan,*) "Problem in OdeIntC, max val > 10^36.",Maxval(Abs(y))
     If (ErrorLevel.Ge.1) Call TerminateProgram
     Return
@@ -2103,9 +2154,11 @@ End If
    h=hnext
   End Do
 
-  kont = -2
+  kont = -11
   Write(ErrCan,*) "Problem in OdeInt, too many steps."
   If (ErrorLevel.Ge.1) Call TerminateProgram
+  Call AddError(11)
+  Iname = Iname - 1
 
  End Subroutine odeintC
 
@@ -2241,7 +2294,8 @@ End If
    Write (ErrCan,*) 'Error in Subroutine '//NameOfUnit(Iname)
    Write (ErrCan,*) 'Dimensions to not match: ',N1,N2,N3
    If (ErrorLevel.Ge.-1) Call TerminateProgram
-   kont = -7
+   kont = -15
+   Call AddError(15)
    Iname = Iname - 1
    Return 
   End If
@@ -2287,7 +2341,8 @@ End If
    End Do
   End Do
   If (test(1).Gt.0._dp) Then
-   If ( (test(2)/test(1)).Gt.MinimalPrecision) kont = -9
+   If ( (test(2)/test(1)).Gt.MinimalPrecision) kont = -16
+   Call AddError(16)
   End If
 
   Deallocate(AR,WR,Work)
@@ -2355,7 +2410,8 @@ End If
    xnew=x+h
 
    If (xnew == x) Then
-    kont = -5
+    kont = -12
+    Call AddError(12)
     Write(ErrCan,*) "Problem in rkqs, stepsize underflow"
     If (ErrorLevel.Ge.1) Call TerminateProgram
     Return
@@ -2558,7 +2614,8 @@ End If
   If (n.Ne.Size(e)) Then
    Write(ErrCan,*) "Error in tqli",n,Size(e)
    If (ErrorLevel.Gt.-2) Call TerminateProgram
-   kont = -10
+   kont = -17
+   Call AddError(17)
   End If
 
   If (Present(z)) Then
@@ -2566,7 +2623,8 @@ End If
    If ((n.Ne.Size(z,dim=1)).Or.(n.Ne.Size(z,dim=2)) ) Then
     Write(ErrCan,*) "Error in tqli",n,Size(z,dim=1),Size(z,dim=2)
     If (ErrorLevel.Gt.-2) Call TerminateProgram
-    kont = -11
+    kont = -17
+    Call AddError(17)
    End If
   End If
 
@@ -2582,7 +2640,8 @@ End If
       If (m == l) Exit iterate
       If (iter == 30) Then
        Write(ErrCan,*) "Problem in tqli, too many iterations"
-       kont = -12
+       kont = -18
+       Call AddError(18)
        Return
       End If
       iter=iter+1

@@ -6,8 +6,8 @@ F90 = ifort
 LFlagsB = -O  
 LFlagsB = -g   
 comp = -c -O -fmod=${Mdir} -I${InDir} 
-comp = -c -O -mod ${Mdir} -I${InDir} 
 comp = -c -g -mod ${Mdir} -I${InDir} 
+comp = -c -O -mod ${Mdir} -I${InDir} 
 name = ../lib/libSPheno.a
 .SUFFIXES : .o .ps .f90 .F90 .a
 bin/SPheno: ${name} SPheno3.o
