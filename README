@@ -1,0 +1,258 @@
+This are short instructions for compiling and running the program SPheno,
+version 3.0.beta
+Necessary requirements are a f90/f95 compiler and the gmake utility.
+The following compilers compile SPheno sucessfully:
+NAG f95, INTEL ifc and ifort (version higher than 8.), g95, 
+PGI pgf90, Lahey/Fujitsu Fortran 95, 
+A free f95 compiler for Linux can be obtained from the intel home page: 
+http://www.intel.com/software/products/compilers/flin/flinux.htm) 
+
+ 
+I) Content of the package
+The package consists of the following files fortran 90 modules:
+ SPheno.f90 .................... main program containing also the input/output
+                                 routines
+ BranchingRatios.f90 ........... module for the calculation of the decay widths
+                                 and branching ratios of SUSY particles and
+                                 Higgs bosons
+ Chargino3.f90 ................. module, containing routines for the
+                                 calculation of three-body decays of
+                                 charginos
+ Control.f90 ................... module containing routines for warning and
+                                 error handling
+ Couplings.f90 ................. module, containing routines for the
+                                 calculation of the couplings
+ DecayFunctions.f90 ............ module, containing generic routines for
+                                 the calculation of two-body decays
+ EplusEminusProduction.f90 ..... module, containing routines for the
+                                 calculation of the production cross sections
+                                 in e+ e- annihilation
+ Gluino3.f90 ................... module, containing routines for the
+                                 calculation of three-body decays of the gluino
+ LoopCouplings.f90 ............. module, containing routines for the 
+                                 calculation of the running couplings
+ LoopFunctions.f90 ............. module, contining 1-loop and 2-loop functions
+ LoopMasses.f90 ................ module, containing the routines for the
+                                 calculation of the loop masses
+ LowEnergy.f90 ................. module, containing routines for the
+                                 calculation of low energy observables
+ Mathematics.f90 ............... module, containing numerical routines
+ MSSM_data.f90 ................. module containing variables concerning
+                                 SUSY parameters, masses, decay widths and
+                                 branching ratios
+ Neutralino3.f90 ............... module, containing routines for the
+                                 calculation of three-body decays of
+                                 neutralinos
+ RGEs.f90 ... .................. module, containing the RGEs
+ StandardModel.f90 ............. module, storing the Standard Model parameters
+ Stop3.f90 ..................... module, containing routines for the
+                                 calculation of three-body decays of
+                                 the lighter stop
+ Sugra.f90 ..................... module, containing the routines for setting
+                                 the boundary conditions, controlling the
+                                 running of the parameters as well as 
+                                 calculating the spectrum
+ SusyDecays.f90 ................ module, containing routines for the
+                                 calculation of all two-body decays
+                                 of supersymmetric particles and Higgs bosons
+ SusyMasses.f90 ................ module, containing the routines for the
+                                 calculation of supersymmetric masses at
+                                 tree level 
+ ThreeBodyPhaseSpace.f90 ....... module, containing routines for the
+                                 calculation of the phase space integrals
+                                 for three-body decays of fermions
+ ThreeBodyPhaseSpaceS.f90...... module, containing routines for the
+                                calculation of the phase space integrals
+                                for three-body decays of scalars
+ TwoLoopHiggsMass.f90 ......... module, containing the 2-loop routines for
+                                the calculation of neutral Higgs boson
+                                masses and mu
+In addition the following set of input file exists in the subdirectory
+SPheno3.beta/input:
+ LesHouches.in ........ SPA1a' input file (same as LesHouches.in.mSugra)
+ LesHouches.in.AMSB ... AMSB input file
+ LesHouches.in.GMSB ... GMSB input file
+
+The package includes also sample output data corresponding to the
+input files specified above, denoted by SPheno.out.xxx and
+SPheno.spc.xxx, where xxx stands for any of the models above in the
+directory SPheno3.beta/input.
+
+II) Installation:
+   1) Please adopt the Makefile according to your f90/f95 compiler. The 
+      Makefile is written for the NAC f95 compiler.
+      On alpha machines, the compiler stops sometimes giving as reason 
+      too small memory. In this case change the "-O" option to "-g" which
+      worked up to now in all known cases.
+   2) Run gmake.
+      This will compile the SPheno and run it once. The output will
+      be written to two files:
+      - SPheno.out containg all information about masses, mixing matrices,
+        decay widths, branching ratios and production cross sections.
+        The numbers should be identical to the ones given in the file
+        SPheno.out.mSugra provided you did not change the file 
+        Highscale.in
+      - Messages.out containing warnings and error messages and it should
+        be empty.
+   3) The library libSPheno.a is stored in the subdirectory lib.
+
+III) Running the program for different high scale models
+ The easiest way is to copy the corresponding Highscale.in.xxx file to
+ Highscale.in (xxx stands for the model considered, see above) and change the
+ numbers according to your needs. Various models for Highscale.in.xxx are
+ in the subdirectory code. 
+
+IV) The manuals can be obtained from: 
+  http://theorie.physik.uni-wuerzburg/~porod/doc/SPheno.ps
+  http://theorie.physik.uni-wuerzburg/~porod/doc/SPheno3.ps
+
+V) In case of problems: please send an email to porod@physik.unizh.ch
+explaining the problem. Useful informations is in general contained in
+the file Messages.out; moreover, you should provide me with the input files
+used so that I can try to repeat the run and to decect the source of the 
+problem.
+
+Have fun,
+
+Werner Porod
+
+History:
+12.01.08: including now low energy versions of the NMSSM and bilinear
+          R-parity breaking 
+22.12.07: including a restricted version of SLHA2, see SPheno3.ps
+          for details
+24.07.06: bug in the calculation of b->s gamma: the order of the u-squark masses did not correspond to
+          the order of the eigenvectors (thanks to Sasha Belyaev)
+11.05.06: adding a missing exit statement after the warning for numerical problems in the
+          calculation of mu in LoopMassesMSSM (thanks to Frank Meisel)
+23.03.06: correcting two bugs in the (g-2)_muon routine, which nearly canceled each other
+          except for special parameter combinations.
+          giving now a_mu in the output instead of (g-2)_muon 
+21.02.06: giving now complete rho-parameter instead of the 3rd generation
+          sfermion contribution
+10.02.06: correcting F-term contributions due to the sneutrino-slepton quartic
+          coupling
+09.01.06: there have been still a few calls in the routine NeutralinoThreeBodyDecays
+          where the total width of intermediate states have been non-zero indpendent
+          if the flag check required them to be zero. Fixed now. 
+16.09.05: replacing stop statements by 'Call TerminateProgram' to make
+          debugging easier
+02.09.05: - bug in the calculation of the H+ H- cross section due to incorrect
+            setting of sinW2 in the H+ H- z coupling
+22.08.05: correcting normalization in the routine RunningCouplings [in
+          module LoopCouplings]. This effects the cross sections for
+          squarks, smuons, staus and H+.
+27.07.05: correcting bug in the 1-loop 4-point function D27, effects
+          slightly the calculation of sin^2(theta^DR_W)
+30.05.05: fixing a bug in the Les Houches input for the general MSSM, which
+          was caused by an incorrect call to the error message system. 
+          In addition the Yukawas had not been calculated correctly. (thanks
+          to Huber Nieto)
+20.03.05: correcting a bug in LesHouches_Input: in case of comment between
+          input lines, the loop was left without reading the remaining data
+18.04.05: start to reorder the storage of public variables + directories
+          in view of planned extensions. As a first step there are four
+          pre-defined scales for the MSSM parameters: mZ, Q_EWSB, m_nu_R
+          and scale of the high scale model, see module MSSM_data 
+11.02.04: correcting bug in 2-loop part of A_u and M^2_Q (thanks to Juergen Reuter)
+20.12.04: fixing bug in the calculation of m_tau^DR(mZ) and m_b^DR(mZ) where the
+          U(1) coupling already in the GUT normalization had been used instead
+          the usual hypercharge. Numerical effects are small except for very
+          large tan(beta)
+10.12.04: fixing a bug in the calculation of the sin^2(theta_W^DR)
+05.10.04: fixing bug for e+ e- -> Z h, Z H
+12.09.04: improving the numerical accuracy in the routine LoopMasses
+          by checking that also the DR vev changes less then required
+          precision
+07.09.04: improving check for on-shell states in 3-body decays
+14.08.04: implementing the possiblity to calculate cross sections for
+          several energies and/or polarisation combinations
+03.07.04: taking out several unused routines from module SusyMasses
+01.07.04: in routine CalculateCrossSections (module EplusEminusProduction) the 
+          'off-diagonal' cross sections for sfermions and charginos have only
+          been calculated for one combination. This was o.k. for unpolarized
+          beams but for polarized beams this is implies missing information.
+          This also implied a small modification of the routine WriteCrossSection
+          in module InputOutput
+15.06.04: there seems to be a bug in the QCD corrections of H->q \bar{q}
+          (thanks to M. Hirsch for pointing this out). Using therefore
+          the approximate formula for the moment
+30.05.04: improving the calculation of the on-shell masses in module LoopMasses
+          by putting loops which depend on the required preicsion instead of
+          a second iteration. This concerns the outer momentum dependence of
+          the self energies.
+25.05.04: - in moduel InputOutput
+             - LesHouches_in: - the gaugino masses in the generalMSSM were not
+                                written in correctly (Block EXTPAR)
+                              - taking alpha_ew(mZ) as input
+             - LesHouches_out and WriteOutput0: adding new decay modes for
+               Higgs bosons
+29.04.04: new algorithm for the function CLi2 in module Mathematics to
+          get numerical stable results for large modulus of the argument
+13.04.04: adding functiong Alpha_MSbar in module LoopCouplings, is needed
+          to correctly handle the SLHA format
+06.04.04: - including the decays of Higgs bosons in a real and virtual
+            gauge boson
+          - including the decay of Higgs bosons into two gluons
+          - calculating the couplings at the Q=mass of decaying particle 
+28.03.04: fixing bug in the MSSM model, tan(beta) is now taken at the
+          scale Q and not at mZ
+08.03.04: implementing the last parts of the Les Houches Standard
+25.02.04: - including latest version of 2-loop Higgs corrections provided
+            by Pietro Slavich
+          - correcting bug in the boundary conditions of the AMSB scenario
+05.01.04: - correcting bugs in the Higgs self energies (thanks to Pietro
+            Slavich)
+          - correcting bug in the stop self energies, part of the gluino
+            loop had been wrong
+09.12.03: reducing the electroweak input to G_F, m_Z and alpha_ew;
+          m_W and sin(theta_W) are now output
+08.12.03: taking running masses as in but for the 5 light quarks,
+          using 4-loop RGEs for the evolution up to m_Z
+05.12.03: - calculation of Yukawas at m_Z is now done using running masses
+            at m_Z
+          - changing slightly the calculation of the running masses
+24.11.03: including decay neutralino_j -> neutralino_i photon
+07.11.03: adding general MSSM to allow for computation of branching ratios
+          and cross sections if 'only' low energy parameters are provided
+02.10.03: Correcting a bug in the 2-loop calculation of the Higgs mass in
+          the routines provided Pietro Slavich (has been reported by him)
+16.09.03: Merging output for 2- body and 3-body decay modes in in common arrays
+          This simplifies life for the Les Houches output
+25.08.03: - bug fix in a few couplings for the process
+            stop_1 -> W b chi^0_i, can change in some case the partial
+            widths by 40%, in general a 10% effect
+24.08.03: - Including gluino -> neutralino_i gluon
+          - allow for the possiblity to calculate 2-body and 3-body
+            decay modes of the gluino          
+23.08.03: improving output for gluino decays
+22.08.03: Fixing bug in the decay gluino -> stop c
+21.07.03: LoopMasses.f90, bug fix in the 2-loop contribution to m_t
+14.07.03: BranchingRatios.f90: transfered a wrong W-l-nu coupling to
+          the chargino 3-body decays (thanks to M.Muehlleitner and
+          Y.Mambrini)
+03.07.03: Stop contribution to b->s gamma contained bug, changes to
+          the branching ratio up to 30\%.
+04.06.03: The file EplusEminusProduction.f90 contained some F90 extensions.
+          They have been changed to be in agreement with the standard.
+          (Thanks to A. Belyaev for pointing this out)
+28.05.03: including alpha_b akpha_t a+ alpha_b^2 corrections in
+          the 2-loop part for tadpoles and neutral Higgs bosons
+          (Thanks to P.Slavich for providing a F77 source code) 
+17.05.03: in routine CalculateBR_MSSM the variable tanb has not been
+          set for the calculation of chi^0_1 -> gravition Z
+30.03.03: bug fix in the exeption handling, forgot to reset certain
+          parameters in routine LoopMasses after an unphysical situation
+          had been encountered
+26.03.03: bug fix in the 2-loop part of the M^2_Q RGEs, O(10^-4) effect
+17.03.03: bug fix in the Yukawa part of the quartic selfinteraction of
+          sfermions
+30.01.02: in module LoopMasses, routine Sigma_Fermion:
+  the 2-loop gluonic contributions contained the logs with wrong
+  coefficients
+28.01.03: in module LoopMasses, routine CharginoMass_Loop:
+  the module variables mC_1L and mC2_1L instead of the local variables
+  mC1L and mC21L had been used, this gave in same cases problems on ALPHA
+  machines
+25.01.03: in module ThreeBodyPhaseSpace, routine IntegrateScalarSS:
+    a bug had been fixed giving wrong results in case of small phase space
