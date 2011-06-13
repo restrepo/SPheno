@@ -247,9 +247,11 @@ Contains
   End Do
 
   Do i1=1,3
-   phaseM = v3(i1,i1)   / Abs( v3(i1,i1) )
-   v3(i1,:) = Conjg(phaseM) * v3(i1,:)
-   u3(i1,:) = phaseM * u3(i1,:)
+   If (Abs( v3(i1,i1) ).ne.0._dp) then
+    phaseM = v3(i1,i1)   / Abs( v3(i1,i1) )
+    v3(i1,:) = Conjg(phaseM) * v3(i1,:)
+    u3(i1,:) = phaseM * u3(i1,:)
+   End If
   End Do
 
   If (ierr.Ne.0) Then

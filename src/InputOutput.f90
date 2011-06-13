@@ -31,7 +31,7 @@ Real(dp), Save, Private :: SigMin=1.e-3_dp
 ! contains information on possible inconsitencies in the input
 Integer, Save, Private :: in_kont(2)
 ! version number
-Character(len=8), Save, Private :: version="v3beta48"
+Character(len=8), Save, Private :: version="v3beta50"
 ! name of 'input-program'
 Character(len=40), Private :: sp_info 
 ! tempory variables for Higgs mixing in case of NMSSM
@@ -1141,10 +1141,28 @@ Contains
 
     Else If (read_line(7:11).Eq."MWMIN") Then
      Call ReadMatrixC(99, 3, MWM30,0, "MWM3", kont)
+     MWM3_gut = MWM30
+     MWM3Running(1,:,:) = MWM30
+     MWM3Running(1,3,:) = 0._dp
+     MWM3Running(1,2,:) = 0._dp	
+     MWM3Running(1,:,3) = 0._dp
+     MWM3Running(1,:,2) = 0._dp	
+     MWM3Running(2,:,:) = MWM30
+     MWM3Running(2,3,:) = 0._dp
+     MWM3Running(2,:,3) = 0._dp		
+     MWM3Running(3,:,:) = MWM30
+
      MGM3 = MWM30
      MWM3 = MWM30
      MBM3 = MWM30
      MXM3 = MWM30
+
+     Do i1=1,3
+      MassMWM3(i1) = Real(MWM30(i1,i1),dp)
+      MassMGM3(i1) = Real(MWM30(i1,i1),dp)
+      MassMBM3(i1) = Real(MWM30(i1,i1),dp)
+      MassMXM3(i1) = Real(MWM30(i1,i1),dp)
+     End Do
 
     Else If (read_line(7:13).Eq."IMYB3IN") Then
      If (i_cpv.Lt.2) Then
@@ -2685,6 +2703,7 @@ Contains
         MT15_mH3 = wert
         MZ15_mH3 = wert
        End If
+       MTM_GUT = MTM0
       Else If (i_par.Eq.202) Then 
        If (i_c.Eq.0) Lambda1_gut = Cmplx(wert, Aimag(Lambda1_gut),dp)
        If (i_c.Eq.1) Lambda1_gut = Cmplx(Real(Lambda1_gut,dp), wert,dp)
@@ -3506,20 +3525,20 @@ Contains
      Write(io_L,106) "Block Higgs3 Q=",m_GUT,"# (GUT scale)"
      Write(io_L,101) 1,Real(MWM3_gut(1,1),dp),"# MWM      "
      Write(io_L,106) "Block Higgs3 Q=",Abs(MWM30(1,1)),"# (Triplet Scale 1 )"
-     Write(io_L,101) 1,Abs(MWM30(1,1)),"# MWM   "
-     Write(io_L,101) 2,Abs(MGM3(1,1)),"# MGM   "
-     Write(io_L,101) 3,Abs(MBM3(1,1)),"# MBM   "                    
-     Write(io_L,101) 4,Abs(MXM3(1,1)),"# MXM   "          
+     Write(io_L,101) 1,MassMWM3(1),"# MWM   "
+     Write(io_L,101) 2,MassMGM3(1),"# MGM   "
+     Write(io_L,101) 3,MassMBM3(1),"# MBM   "                    
+     Write(io_L,101) 4,MassMXM3(1),"# MXM   "          
      Write(io_L,106) "Block Higgs3 Q=",Abs(MWM30(2,2)),"# (Triplet Scale 2 )"
-     Write(io_L,101) 1,Abs(MWM30(2,2)),"# MWM   "
-     Write(io_L,101) 2,Abs(MGM3(2,2)),"# MGM   "
-     Write(io_L,101) 3,Abs(MBM3(2,2)),"# MBM   "                    
-     Write(io_L,101) 4,Abs(MXM3(2,2)),"# MXM   "          
+     Write(io_L,101) 1,MassMWM3(2),"# MWM   "
+     Write(io_L,101) 2,MassMGM3(2),"# MGM   "
+     Write(io_L,101) 3,MassMBM3(2),"# MBM   "                    
+     Write(io_L,101) 4,MassMXM3(2),"# MXM   "          
      Write(io_L,106) "Block Higgs3 Q=",Abs(MWM30(3,3)),"# (Triplet Scale 3 )"
-     Write(io_L,101) 1,Abs(MWM30(3,3)),"# MWM   "
-     Write(io_L,101) 2,Abs(MGM3(3,3)),"# MGM   "
-     Write(io_L,101) 3,Abs(MBM3(3,3)),"# MBM   "                    
-     Write(io_L,101) 4,Abs(MXM3(3,3)),"# MXM   "          
+     Write(io_L,101) 1,MassMWM3(3),"# MWM   "
+     Write(io_L,101) 2,MassMGM3(3),"# MGM   "
+     Write(io_L,101) 3,MassMBM3(3),"# MBM   "                    
+     Write(io_L,101) 4,MassMXM3(3),"# MXM   "          
 
      Call WriteMatrixBlockC(io_L,3,Yb30_h24(1,:,:),Abs(MWM30(1,1)) &
                          & ,"YB","Triplet scale 1","Y_(b,")
@@ -3549,25 +3568,34 @@ Contains
      Call WriteMatrixBlockC(io_L,3,YT_h15_gut,m_GUT &          ! symmetric
                          & ,"YT","GUT scale","Y_(T,", .True.)  ! matrix
 
+     Write(io_L,106) "Block Lambda Q=",m_GUT,"# (GUT Scale)"
+     Write(io_L,101) 1,Real(Lambda1_GUT,dp),"# Lambda1"
+     Write(io_L,101) 2,Real(Lambda2_GUT,dp),"# Lambda2"
+     If ((Aimag(Lambda10).Ne.0._dp).Or.(Aimag(Lambda20).Ne.0._dp)) Then
+      Write(io_L,106) "Block IMLambda Q=",m_GUT,"# (GUT Scale)"
+      Write(io_L,101) 1,Aimag(Lambda1_GUT),"# Lambda1"
+      Write(io_L,101) 2,Aimag(Lambda2_GUT),"# Lambda2"
+     End If
+
      Write(io_L,106) "Block Higgs3 Q=",m_GUT,"# (GUT scale)"
      Write(io_L,101) 1,Abs(MTM_gut),"# MWM      "
-     Write(io_L,106) "Block Higgs3 Q=",Abs(MTM0),"# (Triplet Scale)"
+     Write(io_L,106) "Block Higgs3 Q=",Abs(MTM_GUT),"# (Triplet Scale)"
      Write(io_L,101) 1,Abs(MTM),"# MTM   "
      Write(io_L,101) 2,Abs(MZM),"# MZM   "
      Write(io_L,101) 3,Abs(MSM),"# MSM   "                    
      
-     Call WriteMatrixBlockC(io_L,3,YT_h15,Abs(MTM0) &            ! symmetric
+     Call WriteMatrixBlockC(io_L,3,YT0_h15,Abs(MTM_GUT) &            ! symmetric
                          & ,"YT","triplet scale","Y_(T,", .True.)! matrix
-     Call WriteMatrixBlockC(io_L,3,YS_h15,Abs(MTM0) &            ! symmetric
+     Call WriteMatrixBlockC(io_L,3,YS0_h15,Abs(MTM_GUT) &            ! symmetric
                          & ,"YS","triplet scale","Y_(S,", .True.)! matrix
-     Call WriteMatrixBlockC(io_L,3,YZ_h15,Abs(MTM0) &
+     Call WriteMatrixBlockC(io_L,3,YZ0_h15,Abs(MTM_GUT) &
                          & ,"YZ","triplet scale","Y_(Z,")
 
-     Write(io_L,106) "Block Lambda Q=",Abs(MTM0),"# (Triplet Scale)"
+     Write(io_L,106) "Block Lambda Q=",Abs(MTM_GUT),"# (Triplet Scale)"
      Write(io_L,101) 1,Real(Lambda10,dp),"# Lambda1"
      Write(io_L,101) 2,Real(Lambda20,dp),"# Lambda2"
      If ((Aimag(Lambda10).Ne.0._dp).Or.(Aimag(Lambda20).Ne.0._dp)) Then
-      Write(io_L,106) "Block IMLambda Q=",Abs(MTM0),"# (Triplet Scale)"
+      Write(io_L,106) "Block IMLambda Q=",Abs(MTM_GUT),"# (Triplet Scale)"
       Write(io_L,101) 1,Aimag(Lambda10),"# Lambda1"
       Write(io_L,101) 2,Aimag(Lambda20),"# Lambda2"
      End If
@@ -3827,7 +3855,7 @@ Contains
   Write(io_L,107) 2,2,Yd(2), "# Y_s(Q)^DRbar"
   Write(io_L,107) 3,3,Yd(3), "# Y_b(Q)^DRbar"
 
-  Write(io_L,106) "Block Yl Q=",Q,"# (SUSY scale)"
+  Write(io_L,106) "Block Ye Q=",Q,"# (SUSY scale)"
   Write(io_L,107) 1,1,Yl(1), "# Y_e(Q)^DRbar"
   Write(io_L,107) 2,2,Yl(2), "# Y_mu(Q)^DRbar"
   Write(io_L,107) 3,3,Yl(3), "# Y_tau(Q)^DRbar"
@@ -7870,21 +7898,41 @@ Contains
   End If
 
   If (LWrite_LHC_Observables) Then
-   Do i1=1,6
-    if (id_sle(i1).eq.1000011) then
-     mSle(2) = mSlepton(i1)
-    else if (id_sle(i1).eq.2000011) then
-     mSle(1) = mSlepton(i1)
-    else if (id_sle(i1).eq.1000013) then
-     mSle(4) = mSlepton(i1)
-    else if (id_sle(i1).eq.2000013) then
-     mSle(3) = mSlepton(i1)
-    else if (id_sle(i1).eq.1000015) then
-     mSle(5) = mSlepton(i1)
-    else if (id_sle(i1).eq.2000015) then
-     mSle(6) = mSlepton(i1)
-    end if
+   If (HighScaleModel.Eq."RPexplicit") then
+    Do i1=1,7
+     if (Abs(id_sp(i1)).eq.1000011) then
+      mSle(2) = mSpm8(i1)
+     else if (Abs(id_sp(i1)).eq.2000011) then
+      mSle(1) = mSpm8(i1)
+     else if (Abs(id_sp(i1)).eq.1000013) then
+      mSle(4) = mSpm8(i1)
+     else if (Abs(id_sp(i1)).eq.2000013) then
+      mSle(3) = mSpm8(i1)
+     else if (Abs(id_sp(i1)).eq.1000015) then
+      mSle(5) = mSpm8(i1)
+     else if (Abs(id_sp(i1)).eq.2000015) then
+      mSle(6) = mSpm8(i1)
+     end if
+    End do
+   Else ! conserved R-parity
+    Do i1=1,6
+     if (id_sle(i1).eq.1000011) then
+      mSle(2) = mSlepton(i1)
+     else if (id_sle(i1).eq.2000011) then
+      mSle(1) = mSlepton(i1)
+     else if (id_sle(i1).eq.1000013) then
+      mSle(4) = mSlepton(i1)
+     else if (id_sle(i1).eq.2000013) then
+      mSle(3) = mSlepton(i1)
+     else if (id_sle(i1).eq.1000015) then
+      mSle(5) = mSlepton(i1)
+     else if (id_sle(i1).eq.2000015) then
+      mSle(6) = mSlepton(i1)
+     end if
+    End do
+   End If ! R-parity
 
+   Do i1=1,6
     if (id_su(i1).eq.1000002) then
      mSu(2) = mSup(i1)
     else if (id_su(i1).eq.2000002) then
@@ -7914,10 +7962,17 @@ Contains
     end if
    end do
 
-   call Calc_LHC_observables(mN, N, mC, U, V, mSle, Rslepton        &
+   If (HighScaleModel.Eq."RPexplicit") then
+    Call Calc_LHC_observables(mN7(4:7), N(1:4,1:4), mC, U, V, mSle, Rslepton &
+      & , mSd, RSdown, mSu, RSup, mGlu, PhaseGlu, mS0, RS0, mP0, RP0         &
+      & , mSpm, RSpm, gauge, Y_u, Y_d, A_u, A_d, mu, vevSM, .False. & ! GenerationMixing &
+      & , LHC_observ)
+   Else ! conserved R-parity
+    call Calc_LHC_observables(mN, N, mC, U, V, mSle, Rslepton        &
       & , mSd, RSdown, mSu, RSup, mGlu, PhaseGlu, mS0, RS0, mP0, RP0     &
       & , mSpm, RSpm, gauge, Y_u, Y_d, A_u, A_d, mu, vevSM, .False. & ! GenerationMixing &
       & , LHC_observ)
+   End If ! R-parity
 
    Write(io_L,100) "Block LHCobservables # edge observables for LHC"
    i_zaehl = 1
@@ -11723,7 +11778,7 @@ Contains
   Integer :: n_n, n_c, n_s0, n_p0, n_spm, n_sl, n_sn, n_sd, n_su, ds 
   Integer :: id_n(8), id_sp(7), id_sm(7), id_S0(6), id_P0(5), id_c(5) &
       & , id_snu(3), i_zaehl, id_sle(6), id_f, id_fp, id_su(6), ii, jj &
-      & , id_sd(6), pos
+      & , id_sd(6), pos, id_check(2)
   Integer, Parameter ::id_A0 = 36, id_Hp = 37                            &
       & , id_W = 24, id_Z = 23, id_ph = 22, id_gl = 21                   &
       & , id_l(3) = (/ 11, 13, 15 /), id_nu(3) = (/ 12, 14, 16 /)        &
@@ -11732,7 +11787,7 @@ Contains
   Logical :: use_flavour_states=.True.
   Real(dp) :: T3, YL, YR, ML, MR, mSf(2), mSf2(2)
   Complex(dp) :: Rsf(2,2), A, Y
-
+  
   Iname = Iname + 1
   NameOfUnit(Iname) = "Calculate_Omega_h_sq"
 
@@ -12392,6 +12447,21 @@ Contains
       mat6R(ii,:) = 0._dp
       mat6R(:,jj) = 0._dp
      End Do
+     Do ii=1,6 ! check ordering of sbottoms
+      If (id_sd(ii).Eq.1000005)  id_check(1) = ii
+      If (id_sd(ii).Eq.2000005)  id_check(2) = ii
+     End Do
+     If (id_check(1).Gt.id_check(2)) Then ! switch ordering
+      ii = id_check(2)  ! the lighter one
+      id_sd(ii) = 1000005
+      c_sd(ii) = "~b_1"
+      ii = id_check(1)  ! the heavier one
+      id_sd(ii) = 2000005
+      c_sd(ii) = "~b_2"
+     End If
+     Do ii=1,6
+      Write(io_L,102) id_sd(ii),msdown(ii),"# "//Trim(c_sd(ii))
+     End Do
      Do ii=1,6
       Write(io_L,102) id_sd(ii),msdown(ii),"# "//Trim(c_sd(ii))
      End Do
@@ -12422,6 +12492,18 @@ Contains
       mat6R(ii,:) = 0._dp
       mat6R(:,jj) = 0._dp
      End Do
+     Do ii=1,6 ! check ordering of stops
+      If (id_su(ii).Eq.1000006)  id_check(1) = ii
+      If (id_su(ii).Eq.2000006)  id_check(2) = ii
+     End Do
+     If (id_check(1).Gt.id_check(2)) Then ! switch ordering
+      ii = id_check(2)  ! the lighter one
+      id_su(ii) = 1000006
+      c_su(ii) = "~t_1"
+      ii = id_check(1)  ! the heavier one
+      id_su(ii) = 2000006
+      c_su(ii) = "~t_2"
+     End If
      Do ii=1,6
       Write(io_L,102) id_su(ii),msup(ii),"# "//Trim(c_su(ii))
      End Do
@@ -12579,6 +12661,20 @@ Contains
        mat6R(ii,:) = 0._dp
        mat6R(:,jj) = 0._dp
       End Do
+      Do ii=1,6 ! check ordering of staus
+       If (id_sle(ii).Eq.1000015)  id_check(1) = ii
+       If (id_sle(ii).Eq.2000015)  id_check(2) = ii
+      End Do
+      If (id_check(1).Gt.id_check(2)) Then ! switch ordering
+       ii = id_check(2)  ! the lighter one
+       id_sle(ii) = 1000015
+       c_sle(ii) = "~tau_1-"
+       c_slep(ii) = "~tau_1+"
+       ii = id_check(1)  ! the heavier one
+       id_sle(ii) = 2000015
+       c_sle(ii) = "~tau_2-"
+       c_slep(ii) = "~tau_2+"
+      End If
       Do ii=1,6
        Write(io_L,102) id_sle(ii),mslepton(ii),"# "//Trim(c_sle(ii))
       End Do

@@ -926,7 +926,19 @@ Complex(dp) :: RSup_in(6,6), mix(6,6)
     & , delta, g1, kont)
 
    converge = .False.
-   If (.Not.UseFixedScale) Scale_Q = mZ ! define this as default if not set before
+   If (.Not.UseFixedScale) Then
+    If (GenerationMixing) Then
+     Scale_Q = 1._dp
+     Do i1=1,6
+      If ((Abs(Rsup(i1,3))**2+Abs(Rsup(i1,6))**2).Gt.0.6_dp) &
+              & Scale_Q = Scale_Q*mSup(i1)
+     End Do
+     Scale_Q = Sqrt(Scale_Q)
+    Else
+     Scale_Q = Sqrt(mSup(5)*mSup(6))
+    End If
+   End If
+
    Do i1=1,n_run
     tz = Log(Scale_Q/mZ)
     dt = tz / 50._dp
@@ -994,6 +1006,19 @@ Complex(dp) :: RSup_in(6,6), mix(6,6)
      Exit
     Else
      mass_old = mass_new
+    End If
+
+    If (.Not.UseFixedScale) Then
+     If (GenerationMixing) Then
+      Scale_Q = 1._dp
+      Do i2=1,6
+       If ((Abs(Rsup(i2,3))**2+Abs(Rsup(i2,6))**2).Gt.0.6_dp) &
+               & Scale_Q = Scale_Q*mSup(i2)
+      End Do
+      Scale_Q = Sqrt(Scale_Q)
+     Else
+      Scale_Q = Sqrt(mSup(5)*mSup(6))
+     End If
     End If
 
     gauge(1) = Sqrt(5._dp/3._dp) * gauge(1)
@@ -1084,6 +1109,7 @@ Complex(dp) :: RSup_in(6,6), mix(6,6)
     Write (ErrCan,*) "After",n_run,"iterations no convergence found"
     kont = -1200
    End If
+   Call SetRGEScale(scale_Q**2)
 
   Else If (HighScaleModel.Eq."MSSM1") Then
   ! MSSM parameters and masses at loop level, all parameters are given at
@@ -1290,6 +1316,7 @@ Complex(dp) :: RSup_in(6,6), mix(6,6)
     Write (ErrCan,*) "After",n_run,"iterations no convergence found"
     kont = -1200
    End If
+   Call SetRGEScale(scale_Q**2)
 
   Else If (HighScaleModel.Eq."pMSSM") Then
 
@@ -1481,6 +1508,7 @@ Complex(dp) :: RSup_in(6,6), mix(6,6)
     Write (ErrCan,*) "After",n_run,"iterations no convergence found"
     kont = -1200
    End If
+   Call SetRGEScale(scale_Q**2)
 
   Else If (HighScaleModel.Eq."MSSMtree") Then
    mP0 = mP0_T

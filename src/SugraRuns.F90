@@ -1381,9 +1381,11 @@ Contains
    Y_l_0 = Ye0_H15
    Y_d_0 = Yd0_H15
    Y_u_0 = Yu0_H15
-  Else If (Size(g1).Eq.129) Then ! Seesaw III (SARAH)
-   Call GToParameters129(g1, g10_H24,g20_H24,g30_H24, Yu0_H24, Yd0_H24, Ye0_H24 &
-    & , Yb3_H24,Yw3_H24,Yx3_H24,MWM3)
+
+  Else If (Size(g1).Eq.111) Then ! Seesaw III (SARAH)
+   Call GToParameters111(g1, g10_H24,g20_H24,g30_H24, Yu0_H24, Yd0_H24, Ye0_H24 &
+    & , Yb3_H24,Yw3_H24,Yx3_H24)
+
    gauge_0(1) = g10_H24   
    gauge_0(2) = g20_H24
    gauge_0(3) = g30_H24
@@ -2163,7 +2165,7 @@ Contains
 ! Florian Staub Seesaw II+III
 # ifdef SARAH
   Else If (Size(g2).Eq.353) Then
-   MTM_gut = MTM
+   MTM = MTM_GUT
    MSM = MTM
    MZM = MTM
    AMZM = AoY_l_0(1,1)*MTM  ! nachfragen
@@ -2191,7 +2193,7 @@ Contains
       & ,ms2_H15,msb2_H15,mz2_H15,mzb2_H15,Mi_0(1),Mi_0(2),Mi_0(3),g2)
 
   Else If (Size(g2).Eq.573) Then
-   MWM3_gut = MWM3
+   MWM3 = MWM3_gut
    MXM3 = MWM3
    MBM3 = MWM3
    MGM3 = MWM3
@@ -2212,7 +2214,7 @@ Contains
    AMBM3 = AMWM3
 
    Call ParametersToG555(g10_H24,g20_H24,g30_H24, Yu0_H24,Yd0_H24,Ye0_H24      &
-      & ,Yb3_H24,Yw3_H24,Yx3_H24,MWM3, mu_0,MXM3,MGM3, MBM3,A_u_0,A_d_0,A_l_0  & 
+      & ,Yb3_H24,Yw3_H24,Yx3_H24,mu_0,MXM3, MWM3,MGM3, MBM3,A_u_0,A_d_0,A_l_0  & 
       & ,AYb3_H24,AYw3_H24,AYx3_H24, B_0,AMXM3,AMWM3,AMGM3,AMBM3,M2_Q_0,M2_L_0 &
       & ,M2_H_0(1),M2_H_0(2),M2_D_0, M2_U_0,M2_E_0,mHw32,mHg32,mHb32,mHx32     & 
       & ,mHxb32,Mi_0(1),Mi_0(2),Mi_0(3),zero33c,g2)
@@ -3305,12 +3307,11 @@ Contains
   
   Integer:: i1, i2, SumI
   Real(dp) :: g1a(93), g2a(285), g5_a(59), g5_b(180), g1b(75), g2b(267) &
-      & , g1c(79), g2c(277), g1d(118), g2d(356), g1f(129), g2f(573)     &
+      & , g1c(79), g2c(277), g1d(118), g2d(356), g1f(111), g2f(573)     &
       & , g1g(117), g2g(353)
   Real(dp) :: tz, dt, t_out
   Real(dp) :: mudim, gGUT, g1_h(57), m_hi, m_lo, M15(3)
   Logical :: FoundUnification
-
 
   Real(dp), Parameter :: Umns(3,3) = Reshape(   Source = (/  &
       &    Sqrt2/Sqrt3, -ooSqrt2*ooSqrt3, -ooSqrt2*ooSqrt3   &
@@ -3318,6 +3319,11 @@ Contains
       &  , 0._dp ,       ooSqrt2,         -ooSqrt2 /), shape = (/3, 3/) )
   Real(dp), Parameter :: ZeroR2(2) = 0._dp
   Complex(dp), Dimension(3,3) :: mat3, UnuR, Ynu, Anu, Mr2
+
+  Complex(dp), Dimension(3,3) :: RotXl, RotXr, RotGl, RotGr, RotBl, RotBr &
+      & , RotWl, RotWr
+  Real(dp) :: EigMWM3(3),EigMBM3(3),EigMXM3(3), EigMGM3(3), test2(2)
+  Integer :: ierr
 
   Iname = Iname + 1
   NameOfUnit(Iname) = 'runRGE'
@@ -3343,7 +3349,7 @@ Contains
    m_lo = Abs(MWM30(1,1))
    FoundUnification = .False.
   Else If (HighScaleModel.Eq.'SEESAW_II_SARAH') Then
-   m_lo = Abs(MTM0)
+   m_lo = Abs(MTM_GUT)
    FoundUnification = .False.
 # endif SARAH
 ! Florian Staub Seesaw II+III
@@ -3818,8 +3824,16 @@ Contains
     End If ! UseFixedGUTScale
 
     Call GToCouplings(g1, gauge_H24, Ye_H24, Yd_H24, Yu_H24)
-    Call ParametersToG129(gauge_H24(1),gauge_H24(2),gauge_H24(3),Yu_H24,Yd_H24 &
-       & ,Ye_H24,Yb30_H24(3,:,:),Yw30_H24(3,:,:),Yx30_H24(3,:,:),MWM30(1,1),g1f)
+    Call ParametersToG111(gauge_H24(1),gauge_H24(2),gauge_H24(3),Yu_H24,Yd_H24 &
+       & ,Ye_H24,Yb30_H24(3,:,:),Yw30_H24(3,:,:),Yx30_H24(3,:,:),g1f)
+
+    NGHb3 = 3._dp
+    NGHg3 = 3._dp 
+    NGHw3 = 3._dp 
+    NGHx3 = 3._dp 
+    NGHxb3 = 3._dp 
+    ThresholdCrossed = 3
+
    Else
 
     Call GToCouplings(g1, gauge_H24, Ye_H24, Yd_H24, Yu_H24)
@@ -3831,34 +3845,42 @@ Contains
     If (TwoLoopRGE) Then
 
      gauge_h24(1) = gauge_h24(1) * (1._dp - oo16pi2 * gauge_h24(1)**2          &
-                 &                   * 5._dp/12._dp*Log(MXM3(1,1)/MWM30(1,1)) )
+                  &                  * 5._dp/2._dp*Log(MassMXM3(1)/MWM30(1,1)) )
      gauge_h24(2) = gauge_h24(2) * (1._dp - oo16pi2 * gauge_h24(2)**2          &
-                &                         * 0.5_dp *Log(MXM3(1,1)/MWM30(1,1)) )
+                &                     *( 1.5_dp *Log(MassMXM3(1)/MWM30(1,1))   &
+		&                      + 2._dp *Log(MassMWM3(1)/MWM30(1,1))) )
      gauge_h24(3) = gauge_h24(3) * (1._dp - oo16pi2 * gauge_h24(3)**2          &
-                &                       * (0.5_dp*Log(MXM3(1,1)/MWM30(1,1)) &
-                &                         + 3._dp*Log(MGM3(1,1)/MWM30(1,1)) ) )
+                &                       * (Log(MassMXM3(1)/MWM30(1,1)) &
+                &                         + 3._dp*Log(MassMGM3(1)/MWM30(1,1)) ) )
     End If
 
-    MWM3(1,1) = MWM30(1,1)
+    MWM3 = MWM3running(1,:,:)
 
-    Call ParametersToG129(gauge_H24(1),gauge_H24(2),gauge_H24(3),Yu_H24,Yd_H24 &
-      &  ,Ye_H24,Yb30_H24(1,:,:),Yw30_H24(1,:,:),Yx30_H24(1,:,:),MWM3,g1f)
+    NGHb3 = 1._dp
+    NGHg3 = 1._dp 
+    NGHw3 = 1._dp 
+    NGHx3 = 1._dp 
+    NGHxb3 = 1._dp 
+    ThresholdCrossed = 1 
+
+    Call ParametersToG111(gauge_H24(1),gauge_H24(2),gauge_H24(3),Yu_H24,Yd_H24 &
+      &  ,Ye_H24,Yb30_H24(1,:,:),Yw30_H24(1,:,:),Yx30_H24(1,:,:),g1f)
 
     m_lo = MWM30(1,1)
     If (MWM30(1,1).Ne.MWM30(2,2)) Then
      m_hi = MWM30(2,2)
      tz = Log(m_lo / m_hi)
      dt = - tz / 50._dp  
-     Call odeint(g1f, 129, tz, 0._dp, delta, dt, 0._dp, rge129a, kont)
+     Call odeint(g1f, 111, tz, 0._dp, delta, dt, 0._dp, rge111, kont)
 
-     Call GToParameters129(g1f,gauge_H24(1),gauge_H24(2),gauge_H24(3),Yu_H24 &
-       &  ,Yd_H24,Ye_H24,Yb30_H24(1,:,:),Yw30_H24(1,:,:),Yx30_H24(1,:,:),MWM3)
+     Call GToParameters111(g1f,gauge_H24(1),gauge_H24(2),gauge_H24(3),Yu_H24 &
+       &  ,Yd_H24,Ye_H24,Yb30_H24(1,:,:),Yw30_H24(1,:,:),Yx30_H24(1,:,:))
 
      m_lo = m_hi
     End If
 
-    Call ParametersToG129(gauge_H24(1),gauge_H24(2),gauge_H24(3),Yu_H24,Yd_H24 &
-       &  ,Ye_H24,Yb30_H24(2,:,:),Yw30_H24(2,:,:),Yx30_H24(2,:,:),MWM3,g1f)
+    Call ParametersToG111(gauge_H24(1),gauge_H24(2),gauge_H24(3),Yu_H24,Yd_H24 &
+       &  ,Ye_H24,Yb30_H24(2,:,:),Yw30_H24(2,:,:),Yx30_H24(2,:,:),g1f)
 
     !---------
     ! 2 -> 3
@@ -3871,7 +3893,7 @@ Contains
 
      tz = Log(m_lo/1.e15_dp)
      dt = - tz / 50._dp
-     Call odeintC(g1f, 129, tz, 0._dp, delta, dt, 0._dp, rge129a, t_out, kont)
+     Call odeintC(g1f, 111, tz, 0._dp, delta, dt, 0._dp, rge111, t_out, kont)
      If (kont.Eq.0) Then
       FoundUnification = .True.
       mGUT = 1.e15_dp * Exp(t_out)
@@ -3884,43 +3906,60 @@ Contains
       Return
      End If
 
-     Call GToParameters129(g1f,gauge_H24(1),gauge_H24(2),gauge_H24(3),Yu_H24    &
-       & ,Yd_H24,Ye_H24,Yb30_H24(2,:,:),Yw30_H24(2,:,:),Yx30_H24(2,:,:),MWM3)
-     Call ParametersToG129(gauge_H24(1),gauge_H24(2),gauge_H24(3),Yu_H24,Yd_H24 &
-       & ,Ye_H24,Yb30_H24(3,:,:),Yw30_H24(3,:,:),Yx30_H24(3,:,:),MWM30(1,1),g1f)
+     Call GToParameters111(g1f,gauge_H24(1),gauge_H24(2),gauge_H24(3),Yu_H24    &
+       & ,Yd_H24,Ye_H24,Yb30_H24(2,:,:),Yw30_H24(2,:,:),Yx30_H24(2,:,:))
+     Call ParametersToG111(gauge_H24(1),gauge_H24(2),gauge_H24(3),Yu_H24,Yd_H24 &
+       & ,Ye_H24,Yb30_H24(3,:,:),Yw30_H24(3,:,:),Yx30_H24(3,:,:),g1f)
+
+     NGHb3 = 3._dp
+     NGHg3 = 3._dp 
+     NGHw3 = 3._dp 
+     NGHx3 = 3._dp 
+     NGHxb3 = 3._dp 
+     ThresholdCrossed = 3 
 
     Else   
-     MWM3(2,2) = MWM30(2,2)
+     MWM3 = MWM3running(2,:,:)
     !-----------------------------------------------------
     ! adding shifts to gauge couplings
     !-----------------------------------------------------
      If (TwoLoopRGE) Then
       gauge_h24(1) = gauge_h24(1) * (1._dp - oo16pi2 * gauge_h24(1)**2         &
-                &                     * 5._dp/12._dp*Log(MXM3(2,2)/MWM30(2,2)) )
+                &                     * 5._dp/2._dp*Log(MassMXM3(2)/MWM30(2,2)) )
       gauge_h24(2) = gauge_h24(2) * (1._dp - oo16pi2 * gauge_h24(2)**2         &
-                &                       * 0.5_dp *Log(MXM3(2,2)/MWM30(2,2)) )
+                &                       *( 1.5_dp *Log(MassMXM3(2)/MWM30(2,2)) + &
+		&			2._dp *Log(MassMWM3(2)/MWM30(2,2))) )
       gauge_h24(3) = gauge_h24(3) * (1._dp - oo16pi2 * gauge_h24(3)**2         &
-                &                       * (0.5_dp*Log(MXM3(2,2)/MWM30(2,2)) &
-                &                         + 3._dp*Log(MGM3(2,2)/MWM30(2,2)) ) )
+                &                       * (Log(MassMXM3(2)/MWM30(2,2)) &
+                &                         + 3._dp*Log(MassMGM3(2)/MWM30(2,2)) ) )
 
      End If
-     Call ParametersToG129(gauge_H24(1),gauge_H24(2),gauge_H24(3),Yu_H24,Yd_H24&
-        &  ,Ye_H24,Yb30_H24(2,:,:),Yw30_H24(2,:,:),Yx30_H24(2,:,:),MWM3,g1f)
+
+     Call ParametersToG111(gauge_H24(1),gauge_H24(2),gauge_H24(3),Yu_H24,Yd_H24&
+        &  ,Ye_H24,Yb30_H24(2,:,:),Yw30_H24(2,:,:),Yx30_H24(2,:,:),g1f)
+
+     NGHb3 = 2._dp
+     NGHg3 = 2._dp 
+     NGHw3 = 2._dp 
+     NGHx3 = 2._dp 
+     NGHxb3 = 2._dp 
+     ThresholdCrossed = 2 
+
      m_lo = MWM30(2,2)
      If (MWM30(2,2).Ne.MWM30(3,3)) Then
       m_hi = MWM30(3,3)
       tz = Log(m_lo / m_hi)
       dt = - tz / 50._dp  
-      Call odeint(g1f, 129, tz, 0._dp, delta, dt, 0._dp, rge129b, kont)
+      Call odeint(g1f, 111, tz, 0._dp, delta, dt, 0._dp, rge111, kont)
 
-      Call GToParameters129(g1f,gauge_H24(1),gauge_H24(2),gauge_H24(3),Yu_H24   &
-         &  ,Yd_H24,Ye_H24,Yb30_H24(2,:,:),Yw30_H24(2,:,:),Yx30_H24(2,:,:),MWM3)
+      Call GToParameters111(g1f,gauge_H24(1),gauge_H24(2),gauge_H24(3),Yu_H24   &
+         &  ,Yd_H24,Ye_H24,Yb30_H24(2,:,:),Yw30_H24(2,:,:),Yx30_H24(2,:,:))
 
       m_lo = m_hi
      End If
 
-     Call ParametersToG129(gauge_H24(1),gauge_H24(2),gauge_H24(3),Yu_H24,Yd_H24 &
-         &  ,Ye_H24,Yb30_H24(3,:,:),Yw30_H24(3,:,:),Yx30_H24(3,:,:),MWM3,g1f)
+     Call ParametersToG111(gauge_H24(1),gauge_H24(2),gauge_H24(3),Yu_H24,Yd_H24 &
+         &  ,Ye_H24,Yb30_H24(3,:,:),Yw30_H24(3,:,:),Yx30_H24(3,:,:),g1f)
 
      If (g1f(1).Gt.g1f(2)) Then ! already above the GUT scale
     !---------------------------------------------------
@@ -3930,7 +3969,7 @@ Contains
 
       tz = Log(m_lo/1.e15_dp)
       dt = - tz / 50._dp
-      Call odeintC(g1f, 129, tz, 0._dp, delta, dt, 0._dp, rge129a, t_out, kont)
+      Call odeintC(g1f, 111, tz, 0._dp, delta, dt, 0._dp, rge111, t_out, kont)
       If (kont.Eq.0) Then
        FoundUnification = .True.
        mGUT = 1.e15_dp * Exp(t_out)
@@ -3943,11 +3982,19 @@ Contains
        Return
       End If
 
-      Call GToParameters129(g1f,gauge_H24(1),gauge_H24(2),gauge_H24(3),Yu_H24   &
-        &  ,Yd_H24,Ye_H24,Yb30_H24(3,:,:),Yw30_H24(3,:,:),Yx30_H24(3,:,:),MWM3)
+      Call GToParameters111(g1f,gauge_H24(1),gauge_H24(2),gauge_H24(3),Yu_H24   &
+        &  ,Yd_H24,Ye_H24,Yb30_H24(3,:,:),Yw30_H24(3,:,:),Yx30_H24(3,:,:))
 
-      Call ParametersToG129(gauge_H24(1),gauge_H24(2),gauge_H24(3),Yu_H24,Yd_H24&
-       & ,Ye_H24,Yb30_H24(3,:,:),Yw30_H24(3,:,:),Yx30_H24(3,:,:),MWM30(1,1),g1f)
+      Call ParametersToG111(gauge_H24(1),gauge_H24(2),gauge_H24(3),Yu_H24,Yd_H24&
+       & ,Ye_H24,Yb30_H24(3,:,:),Yw30_H24(3,:,:),Yx30_H24(3,:,:),g1f)
+
+
+      NGHb3 = 3._dp
+      NGHg3 = 3._dp 
+      NGHw3 = 3._dp 
+      NGHx3 = 3._dp 
+      NGHxb3 = 3._dp 
+      ThresholdCrossed = 3 
 
      Else
 
@@ -3955,30 +4002,38 @@ Contains
      ! 3 -> GUT
      !-----------------------------------------------------
 
-      MWM3(3,3) = MWM30(3,3)
+      MWM3 = MWM3running(3,:,:)
+
+      NGHb3 = 3._dp
+      NGHg3 = 3._dp 
+      NGHw3 = 3._dp 
+      NGHx3 = 3._dp 
+      NGHxb3 = 3._dp 
+      ThresholdCrossed = 3 
 
      !-----------------------------------------------------
      ! adding shifts to gauge couplings
      !-----------------------------------------------------
       If (TwoLoopRGE) Then
        gauge_h24(1) = gauge_h24(1) * (1._dp - oo16pi2 * gauge_h24(1)**2        &
-                &                     * 5._dp/12._dp*Log(MXM3(3,3)/MWM30(3,3)) )
+                &                     * 5._dp/2._dp*Log(MassMXM3(3)/MWM30(3,3)) )
        gauge_h24(2) = gauge_h24(2) * (1._dp - oo16pi2 * gauge_h24(2)**2        &
-                &                       * 0.5_dp *Log(MXM3(3,3)/MWM30(3,3)) )
+                &                       *( 1.5_dp *Log(MassMXM3(3)/MWM30(3,3)) + &
+		&			2._dp *Log(MassMWM3(3)/MWM30(3,3))) )
        gauge_h24(3) = gauge_h24(3) * (1._dp - oo16pi2 * gauge_h24(3)**2        &
-                &                       * (0.5_dp*Log(MXM3(3,3)/MWM30(3,3)) &
-                &                         + 3._dp*Log(MGM3(3,3)/MWM30(3,3)) ) )
+                &                       * (Log(MassMXM3(3)/MWM30(3,3)) &
+                &                         + 3._dp*Log(MassMGM3(3)/MWM30(3,3)) ) )
       
       End If
 
-      Call ParametersToG129(gauge_H24(1),gauge_H24(2),gauge_H24(3),Yu_H24     &
-      & ,Yd_H24,Ye_H24,Yb30_H24(2,:,:),Yw30_H24(2,:,:),Yx30_H24(2,:,:),MWM3,g1f)
+      Call ParametersToG111(gauge_H24(1),gauge_H24(2),gauge_H24(3),Yu_H24     &
+      & ,Yd_H24,Ye_H24,Yb30_H24(3,:,:),Yw30_H24(3,:,:),Yx30_H24(3,:,:),g1f)
 
       If (UseFixedGUTScale) Then
        tz = Log(m_lo/GUT_scale)
        mGUT = GUT_scale
        dt = - tz / 50._dp
-       Call odeint(g1f, 129, tz, 0._dp, delta, dt, 0._dp, rge129c, kont)
+       Call odeint(g1f, 111, tz, 0._dp, delta, dt, 0._dp, rge111, kont)
        If (kont.Ne.0) Then
         Iname = Iname -1
         Return
@@ -3989,7 +4044,7 @@ Contains
        If (g1f(1).Lt.g1f(2)) Then ! I am still below GUT scale
         tz = Log(m_lo/1.e18_dp)
         dt = - tz / 50._dp
-        Call odeintB(g1f, 129, tz, 0._dp, delta, dt, 0._dp, rge129c, t_out, kont) 
+        Call odeintB(g1f, 111, tz, 0._dp, delta, dt, 0._dp, rge111, t_out, kont) 
         If (kont.Eq.0) Then
          FoundUnification = .True.
          mGUT = 1.e18_dp * Exp(t_out)
@@ -4012,7 +4067,7 @@ Contains
        Else ! I have already crossed the GUT scale
         tz = Log(m_lo/1.e15_dp)
         dt = - tz / 50._dp
-        Call odeintC(g1f, 129, tz, 0._dp, delta, dt, 0._dp, rge129c, t_out, kont)
+        Call odeintC(g1f, 111, tz, 0._dp, delta, dt, 0._dp, rge111, t_out, kont)
         If (kont.Eq.0) Then
          FoundUnification = .True.
          mGUT = 1.e15_dp * Exp(t_out)
@@ -4087,14 +4142,14 @@ Contains
      !-----------------------------------------------------
      ! adding shifts to gauge couplings
      !-----------------------------------------------------
-     gauge_h15(1) = gauge_h15(1) * (1._dp - oo16pi2 * gauge_h15(1)**2          &
-                 &                       * (8._dp/3._dp*Log(MSM/MTM0) &
-                 &                         + Log(MZM/MTM0) /6._dp ) )
+     gauge_h15(1) = gauge_h15(1) * (1._dp - 0.2_dp * oo16pi2 * gauge_h15(1)**2 &
+                 &                       * (8._dp * Log(MSM/MTM_GUT)           &
+                 &                         + 9._dp * Log(MTM0/MTM_GUT)         &
+                 &                         + 0.5_dp*Log(MZM/MTM_GUT) ) )
      gauge_h15(2) = gauge_h15(2) * (1._dp - oo16pi2 * gauge_h15(2)**2          &
-                 &                       * 1.5_dp *Log(MZM/MTM0) )
+                 &    * (2._dp *Log(MTM0/MTM_GUT) + 1.5_dp *Log(MZM/MTM_GUT) ))
      gauge_h15(3) = gauge_h15(3) * (1._dp - oo16pi2 * gauge_h15(3)**2          &
-                 &                       * (2.5_dp*Log(MSM/MTM0) &
-                 &                         + Log(MZM/MTM0) ) )
+                 &    * (2.5_dp*Log(MSM/MTM_GUT) + Log(MZM/MTM_GUT) ) )
     End If
 
 
@@ -4148,7 +4203,7 @@ Contains
 
   End If
 
-  If ((.not.UseFixedGUTScale).and.(.Not.FoundUnification)) Then
+  If ((.Not.UseFixedGUTScale).And.(.Not.FoundUnification)) Then
    Write (ErrCan,*) 'SUGRA: no unification found'
    SugraErrors(1) = .True.
    kont = -409
@@ -4606,48 +4661,84 @@ Contains
     m_lo = Abs(MWM30(3,3))
     tz = Log(Abs(m_hi/m_lo))
     dt = - tz / 50._dp
-    Call odeint(g2f, 573, tz, 0._dp, delta, dt, 0._dp, rge555c, kont)
+    Call odeint(g2f, 573, tz, 0._dp, delta, dt, 0._dp, rge555, kont)
     m_hi = m_lo
    Endif
 
    Call GToParameters555(g2f,g1_H24,g2_H24,g3_H24,Yu_H24,Yd_H24,Ye_H24,Yb3_H24 &
-      & ,Yw3_H24,Yx3_H24,MWM3,mu_H24,MXM3,MGM3,MBM3,AYu_H24,AYd_H24,AYe_H24    & 
+      & ,Yw3_H24,Yx3_H24,mu_H24,MXM3,MWM3,MGM3,MBM3,AYu_H24,AYd_H24,AYe_H24    & 
       & ,AYb3_H24,AYw3_H24,AYx3_H24,Amue,AMXM3,AMWM3,AMGM3,AMBM3, mq2_H24      &
       & ,ml2_H24,mHd2_H24,mHu2_H24,md2_H24,mu2_H24,me2_H24,mHw32,mHg32,mHb32   &
       & ,mHx32,mHxb32,MassB_H24,MassWB_H24,MassG_H24,MnuL5)
 
+   MWM3Running(3,:,:)=MWM3
 
-   If (Abs(MWM30(3,3)).Lt.Abs(mGUT)) Then
+   NGHb3 = 2._dp
+   NGHg3 = 2._dp 
+   NGHw3 = 2._dp 
+   NGHx3 = 2._dp 
+   NGHxb3 = 2._dp 
+   ThresholdCrossed = 2
+
+   Call FermionMass(MWM3,sqrt2,EigMWM3,RotWL, RotWR,kont)  
+   Call FermionMass(MXM3,sqrt2,EigMXM3,RotXL, RotXR,kont)
+   Call FermionMass(MGM3,sqrt2,EigMGM3,RotGL, RotGR,kont)
+   Call FermionMass(MBM3,sqrt2,EigMBM3,RotBL, RotBR,kont)
+
+   Yb3_H24 = MatMul(RotBL,Yb3_H24)
+   Yw3_H24 = MatMul(RotWL,Yw3_H24)
+   Yx3_H24 = MatMul(RotXL,Yx3_H24)
+   AYb3_H24 = MatMul(RotBL,AYb3_H24)
+   AYw3_H24 = MatMul(RotwL,AYb3_H24)
+   AYx3_H24 = MatMul(RotxL,AYb3_H24)
+   MWM3 = MatMul(Conjg(Transpose(RotWR)),MatMul(MWM3,RotWL))
+   MGM3 = MatMul(Conjg(Transpose(RotGR)),MatMul(MGM3,RotGL))
+   MXM3 = MatMul(Conjg(Transpose(RotXR)),MatMul(MXM3,RotXL))
+   MBM3 = MatMul(Conjg(Transpose(RotBR)),MatMul(MBM3,RotBL))
+   mHx32 = MatMul(Conjg(Transpose(RotXL)),MatMul(mHx32,RotXL)) 
+   mHxb32 = MatMul(Conjg(Transpose(RotXR)),MatMul(mHxb32,RotXR))  
+   mHg32 = MatMul(Conjg(Transpose(RotGL)),MatMul(mHg32,RotGL)) 
+   mHb32 = MatMul(Conjg(Transpose(RotBL)),MatMul(mHb32,RotBL))  
+   mHw32 = MatMul(Conjg(Transpose(RotWL)),MatMul(mHw32,RotWL))
+
+   MassMWM3(3) = MaxVal(EigMWM3)
+   MassMXM3(3) = MaxVal(EigMXM3)
+   MassMGM3(3) = MaxVal(EigMGM3)
+   MassMBM3(3) = MaxVal(EigMBM3)
+
+   If (MassMWM3(3).Lt.Abs(mGUT)) Then
     Do i1=1,3
      Do i2=1,3
-      MnuL5(i1,i2) = 1._dp/2._dp*Yw3_H24(3,i1)*Yw3_H24(3,i2)/MWM3(3,3) + &
-                   & 3._dp/10._dp*Yb3_H24(3,i1)*Yb3_H24(3,i2)/MBM3(3,3) 
+      MnuL5(i1,i2) = 0.5_dp*Yw3_H24(3,i1)*Yw3_H24(3,i2)/MassMWM3(3) + &
+                   & 0.3_dp*Yb3_H24(3,i1)*Yb3_H24(3,i2)/MassMBM3(3) 
      End Do
     End Do
-    if (TwoLoopRGE) then
+    If (TwoLoopRGE) Then
      g1_h24 = g1_h24 * (1._dp + oo16pi2 * g1_h24**2           &
-                &                      * 5._dp/12._dp*Log(MXM3(3,3)/MWM3(3,3)) )
+                &                      * 5._dp/2._dp*Log(MassMXM3(3)/MWM30(3,3)) )
      g2_h24 = g2_h24 * (1._dp + oo16pi2 * g2_h24**2           &
-                &                       * 0.5_dp *Log(MXM3(3,3)/MWM3(3,3)) )
+                &                      *( 1.5_dp *Log(MassMXM3(3)/MWM30(3,3)) + &
+			&		2._dp *Log(MassMWM3(3)/MWM30(3,3))) )
      g3_h24 = g3_h24 * (1._dp + oo16pi2 * g3_h24**2           &
-                &                       * (0.5_dp*Log(MXM3(3,3)/MWM3(3,3)) &
-                &                         + 3._dp*Log(MGM3(3,3)/MWM3(3,3)) ) )
+                &                       * (Log(MassMXM3(3)/MWM30(3,3)) &
+                &                         + 3._dp*Log(MassMGM3(3)/MWM30(3,3)) ) )
 
      MassB_h24 = MassB_h24 * (1._dp + oo16pi2 * g1_h24**2           &
-                &                      * 5._dp/12._dp*Log(MXM3(3,3)/MWM3(3,3)) )
+                &                      * 5._dp/2._dp*Log(MassMXM3(3)/MWM30(3,3)) )
      MassWB_h24 = MassWB_h24 * (1._dp + oo16pi2 * g2_h24**2           &
-                &                       * 0.5_dp *Log(MXM3(3,3)/MWM3(3,3)) )
+                &                      *( 1.5_dp *Log(MassMXM3(3)/MWM30(3,3)) + &
+		&			2._dp *Log(MassMWM3(3)/MWM30(3,3))) )
      MassG_h24 = MassG_h24 * (1._dp + oo16pi2 * g3_h24**2           &
-                &                       * (0.5_dp*Log(MXM3(3,3)/MWM3(3,3)) &
-                &                         + 3._dp*Log(MGM3(3,3)/MWM3(3,3)) ) )
-    end if
+                &                       * (Log(MassMXM3(3)/MWM30(3,3)) &
+                &                         + 3._dp*Log(MassMGM3(3)/MWM30(3,3)) ) )
+    End If
 
    Else 
 
     Do i1=1,3
      Do i2=1,3
-      MnuL5(i1,i2) = 1._dp/2._dp*Yw3_H24(3,i1)*Yw3_H24(3,i2)/MWM30(3,3) + &
-                   & 3._dp/10._dp*Yb3_H24(3,i1)*Yb3_H24(3,i2)/MWM30(3,3)
+      MnuL5(i1,i2) = 0.5_dp * Yw3_H24(3,i1)*Yw3_H24(3,i2)/MWM30(3,3) + &
+                   & 0.3_dp * Yb3_H24(3,i1)*Yb3_H24(3,i2)/MWM30(3,3) 
      End Do
     End Do
 
@@ -4662,13 +4753,31 @@ Contains
    AYb3_H24(3,:) = 0._dp
    AYw3_H24(3,:) = 0._dp
    AYx3_H24(3,:) = 0._dp
-   MWM3(3,3) = 0._dp
+   MWM3(:,3) = 0._dp
+   MWM3(3,:) = 0._dp
+   MGM3(:,3) = 0._dp
+   MGM3(3,:) = 0._dp
+   MXM3(:,3) = 0._dp
+   MXM3(3,:) = 0._dp
+   MBM3(:,3) = 0._dp
+   MBM3(3,:) = 0._dp
 
-   Call ParametersToG555(g1_H24,g2_H24,g3_H24,Yu_H24,Yd_H24,Ye_H24,Yb3_H24     &
-    & ,Yw3_H24,Yx3_H24,MWM3,mu_H24,MXM3,MGM3,MBM3,AYu_H24,AYd_H24,AYe_H24      &
-    & ,AYb3_H24,AYw3_H24,AYx3_H24,Amue,AMXM3,AMWM3,AMGM3,AMBM3,mq2_H24,ml2_H24 &
-    & ,mHd2_H24,mHu2_H24,md2_H24,mu2_H24,me2_H24,mHw32,mHg32,mHb32,mHx32       &
-    & ,mHxb32,MassB_H24,MassWB_H24,MassG_H24,MnuL5,g2f)
+   mHx32(3,:) = 0._dp 
+   mHx32(:,3) = 0._dp 
+   mHxb32(3,:) = 0._dp 
+   mHxb32(:,3) = 0._dp 
+   mHg32(3,:) = 0._dp 
+   mHg32(:,3) = 0._dp 
+   mHb32(3,:) = 0._dp 
+   mHb32(:,3) = 0._dp 
+   mHw32(3,:) = 0._dp 
+   mHw32(:,3) = 0._dp 
+
+   Call ParametersToG555(g1_H24,g2_H24,g3_H24,Yu_H24,Yd_H24,Ye_H24,Yb3_H24   &
+      & ,Yw3_H24,Yx3_H24,mu_H24,MXM3,MWM3,MGM3,MBM3,AYu_H24,AYd_H24,AYe_H24  & 
+      & ,AYb3_H24,AYw3_H24,AYx3_H24,Amue,AMXM3,AMWM3,AMGM3,AMBM3, mq2_H24    &
+      & ,ml2_H24,mHd2_H24,mHu2_H24,md2_H24,mu2_H24,me2_H24,mHw32,mHg32,mHb32 &
+      & ,mHx32,mHxb32,MassB_H24,MassWB_H24,MassG_H24,MnuL5,g2f)
 
    !------------
    ! 3 -> 2
@@ -4677,42 +4786,108 @@ Contains
     m_lo = Abs(MWM30(2,2))
     tz = Log(Abs(m_hi/m_lo))
     dt = - tz / 50._dp
-    Call odeint(g2f, 573, tz, 0._dp, delta, dt, 0._dp, rge555b, kont)
+    Call odeint(g2f, 573, tz, 0._dp, delta, dt, 0._dp, rge555, kont)
     m_hi = m_lo
    Endif
 
    Call GToParameters555(g2f,g1_H24,g2_H24,g3_H24,Yu_H24,Yd_H24,Ye_H24,Yb3_H24 &
-      & ,Yw3_H24,Yx3_H24,MWM3,mu_H24,MXM3,MGM3,MBM3,AYu_H24,AYd_H24,AYe_H24    &
+      & ,Yw3_H24,Yx3_H24,mu_H24,MXM3,MWM3,MGM3,MBM3,AYu_H24,AYd_H24,AYe_H24    & 
       & ,AYb3_H24,AYw3_H24,AYx3_H24,Amue,AMXM3,AMWM3,AMGM3,AMBM3, mq2_H24      &
       & ,ml2_H24,mHd2_H24,mHu2_H24,md2_H24,mu2_H24,me2_H24,mHw32,mHg32,mHb32   &
       & ,mHx32,mHxb32,MassB_H24,MassWB_H24,MassG_H24,MnuL5)
 
-   If (Abs(MWM30(2,2)).Lt.Abs(mGUT)) Then
+   MWM3Running(2,:,:)=MWM3
+
+   NGHb3 = 1._dp
+   NGHg3 = 1._dp 
+   NGHw3 = 1._dp 
+   NGHx3 = 1._dp 
+   NGHxb3 = 1._dp 
+   ThresholdCrossed = 1
+
+   RotWR = 0._dp
+   RotWL = 0._dp
+   RotXR = 0._dp
+   RotXL = 0._dp
+   RotGR = 0._dp
+   RotGL = 0._dp
+   RotBR = 0._dp
+   RotBL = 0._dp
+   EigMWM3 = 0._dp
+   EigMGM3 = 0._dp
+   EigMXM3 = 0._dp
+   EigMBM3 = 0._dp
+
+   Call EigenSystem(Matmul(Transpose(Conjg(MWM3(1:2,1:2))),MWM3(1:2,1:2)), EigMWM3(1:2), &
+    & RotWR(1:2,1:2), ierr, test2)
+   Call EigenSystem(Matmul(MWM3(1:2,1:2),Transpose(Conjg(MWM3(1:2,1:2)))), EigMWM3(1:2), &
+    & RotWL(1:2,1:2), ierr, test2)
+
+   Call EigenSystem(Matmul(Transpose(Conjg(MBM3(1:2,1:2))),MBM3(1:2,1:2)), EigMBM3(1:2), &
+    & RotBR(1:2,1:2), ierr, test2)
+   Call EigenSystem(Matmul(MBM3(1:2,1:2),Transpose(Conjg(MBM3(1:2,1:2)))), EigMBM3(1:2), &
+    & RotBL(1:2,1:2), ierr, test2)
+
+   Call EigenSystem(Matmul(Transpose(Conjg(MGM3(1:2,1:2))),MGM3(1:2,1:2)), EigMGM3(1:2), &
+    & RotGR(1:2,1:2), ierr, test2)
+   Call EigenSystem(Matmul(MGM3(1:2,1:2),Transpose(Conjg(MGM3(1:2,1:2)))), EigMGM3(1:2), &
+    & RotGL(1:2,1:2), ierr, test2)
+
+   Call EigenSystem(Matmul(Transpose(Conjg(MXM3(1:2,1:2))),MXM3(1:2,1:2)), EigMXM3(1:2), &
+    & RotXR(1:2,1:2), ierr, test2)
+   Call EigenSystem(Matmul(MXM3(1:2,1:2),Transpose(Conjg(MXM3(1:2,1:2)))), EigMXM3(1:2), &
+    & RotXL(1:2,1:2), ierr, test2)
+
+
+   Yb3_H24 = MatMul(RotBL,Yb3_H24)
+   Yw3_H24 = MatMul(RotWL,Yw3_H24)
+   Yx3_H24 = MatMul(RotXL,Yx3_H24)
+   AYb3_H24 = MatMul(RotBL,AYb3_H24)
+   AYw3_H24 = MatMul(RotwL,AYb3_H24)
+   AYx3_H24 = MatMul(RotxL,AYb3_H24)
+   MWM3 = MatMul(Conjg(Transpose(RotWR)),MatMul(MWM3,RotWL))
+   MGM3 = MatMul(Conjg(Transpose(RotGR)),MatMul(MGM3,RotGL))
+   MXM3 = MatMul(Conjg(Transpose(RotXR)),MatMul(MXM3,RotXL))
+   MBM3 = MatMul(Conjg(Transpose(RotBR)),MatMul(MBM3,RotBL))
+   mHx32 = MatMul(Conjg(Transpose(RotXL)),MatMul(mHx32,RotXL)) 
+   mHxb32 = MatMul(Conjg(Transpose(RotXR)),MatMul(mHxb32,RotXR))  
+   mHg32 = MatMul(Conjg(Transpose(RotGL)),MatMul(mHg32,RotGL)) 
+   mHb32 = MatMul(Conjg(Transpose(RotBL)),MatMul(mHb32,RotBL))  
+   mHw32 = MatMul(Conjg(Transpose(RotWL)),MatMul(mHw32,RotWL))
+  
+   MassMWM3(2) = sqrt(EigMWM3(2))
+   MassMXM3(2) = sqrt(EigMXM3(2))
+   MassMGM3(2) = sqrt(EigMGM3(2))
+   MassMBM3(2) = sqrt(EigMBM3(2))
+
+   If (MassMWM3(2).Lt.Abs(mGUT)) Then
 
     Do i1=1,3
      Do i2=1,3
       MnuL5(i1,i2) = MnuL5(i1,i2) &
-                 & + 1._dp/2._dp*Yw3_H24(2,i1)*Yw3_H24(2,i2)/MWM3(2,2)  &
-                 & + 3._dp/10._dp*Yb3_H24(2,i1)*Yb3_H24(2,i2)/MBM3(2,2) 
+                & + 0.5_dp * Yw3_H24(2,i1)*Yw3_H24(2,i2)/MassMWM3(2)  &
+                & + 0.3_dp * Yb3_H24(2,i1)*Yb3_H24(2,i2)/MassMBM3(2) 
      End Do
     End Do
 
-    If (TwoLoopRGE) then
+    If (TwoLoopRGE) Then
      g1_h24 = g1_h24 * (1._dp + oo16pi2 * g1_h24**2           &
-                &                     * 5._dp/12._dp*Log(MXM3(2,2)/MWM3(2,2)) )
+                &                     * 5._dp/2._dp*Log( MassMXM3(2)/MWM30(2,2)) )
      g2_h24 = g2_h24 * (1._dp + oo16pi2 * g2_h24**2           &
-                &                     * 0.5_dp *Log(MXM3(2,2)/MWM3(2,2)) )
+                &                     *( 1.5_dp *Log(MassMXM3(2)/MWM30(2,2)) + & 
+		&			2._dp *Log(MassMWM3(2)/MWM30(2,2))) )
      g3_h24 = g3_h24 * (1._dp + oo16pi2 * g3_h24**2           &
-                &                     * (0.5_dp*Log(MXM3(2,2)/MWM3(2,2)) &
-                &                       + 3._dp*Log(MGM3(2,2)/MWM3(2,2)) ) )
+                &                     * (Log( MassMXM3(2)/MWM30(2,2)) &
+                &                       + 3._dp*Log( MassMGM3(2)/MWM30(2,2)) ) )
 
      MassB_h24 = MassB_h24 * (1._dp + oo16pi2 * g1_h24**2           &
-                &                     * 5._dp/12._dp*Log(MXM3(2,2)/MWM3(2,2)) )
+                 &                     * 5._dp/2._dp*Log( MassMXM3(2)/MWM30(2,2)) )
      MassWB_h24 = MassWB_h24 * (1._dp + oo16pi2 * g2_h24**2           &
-                 &                      * 0.5_dp *Log(MXM3(2,2)/MWM3(2,2)) )
+                 &                      *( 1.5_dp *Log(MassMXM3(2)/MWM30(2,2)) + &
+	 	&			2._dp *Log(MassMWM3(2)/MWM30(2,2))) )
      MassG_h24 = MassG_h24 * (1._dp + oo16pi2 * g3_h24**2           &
-                &                      * (0.5_dp*Log(MXM3(2,2)/MWM3(2,2)) &
-                &                        + 3._dp*Log(MGM3(2,2)/MWM3(2,2)) ) )
+                &                      * (Log( MassMXM3(2)/MWM30(2,2)) &
+                &                        + 3._dp*Log( MassMGM3(2)/MWM30(2,2)) ) )
     End If
 
    Else 
@@ -4720,29 +4895,47 @@ Contains
     Do i1=1,3
      Do i2=1,3
       MnuL5(i1,i2) = MnuL5(i1,i2)   &
-                 & + 1._dp/2._dp*Yw3_H24(2,i1)*Yw3_H24(2,i2)/MWM30(2,2)  &
-                 & + 3._dp/10._dp*Yb3_H24(2,i1)*Yb3_H24(2,i2)/MWM30(2,2) 
+                 & + 0.5_dp * Yw3_H24(2,i1)*Yw3_H24(2,i2)/mGut  &
+                 & + 0.3_dp * Yb3_H24(2,i1)*Yb3_H24(2,i2)/mGut 
      End Do
     End Do
 
-  End If
+   End If
 
-  Yb30_H24(2,:,:) = Yb3_H24
-  Yw30_H24(2,:,:) = Yw3_H24
-  Yx30_H24(2,:,:) = Yx3_H24
-  Yb3_H24(2,:) = 0._dp
-  Yw3_H24(2,:) = 0._dp
-  Yx3_H24(2,:) = 0._dp
-  AYb3_H24(2,:) = 0._dp
-  AYw3_H24(2,:) = 0._dp
-  AYx3_H24(2,:) = 0._dp
-  MWM3(2,2) = 0._dp
+   Yb30_H24(2,:,:) = Yb3_H24
+   Yw30_H24(2,:,:) = Yw3_H24
+   Yx30_H24(2,:,:) = Yx3_H24
+   Yb3_H24(2,:) = 0._dp
+   Yw3_H24(2,:) = 0._dp
+   Yx3_H24(2,:) = 0._dp
+   AYb3_H24(2,:) = 0._dp
+   AYw3_H24(2,:) = 0._dp
+   AYx3_H24(2,:) = 0._dp
+   MWM3(:,2) = 0._dp
+   MWM3(2,:) = 0._dp
+   MGM3(:,2) = 0._dp
+   MGM3(2,:) = 0._dp
+   MXM3(:,2) = 0._dp
+   MXM3(2,:) = 0._dp
+   MBM3(:,2) = 0._dp
+   MBM3(2,:) = 0._dp
 
-  Call ParametersToG555(g1_H24,g2_H24,g3_H24,Yu_H24,Yd_H24,Ye_H24,Yb3_H24      &
-    & ,Yw3_H24,Yx3_H24,MWM3,mu_H24,MXM3,MGM3,MBM3,AYu_H24,AYd_H24,AYe_H24      &
-    & ,AYb3_H24,AYw3_H24,AYx3_H24,Amue,AMXM3,AMWM3,AMGM3,AMBM3,mq2_H24,ml2_H24 &
-    & ,mHd2_H24,mHu2_H24,md2_H24,mu2_H24,me2_H24,mHw32,mHg32,mHb32,mHx32       &
-    & ,mHxb32,MassB_H24,MassWB_H24,MassG_H24,MnuL5,g2f)
+   mHx32(2,:) = 0._dp 
+   mHx32(:,2) = 0._dp 
+   mHxb32(2,:) = 0._dp 
+   mHxb32(:,2) = 0._dp 
+   mHg32(2,:) = 0._dp 
+   mHg32(:,2) = 0._dp 
+   mHb32(2,:) = 0._dp 
+   mHb32(:,2) = 0._dp 
+   mHw32(2,:) = 0._dp 
+   mHw32(:,2) = 0._dp 
+
+   Call ParametersToG555(g1_H24,g2_H24,g3_H24,Yu_H24,Yd_H24,Ye_H24,Yb3_H24 &
+      & ,Yw3_H24,Yx3_H24,mu_H24,MXM3,MWM3,MGM3,MBM3,AYu_H24,AYd_H24,AYe_H24    & 
+      & ,AYb3_H24,AYw3_H24,AYx3_H24,Amue,AMXM3,AMWM3,AMGM3,AMBM3, mq2_H24      &
+      & ,ml2_H24,mHd2_H24,mHu2_H24,md2_H24,mu2_H24,me2_H24,mHw32,mHg32,mHb32   &
+      & ,mHx32,mHxb32,MassB_H24,MassWB_H24,MassG_H24,MnuL5,g2f)
 
    !------------
    ! 2 -> 1
@@ -4752,15 +4945,29 @@ Contains
     m_lo = MWM30(1,1)
     tz = Log(Abs(m_hi/m_lo))
     dt = - tz / 50._dp
-    Call odeint(g2f, 573, tz, 0._dp, delta, dt, 0._dp, rge555a, kont)
+    Call odeint(g2f, 573, tz, 0._dp, delta, dt, 0._dp, rge555, kont)
     m_hi = m_lo
    Endif
 
    Call GToParameters555(g2f,g1_H24,g2_H24,g3_H24,Yu_H24,Yd_H24,Ye_H24,Yb3_H24 &
-      & ,Yw3_H24,Yx3_H24,MWM3,mu_H24,MXM3,MGM3,MBM3,AYu_H24,AYd_H24,AYe_H24    &
+      & ,Yw3_H24,Yx3_H24,mu_H24,MXM3,MWM3,MGM3,MBM3,AYu_H24,AYd_H24,AYe_H24    & 
       & ,AYb3_H24,AYw3_H24,AYx3_H24,Amue,AMXM3,AMWM3,AMGM3,AMBM3, mq2_H24      &
       & ,ml2_H24,mHd2_H24,mHu2_H24,md2_H24,mu2_H24,me2_H24,mHw32,mHg32,mHb32   &
       & ,mHx32,mHxb32,MassB_H24,MassWB_H24,MassG_H24,MnuL5)
+
+   MWM3Running(1,:,:)=MWM3
+
+   NGHb3 = 0._dp
+   NGHg3 = 0._dp 
+   NGHw3 = 0._dp 
+   NGHx3 = 0._dp 
+   NGHxb3 = 0._dp 
+   ThresholdCrossed = 0
+
+   MassMWM3(1) = Abs(MWM3(1,1))
+   MassMXM3(1) = Abs(MXM3(1,1))
+   MassMGM3(1) = Abs(MGM3(1,1))
+   MassMBM3(1) = Abs(MBM3(1,1))
 
    Yb30_H24(1,:,:) = Yb3_H24
    Yw30_H24(1,:,:) = Yw3_H24
@@ -4775,31 +4982,33 @@ Contains
    mh2_h24(1) = mHd2_h24
    mh2_h24(2) = mHu2_h24
 
-   If (Abs(MWM30(1,1)).Lt.Abs(mGUT)) Then
+   If (MassMWM3(1).Lt.Abs(mGUT)) Then
 
-    If (TwoLoopRGE) then
+    If (TwoLoopRGE) Then
      g1_h24 = g1_h24 * (1._dp + oo16pi2 * g1_h24**2           &
-                &                      * 5._dp/12._dp*Log(MXM3(1,1)/MWM3(1,1)) )
+                &                      * 5._dp/12._dp*Log( MassMXM3(1)/MWM30(1,1)) )
      g2_h24 = g2_h24 * (1._dp + oo16pi2 * g2_h24**2           &
-                &                      * 0.5_dp *Log(MXM3(1,1)/MWM3(1,1)) )
+                &                      *( 0.5_dp *Log(MassMXM3(1)/MWM30(1,1)) + &
+		&			2._dp *Log(MassMWM3(1)/MWM30(1,1))) )
      g3_h24 = g3_h24 * (1._dp + oo16pi2 * g3_h24**2           &
-                &                      * (0.5_dp*Log(MXM3(1,1)/MWM3(1,1)) &
-                &                        + 3._dp*Log(MGM3(1,1)/MWM3(1,1)) ) )
+                &                      * (0.5_dp*Log( MassMXM3(1)/MWM30(1,1)) &
+                &                        + 3._dp*Log( MassMGM3(1)/MWM30(1,1)) ) )
 
      MassB_h24 = MassB_h24 * (1._dp + oo16pi2 * g1_h24**2           &
-                &                      * 5._dp/12._dp*Log(MXM3(1,1)/MWM3(1,1)) )
+                &                      * 5._dp/12._dp*Log( MassMXM3(1)/MWM30(1,1)) )
      MassWB_h24 = MassWB_h24 * (1._dp + oo16pi2 * g2_h24**2           &
-                 &                      * 0.5_dp *Log(MXM3(1,1)/MWM3(1,1)) )
+                 &                      *( 0.5_dp *Log(MassMXM3(1)/MWM30(1,1)) + &
+		&			2._dp *Log(MassMWM3(1)/MWM30(1,1))) )
      MassG_h24 = MassG_h24 * (1._dp + oo16pi2 * g3_h24**2           &
-                &                      * (0.5_dp*Log(MXM3(1,1)/MWM3(1,1)) &
-                &                        + 3._dp*Log(MGM3(1,1)/MWM3(1,1)) ) )
+                &                      * (0.5_dp*Log( MassMXM3(1)/MWM30(1,1)) &
+                &                        + 3._dp*Log( MassMGM3(1)/MWM30(1,1)) ) )
     End If
-
+ 
     Do i1=1,3
      Do i2=1,3
       MnuL5(i1,i2) = MnuL5(i1,i2) &
-                & + 1._dp/2._dp*Yw3_H24(1,i1)*Yw3_H24(1,i2)/MWM3(1,1)  &
-                & + 3._dp/10._dp*Yb3_H24(1,i1)*Yb3_H24(1,i2)/MBM3(1,1) 
+                & + 0.5_dp * Yw3_H24(1,i1)*Yw3_H24(1,i2)/ MassMWM3(1)  &
+                & + 0.3_dp * Yb3_H24(1,i1)*Yb3_H24(1,i2)/ MassMBM3(1) 
      End Do
     End Do
 
@@ -4808,12 +5017,13 @@ Contains
     Do i1=1,3
      Do i2=1,3
       MnuL5(i1,i2) = MnuL5(i1,i2)   &
-                & + 1._dp/2._dp*Yw3_H24(1,i1)*Yw3_H24(1,i2)/MWM30(1,1)  &
-                & + 3._dp/10._dp*Yb3_H24(1,i1)*Yb3_H24(1,i2)/MWM30(1,1) 
+                & + 0.5_dp * Yw3_H24(1,i1)*Yw3_H24(1,i2)/Abs(MWM30(1,1))  &
+                & + 0.3_dp * Yb3_H24(1,i1)*Yb3_H24(1,i2)/Abs(MWM30(1,1)) 
      End Do
     End Do
 
-  End If
+   End If
+
 
   Call ParametersToG4(gauge_H24, ye_H24, Zero33C, yd_H24, yu_H24   &
           & , ZeroC, ZeroC, Mi_H24, AYe_h24, Zero33C, AYd_h24 &
@@ -4852,17 +5062,17 @@ Contains
    ! run only if m_H < m_GUT
    !-------------------------
 
-   If (Abs(MTM0).Lt.mGUT) Then
+   If (Abs(MTM_GUT).Lt.mGUT) Then
     !---------------------------------------------------
     ! heavy states are to be included
     !---------------------------------------------------
     
 
-    mudim = Abs(MTM0)**2
+    mudim = Abs(MTM_GUT)**2
     tz = 0.5_dp * Log(mudim/mGUT**2)
     dt = tz / 50._dp
     Call odeint(g2g, 353 , 0._dp, tz, delta, dt, 0._dp, rge353, kont)
-    m_lo = Abs(MTM0)
+    m_lo = Abs(MTM_GUT)
 
     If ( (oo4pi*Maxval(g2g(1:115)**2)).Gt.1._dp) Then
      Write(ErrCan,*) "Non perturbative regime at M_H3"
@@ -4898,26 +5108,26 @@ Contains
    MnuL5 = - Lambda20 * YT0_h15 / MTM0
 
 
-   If ((Abs(MTM0).Lt.mGUT).and.TwoLoopRGE) Then
+   If ((Abs(MTM_GUT).Lt.mGUT).And.TwoLoopRGE) Then
    !-----------------------------------------------------
-   ! adding shifts to gauge couplings
+   ! adding shifts to gauge couplings and gaugino masses
    !-----------------------------------------------------
-    gauge_h15(1) = gauge_h15(1) / (1._dp - oo16pi2 * gauge_h15(1)**2           &
-                &                       * (8._dp/3._dp*Log(MSM/MTM0) &
-                &                         + Log(MZM/MTM0) /6._dp ) )
-    gauge_h15(2) = gauge_h15(2) / (1._dp - oo16pi2 * gauge_h15(2)**2           &
-                &                       * 1.5_dp *Log(MZM/MTM0) )
-    gauge_h15(3) = gauge_h15(3) / (1._dp - oo16pi2 * gauge_h15(3)**2           &
-                &                       * (2.5_dp*Log(MSM/MTM0) &
-                &                         + Log(MZM/MTM0) ) )
-    Mi_h15(1) = Mi_h15(1) / (1._dp - oo16pi2 * gauge_h15(1)**2           &
-                &                       * (8._dp/3._dp*Log(MSM/MTM0) &
-                &                         + Log(MZM/MTM0) /6._dp ) )
-    Mi_h15(2) = Mi_h15(2) / (1._dp - oo16pi2 * gauge_h15(2)**2           &
-                &                       * 1.5_dp *Log(MZM/MTM0) )
+    gauge_h15(1) = gauge_h15(1) / (1._dp - 0.2_dp * oo16pi2 * gauge_h15(1)**2 &
+                &                       * ( 8._dp * Log(MSM/Abs(MTM_GUT))     &
+                &                         + 9._dp * Log(MTM/Abs(MTM_GUT))     &
+                &                         + 0.5_dp * Log(MZM/Abs(MTM_GUT)) ) )
+    gauge_h15(2) = gauge_h15(2) / (1._dp - oo16pi2 * gauge_h15(2)**2          &
+              & *(2._dp*Log(MTM/Abs(MTM_GUT))+ 1.5_dp *Log(MZM/Abs(MTM_GUT)) ))
+    gauge_h15(3) = gauge_h15(3) / (1._dp - oo16pi2 * gauge_h15(3)**2          &
+                &   * (2.5_dp*Log(MSM/Abs(MTM_GUT)) + Log(MZM/Abs(MTM_GUT)) ) )
+    Mi_h15(1) = Mi_h15(1) / (1._dp - 0.2_dp * oo16pi2 * gauge_h15(1)**2       &
+                &                       * ( 8._dp * Log(MSM/Abs(MTM_GUT))     &
+                &                         + 9._dp * Log(MTM/Abs(MTM_GUT))     &
+                &                         + 0.5_dp * Log(MZM/Abs(MTM_GUT)) ) )
+    Mi_h15(2) = Mi_h15(2) / (1._dp - oo16pi2 * gauge_h15(2)**2                &
+             & *(2._dp *Log(MTM/Abs(MTM_GUT))+ 1.5_dp *Log(MZM/Abs(MTM_GUT)) ))
     Mi_h15(3) = Mi_h15(3) / (1._dp - oo16pi2 * gauge_h15(3)**2           &
-                &                       * (2.5_dp*Log(MSM/MTM0) &
-                &                         + Log(MZM/MTM0) ) )
+                &   * (2.5_dp*Log(MSM/Abs(MTM_GUT)) + Log(MZM/Abs(MTM_GUT)) ) )
    End If
 
    !---------------------------------------------------

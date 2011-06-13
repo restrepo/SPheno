@@ -271,6 +271,8 @@ Use StandardModel
  Complex(dp), Dimension(3,3) :: Yb3_H24, Yb3_H24_gut,Yw3_H24, Yx3_H24 &
   & , AYb3_H24, AYw3_H24, AYx3_H24, mi3_h24 
  Complex(dp), Dimension(3,3,3) :: Yb30_H24, Yw30_H24, Yx30_H24
+ Complex(dp) :: MWM3running(3,3,3)
+ Real(dp) :: MassMXM3(3), MassMWM3(3), MassMGM3(3), MassMBM3(3)
  ! Seesaw II 
  Complex(dp), Dimension(3,3) :: YT0_H15, YZ0_H15, YS0_15, YT_H15_GUT, AYT_h15  &
   & , AYZ_H15, AYS_H15, Ye_h15, Yd_h15, Yu_h15, Yd0_h15, Yu0_h15, Ye0_h15, AYz &
@@ -383,6 +385,9 @@ Contains
   Aolam12_0 = 0._dp
   AoT_MH3 = 0._dp
   Aolam12_MH3 = 0._dp
+  At_save = 0._dp
+  Ab_save = 0._dp
+  Atau_save = 0._dp
   
   h0 = 0._dp
   lam = 0._dp

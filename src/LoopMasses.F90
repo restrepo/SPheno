@@ -682,10 +682,8 @@ Contains
   Call Sigma_Gluino(mglu**2, mudim, g(3), mglu,phase_glu, mUSquark2, RUSquark &
                   &, mDSquark2, RDSquark, dmglu)
 #endif
-!  mglu_1L = Abs( Mi(3) / (1._dp + dmglu/Mi(3)) )
-!  phase_glu = ( Mi(3) / (1._dp + dmglu/Mi(3) ) ) / mglu_1L
-  mglu_1L = Abs( Mi(3) - dmglu )
-  phase_glu = ( Mi(3) - dmglu ) / mglu_1L
+  mglu_1L = Abs( mglu - dmglu )
+  phase_glu = phase_glu * ( mglu - dmglu ) / mglu_1L
 
   ! recalculation with improved mass
   i_count = 0
@@ -699,8 +697,8 @@ Contains
    Call Sigma_Gluino(comp2(1), mudim, g(3), mglu,phase_glu, mUSquark2   &
                   &, RUSquark, mDSquark2, RDSquark, dmglu)
 #endif
-   mglu_1L = Abs( Mi(3) - dmglu )
-   phase_glu = ( Mi(3) - dmglu ) / mglu_1L
+   mglu_1L = Abs( mglu - dmglu )
+   phase_glu = phase_glu * ( mglu - dmglu ) / mglu_1L
    If (comp2(1).Ne. 0._dp) Then
     comp2(1) = Abs( Sqrt(comp2(1)) -  mglu_1L) / Sqrt(comp2(1))
    Else
@@ -1504,8 +1502,8 @@ Contains
   Call Sigma_Gluino(mglu**2, mudim, g(3), mglu,phase_glu, mUSquark2, RUSquark &
                   &, mDSquark2, RDSquark, dmglu)
 #endif
-  mglu_1L = Abs( Mi(3) - dmglu )
-  phase_glu = ( Mi(3) - dmglu ) / mglu_1L
+  mglu_1L = Abs( mglu - dmglu )
+  phase_glu = phase_glu * ( mglu - dmglu ) / mglu_1L
 
   ! recalculation with improved mass
   i_count = 0
@@ -1519,9 +1517,8 @@ Contains
    Call Sigma_Gluino(comp2(1), mudim, g(3), mglu,phase_glu, mUSquark2   &
                   &, RUSquark, mDSquark2, RDSquark, dmglu)
 #endif
-
-   mglu_1L = Abs( Mi(3) - dmglu )
-   phase_glu = ( Mi(3) - dmglu ) / mglu_1L
+   mglu_1L = Abs( mglu - dmglu )
+   phase_glu = phase_glu * ( mglu - dmglu ) / mglu_1L
    If (comp2(1).Ne. 0._dp) Then
     comp2(1) = Abs( Sqrt(comp2(1)) -  mglu_1L) / Sqrt(comp2(1))
    Else
@@ -2242,8 +2239,8 @@ Contains
   Call Sigma_Gluino(mglu**2, mudim, g(3), mglu,phase_glu, mUSquark2, RUSquark &
                   &, mDSquark2, RDSquark, dmglu)
 #endif
-  mglu_1L = Abs( Mi(3) - dmglu )
-  phase_glu = ( Mi(3) - dmglu ) / mglu_1L
+  mglu_1L = Abs( mglu - dmglu )
+  phase_glu = phase_glu * ( mglu - dmglu ) / mglu_1L
 
   ! recalculation with improved mass
   i_count = 0
@@ -2257,9 +2254,8 @@ Contains
    Call Sigma_Gluino(comp2(1), mudim, g(3), mglu,phase_glu, mUSquark2   &
                   &, RUSquark, mDSquark2, RDSquark, dmglu)
 #endif
-
-   mglu_1L = Abs( Mi(3) - dmglu )
-   phase_glu = ( Mi(3) - dmglu ) / mglu_1L
+   mglu_1L = Abs( mglu - dmglu )
+   phase_glu = phase_glu * ( mglu - dmglu ) / mglu_1L
    If (comp2(1).Ne. 0._dp) Then
     comp2(1) = Abs( Sqrt(comp2(1)) -  mglu_1L) / Sqrt(comp2(1))
    Else
@@ -11090,9 +11086,9 @@ If (WriteOut) Write(ErrCan,*) "N N S0",i1,i2,sumI(1,1),sumI(1,2)&
   mglu2 = mglu**2
 
   if (mglu2.eq.p2) then
-   sumI = - mglu * (15._dp + 9._dp * Log(Q2/mglu2) ) * phase_glu
+   sumI = - mglu * (15._dp + 9._dp * Log(Q2/mglu2) )
   else
-   sumI = - 6._dp * mglu * phase_glu    &
+   sumI = - 6._dp * mglu   &
         &         * Real(B1(p2, mglu2, 0._dp) + 2._dp * B0(p2, mglu2, 0._dp), dp )
   end if
 
@@ -11174,7 +11170,6 @@ If (WriteOut) Write(ErrCan,*) "N N S0",i1,i2,sumI(1,1),sumI(1,2)&
   Iname = Iname - 1
 
  End Subroutine Sigma_Gluino
-
 
  Subroutine Sigma_Neutralino(p2, mN, mN2, c_NNZ_L, c_NNZ_R, mS02, c_NNS0_L    &
             & , c_NNS0_R, mP02, c_NNP0_L, c_NNP0_R, mC, mC2, c_CNW_L, c_CNW_R &
