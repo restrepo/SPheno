@@ -88,7 +88,7 @@ Integer, Parameter :: qp = Selected_real_kind(25,450)
  !-------------------------
  ! for the error system 
  !-------------------------
- Character(len=60) :: Math_Error(26) =                                &
+ Character(len=60) :: Math_Error(29) =                                &
   & (/ "Routine OdeInt, stepsize smaller than minimum:              " &
   &  , "Routine OdeInt, maximal value > 10^36:                      " &
   &  , "Routine OdeInt, too many steps:                             " &
@@ -115,6 +115,9 @@ Integer, Parameter :: qp = Selected_real_kind(25,450)
   &  , "Routine GaussJ: singular matrix                             " &
   &  , "Routine InverseMatrix: inversion failed                     " &
   &  , "Routine InvMat3: inversion failed, det(M)=0                 " &
+  &  , "Routine bsstep, stepsize underflow:                         " &
+  &  , "Routine pzextr: probable misuse, too much extrapolation     " &
+  &  , "Routine rzextr: probable misuse, too much extrapolation     " &
   & /)
  Character(len=60) :: MathQP_Error(10) =                              &
   & (/ "Routine ComplexEigenSystemDP, array dimensions do not match:" &

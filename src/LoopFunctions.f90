@@ -315,9 +315,14 @@ Contains
  Real(dp) Function AbsC(z)
  Implicit None
   Complex(dp), Intent(in) :: z
-
-  AbsC = Abs( Real(z,dp) ) + Abs( Aimag(z) )
-
+!Write(*,*) z
+!Write(*,*)  Real(z,dp) 
+!Write(*,*) Abs( Real(z,dp) )
+!Write(*,*)  Aimag(z)
+!Write(*,*) Abs( Aimag(z) )
+  absC = Sqrt(Real(z,dp)**2) + Sqrt( Aimag(z)**2 )
+!  AbsC = Abs( Real(z,dp) ) + Abs( Aimag(z) )
+!Write(*,*) "hier"
  End Function AbsC
 
 

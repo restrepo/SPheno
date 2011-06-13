@@ -112,13 +112,13 @@ Contains
   M1 = Mi(1)
   M2 = Mi(2)
   If (GenerationMixing) then
-   Call FermionMass(Y_d,1._dp,mf3,uD_L, uD_R,kont)
+   Call FermionMass(Y_d,sqrt2,mf3,uD_L, uD_R,kont)
    Y_dp = 0._dp
    Y_dp(3,3) = mf3(3)
-   Call FermionMass(Y_l,1._dp,mf3,uL_L, uL_R,kont)
+   Call FermionMass(Y_l,sqrt2,mf3,uL_L, uL_R,kont)
    Y_lp = 0._dp
    Y_lp(3,3) = mf3(3)
-   Call FermionMass(Y_u,1._dp,mf3,uU_L, uU_R,kont)
+   Call FermionMass(Y_u,sqrt2,mf3,uU_L, uU_R,kont)
    Y_up = 0._dp
    Y_up(3,3) = mf3(3)
   else
@@ -234,7 +234,8 @@ Contains
   !------------------------------------------------
   i_count = 0
   mZ2_mZ = mZ2
-  mW2_run = mW2
+  mW2_run = 0.25_dp * g(2)**2 * vev2
+
   comp2(1) = Real(mu,dp)
   comp2(2) = mZ2_mZ
   vevs_DR = vevSM
@@ -244,13 +245,13 @@ Contains
   ! tree level masses and mixings as starting point
   !-------------------------------------------------
    kont = 0
-   Call TreeMassesMSSM2(g(1), g(2), vevSM, Mi(1), Mi(2), Mi(3), mu, B, tanbQ  &
-      & , M2_E, M2_L, A_l, Y_l, M2_D, M2_U, M2_Q, A_d, A_u, Y_d, Y_u          &
-      & , uU_L, uU_R, uD_L, uD_R, uL_L, uL_R                                  &
-      & , mGlu, Phase_Glu, mC, mC2, U, V, mN, mN2, N                          &
-      & , mSneutrino, mSneutrino2, Rsneutrino, mSlepton, mSlepton2, RSlepton  &
-      & , mDSquark, mDSquark2, RDSquark, mUSquark, mUSquark2, RUSquark        &
-      & , mP0, mP02, RP0, mS0, mS02, RS0, mSpm, mSpm2, RSpm, mZ2, mW2         &
+   Call TreeMassesMSSM2(g(1), g(2), vevs_DR, Mi(1), Mi(2), Mi(3), mu, B, tanbQ  &
+      & , M2_E, M2_L, A_l, Y_l, M2_D, M2_U, M2_Q, A_d, A_u, Y_d, Y_u            &
+      & , uU_L, uU_R, uD_L, uD_R, uL_L, uL_R                                    &
+      & , mGlu, Phase_Glu, mC, mC2, U, V, mN, mN2, N                            &
+      & , mSneutrino, mSneutrino2, Rsneutrino, mSlepton, mSlepton2, RSlepton    &
+      & , mDSquark, mDSquark2, RDSquark, mUSquark, mUSquark2, RUSquark          &
+      & , mP0, mP02, RP0, mS0, mS02, RS0, mSpm, mSpm2, RSpm, mZ2_mZ, mW2_run    &
       & , GenerationMixing, kont, .True., .False.)
    If (kont.Ne.0) Then
     Iname = Iname - 1
@@ -269,9 +270,9 @@ Contains
   !----------------------
   ! mZ(mZ)
   !----------------------
-   Call PiZZT1(mZ2, g(2), sinW2_DR, vevSM, mZ2, mW2, mS02, RS0, mP02, RP0  &
-      &  , mSpm2, RSpm, mSneutrino2, RSneutrino, mSlepton2, RSlepton       &
-      &  , mUSquark2, RUSquark, mDSquark2, RDSquark, mf_l2, mf_u2, mf_d2   &
+   Call PiZZT1(mZ2, g(2), sinW2_DR, vevs_DR, mZ2, mW2, mS02, RS0, mP02, RP0 &
+      &  , mSpm2, RSpm, mSneutrino2, RSneutrino, mSlepton2, RSlepton        &
+      &  , mUSquark2, RUSquark, mDSquark2, RDSquark, mf_l2, mf_u2, mf_d2    &
       &  , mC, mC2, U, V, mN, mN2, N ,dmZ2)
    vev2 =  4._dp * Real(mZ2+dmZ2,dp) / (g(1)**2 + g(2)**2)
    vevs_DR(1) = Sqrt(vev2 / (1._dp+tanbQ**2) )
@@ -288,9 +289,9 @@ Contains
    ! replacing fermion pole masses by running masses
    !------------------------------------------------
    If (GenerationMixing) Then
-    Call FermionMass(Y_d,vevSM(1),mf_d,uD_L, uD_R,kont)
-    Call FermionMass(Y_l,vevSM(1),mf_l,uL_L, uL_R,kont)
-    Call FermionMass(Y_u,vevSM(2),mf_u,uU_L, uU_R,kont)
+    Call FermionMass(Y_d,vevs_DR(1),mf_d,uD_L, uD_R,kont)
+    Call FermionMass(Y_l,vevs_DR(1),mf_l,uL_L, uL_R,kont)
+    Call FermionMass(Y_u,vevs_DR(2),mf_u,uU_L, uU_R,kont)
     CKM_Q = Matmul(uU_L, Conjg(Transpose(uD_L)))
    Else
     Do i1=1,3
@@ -346,7 +347,7 @@ Contains
      abs_mu2=1.e4_dp
     Else
      WriteWert = Abs_Mu2
-     Call WriteLoopMassesError(5, "LoopMassesMSSM", kont)
+     Call WriteLoopMassesError(-5, "LoopMassesMSSM", kont)
      Abs_Mu2 = Abs(Abs_Mu2)
     End If
    Else If (Abs_Mu2.Ge.1.e20_dp) Then
@@ -376,64 +377,7 @@ Contains
   End Do ! i_loop
   vev_Q = Sqrt(vev2)
   mA2_Q = mP02(2)
-
-  !-------------------------------------------------
-  ! tree level masses and mixings as starting point
-  !-------------------------------------------------
-  Call TreeMassesMSSM2(g(1), g(2), vevs_DR, Mi(1), Mi(2), Mi(3), mu, B, tanbQ &
-      & , M2_E, M2_L, A_l, Y_l, M2_D, M2_U, M2_Q, A_d, A_u, Y_d, Y_u          &
-      & , uU_L, uU_R, uD_L, uD_R, uL_L, uL_R                                  &
-      & , mGlu, Phase_Glu, mC, mC2, U, V, mN, mN2, N                          &
-      & , mSneutrino, mSneutrino2, Rsneutrino, mSlepton, mSlepton2, RSlepton  &
-      & , mDSquark, mDSquark2, RDSquark, mUSquark, mUSquark2, RUSquark        &
-      & , mP0, mP02, RP0, mS0, mS02, RS0, mSpm, mSpm2, RSpm, mZ2_mZ, mW2_run  &
-      & , GenerationMixing, kont, .True., .False.)
-  If (kont.Ne.0) Then
-   Iname = Iname - 1
-   mf_d = mf_d_save
-   mf_l = mf_l_save
-   mf_u = mf_u_save
-   mf_d2 = mf_d**2
-   mf_l2 = mf_l**2
-   mf_u2 = mf_u**2
-   Return
-  End If
-
   mglu_sign = phase_glu * mglu
-  mA2_Q = mP02(2)
-
- !---------------------------
- ! tadpoles at 1-loop
- !---------------------------
-#ifdef GENERATIONMIXING
-  Call One_Loop_Tadpoles_MSSM(g(1), g(2), vevs_DR, Y_l, Y_d, Y_u, uU_L, uU_R  &
-    & , uD_L, uD_R, uL_L, uL_R, mu, A_l, A_d, A_u, mSneutrino2, Rsneutrino    &
-    & , mSlepton2, Rslepton, mDSquark2, RDSquark, mUSquark2, RUSquark         &
-    & , mSpm2, RSpm, mC, mC2, U, V, mP02, RP0, mS02, RS0, mN, mN2, N          &
-    & , mZ2_mZ, mW2_run, tadpoles_1L)
-#else
-  Call One_Loop_Tadpoles_MSSM(g(1), g(2), vevs_DR, Y_l, Y_d, Y_u, mu, A_l     &
-    & , A_d, A_u, mSneutrino2, mSlepton2, Rslepton, mDSquark2, RDSquark       &
-    & , mUSquark2, RUSquark, mSpm2, RSpm, mC, mC2, U, V, mP02, RP0, mS02, RS0 &
-    & , mN, mN2, N, mZ2_mZ, mW2_run, tadpoles_1L)
-#endif
- !---------------------------
- ! tadpoles at 2-loop
- !---------------------------
-  Call Two_Loop_Tadpoles_MSSM(g(3), mglu_sign, mP02(2), vevs_DR      &
-          & , Real(M2_D(3,3),dp), Real(M2_U(3,3),dp), Real(M2_Q(3,3),dp)      &
-          & , Real(M2_E(3,3),dp), Real(M2_L(3,3),dp), A_d(3,3), A_u(3,3)   &
-          & , A_l(3,3), Y_d(3,3), Y_u(3,3), Y_l(3,3), mu, tadpoles_2L, kont)
-  If (kont.Ne.0) Then
-   Iname = Iname - 1
-   mf_d = mf_d_save
-   mf_l = mf_l_save
-   mf_u = mf_u_save
-   mf_d2 = mf_d**2
-   mf_l2 = mf_l**2
-   mf_u2 = mf_u**2
-   Return
-  End If
 
   !--------------------
   ! pseudoscalar Higgs
@@ -508,6 +452,16 @@ Contains
    mP0_1L(2) = 1.e2_dp
   Else
    mP0_1L(2) = Sqrt( mP02_1L(2) )
+  End If
+  If (kont.Ne.0) Then
+   Iname = Iname -1
+   mf_d = mf_d_save
+   mf_l = mf_l_save
+   mf_u = mf_u_save
+   mf_d2 = mf_d**2
+   mf_l2 = mf_l**2
+   mf_u2 = mf_u**2
+   Return
   End If
   !----------------------
   ! mW(mW)
@@ -607,6 +561,16 @@ Contains
        & , Real(M2_U(3,3),dp), Real(M2_D(3,3),dp), Real(M2_E(3,3),dp)         &
        & , Real(M2_L(3,3),dp), mglu_sign, 0, mS0_1L, mS02_1L, RS0_1L, kont)
 #endif
+  If (kont.Ne.0) Then
+   Iname = Iname -1
+   mf_d = mf_d_save
+   mf_l = mf_l_save
+   mf_u = mf_u_save
+   mf_d2 = mf_d**2
+   mf_l2 = mf_l**2
+   mf_u2 = mf_u**2
+   Return
+  End If
   !--------------------------------------------
   ! iteration using on-shell mass for p^2
   !--------------------------------------------
@@ -976,9 +940,10 @@ Contains
   Real(dp) :: vevSM(2), tanbQ, cosb2, cos2b, sinb2, g6(6), g7(7) , Q, dt, tz  &
     & , vev2, sinW2_DR, mZ2_mZ, vevs_DR(2), tadpoles_1L(2), p2, b_A, mW2_mW   &
     & , mA2_mA, eq, T3, Q2, Pi2A0, tadpoles_2L(2), mW2_run, mglu_T, mP0_T(2)  &
-    & , mP02_T(2), mglu_sign, M2_H_1L(2), RP0_T(2,2), comp2(2), wert
+    & , mP02_T(2), mglu_sign, M2_H_1L(2), RP0_T(2,2), comp2(2), wert, mf3(3)
   Complex(dp) :: dmZ2, PiA0, dmW2, PiSpm, dmglu, M1, M2
-  Complex(dp), Dimension(3,3) :: uL_L, uL_R, uD_L, uD_R, uU_L, uU_R, CKM_Q
+  Complex(dp), Dimension(3,3) :: uL_L, uL_R, uD_L, uD_R, uU_L, uU_R, CKM_Q    &
+    & , Y_up, Y_dp, Y_lp
   Integer :: i1, i_loop, i2, i_count
  
   Iname = Iname + 1
@@ -1006,17 +971,50 @@ Contains
 
   M1 = Mi(1)
   M2 = Mi(2)
+
+  If (GenerationMixing) then
+   Call FermionMass(Y_d,sqrt2,mf3,uD_L, uD_R,kont)
+   Y_dp = 0._dp
+   Y_dp(3,3) = mf3(3)
+   Call FermionMass(Y_l,sqrt2,mf3,uL_L, uL_R,kont)
+   Y_lp = 0._dp
+   Y_lp(3,3) = mf3(3)
+   Call FermionMass(Y_u,sqrt2,mf3,uU_L, uU_R,kont)
+   Y_up = 0._dp
+   Y_up(3,3) = mf3(3)
+  else
+   Y_lp = Y_l
+   Y_dp = Y_d
+   Y_up = Y_u
+  end if
+
 !---------------------------
 ! running of Tan(beta)
 !---------------------------
-  If (mudim.Ne.mZ2) Then
+    If (SPA_Convention) Then
+   Q = Sqrt(mudim)
+   Q2 = mudim
+   g7(1:3) = g
+   g7(1) = Sqrt(5._dp / 3._dp ) * g7(1)  ! rescaling
+   g7(4) = Real(Y_lp(3,3),dp)
+   g7(5) = Real(Y_dp(3,3),dp)
+   g7(6) = Real(Y_up(3,3),dp)
+   g7(7) = Log(tanb)
+   tz = Log(Q/mZ)
+   dt = - tz / 50._dp
+   Call odeint(g7, 7, tz, 0._dp, 0.1_dp*delta, dt, 0._dp, rge7, kont)
+
+   tanb_mZ = Exp(g7(7))
+   tanbQ = tanb
+   tanb_Q = tanb
+  Else If (mudim.Ne.mZ2) Then
    Q = Sqrt(mudim)
    Q2 = mudim
    g6(1:3) = g
    g6(1) = Sqrt(5._dp / 3._dp ) * g6(1)  ! rescaling
-   g6(4) = Real(Y_l(3,3),dp)
-   g6(5) = Real(Y_d(3,3),dp)
-   g6(6) = Real(Y_u(3,3),dp)
+   g6(4) = Real(Y_lp(3,3),dp)
+   g6(5) = Real(Y_dp(3,3),dp)
+   g6(6) = Real(Y_up(3,3),dp)
 
 !------------------------------------
 ! calculate first the couplings at mZ
@@ -1036,11 +1034,14 @@ Contains
    Call odeint(g7, 7, 0._dp, tz, 0.1_dp * delta, dt, 0._dp, rge7, kont)
 
    tanbQ = Exp( g7(7) )
+   tanb_Q = tanbQ
+   tanb_mZ = tanb
   Else
    tanbQ = tanb
+   tanb_Q = tanbQ
+   tanb_mZ = tanb
    Q2 = mZ2
   End If
-  tanb_Q = tanbQ
 
   cosb2 = 1._dp / (1._dp + tanbQ**2)
   sinb2 = 1._dp - cosb2
@@ -1110,9 +1111,9 @@ Contains
 ! replacing fermion pole masses by running masses
 !------------------------------------------------
    If (GenerationMixing) Then
-    Call FermionMass(Y_d,vevSM(1),mf_d,uD_L, uD_R,kont)
-    Call FermionMass(Y_l,vevSM(1),mf_l,uL_L, uL_R,kont)
-    Call FermionMass(Y_u,vevSM(2),mf_u,uU_L, uU_R,kont)
+    Call FermionMass(Y_d,vevs_DR(1),mf_d,uD_L, uD_R,kont)
+    Call FermionMass(Y_l,vevs_DR(1),mf_l,uL_L, uL_R,kont)
+    Call FermionMass(Y_u,vevs_DR(2),mf_u,uU_L, uU_R,kont)
     CKM_Q = Matmul(uU_L, Conjg(Transpose(uD_L)))
    Else
     Do i1=1,3
@@ -1169,9 +1170,9 @@ Contains
    ! replacing fermion pole masses by running masses
    !------------------------------------------------
    If (GenerationMixing) Then
-    Call FermionMass(Y_d,vevSM(1),mf_d,uD_L, uD_R,kont)
-    Call FermionMass(Y_l,vevSM(1),mf_l,uL_L, uL_R,kont)
-    Call FermionMass(Y_u,vevSM(2),mf_u,uU_L, uU_R,kont)
+    Call FermionMass(Y_d,vevs_DR(1),mf_d,uD_L, uD_R,kont)
+    Call FermionMass(Y_l,vevs_DR(1),mf_l,uL_L, uL_R,kont)
+    Call FermionMass(Y_u,vevs_DR(2),mf_u,uU_L, uU_R,kont)
     CKM_Q = Matmul(uU_L, Conjg(Transpose(uD_L)))
    Else
     Do i1=1,3
@@ -1379,6 +1380,16 @@ Contains
        & , Real(M2_U(3,3),dp), Real(M2_D(3,3),dp), Real(M2_E(3,3),dp)          &
        & , Real(M2_L(3,3),dp), mglu_sign, 0, mS0_1L, mS02_1L, RS0_1L, kont)
 #endif
+  If (kont.Ne.0) Then
+   Iname = Iname -1
+   mf_d = mf_d_save
+   mf_l = mf_l_save
+   mf_u = mf_u_save
+   mf_d2 = mf_d**2
+   mf_l2 = mf_l**2
+   mf_u2 = mf_u**2
+   Return
+  End If
   !--------------------------------------------
   ! iteration using on-shell mass for p^2
   !--------------------------------------------
@@ -1846,9 +1857,9 @@ Contains
   ! replacing fermion pole masses by running masses
   !------------------------------------------------
    If (GenerationMixing) Then
-    Call FermionMass(Y_d,vevSM(1),mf_d,uD_L, uD_R,kont)
-    Call FermionMass(Y_l,vevSM(1),mf_l,uL_L, uL_R,kont)
-    Call FermionMass(Y_u,vevSM(2),mf_u,uU_L, uU_R,kont)
+    Call FermionMass(Y_d,vevs_DR(1),mf_d,uD_L, uD_R,kont)
+    Call FermionMass(Y_l,vevs_DR(1),mf_l,uL_L, uL_R,kont)
+    Call FermionMass(Y_u,vevs_DR(2),mf_u,uU_L, uU_R,kont)
     CKM_Q = Matmul(uU_L, Conjg(Transpose(uD_L)))
    Else
     Do i1=1,3
@@ -2098,6 +2109,16 @@ Contains
        & , Real(M2_U(3,3),dp), Real(M2_D(3,3),dp), Real(M2_E(3,3),dp)         &
        & , Real(M2_L(3,3),dp), mglu_sign, 0, mS0_1L, mS02_1L, RS0_1L, kont)
 #endif
+  If (kont.Ne.0) Then
+   Iname = Iname -1
+   mf_d = mf_d_save
+   mf_l = mf_l_save
+   mf_u = mf_u_save
+   mf_d2 = mf_d**2
+   mf_l2 = mf_l**2
+   mf_u2 = mf_u**2
+   Return
+  End If
   !--------------------------------------------
   ! iteration using on-shell mass for p^2
   !--------------------------------------------
@@ -4128,6 +4149,7 @@ Contains
      End If
     End Do
    End Do
+   mN1L2 = mN1L**2
 
 !-------------------------------------------------------------------------
 ! there is a huge hierarchy between neutrinos and neutralinos
@@ -10156,9 +10178,9 @@ If (WriteOut) Write(ErrCan,*) "N N S0",i1,i2,sumI(1,1),sumI(1,2)&
     sumS = 0._dp
     Do i3 = 1,n_char
      Do i4 = 1,n_char
-      sumL(i3,i4) = Conjg( c_SmpCN_R(i2,i4,i1) ) * c_SmpCN_R(i2,i3,i1) * B1m2
-      sumR(i3,i4) = Conjg( c_SmpCN_L(i2,i4,i1) ) * c_SmpCN_L(i2,i3,i1) * B1m2
-      sumS(i3,i4) = Conjg( c_SmpCN_R(i2,i4,i1) ) * c_SmpCN_L(i2,i3,i1) * B0m2
+      sumL(i3,i4) = Conjg( c_SmpCN_L(i2,i4,i1) ) * c_SmpCN_L(i2,i3,i1) * B1m2
+      sumR(i3,i4) = Conjg( c_SmpCN_R(i2,i4,i1) ) * c_SmpCN_R(i2,i3,i1) * B1m2
+      sumS(i3,i4) = Conjg( c_SmpCN_L(i2,i4,i1) ) * c_SmpCN_R(i2,i3,i1) * B0m2
      End Do 
      If (WriteOut) Then
       Write (ErrCan,*) "S^+ C N",i2,i3,i1
@@ -10447,14 +10469,16 @@ If (WriteOut) Write(ErrCan,*) "N N S0",i1,i2,sumI(1,1),sumI(1,2)&
    Do i2=1,3
     B1m2a = - B1(mf2(i2),mf2(i1), mZ2)
     B0m2a = - 4._dp * mf(i1) * B0(mf2(i2),mf2(i1), mZ2)
-    sumL(i2,i2) = abs(c_L(i2))**2 * B1m2a
-    sumR(i2,i2) = abs(c_R(i2))**2 * B1m2a
+    sumL(i2,i2) = Abs(c_L(i2))**2 * B1m2a
+    sumR(i2,i2) = Abs(c_R(i2))**2 * B1m2a
     sumS(i2,i2) = c_L(i2) * Conjg(c_R(i2)) * B0m2a
     Do i3=1,3
-     sumL(i2,i3) = c_L(i3) * Conjg(c_L(i2) ) * B1m2
-     sumR(i2,i3) = c_R(i3) * Conjg(c_R(i2) ) * B1m2
-     sumS(i2,i3) = c_L(i3) * Conjg(c_R(i2)) * B0m2a
-    end do
+     If (i2.Ne.i3) Then
+      sumL(i2,i3) = c_L(i3) * Conjg(c_L(i2) ) * B1m2
+      sumR(i2,i3) = c_R(i3) * Conjg(c_R(i2) ) * B1m2
+      sumS(i2,i3) = c_R(i3) * Conjg(c_L(i2)) * B0m2 
+     End If
+    End Do
    End Do
    If (WriteOut) Then
     Write(ErrCan,*) "Z-boson",i1
@@ -10487,7 +10511,7 @@ If (WriteOut) Write(ErrCan,*) "N N S0",i1,i2,sumI(1,1),sumI(1,2)&
      B0m2a = mfp(i2) * B0(mf2(i3),mfp2(i2), mSpm2(i1))
      SumL(i3,i3) = Abs(c_L(i3))**2 * B1m2a
      SumR(i3,i3) = Abs(c_R(i3))**2 * B1m2a
-     SumS(i3,i3) = c_L(i3)*Conjg(c_R(i1)) * B0m2a
+     SumS(i3,i3) = c_L(i3)*Conjg(c_R(i3)) * B0m2a
      Do i4=1,3
       If (i3.Ne.i4) Then
        SumL(i3,i4) = c_L(i4) * Conjg( c_L(i3) ) * B1m2
@@ -11065,7 +11089,13 @@ If (WriteOut) Write(ErrCan,*) "N N S0",i1,i2,sumI(1,1),sumI(1,2)&
 
   mglu2 = mglu**2
 
-  sumI = - mglu * (15._dp + 9._dp * Log(Q2/mglu2) ) * phase_glu
+  if (mglu2.eq.p2) then
+   sumI = - mglu * (15._dp + 9._dp * Log(Q2/mglu2) ) * phase_glu
+  else
+   sumI = - 6._dp * mglu * phase_glu    &
+        &         * Real(B1(p2, mglu2, 0._dp) + 2._dp * B0(p2, mglu2, 0._dp), dp )
+  end if
+
   If (WriteOut) Write(ErrCan,*) "Gluon ",sumI
   res = sumI
 
@@ -13974,7 +14004,7 @@ If (WriteOut) Write(ErrCan,*) "N N S0",i1,i2,sumI(1,1),sumI(1,2)&
 
  Case(1)
   Write(ErrCan,*) "Problem in unit "//name
-  Write(ErrCan,*) "|mu|^2 < 0,  reversing sign",WriteWert
+  Write(ErrCan,*) "|mu|^2 < 0 at tree level,  reversing sign",WriteWert
 
  Case(2)
   Write(ErrCan,*) "Problem in unit "//name

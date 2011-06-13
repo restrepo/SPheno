@@ -1,3 +1,11 @@
+# please put here your preferred F95/F2003 compiler
+# the options in src/Makefile have been put for the
+# cases NAG's nagfor, gfortran, g95, Lahey's lf95 and Intels ifort
+# Please uncomment the corresponding line
+# F90 = nagfor
+# F90 = gfortran
+# F90 = g95
+# F90 = lf95
 F90 = ifort
 bin/SPheno:
 	cd src ; ${MAKE} F90=${F90}

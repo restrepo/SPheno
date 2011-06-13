@@ -1,12 +1,55 @@
 PreDef = -DGENERATIONMIXING  -DONLYDOUBLE
+# setting various paths
 InDir = ../include
 Mdir = ${InDir}
-F90 = ifort
+name = ../lib/libSPheno.a
+
+#
+# options for various compilers
+#
+F90 = g95
 LFlagsB = -g   
 LFlagsB = -O  
+comp = -c -O -fmod=${Mdir} -I${InDir} 
 comp = -c -g -module ${Mdir} -I${InDir} 
+comp = -c -O -
+
+# Intels ifort, default in optimized mode
+F90 = ifort
 comp = -c -O -module ${Mdir} -I${InDir} 
-name = ../lib/libSPheno.a
+LFlagsB = -O  
+
+# Intels ifort, debug modus
+ifeq (${F90},ifortg)
+ F90 = ifort
+ comp = -c -g -module ${Mdir} -I${InDir} 
+ LFlagsB = -g  
+endif
+
+# gfortran
+ifeq (${F90},gfortran)
+ comp = -c -O -J ${Mdir} -I${InDir}
+ LFlagsB = -O  
+endif
+
+# g95 
+ifeq (${F90},g95)
+ comp = -c -O -fmod=${Mdir} -I${InDir}
+ LFlagsB = -O  
+endif
+
+# Lahey F95 compiler
+ifeq (${F90},lf95)
+ comp = -c -O -M ${Mdir} -I${InDir}
+ LFlagsB = -O  
+endif
+ 
+# NAG f95/2003
+ifeq (${F90},nagfor)
+ comp = -c -O -M ${Mdir} -I${InDir}
+ LFlagsB = -c -O -DONLYDOUBLE -mdir ${MDir} -I${InDir}   
+endif
+ 
 .SUFFIXES : .o .ps .f90 .F90 .a
 bin/SPheno: ${name} SPheno3.o
 	${F90} -o SPheno ${LFlagsB} SPheno3.o ../lib/${name}
@@ -22,7 +65,8 @@ ${name}: ${name}(Control.o)  ${name}(Mathematics.o)  ${name}(RGEs.o)       \
   ${name}(Stop3BodyDecays.o) ${name}(Slepton3Body.o) ${name}(BranchingRatios.o)              \
   ${name}(EplusEminusProduction.o) ${name}(TwoLoopHiggsMass.o) \
   ${name}(LoopMasses.o) ${name}(SugraRuns.o) ${name}(Experiment.o) \
-  ${name}(LowEnergy.o) ${name}(NMSSM_tools.o) ${name}(RPtools.o) ${name}(InputOutput.o) 
+  ${name}(LowEnergy.o) ${name}(NMSSM_tools.o) ${name}(RPtools.o) \
+  ${name}(LHC_observables.o) ${name}(InputOutput.o) 
 clean:
 	rm -f *.o *~ */*.o */*~
 cleanall:

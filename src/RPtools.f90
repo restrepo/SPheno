@@ -292,7 +292,7 @@ Contains
    Else If (tan2_atm.Gt.tan2_atm_max) Then
     check = .False.
     Lambda(2) = 0.8_dp * Lambda(2)
-    Lambda(3) = Sign(1._dp,lambda(3))*Sqrt(Lam_Sq - Lambda(3)**2 - Lambda(1)**2)
+    Lambda(3) = Sign(1._dp,lambda(3))*Sqrt(Lam_Sq - Lambda(2)**2 - Lambda(1)**2)
     vevL = (Lambda - eps*vevSM(1)) / mu_mZ 
     Call Calculate_Bi(mu_mZ, eps, vevL, vevSM, g0(1), g0(2), M2L_mZ, B_4(2:4))
    End If
@@ -562,20 +562,20 @@ Contains
   Logical, Intent(in) :: add_Rparity
   Character(len=15), Intent(inout) :: HighScaleModel
   Integer, Intent(inout) :: kont
-  real(dp), intent(in) :: delta   ! required precision for spectrum calculation
-  real(dp), intent(out) :: M_GUT  ! scale of SUSY boundary conditions,
+  Real(dp), Intent(in) :: delta   ! required precision for spectrum calculation
+  Real(dp), Intent(out) :: M_GUT  ! scale of SUSY boundary conditions,
                                   ! usually the GUT scale
  !-------------------------------
  ! widths and branching ratios
  !-------------------------------
   Real(dp), Intent(in) ::  m32, grav_fac, epsI, deltaM, ratioWoM
-  Logical, intent(in) :: CalcTBD
+  Logical, Intent(in) :: CalcTBD
  !--------------------------------
  ! cross section calculation
  !--------------------------------
-  Real(dp), intent(in) :: Ecms(:), Pm(:), Pp(:)
-  Logical, intent(in) :: ISR(:), Beam(:)
-  real(dp), intent(out) :: SigSup(:,:,:) , SigSdown(:,:,:), SigC(:,:,:), SigChi0(:,:,:) &
+  Real(dp), Intent(in) :: Ecms(:), Pm(:), Pp(:)
+  Logical, Intent(in) :: ISR(:), Beam(:)
+  Real(dp), Intent(out) :: SigSup(:,:,:) , SigSdown(:,:,:), SigC(:,:,:), SigChi0(:,:,:) &
          & , SigS0(:,:), SigSP(:,:,:), SigHp(:,:,:)
 
   !-----------------------------------------------------------
@@ -675,6 +675,11 @@ Contains
            & , mSdown, mSdown2, RSdown, mSup, mSup2, RSup, mP05, mP052, RP05 &
            & , mS05, mS052, RS05, mSpm8, mSpm82, RSpm8, GenerationMixing, kont)
 
+    If (kont.Ne.0) Then
+     Iname = Iname - 1
+     Return
+    End If
+  
     Call NeutralinoMass_Loop_RP(g0(1), g0(2), Y_d_mZ, Y_l_mZ, Y_u_mZ, vevSM   &
          & , vevL, Mi_mZ(1), Mi_mZ(2), mu_mZ, eps, mC5, mC52, U5, V5          &
          & , mSup2, RSup, mSdown2, RSdown, mS052, RS05, mP052, RP05, mSpm82   &
@@ -802,7 +807,7 @@ Contains
      & , gP_Glu, gT_Glu, BR_Glu, gP_P05, gT_P05, BR_P05                      &
      & , gP_S05, gT_S05, BR_S05, gP_Spm8, gT_Spm8, BR_Spm8)
 
-  end if
+  End If
 
 
  !---------------------------------------------------------------------------
@@ -821,7 +826,7 @@ Contains
  ! default values are used: Ecms = 500 GeV, Pm = Pp = 0, ISR = .TRUE.
  !----------------------------------------------------------------------------
   If ((L_CS).And.(kont.Eq.0)) Then
-   p_max = size(Pm)
+   p_max = Size(Pm)
 
    Do i1=1,p_max
     If (Ecms(i1).Eq.0._dp) Exit
@@ -833,7 +838,9 @@ Contains
            & , SigHp(i1,:,:) )
    End Do
 
-  end if
+  End If
+
+  lam_ex = mu * vevL + vevSM(1) * eps
 
   Iname = Iname - 1
 

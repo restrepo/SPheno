@@ -45,6 +45,7 @@ Use StandardModel
  !----------------------------
  ! trilinear couplings
  !----------------------------
+ Complex(dp) :: At_save, Ab_save, Atau_save
  Complex(dp), Dimension(3,3) :: A_l, A_d, A_u, A_l_mZ, A_d_mZ, A_u_mZ, A_l_0   &
      & , A_nu_0, A_d_0, A_u_0, A_nu, A_T_0, A_l_MH3, A_T_MH3, A_d_MH3, A_u_MH3 &
      & , A_T, A_S_MH3, A_Z_MH3
@@ -84,6 +85,10 @@ Use StandardModel
  ! sfermion mass parameters in the super-CKM basis
  !-----------------------------------------------------------
  Complex(dp), Dimension(3,3) :: M2Q_sckm , M2D_sckm , M2U_sckm, Au_sckm, Ad_sckm
+ !-----------------------------------------------------------
+ ! sfermion mass parameters in the super-PMNS basis
+ !-----------------------------------------------------------
+ Complex(dp), Dimension(3,3) :: M2L_pmns , M2E_pmns , M2R_pmns, Anu_pmns, Al_pmns
  !----------------------------------------------------------------
  ! Higgs mass parameters, tan(beta) and vacuum expectation values
  !----------------------------------------------------------------
@@ -91,7 +96,7 @@ Use StandardModel
      & , M2_H_mR(2), M2_H_0(2), M2_S_0, M2_T_0(2), M2_T_MH3(2), M2_H_MH3(2) &
      & , M_H3(2), M2_T(2), M2_S_MH3(2), M2_Z_MH3(2), MT15_mH3, MZ15_mH3     &
      & , MS15_mH3, M2_P, M2_S
- Logical :: Fifteen_plet = .False.
+ Logical :: Fifteen_plet = .True.
  !----------------------------
  ! neutrino dim. 5 operator
  !----------------------------
@@ -249,6 +254,35 @@ Use StandardModel
  ! masses of right handed neutrinos
  !-----------------------------------------------------------------------
  Real(dp) :: m_nu_R(3)
+
+!-------------------------------------
+! Seesaw II + III a la Florian Staub
+!-------------------------------------
+ Complex(dp) :: Amue, MassB_H24, MassWB_H24, MassG_H24, mu_H24, mu_h15
+ Complex(dp), Dimension(3) ::  mi_h24
+ Complex(dp), Dimension(3,3) :: Ye_H24, Yd_H24,Yu_H24, &
+  & AYe_H24,AYd_H24,AYu_H24,Ye0_H24, Yd0_H24,Yu0_H24 
+ Complex(dp), Dimension(3,3) :: mq2_h24, md2_h24,mu2_h24,ml2_h24,me2_h24
+ Complex(dp), Dimension(3) :: Yb0_H24, Yw0_H24, Yx0_H24
+ Real(dp) :: g1_H24, g2_H24, g3_H24,gauge_H24(3), Mnu1_H24, Mnu2_H24, &
+  & g10_H24, g20_H24, g30_H24,gauge0_H24(3), mHd2_h24, mHu2_h24, mh2_H24(2)
+ Complex(dp), Dimension(3,3) :: mHw32, mHg32, mHb32, mHx32, mHxb32, MXM3 &
+  & , MWM3, MWM30,MWM3_gut, MGM3, MBM3, AMXM3, AMWM3, AMGM3, AMBM3
+ Complex(dp), Dimension(3,3) :: Yb3_H24, Yb3_H24_gut,Yw3_H24, Yx3_H24 &
+  & , AYb3_H24, AYw3_H24, AYx3_H24, mi3_h24 
+ Complex(dp), Dimension(3,3,3) :: Yb30_H24, Yw30_H24, Yx30_H24
+ ! Seesaw II 
+ Complex(dp), Dimension(3,3) :: YT0_H15, YZ0_H15, YS0_15, YT_H15_GUT, AYT_h15  &
+  & , AYZ_H15, AYS_H15, Ye_h15, Yd_h15, Yu_h15, Yd0_h15, Yu0_h15, Ye0_h15, AYz &
+  & , Ys0_h15, YT_h15, YZ_h15, YS_h15
+ Complex(dp) :: Lambda1, Lambda2, MTM, MSM, MZM, AMTM, AMSM, AMZM, ALambda1   &
+  & , ALambda2, MTM0,mt2_H15, mtb2_H15, mz2_H15, mzb2_H15, ms2_H15, msb2_H15  &
+  & , Lambda1_gut, Lambda2_gut, MassB_h15, MassG_h15, MassWB_h15, Mi_H15(3)   &
+  & , MTM_gut, Lambda10, Lambda20
+ Real(dp) ::  gauge_H15(3), g1_h15, g2_h15, g3_h15, g10_h15, g20_h15 &
+  & , g30_h15, gauge0_H15(3), mHd2_h15, mHu2_h15, mh2_h15(2)
+ Complex(dp), Dimension(3,3) :: mq2_h15, md2_h15,mu2_h15,ml2_h15,me2_h15      &
+  & , AYe_h15, AYd_h15, AYu_h15
 
 Contains
 
@@ -444,6 +478,136 @@ Contains
   RSneut = 0._dp
   RSlepton = 0._dp
   
+ !------------------------------------------------
+ ! Seesaw II + III a la Florian Staub
+ !------------------------------------------------
+  Amue = 0._dp
+  MassB_H24 = 0._dp
+  MassWB_H24 = 0._dp
+  MassG_H24 = 0._dp
+  mu_H24 = 0._dp
+  mu_h15 = 0._dp
+  mi_h24 = 0._dp
+  Ye_H24 = 0._dp
+  Yd_H24 = 0._dp
+  Yu_H24 = 0._dp 
+  AYe_H24 = 0._dp
+  AYd_H24 = 0._dp
+  AYu_H24 = 0._dp
+  Ye0_H24 = 0._dp
+  Yd0_H24 = 0._dp
+  Yu0_H24 = 0._dp
+  mq2_h24 = 0._dp
+  md2_h24 = 0._dp
+  mu2_h24 = 0._dp
+  ml2_h24 = 0._dp
+  me2_h24 = 0._dp
+  Yb0_H24 = 0._dp
+  Yw0_H24 = 0._dp
+  Yx0_H24 = 0._dp
+  g1_H24 = 0._dp
+  g2_H24 = 0._dp
+  g3_H24 = 0._dp
+  gauge_H24 = 0._dp
+  Mnu1_H24 = 0._dp
+  Mnu2_H24 = 0._dp
+  g10_H24 = 0._dp
+  g20_H24 = 0._dp
+  g30_H24 = 0._dp
+  gauge0_H24 = 0._dp
+  mHd2_h24 = 0._dp
+  mHu2_h24 = 0._dp
+  mh2_H24 = 0._dp
+  mHw32 = 0._dp 
+  mHg32 = 0._dp
+  mHb32 = 0._dp
+  mHx32 = 0._dp
+  mHxb32 = 0._dp
+  MXM3 = 0._dp
+  MWM3 = 0._dp
+  MWM30 = 0._dp
+  MWM3_gut = 0._dp
+  MGM3 = 0._dp
+  MBM3 = 0._dp
+  AMXM3 = 0._dp
+  AMWM3 = 0._dp
+  AMGM3 = 0._dp
+  AMBM3 = 0._dp
+  Yb3_H24 = 0._dp
+  Yb3_H24_gut = 0._dp
+  Yw3_H24 = 0._dp
+  Yx3_H24 = 0._dp
+  AYb3_H24 = 0._dp
+  AYw3_H24 = 0._dp
+  AYx3_H24 = 0._dp
+  mi3_h24 = 0._dp  
+  Yb30_H24 = 0._dp
+  Yw30_H24 = 0._dp
+  Yx30_H24 = 0._dp
+  YT0_H15 = 0._dp
+  YZ0_H15 = 0._dp
+  YS0_15 = 0._dp
+  YT_H15_GUT = 0._dp
+  AYT_h15 = 0._dp
+  AYZ_H15 = 0._dp
+  AYS_H15 = 0._dp
+  Ye_h15 = 0._dp
+  Yd_h15 = 0._dp
+  Yu_h15 = 0._dp
+  Yd0_h15 = 0._dp
+  Yu0_h15 = 0._dp
+  Ye0_h15 = 0._dp
+  AYz = 0._dp
+  Ys0_h15 = 0._dp
+  YT_h15 = 0._dp
+  YZ_h15 = 0._dp 
+  YS_h15 = 0._dp
+  Lambda1 = 0._dp
+  Lambda2 = 0._dp
+  MTM = 0._dp 
+  MSM = 0._dp
+  MZM = 0._dp
+  AMTM = 0._dp
+  AMSM = 0._dp
+  AMZM = 0._dp
+  ALambda1 = 0._dp
+  ALambda2 = 0._dp
+  MTM0 = 0._dp
+  mt2_H15 = 0._dp
+  mtb2_H15 = 0._dp
+  mz2_H15 = 0._dp
+  mzb2_H15 = 0._dp
+  ms2_H15 = 0._dp
+  msb2_H15 = 0._dp
+  Lambda1_gut = 0._dp
+  Lambda2_gut = 0._dp
+  MassB_h15 = 0._dp
+  MassG_h15 = 0._dp
+  MassWB_h15 = 0._dp
+  Mi_H15 = 0._dp
+  MTM_gut = 0._dp
+  Lambda10 = 0._dp
+  Lambda20 = 0._dp
+  gauge_H15 = 0._dp
+  g1_h15 = 0._dp
+  g2_h15 = 0._dp
+  g3_h15 = 0._dp
+  g10_h15 = 0._dp
+  g20_h15 = 0._dp
+  g30_h15 = 0._dp
+  gauge0_H15 = 0._dp
+  mHd2_h15 = 0._dp
+  mHu2_h15 = 0._dp
+  mh2_h15 = 0._dp
+  mq2_h15 = 0._dp
+  md2_h15 = 0._dp
+  mu2_h15 = 0._dp
+  ml2_h15 = 0._dp
+  me2_h15 = 0._dp  
+  AYe_h15 = 0._dp
+  AYd_h15 = 0._dp
+  AYu_h15 = 0._dp
+
  End Subroutine Set_All_Parameters_0
 
 
@@ -526,6 +690,12 @@ Contains
    MQ_out = Matmul( Matmul( Transpose(Conjg(uD_L)), MQ_in), uD_L )
 
   End If
+  !------------------------------------------------------------------
+  ! to avoid numerical problems ensure that matrices are hermitian
+  !-----------------------------------------------------------------
+  MD_out = 0.5_dp * ( MD_out + Conjg(Transpose(MD_out)) )
+  MU_out = 0.5_dp * ( MU_out + Conjg(Transpose(MU_out)) )
+  MQ_out = 0.5_dp * ( MQ_out + Conjg(Transpose(MQ_out)) )
 
    If (Present(RSu_in).And.Present(RSu_out)) Then
     rot = 0._dp
@@ -611,7 +781,6 @@ Contains
    MD_out = Matmul( Matmul( uD_R, MD_in), Transpose(Conjg(uD_R)))
    MU_out = Matmul( Matmul( uU_R, MU_in), Transpose(Conjg(uU_R)))
    MQ_out = Matmul( Matmul( Transpose(uD_L), MQ_in), Conjg(uD_L) )
-
   Else
    Au_out = Matmul( Matmul(Conjg(uU_L), Au_in), Transpose(uU_R))
    Ad_out = Matmul( Matmul(Conjg(uD_L), Ad_in), Transpose(uD_R))
@@ -621,6 +790,12 @@ Contains
    MQ_out = Matmul( Matmul( uD_L, MQ_in), Transpose(Conjg(uD_L)) )
 
   End If
+  !------------------------------------------------------------------
+  ! to avoid numerical problems ensure that matrices are hermitian
+  !-----------------------------------------------------------------
+  MD_out = 0.5_dp * ( MD_out + Conjg(Transpose(MD_out)) )
+  MU_out = 0.5_dp * ( MU_out + Conjg(Transpose(MU_out)) )
+  MQ_out = 0.5_dp * ( MQ_out + Conjg(Transpose(MQ_out)) )
 
    If (Present(RSu_in).And.Present(RSu_out)) Then
     rot = 0._dp
@@ -636,6 +811,82 @@ Contains
    End If
 
  End Subroutine Switch_to_superCKM
+
+ Subroutine Switch_to_superPMNS(Y_l, M5_nu, Al_in, ME_in, ML_in &
+                      &, Al_out, ME_out, ML_out, tr            &
+                      &, RSl_in, RSn_in, RSl_out, RSn_out, PMNS_out, Yl )
+ !---------------------------------------------------------------------------
+ ! shifts the parameter from the electroweak basis to the super PMNS basis
+ ! written by werner Porod, 12.03.08
+ !---------------------------------------------------------------------------
+ Implicit None
+  Complex(dp), Intent(in), Dimension(3,3) :: Y_l, M5_nu, Al_in, ME_in, ML_in
+  Complex(dp), Optional, Intent(in) :: RSl_in(6,6), RSn_in(3,3)
+  Logical, Intent(in) :: tr  ! if true, then the matrices are transposed 
+                             ! compared to low energy definition
+  Complex(dp), Intent(out), Dimension(3,3) :: Al_out, ME_out, ML_out
+  Complex(dp), Optional, Intent(out), Dimension(6,6) :: RSl_out(6,6)
+  Complex(dp), Optional, Intent(out) :: PMNS_out(3,3), RSn_out(3,3)
+  Real(dp), Optional, Intent(out) :: Yl(3)
+
+  Complex(dp), Dimension(3,3) :: uN_L, uL_L, uL_R, PMNS_Q
+  Complex(dp) :: rot(6,6)
+
+  Real(dp) :: mf(3)
+  Integer :: ierr
+
+  !------------------------------------------
+  ! diagonalizing d- and u-Yukawa couplings
+  ! I am only interested in the mixing matrices
+  !------------------------------------------
+  If (tr) Then
+   Call FermionMass(Transpose(Y_l), 1._dp, mf, uL_L, uL_R, ierr)
+   If (Present(Yl)) Yl = sqrt2 * mf
+  Else
+   Call FermionMass(Y_l, 1._dp, mf, uL_L, uL_R, ierr)
+   If (Present(Yl)) Yl = sqrt2 * mf
+  End If
+
+  Call Neutrinomasses(M5_nu, mf, uN_L, ierr)
+  !---------------------------------------------------------
+  ! PMNS matrix at Q, shifting phases according to PDG form
+  !---------------------------------------------------------
+  PMNS_Q =  Matmul(uL_L, uN_L)
+
+  If (Present(PMNS_out)) PMNS_out = PMNS_Q
+  !-------------------------------------------------------------------
+  ! shifting the parameters to the super PMNS basis
+  !-------------------------------------------------------------------
+  If (tr) Then
+   Al_out = Matmul( Matmul(uL_R, Al_in), Transpose(Conjg(uL_L)))
+
+   ME_out = Matmul( Matmul( uL_R, ME_in), Transpose(Conjg(uL_R)))
+   ML_out = Matmul( Matmul( Transpose(uL_L), ML_in), Conjg(uL_L) )
+
+  Else
+   Al_out = Matmul( Matmul(Conjg(uL_L), Al_in), Transpose(uL_R))
+
+   ME_out = Matmul( Matmul( Conjg(uL_R), ME_in), Transpose(uL_R))
+   ML_out = Matmul( Matmul( uL_L, ML_in), Transpose(Conjg(uL_L)) )
+
+  End If
+  !------------------------------------------------------------------
+  ! to avoid numerical problems ensure that matrices are hermitian
+  !-----------------------------------------------------------------
+  ME_out = 0.5_dp * ( ME_out + Conjg(Transpose(ME_out)) )
+  ML_out = 0.5_dp * ( ML_out + Conjg(Transpose(ML_out)) )
+
+   If (Present(RSn_in).And.Present(RSn_out)) Then
+    RSn_out = Matmul(RSn_in, Conjg(uN_L) )
+   End If
+   If (Present(RSl_in).And.Present(RSl_out)) Then
+    rot = 0._dp
+    rot(1:3,1:3) = Transpose(uL_L)
+    rot(4:6,4:6) = Transpose(Conjg(uL_R))
+    RSl_out = Matmul(RSl_in, rot)
+   End If
+
+ End Subroutine Switch_to_superPMNS
 
 End Module Model_Data
 

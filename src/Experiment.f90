@@ -18,15 +18,15 @@ Real(dp), Public :: m2_atm_min = 2.07e-21_dp, m2_atm_max = 2.75e-21_dp
 ! best fit for atm. mass squared
 Real(dp), Public :: m2_atm = 2.40e-21_dp
 ! Min/Max of tan^2(theta_atm)
-Real(dp), Public :: tan2_atm_min = 0.6525_dp , tan2_atm_max = 2.0303_dp
+Real(dp), Public :: tan2_atm_min = 0.5625_dp , tan2_atm_max = 2.0303_dp
 ! Min/Max of solar mass squared
-Real(dp), Public :: m2_sol_min = 7.05e-23_dp, m2_sol_max = 8.34e-23_dp
+Real(dp), Public :: m2_sol_min = 7.05e-23_dp, m2_sol_max = 8.27e-23_dp
 ! best fit for solar mass squared    
-Real(dp), Public :: m2_sol = 7.65e-23_dp 
+Real(dp), Public :: m2_sol = 7.59e-23_dp 
 ! Min/Max of tan^2(theta_sol)
-Real(dp), Public :: tan2_sol_min = 0.3441_dp, tan2_sol_max = 0.5873_dp
+Real(dp), Public :: tan2_sol_min = 0.3699_dp, tan2_sol_max = 0.6129_dp
 ! Min/Max (U_e3)^2
-Real(dp), Public :: Ue32_min = 0._dp, Ue32_max = 0.056_dp
+Real(dp), Public :: Ue32_min = 0._dp, Ue32_max = 0.053_dp
 Real(dp), Public :: mC_min, mGlu_min           ! lower bound on chargino, gluinos
 Real(dp), Public :: mSquark_min, mStop_min     ! lower bound on 1st gen. ~q, ~t_1
 

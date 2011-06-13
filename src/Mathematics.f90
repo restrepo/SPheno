@@ -86,6 +86,10 @@ Use Control
     C6=512.0_dp/1771.0_dp,DC1=C1-2825.0_dp/27648.0_dp,&
     DC3=C3-18575.0_dp/48384.0_dp,DC4=C4-13525.0_dp/55296.0_dp,&
     DC5=-277.0_dp/14336.0_dp,DC6=C6-0.25_dp
+! for choice in ODEint, ODEintB, ODEintC
+ Logical, Private, Save :: Use_bsstep_instead_of_rkqs = .False.
+! for choice in bsstep
+ Logical, Private, Save :: Use_rzextr_instead_of_pzextr = .False.
 ! private variables
 
 Contains
@@ -125,6 +129,170 @@ Contains
   Endif
 
  End Function Arg
+
+
+ Subroutine bsstep(y, dydx,x,htry,eps,yscal,hdid,hnext,derivs, kont)
+! Use nrtype; Use nrutil, Only : arth,assert_eq,cumsum,iminloc,nrerror,&
+!  outerdiff,outerprod,upper_triangle
+! Use nr, Only : mmid,pzextr
+ Implicit None
+  External derivs
+
+  Integer, Intent(inout) :: kont
+  Real(dp), Dimension(:), Intent(INOUT) :: y
+  Real(dp), Dimension(:), Intent(IN) :: dydx,yscal
+  Real(dp), Intent(INOUT) :: x
+  Real(dp), Intent(IN) :: htry,eps
+  Real(dp), Intent(OUT) :: hdid,hnext
+
+  Integer, Parameter :: IMAX=9, KMAXX=IMAX-1
+  Real(dp), Parameter :: SAFE1=0.25_dp,SAFE2=0.7_dp,REDMAX=1.0e-5_dp,&
+     & REDMIN=0.7_dp,MY_TINY=1.0e-30_dp,SCALMX=0.1_dp
+  Integer :: k,km, len1, i1, i2
+  Integer, Dimension(IMAX) :: nseq = (/ 2,4,6,8,10,12,14,16,18 /)
+  Integer, Save :: kopt,kmax
+  Real(dp), Dimension(KMAXX,KMAXX), Save :: alf
+  Real(dp), Dimension(KMAXX) :: err
+  Real(dp), Dimension(IMAX), Save :: a
+  Real(dp), Save :: epsold = -1.0_dp,xnew
+  Real(dp) :: eps1,errmax,fact,h,red,scale,wrkmin,xest
+  Real(dp), Dimension(Size(y)) :: yerr,ysav,yseq
+  Logical :: reduct
+  Logical, Save :: first=.True.
+
+  Iname = Iname + 1
+  NameOfUnit(Iname) = "bsstep"
+
+  kont = 0
+  len1 = Size(y) 
+  If ((len1.Ne.Size(dydx)).Or.(len1.Ne.Size(yscal))) Then
+   Write(ErrCan,*) "Problem in routine bsstep, size of vectors"
+   Write(ErrCan,*) "does not conincide:",len1,Size(dydx),Size(yscal)
+   Call TerminateProgram
+  End If
+
+  If (eps /= epsold) Then ! a new tolerance, so reinitialize
+   hnext = -1.0e29_dp     ! 'impossible' values
+   xnew = -1.0e29_dp
+   eps1 = SAFE1*eps
+   
+   a(1) = nseq(1) + 1     ! working coefficients A_k
+   Do i1=1,kmaxx
+    a(i1+1) = a(i1) + nseq(i1+1)
+   End Do
+
+   Do i1=2,kmaxx
+    Do i2=1,i1-1
+     alf(i2,i1) = eps1**( (a(i2+1)-a(i1+1))                &
+              &         / ((a(i1+1)-a(1)+1._dp)*(2*i2+1))  )
+    End Do
+   End Do
+
+   epsold=eps
+   ! determine optimal row number for convergence
+   Do kopt=2,KMAXX-1
+    If (a(kopt+1) > a(kopt)*alf(kopt-1,kopt)) Exit
+   End Do
+   kmax = kopt
+
+  Else
+   hnext = htry
+   xnew = x
+  End If
+
+  h = htry
+  ! save the starting values
+  ysav = y
+  ! a new stepsize or a new integratio
+  ! re-establish the order window
+
+  If (h /= hnext .Or. x /= xnew) Then
+   first=.True.
+   kopt=kmax
+  End If
+
+  reduct=.False.
+  main_loop: Do
+   Do k=1,kmax  ! evaluate the squence of modified midpoint integrations
+    xnew=x+h
+
+    If (xnew == x) Then
+     kont = -27
+     Call AddError(27)
+     Write(ErrCan,*) "Problem in bsstep, stepsize underflow"
+     If (ErrorLevel.Ge.1) Call TerminateProgram
+     Iname = Iname - 1
+     Return
+    End If
+
+    Call mmid(ysav,dydx,x,h,nseq(k),yseq,derivs)
+    xest=(h/nseq(k))**2  ! squared since error series is even
+
+    If (Use_rzextr_instead_of_pzextr) then  ! switch between polynomial
+     Call rzextr(k,xest,yseq,y,yerr, kont)  ! and rational function extrapolation
+    else                                    ! default is pzextr
+     Call pzextr(k,xest,yseq,y,yerr, kont)
+    End If
+
+    If (kont.ne.0) then
+     Iname = Iname - 1
+     Return
+    End If
+    
+    If (k /= 1) Then
+     errmax=Maxval(Abs(yerr / yscal ))
+     errmax=Max(my_tiny,errmax)/eps
+     km=k-1
+     err(km)=(errmax/SAFE1)**(1.0_dp/(2*km+1))
+    End If
+
+    If (k /= 1 .And. (k >= kopt-1 .Or. first)) Then  ! in order window
+     If (errmax < 1.0) Exit main_loop          ! converged
+     If (k == kmax .Or. k == kopt+1) Then      ! check for possible stepsize reduction    
+      red=SAFE2/err(km)
+      Exit
+     Else If (k == kopt) Then
+      If (alf(kopt-1,kopt) < err(km)) Then
+       red=1.0_dp/err(km)
+       Exit
+      End If
+     Else If (kopt == kmax) Then
+      If (alf(km,kmax-1) < err(km)) Then
+       red=alf(km,kmax-1)*SAFE2/err(km)
+       Exit
+      End If
+     Else If (alf(km,kopt) < err(km)) Then
+      red=alf(km,kopt-1)/err(km)
+      Exit
+     End If
+    End If
+   End Do ! k
+
+   red=Max(Min(red,REDMIN),REDMAX)
+   h=h*red
+   reduct=.True.
+  End Do main_loop
+
+  x=xnew
+  hdid=h
+  first=.False.
+
+  kopt=1+iminloc(a(2:km+1)*Max(err(1:km),SCALMX))
+  scale=Max(err(kopt-1),SCALMX)
+  wrkmin=scale*a(kopt)
+  hnext=h/scale
+
+  If (kopt >= k .And. kopt /= kmax .And. .Not. reduct) Then
+   fact=Max(scale/alf(kopt-1,kopt),SCALMX)
+   If (a(kopt+1)*fact <= wrkmin) Then
+    hnext=h/fact
+    kopt=kopt+1
+   End If
+  End If
+
+  Iname = Iname - 1
+
+ End Subroutine bsstep
 
 
  Subroutine CheckHermitian(mat, name, acc)
@@ -1295,6 +1463,14 @@ End If
 
   End Subroutine HTRIDI
 
+ Function iminloc(arr)
+  Real(dp), Dimension(:), Intent(IN) :: arr
+  Integer, Dimension(1) :: imin
+  Integer :: iminloc
+  imin=Minloc(arr(:))
+  iminloc=imin(1)
+ End Function iminloc
+
  Function IntRomb(func,a,b,eps)
 
  Implicit None
@@ -1882,6 +2058,55 @@ End If
   End If
  End Function MatSquare
 
+ Subroutine mmid(y,dydx,xs,htot,nstep,yout,derivs)
+ !-------------------------------------------------
+ ! modified mmid routine for solving DGLs, taken
+ ! from numerical recipies
+ ! written by Werner Porod, 16.03.10
+ !-------------------------------------------------
+ Implicit None
+  External derivs
+
+  Integer, Intent(IN) :: nstep
+  Real(dp), Intent(IN) :: xs,htot
+  Real(dp), Dimension(:), Intent(IN) :: y,dydx
+  Real(dp), Dimension(:), Intent(OUT) :: yout
+
+  Integer :: n, len1
+  Real(dp) :: h,h2,x
+  Real(dp), Dimension(Size(y)) :: ym, yn, swap
+
+  Iname = Iname + 1
+  NameOfUnit(Iname) = "mmid"
+
+  len1 = Size(y) 
+  If ((len1.Ne.Size(dydx)).Or.(len1.Ne.Size(yout))) Then
+   Write(ErrCan,*) "Problem in routine mmid, size of vectors"
+   Write(ErrCan,*) "does not conincide:",len1,Size(dydx),Size(yout)
+   Call TerminateProgram
+  End If
+
+  h=htot/nstep
+  ym=y
+  yn=y+h*dydx
+  x=xs+h
+  Call derivs(len1, x, yn, yout)
+  h2=2.0_dp * h
+  Do n=2,nstep
+   swap = ym
+   ym = yn
+   yn = swap
+
+   yn=yn+h2*yout
+   x=x+h
+   Call derivs(len1, x, yn, yout)
+  End Do
+  yout=0.5_dp*(ym+yn+h*yout)
+
+  Iname = Iname - 1
+
+ End Subroutine mmid
+
  Subroutine odeint(ystart, len, x1, x2, eps, h1, hmin, derivs, kont)
  Implicit None
   External derivs
@@ -1891,8 +2116,8 @@ End If
   Real(dp), Intent(IN) :: x1, x2, eps, h1, hmin
   Integer, Intent(inout) :: kont
 
-  Real(dp), Parameter :: TINY=Epsilon(1._dp)
-  Integer :: nstp
+  Real(dp), Parameter :: my_TINY=Epsilon(1._dp)
+  Integer :: nstp, i1
   Real(dp) :: h,hdid,hnext,x !,xsav
   Real(dp), Dimension(len) :: dydx, y, yscal
 
@@ -1912,11 +2137,16 @@ End If
 
    Call derivs(len,x,y,dydx)
 
-   yscal(:)=Abs(y(:))+Abs(h*dydx(:))+TINY
+   yscal(:)=Abs(y(:))+Abs(h*dydx(:))+my_tiny
 
    If ((x+h-x2)*(x+h-x1) > 0.0_dp) h=x2-x
 
-   Call rkqs(y,dydx,x,h,eps,yscal,hdid,hnext,derivs,kont)
+   If (Use_bsstep_instead_of_rkqs) then
+    Call bsstep(y,dydx,x,h,eps,yscal,hdid,hnext,derivs,kont)
+   Else
+    Call rkqs(y,dydx,x,h,eps,yscal,hdid,hnext,derivs,kont)
+   End If
+
    If (kont.Ne.0) Then
     Iname = Iname - 1
     Return
@@ -1973,7 +2203,7 @@ End If
   Real(dp), Intent(IN) :: x1, x2, eps, h1, hmin
   Integer, Intent(inout) :: kont
 
-  Real(dp), Parameter :: TINY=Epsilon(1._dp)
+  Real(dp), Parameter :: my_tiny=Epsilon(1._dp)
   Integer :: nstp
   Real(dp) :: h,hdid,hnext,x,x_old, h_old
   Real(dp), Dimension(len) :: dydx, y, yscal, y_old
@@ -1996,16 +2226,21 @@ End If
   h_old = h
   x_old = x
   y_old = y
-
+!Write(12,*) "my_tiny",my_tiny
   Do nstp=1,MAXSTP
 
    Call derivs(len,x,y,dydx)
 
-   yscal(:)=Abs(y(:))+Abs(h*dydx(:))+TINY
+   yscal(:)=Abs(y(:))+Abs(h*dydx(:))+my_tiny
 
    If ((x+h-x2)*(x+h-x1) > 0.0_dp) h=x2-x
 
-   Call rkqs(y,dydx,x,h,eps,yscal,hdid,hnext,derivs,kont)
+   If (Use_bsstep_instead_of_rkqs) then
+    Call bsstep(y,dydx,x,h,eps,yscal,hdid,hnext,derivs,kont)
+   Else
+    Call rkqs(y,dydx,x,h,eps,yscal,hdid,hnext,derivs,kont)
+   End If
+
    If (kont.Ne.0) Then
     Iname = Iname - 1
     Return
@@ -2080,7 +2315,7 @@ End If
   Real(dp), Intent(IN) :: x1, x2, eps, h1, hmin
   Integer, Intent(inout) :: kont
 
-  Real(dp), Parameter :: TINY=Epsilon(1._dp)
+  Real(dp), Parameter :: my_tiny=Epsilon(1._dp)
   Integer :: nstp
   Real(dp) :: h,hdid,hnext,x,x_old, h_old
   Real(dp), Dimension(len) :: dydx, y, yscal, y_old
@@ -2108,11 +2343,16 @@ End If
 
    Call derivs(len,x,y,dydx)
 
-   yscal(:)=Abs(y(:))+Abs(h*dydx(:))+TINY
+   yscal(:)=Abs(y(:))+Abs(h*dydx(:))+my_tiny
 
    If ((x+h-x2)*(x+h-x1) > 0.0_dp) h=x2-x
 
-   Call rkqs(y,dydx,x,h,eps,yscal,hdid,hnext,derivs,kont)
+   If (Use_bsstep_instead_of_rkqs) then
+    Call bsstep(y,dydx,x,h,eps,yscal,hdid,hnext,derivs,kont)
+   Else
+    Call rkqs(y,dydx,x,h,eps,yscal,hdid,hnext,derivs,kont)
+   End If
+
    If (kont.Ne.0) Then
     Iname = Iname - 1
     Return
@@ -2279,6 +2519,79 @@ End If
   End Function iminloc
 
  End Subroutine polint
+ Subroutine pzextr(iest,xest,yest,yz,dy, kont)
+ !--------------------------------------------------------------------
+ ! use polynomial extrapolation to evaluate n functions
+ ! at x = 0 by fitting a polynomial to sequence of estimates
+ ! with progressively smaller values of x=xest, and corresponding
+ ! function vectors yest(:). This call is number iest in the sequence
+ ! of calls.
+ ! written by Werner Porod, 17.03.2010
+ !--------------------------------------------------------------------
+ Implicit None
+  Integer, Intent(IN) :: iest
+  Integer, Intent(inout) :: kont
+  Real(dp), Intent(IN) :: xest
+  Real(dp), Dimension(:), Intent(IN) :: yest
+  Real(dp), Dimension(:), Intent(OUT) :: yz,dy
+
+  Integer, Parameter :: IEST_MAX=16
+  Integer :: j,nv
+  Integer, Save :: nvold=-1
+  Real(dp) :: delta,f1,f2
+  Real(dp), Dimension(Size(yz)) :: d,tmp,q
+  Real(dp), Dimension(IEST_MAX), Save :: x
+  Real(dp), Dimension(:,:), Allocatable, Save :: qcol
+
+  Iname = Iname + 1
+  NameOfUnit(Iname) = "pzextr"
+
+  nv = Size(yest)
+
+  If ((nv.Ne.Size(yz)).Or.(nv.Ne.Size(dy))) Then
+   Write(ErrCan,*) "Problem in routine pzextr, size of vectors"
+   Write(ErrCan,*) "does not conincide:",nv,Size(yz),Size(dy)
+   Call TerminateProgram
+  End If
+
+  If (iest > IEST_MAX) Then
+   kont = -28
+   Call AddError(28)
+   Write(ErrCan,*) "Routine pzextr: probable misuse, too much extrapolation"
+   If (ErrorLevel.Ge.1) Call TerminateProgram
+   Iname = Iname - 1
+   Return
+  End If
+   
+  If (nv /= nvold) Then
+   If (Allocated(qcol)) Deallocate(qcol)
+   Allocate(qcol(nv,IEST_MAX))
+   nvold=nv
+  End If
+  x(iest)=xest
+  dy = yest
+  yz = yest
+  If (iest == 1) Then
+   qcol(:,1)=yest(:)
+  Else
+   d(:)=yest(:)
+   Do j=1,iest-1
+    delta=1.0_dp/(x(iest-j)-xest)
+    f1=xest*delta
+    f2=x(iest-j)*delta
+    q(:)=qcol(:,j)
+    qcol(:,j)=dy(:)
+    tmp(:)=d(:)-q(:)
+    dy(:)=f1*tmp(:)
+    d(:)=f2*tmp(:)
+    yz(:)=yz(:)+dy(:)
+   End Do
+   qcol(:,iest)=dy(:)
+  End If
+
+  Iname = Iname - 1
+
+ End Subroutine pzextr
 
  Subroutine RealEigenSystem(Matrix,EigenValues,EigenVectors,kont, test)
  !---------------------------------------------------------------------
@@ -2395,14 +2708,24 @@ End If
   Real(dp), Intent(IN) :: htry,eps
   Real(dp), Intent(OUT) :: hdid,hnext
 
-  Integer :: ndum
+  Integer :: ndum, i1
   Real(dp) :: errmax,h,htemp,xnew
   Real(dp), Dimension(Size(y)) :: ak2,ak3,ak4,ak5,ak6
   Real(dp), Dimension(Size(y)) :: yerr,ytemp
   Real(dp), Parameter :: SAFETY=0.9_dp,PGROW=-0.2_dp,PSHRNK=-0.25_dp,&
     ERRCON=1.89e-4
 
+  Iname = Iname + 1
+  NameOfUnit(Iname) = "rkqs"
+
   ndum = Size(y)
+
+  If ((ndum.Ne.Size(dydx)).Or.(ndum.Ne.Size(yscal))) Then
+   Write(ErrCan,*) "Problem in routine rkqs, size of vectors"
+   Write(ErrCan,*) "does not conincide:",ndum,Size(dydx),Size(yscal)
+   Call TerminateProgram
+  End If
+
   h=htry
 
   Do
@@ -2421,9 +2744,17 @@ End If
    yerr=h*(DC1*dydx+DC3*ak3+DC4*ak4+DC5*ak5+DC6*ak6)
 
    errmax=Maxval(Abs(yerr(:)/yscal(:)))/eps
-   If (errmax <= 1.0) Exit
+   If (errmax <= 1.0_dp) Exit
    htemp=SAFETY*h*(errmax**PSHRNK)
    h=Sign(Max(Abs(htemp),0.1_dp*Abs(h)),h)
+!Write(12,*) "h",Real(h),x,Real((x+h)-x),errmax
+!If (Real((x+h)-x).eq.0._dp) then
+!Write(12,*) "ndum",ndum
+!Do i1=1,ndum
+! If (Abs(yerr(i1)/yscal(i1)/eps).Gt.1._dp) Write(12,*) i1,real(yerr(i1)),real(yscal(i1)) &
+!,real(yerr(i1)/yscal(i1)),real(eps)
+!end do
+!end if
    xnew=x+h
 
    If (xnew == x) Then
@@ -2431,6 +2762,7 @@ End If
     Call AddError(12)
     Write(ErrCan,*) "Problem in rkqs, stepsize underflow"
     If (ErrorLevel.Ge.1) Call TerminateProgram
+    Iname = Iname - 1
     Return
    End If
   End Do
@@ -2443,6 +2775,8 @@ End If
   hdid=h
   x=x+h
   y(:)=ytemp(:)
+
+  Iname = Iname - 1
 
  End Subroutine rkqs
 
@@ -2501,6 +2835,100 @@ End If
   X=XH
 
  End Subroutine RKSTP
+ Subroutine rzextr(iest,xest,yest,yz,dy, kont)
+ !--------------------------------------------------------
+ ! the same as pzextr but uses diagonal rational function
+ ! extrapolation instead of polynomial extrapolation
+ ! written by Werner Porod, 17.03.2010
+ !--------------------------------------------------------------------
+ Implicit None
+  Integer, Intent(IN) :: iest
+  Integer, Intent(inout) :: kont
+  Real(dp), Intent(IN) :: xest
+  Real(dp), Dimension(:), Intent(IN) :: yest
+  Real(dp), Dimension(:), Intent(OUT) :: yz,dy
+  Integer, Parameter :: IEST_MAX=16
+  Integer :: k,nv
+  Integer, Save :: nvold=-1
+  Real(dp), Dimension(Size(yz)) :: yy,v,c,b,b1,ddy
+  Real(dp), Dimension(:,:), Allocatable, Save :: d
+  Real(dp), Dimension(IEST_MAX), Save :: fx,x
+
+  Iname = Iname + 1
+  NameOfUnit(Iname) = "rzextr"
+
+  nv = Size(yest)
+
+  If ((nv.Ne.Size(yz)).Or.(nv.Ne.Size(dy))) Then
+   Write(ErrCan,*) "Problem in routine rzextr, size of vectors"
+   Write(ErrCan,*) "does not conincide:",nv,Size(yz),Size(dy)
+   Call TerminateProgram
+  End If
+
+  If (iest > IEST_MAX) Then
+   kont = -29
+   Call AddError(29)
+   Write(ErrCan,*) "Routine rzextr: probable misuse, too much extrapolation"
+   If (ErrorLevel.Ge.1) Call TerminateProgram
+   Iname = Iname - 1
+   Return
+  End If
+
+  If (nv /= nvold) Then
+   If (Allocated(d)) Deallocate(d)
+   Allocate(d(nv,IEST_MAX))
+   nvold=nv
+  End If
+  x(iest)=xest
+  If (iest == 1) Then
+   yz=yest
+   d(:,1)=yest
+   dy=yest
+  Else
+   fx(2:iest)=x(iest-1:1:-1)/xest
+   yy=yest
+   v=d(1:nv,1)
+   c=yy
+   d(1:nv,1)=yy
+   Do k=2,iest
+    b1=fx(k)*v
+    b=b1-c
+    Where (b /= 0.0_dp)
+     b=(c-v)/b
+     ddy=c*b
+     c=b1*b
+    Elsewhere
+     ddy=v
+    End Where
+    If (k /= iest) v=d(1:nv,k)
+    d(1:nv,k)=ddy
+    yy=yy+ddy
+   End Do
+   dy=ddy
+   yz=yy
+  End If
+
+  Iname = Iname - 1
+
+ End Subroutine rzextr
+
+ Logical Function Set_Use_rzextr_instead_of_pzextr(l_in)
+ Implicit None
+  Logical, Intent(in) :: l_in
+
+  Set_Use_rzextr_instead_of_pzextr = Use_rzextr_instead_of_pzextr
+  Use_rzextr_instead_of_pzextr = l_in
+
+ End Function Set_Use_rzextr_instead_of_pzextr
+
+ Logical Function Set_Use_bsstep_instead_of_rkqs(l_in)
+ Implicit None
+  Logical, Intent(in) :: l_in
+
+  Set_Use_bsstep_instead_of_rkqs = Use_bsstep_instead_of_rkqs
+  Use_bsstep_instead_of_rkqs = l_in
+
+ End Function Set_Use_bsstep_instead_of_rkqs
 
  Subroutine SolveLinearEquations_c(A, b, x)
  !----------------------------------------------------------
@@ -2826,7 +3254,7 @@ End If
    End Function func
   End Interface
 
-  Real(dp), Parameter :: ALPH = 1.5_dp, TINY = 1.0e-30_dp
+  Real(dp), Parameter :: ALPH = 1.5_dp, my_tiny = 1.0e-30_dp
   Integer, Parameter :: MXDIM = 10, NDMX = 50
   Integer, Save :: i, it, j, k, mds, nd, ndim, ndo, ng, npg
   Integer, Dimension(MXDIM), Save :: ia, kg
@@ -2939,7 +3367,7 @@ End If
     End Do
     f2b = Sqrt(f2b*npg)
     f2b = (f2b-fb)*(f2b+fb)
-    If (f2b <=  0.0) f2b = TINY
+    If (f2b <=  0.0) f2b = my_tiny
     ti = ti+fb
     tsi = tsi+f2b
 
@@ -2990,7 +3418,7 @@ End If
      dt(j) = dt(j) + d(i,j)
     End Do
    End Do
-   Where (d(1:nd,:) < TINY) d(1:nd,:) = TINY
+   Where (d(1:nd,:) < my_tiny) d(1:nd,:) = my_tiny
    Do j = 1,ndim
     Do i =1,nd
 !     Write(*,*) j,i,dt(j),d(i,j)
@@ -3078,7 +3506,7 @@ End If
    End Function func
   End Interface
 
-  Real(dp), Parameter :: ALPH = 1.5_dp, TINY = 1.0e-30_dp
+  Real(dp), Parameter :: ALPH = 1.5_dp, my_tiny = 1.0e-30_dp
   Integer, Parameter :: MXDIM = 10, NDMX = 50
   Integer, Save :: i, it, j, k, mds, nd, ndim, ndo, ng, npg
   Integer, Dimension(MXDIM), Save :: ia, kg
@@ -3184,7 +3612,7 @@ End If
     End Do
     f2b = Sqrt(f2b*npg)
     f2b = (f2b-fb)*(f2b+fb)
-    If (f2b <=  0.0_dp) f2b = TINY
+    If (f2b <=  0.0_dp) f2b = my_tiny
     ti = ti+fb
     tsi = tsi+f2b
 
@@ -3240,7 +3668,7 @@ End If
     d(nd,j) = (xo+xn)/2.0_dp
     dt(j) = dt(j)+d(nd,j)
    End Do
-   Where (d(1:nd,:) < TINY) d(1:nd,:) = TINY
+   Where (d(1:nd,:) < my_tiny) d(1:nd,:) = my_tiny
    Do j = 1,ndim
     r(1:nd) = ((1.0_dp-d(1:nd,j)/dt(j))/(Log(dt(j))-Log(d(1:nd,j))))**ALPH
     rc = Sum(r(1:nd))

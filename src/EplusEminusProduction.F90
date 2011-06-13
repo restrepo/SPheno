@@ -745,7 +745,6 @@ Contains
    Do i1=1,3
     mSf = mSup(2*i1-1:2*i1)
     RSf = RSup(2*i1-1:2*i1, 2*i1-1:2*i1)
-Write(*,*) i1,msf
     Do i2=1,2
      Do i3=1,2
       Call EpEmToSquarksZG(i2, i3, specie, mSf, Rsf, mf_U(i1), mglu, Pm, Pp &
@@ -2337,9 +2336,9 @@ Write(*,*) i1,msf
    smin = 4._dp * mSfer2(1)
    smax = s
    If ((smin.Lt.(mZ2+25._dp)).And.(smax.Gt.(mZ2-25._dp))) Then
-    Write (21,*) 'Warning from subroutine eeHiggs '
-    Write (21,*) 'Inclusion of ISR corrections near m_Z '
-    Write (21,*) 'The result has to be taken with great care!!!'
+    Write (ErrCan,*) 'Warning from subroutine eeHiggs '
+    Write (ErrCan,*) 'Inclusion of ISR corrections near m_Z '
+    Write (ErrCan,*) 'The result has to be taken with great care!!!'
    Endif
    beta = 2._dp * Alpha * ( Log(s/mf_l(1)**2) - 1._dp ) / Pi
    zmax = Log(1._dp - smin / s)

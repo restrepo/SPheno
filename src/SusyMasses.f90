@@ -567,6 +567,7 @@ Contains
       Write (ErrCan,*) '  '
      End If
      mSpm(i1) = 0._dp
+     mSpm2(i1) = 0._dp
      If (ErrorLevel.Eq.2) Call TerminateProgram
      kont = -202
     Call AddError(202)
@@ -617,6 +618,7 @@ Contains
       Write (ErrCan,*) '  '
      End If
      mSpm(i1) = 0._dp
+     mSpm2(i1) = 0._dp
      If (ErrorLevel.Eq.2) Call TerminateProgram
      kont = -202
     Call AddError(202)
@@ -2088,102 +2090,6 @@ Contains
 
  End Subroutine NeutralinoMass7
 
- Subroutine NeutrinoMasses(MnuL5, mN, N, kont)
- !----------------------------------------------------------------------
- ! calculates neutrino masses + mixing matrix N from the dim 5 operator
- ! input:
- !  MnuL5 .......... dim 5 operator
- ! output 
- !  mN(i) .......... neutrino mass_i
- !  N(i,j) ......... neutrino mixing matrix
- ! written by Werner Porod, 09.01.2006
- ! Note the factor of 1/2 appears because in the RGE running the Higgs field
- ! is still the complex field
- !----------------------------------------------------------------------
- Implicit None
-
-  Integer, Intent(inout) :: kont
-  Complex(Dp), Intent(in) :: MnuL5(3,3)
-  Real(Dp), Intent(out) :: mN(3)
-  Complex(Dp), Intent(out) :: N(3,3)
-
-  Integer :: i1,i2,ierr
-  Complex(Dp) :: mat32(3,3), E3(3), phaseM, mat3(3,3)
-  Real(Dp) :: g1, gp1, N3a(3,3), eig(3), test(2)
-
-
-  Iname = Iname + 1
-  NameOfUnit(Iname) = 'NeutrinoMasses'
-
-  mat3 = 0.5_dp * MnuL5
-
-  If (Maxval(Abs(Aimag(Mat3))).Lt.  &                           ! matrix is reel
-     & (Maxval(Abs(Real(Mat3,dp)))*1.e-3_dp * Epsilon(1._dp))) Then
-
-   Call EigenSystem(Real(Mat3,dp), Eig, N3a, ierr, test)
-
-   Do i1=1,3
-    If (Eig(i1).Lt.0._dp) Then
-     mN(i1) = - Eig(i1)
-     N(i1,:) = (0._dp,1._dp) * N3a(i1,:)
-    Else
-     mN(i1) = Eig(i1)
-     N(i1,:) =N3a(i1,:)
-    End If
-   End Do
-
-   Do i1=1,2
-    Do i2=i1+1,3
-     If (mN(i1).Gt.mN(i2)) Then
-      Eig(1) = mN(i1)
-      mN(i1) = mN(i2)
-      mN(i2) = Eig(1)
-      E3 = N(i1,:)
-      N(i1,:) = N(i2,:)
-      N(i2,:) = E3
-     End If
-    End Do
-   End Do
-
-  Else
-
-   mat32 = Matmul( Transpose(Conjg( Mat3 ) ), Mat3 )
-   Call EigenSystem(mat32, Eig, N, ierr, test)
-   mat32 = Matmul(Conjg(N), Matmul( Mat3, Transpose( Conjg( N ) ) ) )
-   Do i1=1,3
-    phaseM =   Sqrt( mat32(i1,i1)   / Abs( mat32(i1,i1) ) )
-    N(i1,:) = phaseM * N(i1,:)
-   End Do
-   mN = Sqrt( Eig )
-
-  End If
-
-  If ((ierr.Eq.-14).Or.(ierr.Eq.-16)) Then
-    Write(ErrCan,*) "Possible numerical problem in "//NameOfUnit(Iname)
-    Write(ErrCan,*) "test =",test
-    Write(ErrCan,*) " "
-    If (ErrorLevel.Eq.2) Call TerminateProgram
-    ierr = 0
-  End If
-  
-  If (ierr.Ne.0) Then
-   Write (Errcan,*) 'Warning in subroutine NeutrinoMasses, ierr =',ierr
-   Write (Errcan,*) 'MnuL5:',Cmplx(MnuL5(1,:))
-   Write (Errcan,*) '      ',Cmplx(MnuL5(2,:))
-   Write (Errcan,*) '      ',Cmplx(MnuL5(3,:))
-   kont = ierr
-   Iname = Iname - 1
-   Return
-  Endif
-  !-------------------------------------------
-  ! standard convention in neutrino physics
-  !-------------------------------------------
-  N = Transpose( Conjg( N ) )
-
-  Iname = Iname - 1
-
- End Subroutine NeutrinoMasses
-
  Subroutine OneLoopTadpolesEps3(gU1, gSU2, vevSM, vevL, bi &
             & , mSup2, Y_u, A_u, RUsquark, mSdown2, Y_d, A_d, RDsquark  &
             & , tadpoles)
@@ -2515,7 +2421,6 @@ Contains
     sumC = sumC - Conjg( bi(i1+1) ) * bi(i2+1) * vevL(i2)
     If (i1.Ne.i2) sumC = sumC - vevL(i2) * ML2a(i2,i1)
    End Do
-
    ML2a(i1,i1) = - DTerm + Real( sumC,dp ) / vevL(i1) 
   End Do
 

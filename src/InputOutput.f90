@@ -5,8 +5,13 @@ Module InputOutput
 
 Use Control
 Use Experiment
+Use LHC_observables
 Use Model_Data
 Use SugraRuns
+
+Interface WriteMatrixBlock
+ Module Procedure WriteMatrixBlockC, WriteMatrixBlockR
+End Interface
 
 Character(len=15) :: HighScaleModel
 ! input/output according to SUSY Les Houches accord
@@ -26,7 +31,7 @@ Real(dp), Save, Private :: SigMin=1.e-3_dp
 ! contains information on possible inconsitencies in the input
 Integer, Save, Private :: in_kont(2)
 ! version number
-Character(len=8), Save, Private :: version="v3beta45"
+Character(len=8), Save, Private :: version="v3beta48"
 ! name of 'input-program'
 Character(len=40), Private :: sp_info 
 ! tempory variables for Higgs mixing in case of NMSSM
@@ -37,6 +42,8 @@ Logical :: Write_SLHA1 = .False. ! write a second SLHA output file
 Integer, Private :: i_cpv=0
 Logical, Private :: l_RP_Pythia = .False. ! Pythia only takes 4x4 matrix 
                                          ! for neutralinos and 2x2 for charginos
+Logical, Private :: LWrite_LHC_Observables = .False. ! give LHC observables in the output
+
 Contains
 
 
@@ -798,11 +805,11 @@ Contains
   Logical, Intent(out) :: l_ISR(:)
   
   Character(len=80) :: read_line
-  Integer :: i_mod=-1, i_sm=-1, i_par=-1, set_mod_par(25)=-1 &
-    & , i1, p_max, p_act, i_sp, i_model=-1, i_particles=-1
+  Integer :: i_mod=-1, i_sm=-1, i_par=-1, set_mod_par(27)=-1 &
+    & , i1, p_max, p_act, i_sp, i_model=-1, i_particles=-1, i_rp=0
   Real(dp) :: wert, Abs_Mu2, cosb2, cos2b, sinb2, RG0(3,3) &
     & , mat_D(3,3), R2(2,2), s12, s13, s23, c12, c13, c23
-  Logical :: check, calc_ferm, check_alpha(2)
+  Logical :: check, calc_ferm, check_alpha(2), test_l
   Complex(dp) :: lam_vS
   Logical, Save :: l_open = .True.
 
@@ -867,7 +874,7 @@ Contains
    Call PutUpperCase(read_line)
    If (read_line(1:5).Eq."BLOCK") Then ! assigning values for the select case
     If (read_line(7:12).Eq."MODSEL") Then
-     Call Read_MODSEL(99, i_particles, i_model, i_cpv, kont)
+     Call Read_MODSEL(99, i_particles, i_model, i_cpv, i_rp, kont)
      If (i_cpv.Eq.0) Then ! one has to recalculated the CKM to the real case
                                      ! because InitializeStandardModel assumes a non-zero phase
      s12 = lam_wolf
@@ -932,9 +939,11 @@ Contains
       Cycle
      End If
      Call ReadVectorC(99, 3, eps, 1, "Im(epsilon)", kont)
+     set_mod_par(26) = 1
 
     Else If (read_line(7:15).Eq."RVSNVEVIN") Then
      Call ReadVectorR(99, 3, vevL, "v_L", kont)  
+     set_mod_par(27) = 1
 
 !     Else If (read_line(7:17).Eq."RVLAMPBDAIN") Then
 !      Call ReadTensorC(99, 3, Rp_lam, 0, "Re(lambda_ijk)", kont)
@@ -963,6 +972,7 @@ Contains
      Call ReadMatrixC(99, 3, M2_L, 0, "Re(M2_L)", kont, 1)
      M2_L_0 = M2_L
      l_ML = .True.
+     set_mod_par(11:13) = 1
 
     Else If (read_line(7:12).Eq."IMMSL2") Then
      If (i_cpv.Lt.2) Then
@@ -972,11 +982,13 @@ Contains
      Call ReadMatrixC(99, 3, M2_L, 1, "Im(M2_L)", kont, 1)
      M2_L_0 = M2_L
      l_ML = .True.
+     set_mod_par(11:13) = 1
 
     Else If (read_line(7:10).Eq."MSE2") Then
      Call ReadMatrixC(99, 3, M2_E, 0, "Re(M2_E)", kont, 1)
      M2_E_0 = M2_E
      l_ME = .True.
+     set_mod_par(14:16) = 1
 
     Else If (read_line(7:12).Eq."IMMSE2") Then
      If (i_cpv.Lt.2) Then
@@ -986,11 +998,13 @@ Contains
      Call ReadMatrixC(99, 3, M2_E, 1, "Im(M2_E)", kont, 1)
      M2_E_0 = M2_E
      l_ME = .True.
+     set_mod_par(14:16) = 1
 
     Else If (read_line(7:10).Eq."MSQ2") Then
      Call ReadMatrixC(99, 3, M2_Q, 0, "Re(M2_Q)", kont, 1)
      M2_Q_0 = M2_Q
      l_MQ = .True.
+     set_mod_par(17:19) = 1
 
     Else If (read_line(7:12).Eq."IMMSQ2") Then
      If (i_cpv.Lt.2) Then
@@ -1000,11 +1014,13 @@ Contains
      Call ReadMatrixC(99, 3, M2_Q, 1, "Im(M2_Q)", kont, 1)
      M2_Q_0 = M2_Q
      l_MQ = .True.
+     set_mod_par(17:19) = 1
 
     Else If (read_line(7:10).Eq."MSU2") Then
      Call ReadMatrixC(99, 3, M2_U, 0, "Re(M2_U)", kont, 1)
      M2_U_0 = M2_U
      l_MU = .True.
+     set_mod_par(20:22) = 1
 
     Else If (read_line(7:12).Eq."IMMSU2") Then
      If (i_cpv.Lt.2) Then
@@ -1014,11 +1030,13 @@ Contains
      Call ReadMatrixC(99, 3, M2_U, 1, "Im(M2_U)", kont, 1)
      M2_U_0 = M2_U
      l_MU = .True.
+     set_mod_par(20:22) = 1
 
     Else If (read_line(7:10).Eq."MSD2") Then
      Call ReadMatrixC(99, 3, M2_D, 0, "Re(M2_D)", kont, 1)
      M2_D_0 = M2_D
      l_MD = .True.
+     set_mod_par(23:25) = 1
 
     Else If (read_line(7:12).Eq."IMMSD2") Then
      If (i_cpv.Lt.2) Then
@@ -1028,6 +1046,7 @@ Contains
      Call ReadMatrixC(99, 3, M2_D, 1, "Im(M2_D)", kont, 1)
      M2_D_0 = M2_D
      l_MD = .True.
+     set_mod_par(23:25) = 1
 
     Else If (read_line(7:10).Eq."TUIN") Then
      Call ReadMatrixC(99, 3, A_U_0, 0, "Re(T_U)", kont)
@@ -1096,6 +1115,45 @@ Contains
      End If
      Call ReadMatrixC(99, 3, Y_T_0, 1, "Im(Y_T_0)", kont, 2)
 
+! Florian Staub
+    Else If (read_line(7:11).Eq."YB3IN") Then
+
+     Call ReadMatrixC(99, 3, Yb3_H24_gut,0, "Yb3", kont)
+     Yb30_H24(3,:,:) = Yb3_H24_gut
+     Yb30_H24(2,:,:) = Yb30_H24(3,:,:)
+     Yb30_H24(2,:,3) = 0._dp
+     Yb30_H24(1,:,:) = Yb30_H24(2,:,:)
+     Yb30_H24(1,:,2) = 0._dp
+     Yw30_H24 = Yb30_H24
+     Yx30_H24 = Yb30_H24
+
+
+    Else If (read_line(7:10).Eq."YTIN") Then
+
+     Call ReadMatrixC(99, 3, YT_H15_gut,0, "Yt", kont)
+     YT_H15_GUT(2,1) = YT_H15_GUT(1,2)
+     YT_H15_GUT(3,1) = YT_H15_GUT(1,3)
+     YT_H15_GUT(3,2) = YT_H15_GUT(2,3)
+     YT0_H15 = YT_H15_GUT
+     YZ0_H15 = YT_H15_GUT
+     YS0_H15 = YT_H15_GUT
+     Y_T_0 = YT_H15_gut
+
+    Else If (read_line(7:11).Eq."MWMIN") Then
+     Call ReadMatrixC(99, 3, MWM30,0, "MWM3", kont)
+     MGM3 = MWM30
+     MWM3 = MWM30
+     MBM3 = MWM30
+     MXM3 = MWM30
+
+    Else If (read_line(7:13).Eq."IMYB3IN") Then
+     If (i_cpv.Lt.2) Then
+      Call Warn_CPV(i_cpv, "IMYB3IN") 
+      Cycle
+     End If
+     Call ReadMatrixC(99, 3, Yb30_H24, 1, "Im(Yb3)", kont)
+! Florian Staub
+
     Else If (read_line(7:12).Eq."HIGGS3") Then
      Call Read_Higgs3(99)
 
@@ -1130,24 +1188,39 @@ Contains
 
     Else If (read_line(7:13).Eq."STOPMIX") Then
      Call ReadMatrixR(99, 2, R2, "Re(R_~t)", kont)
-     Rsup = Id6C
-     RSup(5:6,5:6) = R2
+     If (Rsup(1,1).eq.0._dp) Rsup = Id6C             ! first initialization
+     RSup(5:6,5:6) = Cmplx(R2, Aimag(RSup(5:6,5:6)), dp)
 
-    Else If (read_line(7:14).Eq."SBOTMIX") Then
+    Else If (read_line(7:15).Eq."IMSTOPMIX") Then
+     Call ReadMatrixR(99, 2, R2, "Im(R_~t)", kont)
+     If (Rsup(1,1).eq.0._dp) Rsup = Id6C             ! first initialization
+     RSup(5:6,5:6) = Cmplx(Real(RSup(5:6,5:6),dp), R2, dp)
+
+    Else If (read_line(7:13).Eq."SBOTMIX") Then
      Call ReadMatrixR(99, 2, R2, "Re(R_~b)", kont)
-     Rsdown = Id6C
-     RSdown(5:6,5:6) = R2
+     If (Rsdown(1,1).eq.0._dp) Rsdown = Id6C
+     RSdown(5:6,5:6) = Cmplx(R2, Aimag(RSdown(5:6,5:6)), dp)
+
+    Else If (read_line(7:15).Eq."IMSBOTMIX") Then
+     Call ReadMatrixR(99, 2, R2, "Im(R_~b)", kont)
+     If (Rsdown(1,1).eq.0._dp) Rsdown = Id6C
+     RSdown(5:6,5:6) = Cmplx(Real(RSdown(5:6,5:6),dp), R2, dp)
 
     Else If (read_line(7:13).Eq."STAUMIX") Then
      Call ReadMatrixR(99, 2, R2, "Re(R_~tau)", kont)
-     Rslepton = Id6C
-     RSlepton(5:6,5:6) = R2
+     If (Rslepton(1,1).eq.0._dp) Rslepton = Id6C
+     RSlepton(5:6,5:6) = Cmplx(R2, Aimag(RSlepton(5:6,5:6)), dp)
+
+    Else If (read_line(7:15).Eq."IMSTAUMIX") Then
+     Call ReadMatrixR(99, 2, R2, "Im(R_~tau)", kont)
+     If (Rslepton(1,1).eq.0._dp) Rslepton = Id6C
+     RSlepton(5:6,5:6) = Cmplx(Real(RSlepton(5:6,5:6),dp), R2, dp)
 
     Else If (read_line(7:24).Eq."NEUTRINOBOUNDSIN") Then
-     Call Read_Neutrino_Bounds(99, kont)
+     Call Read_Neutrino_Bounds(99)
 
     Else If (read_line(7:19).Eq."STARTDATAFILE") Then
-     read(99,*) Old_Data
+     Read(99,*) Old_Data
      Old_data= Trim(Old_data) ! to avoid trailing blanks
 
     Else
@@ -1186,7 +1259,7 @@ Contains
   If (i_particles.Eq.1) Then  ! MSSM particle content
    If (i_model.Eq.0) Then 
     If ((set_mod_par(7).Eq.1).And.(set_mod_par(8).Eq.1)) Then
-     HighScaleModel = "MSSM1"
+     If (i_rp.Eq.0) HighScaleModel = "MSSM1"
      If (set_mod_par(9).Eq.1) Then
       Write(ErrCan,*)  "m^2_H1 and m^2_H2 have been specified together with mu"
       Write(ErrCan,*)  "mu will be ignored"
@@ -1205,16 +1278,18 @@ Contains
      !-------------------------------
      ! first guess of mu and B, mA
      !-------------------------------
-     cosb2 = 1._dp / (1._dp + tanb**2)
-     sinb2 = tanb**2 * cosb2
-     cos2b = cosb2 - sinb2
-     Abs_Mu2 = (M2_H(2) * sinb2 - M2_H(1) * cosb2 )/ cos2b - 0.5_dp * mZ2
-     If (Abs_mu2.Lt.0._dp) Abs_mu2 = 1.e4_dp
-     mu = Sqrt(abs_mu2) * phase_mu
-     B = (M2_H(1) + M2_H(2) + 2._dp *  Abs_Mu2) * tanb / (1+tanb**2)
-     mP02(2) = Abs(B) * (1._dp/tanb + tanb)
-     mP0(2) = Sqrt(mp02(2))
-
+     If (i_rp.Eq.0) Then
+      cosb2 = 1._dp / (1._dp + tanb**2)
+      sinb2 = tanb**2 * cosb2
+      cos2b = cosb2 - sinb2
+      Abs_Mu2 = (M2_H(2) * sinb2 - M2_H(1) * cosb2 )/ cos2b - 0.5_dp * mZ2
+      If (Abs_mu2.Lt.0._dp) Abs_mu2 = 1.e4_dp
+      mu = Sqrt(abs_mu2) * phase_mu
+      B = (M2_H(1) + M2_H(2) + 2._dp *  Abs_Mu2) * tanb / (1+tanb**2)
+      mP02(2) = Abs(B) * (1._dp/tanb + tanb)
+      mP0(2) = Sqrt(mp02(2))
+     Else
+     End If
     Else If ((set_mod_par(9).Eq.1).And.(set_mod_par(10).Eq.1)) Then
 !     HighScaleModel = "MSSM"
      If (set_mod_par(7).Eq.1) Then
@@ -1540,10 +1615,9 @@ Contains
 
  Contains
 
-  Subroutine Read_Neutrino_Bounds(io, kont)
+  Subroutine Read_Neutrino_Bounds(io)
   Implicit None
    Integer, Intent(in) :: io
-   Integer, Intent(inout) :: kont
 
     Do 
      Read(io,*,End=200) read_line
@@ -1575,7 +1649,7 @@ Contains
      Case default
       Write(ErrCan,*) "Reading block NeutrinoBoundsIn"
       Write(ErrCan,*) "Particle with id=",i1," is unknown"
-      Write(ErrCan,*) "The assigned value is"
+      Write(ErrCan,*) "The assigned value is",wert
      End Select
 
     End Do
@@ -1762,13 +1836,13 @@ Contains
       MT15_mH3 = wert
       MZ15_mH3 = wert
      Case(2)
-      lam12_0(1) = lam12_0(1) + wert
+      lam12_0(1) = Cmplx(wert, Aimag(lam12_0(1) ), dp)
      Case(3)
-      lam12_0(1) = lam12_0(1) + wert * (1._dp, 0._dp)
+      lam12_0(1) = Cmplx(Real(lam12_0(1), dp ), wert, dp) 
      Case(4)
-      lam12_0(2) = lam12_0(2) + wert
+      lam12_0(2) = Cmplx(wert, Aimag(lam12_0(2) ), dp)
      Case(5)
-      lam12_0(2) = lam12_0(2) + wert * (1._dp, 0._dp)
+      lam12_0(2) = Cmplx(Real(lam12_0(2), dp ), wert, dp) 
      Case(6)
       If (wert.Eq.1) Then
        Fifteen_plet = .True.
@@ -1951,13 +2025,13 @@ Contains
 
   End Subroutine Read_SPINFO
 
-  Subroutine Read_MODSEL(io, i_particles, i_model, i_cpv, kont)
+  Subroutine Read_MODSEL(io, i_particles, i_model, i_cpv, i_rp, kont)
   Implicit None
    Integer, Intent(in) :: io
-   Integer, Intent(out) :: i_particles, i_model, i_cpv
+   Integer, Intent(out) :: i_particles, i_model, i_cpv, i_rp
    Integer, Intent(inout) :: kont
 
-   Integer :: i_mod, i_test, i_rp
+   Integer :: i_mod, i_test
    Real(dp) :: r_mod
    Character(len=80) :: read_line
 
@@ -1971,10 +2045,10 @@ Contains
      If ((read_line(1:1).Eq."B").Or.(read_line(1:1).Eq."b") ) Exit ! this loop
 
      Read(io,*) i_test,r_mod ! ,read_line
-     if (i_test.ne.12) then
+     If (i_test.Ne.12) Then
       Backspace(io)
       Read(io,*) i_test,i_mod ! ,read_line
-     end if
+     End If
 
      If (i_test.Eq.1) Then
       i_particles = i_test
@@ -2034,16 +2108,28 @@ Contains
        check = SetHighScaleModel("NURRP1")
        i_particles = 2
        i_model = 4
-      Else If (i_mod.Eq.8) Then  ! adding two nu_R
-       HighScaleModel = "NURRP2"
-       check = SetHighScaleModel("NURRP2")
-       i_particles = 5
-       i_model = 5
       Else If (i_mod.Eq.7) Then  ! adding one nu_R, S, Phi
        HighScaleModel = "RPspon"
        check = SetHighScaleModel("RPspon")
        i_particles = 4
        i_model = 6
+      Else If (i_mod.Eq.8) Then  ! adding two nu_R
+       HighScaleModel = "NURRP2"
+       check = SetHighScaleModel("NURRP2")
+       i_particles = 5
+       i_model = 5
+! Florian Staub
+      Else If (i_mod.Eq.10) Then  ! adding three 24-plet 
+       HighScaleModel = "SEESAW_III_3G"
+       check = SetHighScaleModel("SEESAW_III_3G")
+       i_particles = 1
+       i_model = 1
+      Else If (i_mod.Eq.11) Then  ! adding one 15-plet
+       HighScaleModel = "SEESAW_II_SARAH"
+       check = SetHighScaleModel("SEESAW_II_SARAH")
+       i_particles = 1
+       i_model = 1
+! Florian Staub
       Else If (i_mod.Ne.0) Then
        Write(ErrCan,*) "Error in routine "//NameOfUnit(Iname)
        Write(ErrCan,*) "NMSSM, Unknown entry for Block MODSEL ",i_mod
@@ -2268,6 +2354,19 @@ Contains
      Case(92) ! for Pythia input
       If (wert.Eq.1) l_RP_Pythia = .True.      
 
+     Case(100) ! use bsstep instead of 
+      If (wert.Eq.1) test_l = Set_Use_bsstep_instead_of_rkqs(.True.)
+
+     Case(101) ! use bsstep instead of 
+      If (wert.Eq.1) test_l = Set_Use_rzextr_instead_of_pzextr(.True.)
+
+     Case(110) ! write output for LHC observables
+      If (wert.Eq.1) Then
+       LWrite_LHC_Observables = .True.
+      Else
+       LWrite_LHC_Observables = .False.
+      End If
+
      Case Default
       If (output_screen) Write(*,*) &
            & "Problem while reading SPhenoInput, ignoring unknown entry" &
@@ -2317,34 +2416,37 @@ Contains
      Else If (i_par.Eq.1) Then 
       If (i_c.Eq.0) Mi(1) = Cmplx(wert, Aimag(Mi(1)), dp) 
       If (i_c.Eq.0) Mi_0(1) = Cmplx(wert, Aimag(Mi_0(1)), dp) 
-      If (i_c.Eq.1) Mi(1) = Real(Mi(1),dp) + (0._dp,1._dp) * wert
-      If (i_c.Eq.1) Mi_0(1) = Real(Mi_0(1),dp) + (0._dp,1._dp) * wert  
+      If (i_c.Eq.1) Mi(1) = Cmplx(Real(Mi(1),dp), wert, dp)
+      If (i_c.Eq.1) Mi_0(1) = Cmplx(Real(Mi_0(1),dp), wert, dp)  
       set_mod_par(1) = 1
      Else If (i_par.Eq.2) Then 
       If (i_c.Eq.0) Mi(2) = Cmplx(wert, Aimag(Mi(2)), dp)
       If (i_c.Eq.0) Mi_0(2) = Cmplx(wert, Aimag(Mi_0(2)), dp)
-      If (i_c.Eq.1) Mi(2) = Real(Mi(2),dp) + (0._dp,1._dp) * wert
-      If (i_c.Eq.1) Mi_0(2) = Real(Mi_0(2),dp) + (0._dp,1._dp) * wert  
+      If (i_c.Eq.1) Mi(2) = Cmplx(Real(Mi(2),dp), wert, dp)
+      If (i_c.Eq.1) Mi_0(2) = Cmplx(Real(Mi_0(2),dp), wert, dp)  
       set_mod_par(2) = 1
      Else If (i_par.Eq.3) Then 
       If (i_c.Eq.0) Mi(3) = Cmplx(wert, Aimag(Mi(3)), dp) 
       If (i_c.Eq.0) Mi_0(3) = Cmplx(wert, Aimag(Mi_0(3)), dp) 
-      If (i_c.Eq.1) Mi(3) = Real(Mi(3),dp) + (0._dp,1._dp) * wert
-      If (i_c.Eq.1) Mi_0(3) = Real(Mi_0(3),dp) + (0._dp,1._dp) * wert  
+      If (i_c.Eq.1) Mi(3) = Cmplx(Real(Mi(3),dp), wert, dp)
+      If (i_c.Eq.1) Mi_0(3) = Cmplx(Real(Mi_0(3),dp), wert, dp)  
       set_mod_par(3) = 1
      Else If (i_par.Eq.11) Then 
-      If (i_c.Eq.0) AoY_u = Cmplx(0._dp, Aimag(AoY_u), dp) + wert 
-      If (i_c.Eq.1) AoY_u = Real(AoY_u,dp) + (0._dp,1._dp) * wert 
+      If (i_c.Eq.0) AoY_u(3,3) = Cmplx(wert, Aimag(AoY_u(3,3)), dp) 
+      If (i_c.Eq.1) AoY_u(3,3) = Cmplx(Real(AoY_u(3,3),dp), wert, dp) 
+      At_save = AoY_u(3,3)
       AoY_u_0 = AoY_u 
       set_mod_par(4) = 1
      Else If (i_par.Eq.12) Then 
-      If (i_c.Eq.0) AoY_d = Cmplx(0._dp, Aimag(AoY_d), dp) + wert 
-      If (i_c.Eq.1) AoY_d = Real(AoY_d,dp) + (0._dp,1._dp) * wert 
+      If (i_c.Eq.0) AoY_d(3,3) = Cmplx(wert, Aimag(AoY_d(3,3)), dp)
+      If (i_c.Eq.1) AoY_d(3,3) = Cmplx(Real(AoY_d(3,3),dp), wert, dp) 
+      Ab_save = AoY_d(3,3)
       AoY_d_0 = AoY_d 
       set_mod_par(5) = 1
      Else If (i_par.Eq.13) Then 
-      If (i_c.Eq.0) AoY_l = Cmplx(0._dp, Aimag(AoY_l), dp) + wert 
-      If (i_c.Eq.1) AoY_l = Real(AoY_l,dp) + (0._dp,1._dp) * wert 
+      If (i_c.Eq.0) AoY_l = Cmplx(wert, Aimag(AoY_l(3,3)), dp) 
+      If (i_c.Eq.1) AoY_l = Cmplx(Real(AoY_l(3,3),dp), wert, dp) 
+      Atau_save = AoY_l(3,3)
       AoY_l_0 = AoY_l 
       set_mod_par(6) = 1
      Else If ((i_par.Eq.21).And.(i_c.Eq.0)) Then 
@@ -2360,7 +2462,7 @@ Contains
      Else If (i_par.Eq.23) Then
       If ((i_model.Eq.0).Or.(HighScaleModel.Eq."NMSSM")) Then 
        If (i_c.Eq.0) mu = Cmplx(wert, Aimag(mu), dp)
-       If (i_c.Eq.1) mu = Real(mu,dp) + (0._dp,1._dp) * wert
+       If (i_c.Eq.1) mu = Cmplx(Real(mu,dp), wert, dp)
        set_mod_par(9) = 1
       Else
        Write(ErrCan,*) "mu can only be specified in the general MSSM and is"
@@ -2460,22 +2562,22 @@ Contains
      ! NMSSM
      !------------------------------
      Else If (i_par.Eq.61) Then 
-      If (i_c.Eq.0) h0 = Cmplx(0._dp, Aimag(h0),dp) + wert
-      If (i_c.Eq.1) h0 = Real(h0,dp) + (0._dp,1._dp) * wert
+      If (i_c.Eq.0) h0 = Cmplx(wert, Aimag(h0),dp) 
+      If (i_c.Eq.1) h0 = Cmplx(Real(h0,dp), wert, dp)
      Else If (i_par.Eq.62) Then 
       ! different convention with respect to Cyril
-      If (i_c.Eq.0) lam = Cmplx(0._dp, Aimag(lam),dp) + 2._dp * wert
-      If (i_c.Eq.1) lam = Real(lam,dp)  + (0._dp,2._dp) * wert
+      If (i_c.Eq.0) lam = Cmplx(2._dp * wert, Aimag(lam),dp)
+      If (i_c.Eq.1) lam = Cmplx(Real(lam,dp), 2._dp * wert, dp)
      Else If (i_par.Eq.63) Then 
-      If (i_c.Eq.0) Ao_h0 = Cmplx(0._dp, Aimag(Ao_h0),dp) + wert
-      If (i_c.Eq.1) Ao_lam = Real(Ao_lam,dp) + (0._dp,1._dp) * wert
+      If (i_c.Eq.0) Ao_h0 = Cmplx(wert, Aimag(Ao_h0),dp) 
+      If (i_c.Eq.1) Ao_lam = Cmplx(Real(Ao_lam,dp), wert, dp)
      Else If (i_par.Eq.64) Then 
-      If (i_c.Eq.0) Ao_lam = Cmplx(0._dp, Aimag(Ao_lam),dp) + wert
-      If (i_c.Eq.1) Ao_lam = Real(Ao_lam,dp) + (0._dp,1._dp) * wert
+      If (i_c.Eq.0) Ao_lam = Cmplx(wert, Aimag(Ao_lam),dp) 
+      If (i_c.Eq.1) Ao_lam = Cmplx(Real(Ao_lam,dp), wert, dp)
      Else If (i_par.Eq.65) Then
       If ((HighScaleModel.Eq."NMSSM").Or.(HighScaleModel.Eq."RPspon")) Then 
-       If (i_c.Eq.0) lam_vS = Cmplx(0._dp, Aimag(lam_vS),dp) + wert
-       If (i_c.Eq.1) lam_vS = Real(lam_vS,dp) + (0._dp,1._dp) * wert
+       If (i_c.Eq.0) lam_vS = Cmplx(wert, Aimag(lam_vS),dp)
+       If (i_c.Eq.1) lam_vS = Cmplx(Real(lam_vS,dp), wert, dp)
        set_mod_par(9) = 1
       Else
        Write(ErrCan,*) "Attempt to use i_par == 65"
@@ -2531,30 +2633,30 @@ Contains
      ! and spontaneous R-parity breaking
      !---------------------------------------
       Else If (i_par.Eq.91) Then
-       If (i_c.Eq.0) h02 = Cmplx(0._dp, Aimag(h02),dp) + wert
-       If (i_c.Eq.1) h02 = Real(h02,dp) + (0._dp,1._dp) * wert
+       If (i_c.Eq.0) h02 = Cmplx(wert, Aimag(h02),dp) 
+       If (i_c.Eq.1) h02 = Cmplx(Real(h02,dp), wert, dp)
       Else If (i_par.Eq.92) Then 
         ! different convention  with respect to Cyril
-       If (i_c.Eq.0) lam2 = Cmplx(0._dp, Aimag(lam2),dp) + 2._dp * wert
-       If (i_c.Eq.1) lam2 = Real(lam2,dp) + (0._dp,2._dp) * wert 
+       If (i_c.Eq.0) lam2 = Cmplx(2._dp * wert, Aimag(lam2),dp) 
+       If (i_c.Eq.1) lam2 = Cmplx(Real(lam2,dp), 2._dp * wert , dp)
       Else If (i_par.Eq.93) Then 
-       If (i_c.Eq.0) lam112 = Cmplx(0._dp, Aimag(lam112),dp) + wert          
-       If (i_c.Eq.1) lam112 = Real(lam112,dp) + (0._dp,1._dp) * wert
+       If (i_c.Eq.0) lam112 = Cmplx(wert, Aimag(lam112),dp) 
+       If (i_c.Eq.1) lam112 = Cmplx(Real(lam112,dp), wert, dp)
       Else If (i_par.Eq.94) Then 
-       If (i_c.Eq.0) lam122 = Cmplx(0._dp, Aimag(lam122),dp) + wert          
-       If (i_c.Eq.1) lam122 = Real(lam122,dp) + (0._dp,1._dp) * wert
+       If (i_c.Eq.0) lam122 = Cmplx(wert, Aimag(lam122),dp) 
+       If (i_c.Eq.1) lam122 = Cmplx(Real(lam122,dp), wert, dp)
       Else If (i_par.Eq.95) Then 
-       If (i_c.Eq.0) Ao_h02 = Cmplx(0._dp, Aimag(Ao_h02),dp) + wert
-       If (i_c.Eq.1) Ao_h02 = Real(Ao_h02,dp) + (0._dp,1._dp) * wert
+       If (i_c.Eq.0) Ao_h02 = Cmplx(wert, Aimag(Ao_h02),dp)
+       If (i_c.Eq.1) Ao_h02 = Cmplx(Real(Ao_h02,dp), wert, dp)
       Else If (i_par.Eq.96) Then 
-       If (i_c.Eq.0) Ao_lam222 = Cmplx(0._dp, Aimag(Ao_lam222),dp) + wert
-       If (i_c.Eq.1) Ao_lam222 = Real(Ao_lam222,dp) + (0._dp,1._dp) * wert
+       If (i_c.Eq.0) Ao_lam222 = Cmplx(wert, Aimag(Ao_lam222),dp) 
+       If (i_c.Eq.1) Ao_lam222 = Cmplx(Real(Ao_lam222,dp), wert, dp)
       Else If (i_par.Eq.97) Then 
-       If (i_c.Eq.0) Ao_lam112 = Cmplx(0._dp, Aimag(Ao_lam112),dp) + wert
-       If (i_c.Eq.1) Ao_lam112 = Real(Ao_lam112,dp) + (0._dp,1._dp) * wert
+       If (i_c.Eq.0) Ao_lam112 = Cmplx(wert, Aimag(Ao_lam112),dp)
+       If (i_c.Eq.1) Ao_lam112 = Cmplx(Real(Ao_lam112,dp), wert, dp) 
       Else If (i_par.Eq.98) Then 
-       If (i_c.Eq.0) Ao_lam122 = Cmplx(0._dp, Aimag(Ao_lam122),dp) + wert
-       If (i_c.Eq.1) Ao_lam122 = Real(Ao_lam122,dp) + (0._dp,1._dp) * wert
+       If (i_c.Eq.0) Ao_lam122 = Cmplx(wert, Aimag(Ao_lam122),dp)
+       If (i_c.Eq.1) Ao_lam122 = Cmplx(Real(Ao_lam122,dp), wert, dp)
       Else If (i_par.Eq.99) Then 
        M2_R(2,2) = wert**2
       Else If (i_par.Eq.100) Then 
@@ -2571,6 +2673,28 @@ Contains
        AoY_nu(2,2) = wert ! has to be replaced by AoY_nu2(2) later
       Else If (i_par.Eq.106) Then 
        AoY_nu(2,3) = wert ! has to be replaced by AoY_nu2(3) later
+
+! Florian Staub, Seesaw II+III
+      Else If (i_par.Eq.200) Then 
+       If (i_c.Eq.0) MTM0 = Cmplx(wert, Aimag(MTM0),dp)
+       If (i_c.Eq.1) MTM0 = Cmplx(Real(MTM0,dp), wert,dp)
+       If (i_c.Eq.0) Then
+        m_H3 = wert
+       ! as initalization, will be computed more precisely later
+        MS15_mH3 = wert
+        MT15_mH3 = wert
+        MZ15_mH3 = wert
+       End If
+      Else If (i_par.Eq.202) Then 
+       If (i_c.Eq.0) Lambda1_gut = Cmplx(wert, Aimag(Lambda1_gut),dp)
+       If (i_c.Eq.1) Lambda1_gut = Cmplx(Real(Lambda1_gut,dp), wert,dp)
+       lam12_0(1) = Lambda1_gut
+      Else If (i_par.Eq.203) Then 
+       If (i_c.Eq.0) Lambda2_gut = Cmplx(wert, Aimag(Lambda2_gut),dp)
+       If (i_c.Eq.1) Lambda2_gut = Cmplx(Real(Lambda2_gut,dp), wert,dp)
+       lam12_0(2) = Lambda2_gut
+
+! Florian Staub, Seesaw II+III
 
      Else
       If (i_c.Eq.0) Then
@@ -2592,6 +2716,12 @@ Contains
 !     Write(errcan,*) i_par,wert
     End Do  ! i_par 
 
+    !----------------------------------------------------------------
+    ! check if T_f and A_f given, if yes, then A_f gets overwritten
+    !----------------------------------------------------------------
+    If (A_u(3,3).ne.ZeroC) At_save = ZeroC
+    If (A_d(3,3).ne.ZeroC) Ab_save = ZeroC
+    If (A_l(3,3).ne.ZeroC) Atau_save = ZeroC
     200 Return
 
   End Subroutine Read_EXTPAR 
@@ -2649,8 +2779,8 @@ Contains
      Else If (i_par.Eq.2) Then 
       If (i_model.Eq.1) Then ! mSugra, M_1/2
        set_mod_par(2) = 1
-       If (i_c.Eq.0) Mi_0 =  Cmplx(0._dp, Aimag(Mi_0),dp) + wert
-       If (i_c.Eq.1) Mi_0 =  Real(Mi_0,dp) + (0._dp,1._dp) * wert
+       If (i_c.Eq.0) Mi_0 =  Cmplx(wert, Aimag(Mi_0),dp) 
+       If (i_c.Eq.1) Mi_0 =  Cmplx(Real(Mi_0,dp),  wert, dp)
       Else If ((i_model.Eq.2).And.(i_c.Eq.0)) Then ! GMSB, M_M
        set_mod_par(2) = 1
        MlambdaS = wert
@@ -2670,21 +2800,21 @@ Contains
       If ((i_model.Ge.0).And.(i_model.Le.3)) Then ! MSSM, mSugra, GMSB, AMSB, sign_mu
        set_mod_par(4) = 1
        If (i_c.Eq.0) phase_mu = Cmplx(wert, Aimag(phase_mu),dp)
-       If (i_c.Eq.1) phase_mu = Real(phase_mu, dp) + (0._dp,1._dp) * wert
+       If (i_c.Eq.1) phase_mu = Cmplx(Real(phase_mu, dp),  wert, dp)
       End If
 
      Else If (i_par.Eq.5) Then 
       If (i_model.Eq.1) Then ! mSugra, A_0
        set_mod_par(5) = 1
        If (i_c.Eq.0) AoY_d_0 = Cmplx(wert, Aimag(AoY_d_0),dp) 
-       If (i_c.Eq.1) AoY_d_0 = Real(AoY_d_0,dp) + (0._dp,1._dp) * wert
+       If (i_c.Eq.1) AoY_d_0 = Cmplx( Real(AoY_d_0,dp) , wert, dp)
        AoY_l_0 = AoY_d_0
        AoY_u_0 = AoY_d_0
        AoY_nu_0 = AoY_d_0
        AoT_0 = AoY_d_0
        Aolam12_0 = AoY_d_0(1,1)
-       If (i_c.Eq.0) Alam12_0 =  Cmplx(0._dp, Aimag(Alam12_0),dp) + wert
-       If (i_c.Eq.1) Alam12_0 =  Real(Alam12_0,dp) + (0._dp,1._dp) * wert
+!       If (i_c.Eq.0) Alam12_0 =  Cmplx(wert, Aimag(Alam12_0),dp)
+!       If (i_c.Eq.1) Alam12_0 =  Cmplx(Real(Alam12_0,dp) , wert, dp)
       Else If ((i_model.Eq.2).And.(i_c.Eq.0)) Then ! GMSB, n_5
        set_mod_par(5) = 1
        n5plets = wert
@@ -2704,12 +2834,12 @@ Contains
       D_SO_10 = wert
 
      Else If (i_par.Eq.9) Then ! SUGRA_SU5, real(lambda(m_GUT))
-      If (i_c.Eq.0) lam_0 = Cmplx(0._dp, Aimag(lam_0),dp) + wert
-      If (i_c.Eq.1) lam_0 = Real(lam_0,dp) + (0._dp,0.1_dp) * wert
+      If (i_c.Eq.0) lam_0 = Cmplx(wert, Aimag(lam_0),dp) 
+      If (i_c.Eq.1) lam_0 = Cmplx( Real(lam_0,dp), wert, dp)
  
      Else If (i_par.Eq.10) Then ! SUGRA_SU5, real(lambda'(m_GUT))
-      If (i_c.Eq.0) lamp_0 = Cmplx(0._dp, Aimag(lamp_0), dp) + wert
-      If (i_c.Eq.1) lamp_0 = Real(lamp_0,dp) + (0._dp,0.1_dp) * wert
+      If (i_c.Eq.0) lamp_0 = Cmplx(wert, Aimag(lamp_0), dp) 
+      If (i_c.Eq.1) lamp_0 = Cmplx( Real(lamp_0,dp), wert, dp) 
  
      Else 
       Write(ErrCan,*) "Error in routine "//NameOfUnit(Iname)
@@ -2875,7 +3005,9 @@ Contains
   Integer :: i1, i2, i3, i4, id_sle(6), id_f, id_fp, id_su(6) &
       & , id_sd(6), i_zaehl, n_min, c_min, ii, jj
   Integer :: id_d_2(200,2), id_d_3(400,3), i_c2
-  Real(dp) :: nr(10,10), mnr(10), Q, BRtot, RG0(3,3), Brmin100, mat6R(6,6)
+  Complex(dp) :: nr(10,10)
+  Real(dp) :: mnr(10), Q, BRtot, RG0(3,3), Brmin100, mat6R(6,6), mat3R(3,3) &
+      & , mat5R(5,5), mat8R(8,8)
   Integer, Parameter :: n_max=500
   Real(dp), Dimension(n_max) :: Br, gP
   Real(dp) :: gT, MaxCont
@@ -2906,12 +3038,17 @@ Contains
   Integer :: delta_n_rp, delta_c_rp, i_eff
   Logical :: file_exists,  use_new_RP
   !--------------------------------------------------------------------- 
-  ! mixing matrices for shifts to super-CKM basis
+  ! mixing matrices for shifts to super-CKM and super-PMNS basis 
   !--------------------------------------------------------------------- 
-  Integer :: ierr, i_errors(1100), io_L1
-  Real(dp) :: Yu(3), Yd(3)
-  Complex(dp), Dimension(3,3) :: CKM_Q
-  Complex(dp), Dimension(6,6) :: RUsq_ckm, RDsq_ckm
+  Integer :: ierr, i_errors(1100), io_L1, id_check(2)
+  Real(dp) :: Yu(3), Yd(3), Yl(3), m_save
+  Complex(dp) :: Rsave(6)
+  Complex(dp), Dimension(3,3) :: CKM_Q, PMNS_Q, RSn_pmns
+  Complex(dp), Dimension(6,6) :: RUsq_ckm, RDsq_ckm, RSl_pmns
+  !--------------------------------------------------------------------- 
+  ! LHC edge variables
+  !--------------------------------------------------------------------- 
+  Real(dp) :: LHC_observ(50), mSle(6), mSu(6), mSd(6)
 
   c_phot = "photon"
   c_grav = "~Gravitino"
@@ -3023,57 +3160,74 @@ Contains
    End If
 
    If (use_new_RP) Then
+    mat5R = Abs(RP05)
+    mat5R(1,:) = 0._dp ! this is the Goldstone boson
     Do i1=1,4
      c_P0(i1) = "P0_"//Bu(i1)
-     If (RP05(i1+1,1)**2+(RP05(i1+1,2)**2).Gt.0.5_dp) id_p0(i1) = 36 ! A_0
-     If (RP05(i1+1,3)**2.Gt.0.5_dp) id_p0(i1) = 2000012            ! Im(snu_e)
-     If (RP05(i1+1,4)**2.Gt.0.5_dp) id_p0(i1) = 2000014            ! Im(snu_mu)
-     If (RP05(i1+1,5)**2.Gt.0.5_dp) id_p0(i1) = 2000016            ! Im(snu_tau)
+     MaxCont = Maxval(mat5R)
+     Call FindPosition(5, mat5R, MaxCont, ii, jj)
+     Select Case(jj)
+     Case(3)
+      id_p0(ii-1) = 2000012   ! Im(snu_e)
+     Case(4)
+      id_p0(ii-1) = 2000014   ! Im(snu_mu)
+     Case(5)
+      id_p0(ii-1) = 2000016   ! Im(snu_tau)
+     Case default
+      id_p0(ii-1) = 36        ! A_0
+     End Select
+     mat5R(ii,:) = 0._dp
+     mat5R(:,jj) = 0._dp
     End Do
-    i_eff = 0
+
+    i_zaehl = 1
+    mat5R = Abs(RS05)
     Do i1=1,5
      c_s0(i1) = "S0_"//Bu(i1)
-     If (RS05(i1,1)**2+(RS05(i1,2)**2).Gt.0.5_dp) Then ! h_0, H_0
-       id_s0(i1) = 25 + i_eff*10
-      i_eff = i_eff + 1
-     End If
-     If (RS05(i1,3)**2.Gt.0.5_dp) id_s0(i1) = 1000012   ! Re(snu_e)
-     If (RS05(i1,4)**2.Gt.0.5_dp) id_s0(i1) = 1000014   ! Re(snu_mu)
-     If (RS05(i1,5)**2.Gt.0.5_dp) id_s0(i1) = 1000016   ! Re(snu_tau)
+     MaxCont = Maxval(mat5R)
+     Call FindPosition(5, mat5R, MaxCont, ii, jj)
+     Select Case(jj)
+     Case(3)
+      id_s0(ii) = 1000012   ! Re(snu_e)
+     Case(4)
+      id_s0(ii) = 1000014   ! Re(snu_mu)
+     Case(5)
+      id_s0(ii) = 1000016   ! Re(snu_tau)
+     Case default
+      id_s0(ii) = 15 + i_zaehl*10
+      i_zaehl = i_zaehl + 1
+     End Select
+     mat5R(ii,:) = 0._dp
+     mat5R(:,jj) = 0._dp
     End Do
+
     i_zaehl = 1 
+    mat8R = Abs(RSpm8)
+    mat8R(1,:) = 0._dp ! this is the Goldstone boson
     Do i1=1,7
      c_sp(i1) = "S^+_"//Bu(i1)
      c_sm(i1) = "S^-_"//Bu(i1)
-     If ((Abs(RSpm8(i1+1,1))**2+Abs(RSpm8(i1+1,2))**2).Gt.0.5_dp) Then ! H^+
-      id_Sp(i1) = 37
-      Cycle
-     End If
-     MaxCont = Maxval(Abs(RSpm8(i1+1,:))**2)
-      If (Abs(Abs(RSpm8(i1+1,3))**2-maxCont).Lt. 10._dp * Epsilon(1._dp)) Then
-       id_sp(i1) = -1000011
-!       c_sle(i1) = "~e_L-"
-!       c_slep(i1) = "~e_L+"
-      Else If (Abs(Abs(RSpm8(i1+1,4))**2-maxCont).Lt.10._dp*Epsilon(1._dp)) Then
-       id_sp(i1) = -1000013
-!       c_sle(i1) = "~mu_L-"
-!       c_slep(i1) = "~mu_L+"
-      Else If (Abs(Abs(RSpm8(i1+1,6))**2-maxCont).Lt.10._dp*Epsilon(1._dp)) Then
-       id_sp(i1) = -2000011
-!       c_sle(i1) = "~e_R-"
-!       c_slep(i1) = "~e_R+"
-      Else If (Abs(Abs(RSpm8(i1+1,7))**2-maxCont).Lt.10._dp*Epsilon(1._dp)) Then
-       id_sp(i1) = -2000013
-!       c_sle(i1) = "~mu_R-"
-!       c_slep(i1) = "~mu_R+"
-      Else
-       id_sp(i1) = -(1000000 * i_zaehl + 15)
-!       c_sle(i1) = "~tau_"//bu(i_zaehl)//"-"
-!       c_slep(i1) = "~tau_"//bu(i_zaehl)//"+"
-       i_zaehl = I_zaehl + 1
-      End If
+     MaxCont = Maxval(mat8R)
+     Call FindPosition(8, mat8R, MaxCont, ii, jj)
+     Select Case(jj)
+     Case(1,2)
+      id_Sp(ii-1) = 37           ! H^+
+     Case(3)
+      id_sp(ii-1) = -1000011     ! ~e_L
+     Case(4)
+      id_sp(ii-1) = -1000013     ! ~mu_L
+     Case(6)
+      id_sp(ii-1) = -2000011     ! ~e_R
+     Case(7)
+      id_sp(ii-1) = -2000013     ! ~mu_R
+     Case default              ! stau_(i_zaehl)
+      id_sp(ii-1) = -(1000000 * i_zaehl + 15)
+      i_zaehl = i_zaehl + 1
+     End Select
+     mat8R(ii,:) = 0._dp
+     mat8R(:,jj) = 0._dp
     End Do
-
+    
    Else
 
     Do i1=1,4
@@ -3109,8 +3263,7 @@ Contains
    c_c0(1) = "nu_1"
    c_c0(2) = "nu_2"
    c_c0(3) = "nu_3"
-!   l_CS = .False.
-!   L_BR = .False.
+
    n_n = 5
    n_c = 2
    n_s0 = 6
@@ -3121,45 +3274,31 @@ Contains
    delta_n_rp = 3
    delta_c_rp = 3
 
-!    Do i1=1,5
-!      c_P0(i1) = "P0_"//Bu(i1)
-!      If (RP06(i1+1,1)**2+(RP06(i1+1,2)**2).Gt.0.5_dp) id_p0(i1) = 36 ! A_0
-!      If (RP06(i1+1,3)**2.Gt.0.5_dp) id_p0(i1) = 2000012            ! Im(snu_e)
-!      If (RP06(i1+1,4)**2.Gt.0.5_dp) id_p0(i1) = 2000014            ! Im(snu_mu)
-!      If (RP06(i1+1,5)**2.Gt.0.5_dp) id_p0(i1) = 2000016            ! Im(snu_tau)
-!      If (RP06(i1+1,6)**2.Gt.0.5_dp) id_p0(i1) = 2000016            ! Im(snu_tau)
-!    End Do
-!    i_eff = 0
-!    Do i1=1,5
-!     c_s0(i1) = "S0_"//Bu(i1)
-!     If (RS06(i1,1)**2+(RS06(i1,2)**2).Gt.0.5_dp) Then ! h_0, H_0
-!       id_s0(i1) = 25 + i_eff*10
-!      i_eff = i_eff + 1
-!     End If
-!     If (RS06(i1,3)**2.Gt.0.5_dp) id_s0(i1) = 1000012   ! Re(snu_e)
-!     If (RS06(i1,4)**2.Gt.0.5_dp) id_s0(i1) = 1000014   ! Re(snu_mu)
-!     If (RS06(i1,5)**2.Gt.0.5_dp) id_s0(i1) = 1000016   ! Re(snu_tau)
-!   End Do
    i_zaehl = 1 
+   mat8R = Abs(RSpm8)
+   mat8R(1,:) = 0._dp ! this is the Goldstone boson
    Do i1=1,7
     c_sp(i1) = "S^+_"//Bu(i1)
     c_sm(i1) = "S^-_"//Bu(i1)
-    If ((Abs(RSpm8(i1+1,1))**2+Abs(RSpm8(i1+1,2))**2).Gt.0.5_dp) Then ! H^+
-     id_Sp(i1) = 37
-     Cycle
-    End If
-    MaxCont = Maxval(Abs(RSpm8(i1+1,:))**2)
-    If (Abs(Abs(RSpm8(i1+1,3))**2-maxCont).Lt. 10._dp * Epsilon(1._dp)) Then
-     id_sp(i1) = -1000011
-    Else If (Abs(Abs(RSpm8(i1+1,4))**2-maxCont).Lt.10._dp*Epsilon(1._dp)) Then
-     id_sp(i1) = -1000013
-    Else If (Abs(Abs(RSpm8(i1+1,6))**2-maxCont).Lt.10._dp*Epsilon(1._dp)) Then
-     id_sp(i1) = -2000011
-    Else If (Abs(Abs(RSpm8(i1+1,7))**2-maxCont).Lt.10._dp*Epsilon(1._dp)) Then
-     id_sp(i1) = -2000013
-    Else
+    MaxCont = Maxval(mat8R)
+    Call FindPosition(8, mat8R, MaxCont, ii, jj)
+    Select Case(jj)
+    Case(1,2)
+     id_Sp(ii) = 37           ! H^+
+    Case(3)
+     id_sp(i1) = -1000011     ! ~e_L
+    Case(4)
+     id_sp(i1) = -1000013     ! ~mu_L
+    Case(6)
+     id_sp(i1) = -2000011     ! ~e_R
+    Case(7)
+     id_sp(i1) = -2000013     ! ~mu_R
+    Case default              ! stau_(i_zaehl)
      id_sp(i1) = -(1000000 * i_zaehl + 15)
-    End If
+     i_zaehl = i_zaehl + 1
+    End Select
+    mat8R(ii,:) = 0._dp
+    mat8R(:,jj) = 0._dp
    End Do
 
    id_sm = - id_sp
@@ -3334,39 +3473,16 @@ Contains
     Else If (HighScaleModel.Eq."SUGRA_NuR") Then
      Y_nu_0 = Transpose(Y_nu_0) ! in the RGEs the transposed Yukawas are used
      Write(io_L,100) "    3    4    # mSUGRA model + three  nu_R, ~nu_R"
-     Write(io_L,106) "Block Ynu0 Q=",m_GUT,"# (GUT scale)"
-     Do i1=1,3
-      Do i2=1,3
-       Write(io_L,105) i2,i1,Real(Y_nu_0(i2,i1),dp), &
-             & "# Y_(nu,"//bu(i2)//bu(i1)//")"  
-      End Do
-     End Do
-     If (Maxval(Abs(Aimag(Y_nu_0))).Gt.0._dp) Then
-      Write(io_L,106) "Block IMYnu0 Q=",m_GUT,"# (GUT scale)"
-      Do i1=1,3
-       Do i2=1,3
-        Write(io_L,105) i2,i1,Aimag(Y_nu_0(i2,i1)) &
-             & ,"# Im(Y_(nu,"//bu(i2)//bu(i1)//"))"  
-       End Do
-      End Do
-     End If
+
+     Call WriteMatrixBlockC(io_L,3,Y_nu_0,m_GUT &
+                         & ,"Ynu0","GUT scale","Y_(nu,")
+
     Else If (HighScaleModel.Eq."SEESAW_II") Then
      Write(io_L,100) "    3    5    # mSUGRA model + Higgs triplett"
-     Write(io_L,106) "Block YT0 Q=",m_GUT,"# (GUT scale)"
-     Do i1=1,3
-      Do i2=i1,3
-       Write(io_L,105) i2,i1,Real(Y_T_0(i2,i1),dp),"# Y_(T,"//bu(i2)//bu(i1)//")"  
-      End Do
-     End Do
-     If (Maxval(Abs(Aimag(Y_T_0))).Gt.0._dp) Then
-      Write(io_L,106) "Block IMYT0 Q=",m_GUT,"# (GUT scale)"
-      Do i1=1,3
-       Do i2=i1,3
-        Write(io_L,105) i2,i1,Aimag(Y_T_0(i2,i1)) &
-             & ,"# Im(Y_(T,"//bu(i2)//bu(i1)//"))"  
-       End Do
-      End Do
-     End If
+
+     Call WriteMatrixBlockC(io_L,3,Y_T_0,m_GUT &                ! symmetric
+                         & ,"YT0","GUT scale","Y_(T,", .True.)  ! matrix
+
      Write(io_L,106) "Block Higgs3 Q=",m_GUT,"# (GUT scale)"
      Write(io_L,101) 1,M_H3(1),"# m_H3      "
      Write(io_L,101) 2,Real(lam12_0(1),dp),"# Re(lambda_1)"
@@ -3380,7 +3496,82 @@ Contains
      Else
       Write(io_L,100) "    6    0               # using RGEs for 3-plet"
      End If
-      
+! Florian SARAH, Seesaw II+III
+    Else If (HighScaleModel.Eq."SEESAW_III_3G") Then
+     Write(io_L,100) "    3    10    # mSUGRA model + 3 24-plets"
+
+     Call WriteMatrixBlockC(io_L,3,Yb3_h24_gut,m_GUT &
+                         & ,"YB","GUT scale","Y_(b,")
+
+     Write(io_L,106) "Block Higgs3 Q=",m_GUT,"# (GUT scale)"
+     Write(io_L,101) 1,Real(MWM3_gut(1,1),dp),"# MWM      "
+     Write(io_L,106) "Block Higgs3 Q=",Abs(MWM30(1,1)),"# (Triplet Scale 1 )"
+     Write(io_L,101) 1,Abs(MWM30(1,1)),"# MWM   "
+     Write(io_L,101) 2,Abs(MGM3(1,1)),"# MGM   "
+     Write(io_L,101) 3,Abs(MBM3(1,1)),"# MBM   "                    
+     Write(io_L,101) 4,Abs(MXM3(1,1)),"# MXM   "          
+     Write(io_L,106) "Block Higgs3 Q=",Abs(MWM30(2,2)),"# (Triplet Scale 2 )"
+     Write(io_L,101) 1,Abs(MWM30(2,2)),"# MWM   "
+     Write(io_L,101) 2,Abs(MGM3(2,2)),"# MGM   "
+     Write(io_L,101) 3,Abs(MBM3(2,2)),"# MBM   "                    
+     Write(io_L,101) 4,Abs(MXM3(2,2)),"# MXM   "          
+     Write(io_L,106) "Block Higgs3 Q=",Abs(MWM30(3,3)),"# (Triplet Scale 3 )"
+     Write(io_L,101) 1,Abs(MWM30(3,3)),"# MWM   "
+     Write(io_L,101) 2,Abs(MGM3(3,3)),"# MGM   "
+     Write(io_L,101) 3,Abs(MBM3(3,3)),"# MBM   "                    
+     Write(io_L,101) 4,Abs(MXM3(3,3)),"# MXM   "          
+
+     Call WriteMatrixBlockC(io_L,3,Yb30_h24(1,:,:),Abs(MWM30(1,1)) &
+                         & ,"YB","Triplet scale 1","Y_(b,")
+     Call WriteMatrixBlockC(io_L,3,Yw30_h24(1,:,:),Abs(MWM30(1,1)) &
+                         & ,"YW","Triplet scale 1","Y_(w,")
+     Call WriteMatrixBlockC(io_L,3,Yx30_h24(1,:,:),Abs(MWM30(1,1)) &
+                         & ,"YX","Triplet scale 1","Y_(x,")
+
+     Call WriteMatrixBlockC(io_L,3,Yb30_h24(2,:,:),Abs(MWM30(2,2)) &
+                         & ,"YB","Triplet scale 2","Y_(b,")
+     Call WriteMatrixBlockC(io_L,3,Yw30_h24(2,:,:),Abs(MWM30(2,2)) &
+                         & ,"YW","Triplet scale 2","Y_(w,")
+     Call WriteMatrixBlockC(io_L,3,Yx30_h24(2,:,:),Abs(MWM30(2,2)) &
+                         & ,"YX","Triplet scale 2","Y_(x,")
+
+     Call WriteMatrixBlockC(io_L,3,Yb30_h24(3,:,:),Abs(MWM30(3,3)) &
+                         & ,"YB","Triplet scale 3","Y_(b,")
+     Call WriteMatrixBlockC(io_L,3,Yw30_h24(3,:,:),Abs(MWM30(3,3)) &
+                         & ,"YW","Triplet scale 3","Y_(w,")
+     Call WriteMatrixBlockC(io_L,3,Yx30_h24(3,:,:),Abs(MWM30(3,3)) &
+                         & ,"YX","Triplet scale 3","Y_(x,")
+
+
+    Else If (HighScaleModel.Eq."SEESAW_II_SARAH") Then
+     Write(io_L,100) "    3    11    # mSUGRA model + 1 15-plet"
+
+     Call WriteMatrixBlockC(io_L,3,YT_h15_gut,m_GUT &          ! symmetric
+                         & ,"YT","GUT scale","Y_(T,", .True.)  ! matrix
+
+     Write(io_L,106) "Block Higgs3 Q=",m_GUT,"# (GUT scale)"
+     Write(io_L,101) 1,Abs(MTM_gut),"# MWM      "
+     Write(io_L,106) "Block Higgs3 Q=",Abs(MTM0),"# (Triplet Scale)"
+     Write(io_L,101) 1,Abs(MTM),"# MTM   "
+     Write(io_L,101) 2,Abs(MZM),"# MZM   "
+     Write(io_L,101) 3,Abs(MSM),"# MSM   "                    
+     
+     Call WriteMatrixBlockC(io_L,3,YT_h15,Abs(MTM0) &            ! symmetric
+                         & ,"YT","triplet scale","Y_(T,", .True.)! matrix
+     Call WriteMatrixBlockC(io_L,3,YS_h15,Abs(MTM0) &            ! symmetric
+                         & ,"YS","triplet scale","Y_(S,", .True.)! matrix
+     Call WriteMatrixBlockC(io_L,3,YZ_h15,Abs(MTM0) &
+                         & ,"YZ","triplet scale","Y_(Z,")
+
+     Write(io_L,106) "Block Lambda Q=",Abs(MTM0),"# (Triplet Scale)"
+     Write(io_L,101) 1,Real(Lambda10,dp),"# Lambda1"
+     Write(io_L,101) 2,Real(Lambda20,dp),"# Lambda2"
+     If ((Aimag(Lambda10).Ne.0._dp).Or.(Aimag(Lambda20).Ne.0._dp)) Then
+      Write(io_L,106) "Block IMLambda Q=",Abs(MTM0),"# (Triplet Scale)"
+      Write(io_L,101) 1,Aimag(Lambda10),"# Lambda1"
+      Write(io_L,101) 2,Aimag(Lambda20),"# Lambda2"
+     End If
+! Florian SARAH, Seesaw II+III      
     End If
     Write(io_L,100) "Block MINPAR  # Input parameters"
     Write(io_L,101) 1,Sqrt(Real(M2_E_0(1,1),dp)),"# m0      "
@@ -3539,21 +3730,38 @@ Contains
               &, Ad_sckm, Au_sckm, M2D_sckm, M2Q_sckm, M2U_sckm, .False. &
               &, RSdown, RSup, Rdsq_ckm, RUsq_ckm, CKM_Q, Yd, Yu )
 
+    If (Maxval(Abs(MnuL5)).Gt.0._dp) Then
+     Call Switch_to_superPMNS(Y_l, MnuL5, A_l, M2_E, M2_L, Al_pmns, M2E_pmns  &
+        &, M2L_pmns, .False., RSlepton, RSneut, Rsl_pmns, RSn_pmns, PMNS_Q, Yl)
+
+    Else
+     Call Switch_to_superPMNS(Y_l, id3C, A_l, M2_E, M2_L, Al_pmns, M2E_pmns  &
+        &, M2L_pmns, .False., RSlepton, RSneut, Rsl_pmns, RSn_pmns, PMNS_Q, Yl)
+
+    End If
+
    Else ! .non.GenerationMixing
 
     Do i1=1,3
      Yu(i1) = Real(Y_u(i1,i1),dp)
      Yd(i1) = Real(Y_d(i1,i1),dp)
+     Yl(i1) = Real(Y_l(i1,i1),dp)
     End Do
+    Al_pmns = A_l
     Ad_sckm = A_d
     Au_sckm = A_u
 
     M2D_SCKM = M2_D
     M2U_SCKM = M2_U
     M2Q_SCKM = M2_Q
+    M2E_pmns = M2_E
+    M2L_pmns = M2_L
 
     RUsq_ckm = RSup
     RDsq_ckm = RSdown
+
+    RSn_pmns = RSneut
+    RSl_pmns = RSlepton
 
    End If
 
@@ -3563,16 +3771,28 @@ Contains
     Write(io_L,104) 1,Real(Mi(1),dp),"# M_1"
     Write(io_L,104) 2,Real(Mi(2),dp),"# M_2"
     Write(io_L,104) 3,Real(Mi(3),dp),"# M_3"
-    Write(io_L,104) 11,Real(Au_sckm(3,3)/y_u(3,3),dp), "# A_t"
-    Write(io_L,104) 12,Real(Ad_sckm(3,3)/y_d(3,3),dp), "# A_b"
-    Write(io_L,104) 13,Real(A_l(3,3)/y_l(3,3),dp), "# A_l"
+    If (At_save.ne.0._dp) then
+     Write(io_L,104) 11,Real(At_save,dp), "# A_t"
+    Else
+     Write(io_L,104) 11,Real(Au_sckm(3,3)/yu(3),dp), "# A_t"
+    End If
+    If (Ab_save.ne.0._dp) then
+     Write(io_L,104) 12,Real(Ab_save,dp), "# A_b"
+    Else
+     Write(io_L,104) 12,Real(Ad_sckm(3,3)/yd(3),dp), "# A_b"
+    End If
+    If (Atau_save.ne.0._dp) then
+     Write(io_L,104) 13,Real(Atau_save,dp), "# A_l"
+    Else
+     Write(io_L,104) 13,Real(Al_pmns(3,3)/yl(3),dp), "# A_l"
+    End If
     Write(io_L,104) 23,Real(mu ,dp), "# mu "
-    Write(io_L,104) 31,Sqrt(Real(M2_L(1,1),dp)),"# M_(L,11)"
-    Write(io_L,104) 32,Sqrt(Real(M2_L(2,2),dp)),"# M_(L,22)"
-    Write(io_L,104) 33,Sqrt(Real(M2_L(3,3),dp)),"# M_(L,33)"
-    Write(io_L,104) 34,Sqrt(Real(M2_E(1,1),dp)),"# M_(E,11)"
-    Write(io_L,104) 35,Sqrt(Real(M2_E(2,2),dp)),"# M_(E,22)"
-    Write(io_L,104) 36,Sqrt(Real(M2_E(3,3),dp)),"# M_(E,33)"
+    Write(io_L,104) 31,Sqrt(Real(M2L_pmns(1,1),dp)),"# M_(L,11)"
+    Write(io_L,104) 32,Sqrt(Real(M2L_pmns(2,2),dp)),"# M_(L,22)"
+    Write(io_L,104) 33,Sqrt(Real(M2L_pmns(3,3),dp)),"# M_(L,33)"
+    Write(io_L,104) 34,Sqrt(Real(M2E_pmns(1,1),dp)),"# M_(E,11)"
+    Write(io_L,104) 35,Sqrt(Real(M2E_pmns(2,2),dp)),"# M_(E,22)"
+    Write(io_L,104) 36,Sqrt(Real(M2E_pmns(3,3),dp)),"# M_(E,33)"
     Write(io_L,104) 41,Sqrt(Real(M2Q_SCKM(1,1),dp)),"# M_(Q,11)"
     Write(io_L,104) 42,Sqrt(Real(M2Q_SCKM(2,2),dp)),"# M_(Q,22)"
     Write(io_L,104) 43,Sqrt(Real(M2Q_SCKM(3,3),dp)),"# M_(Q,33)"
@@ -3607,73 +3827,26 @@ Contains
   Write(io_L,107) 2,2,Yd(2), "# Y_s(Q)^DRbar"
   Write(io_L,107) 3,3,Yd(3), "# Y_b(Q)^DRbar"
 
+  Write(io_L,106) "Block Yl Q=",Q,"# (SUSY scale)"
+  Write(io_L,107) 1,1,Yl(1), "# Y_e(Q)^DRbar"
+  Write(io_L,107) 2,2,Yl(2), "# Y_mu(Q)^DRbar"
+  Write(io_L,107) 3,3,Yl(3), "# Y_tau(Q)^DRbar"
+
   If (GenerationMixing) Then 
                              
-   Write(io_L,106) "Block VCKM Q=",Q,"# Re(CKM) at the SUSY scale"
-   Do i1=1,3
-    Do i2=1,3
-     Write(io_L,107) i1,i2,Real(CKM_Q(i1,i2),dp),"# Re(V_"//Bu(i1)//Bu(i2)//")"
-    End Do
-   End Do
-   If (Maxval(Abs(Aimag(CKM_Q))).Gt.0._dp) Then
-    Write(io_L,106) "Block IMVCKM Q=",Q,"# Im(CKM) at the SUSY scale"
-    Do i1=1,3
-     Do i2=1,3
-      Write(io_L,107) i1,i2,Aimag(CKM_Q(i1,i2)),"# Im(V_"//Bu(i1)//Bu(i2)//")"
-     End Do
-    End Do
-   End If
+   Call WriteMatrixBlockC(io_L,3,CKM_Q,Q &
+                         & ,"VCKM","V_CKM at the SUSY scale","V_(")
+
+   Call WriteMatrixBlockC(io_L,3,PMNS_Q,Q &
+                         & ,"VPMNS","V_PMNS at the SUSY scale","V_(")
 
   End If ! generationmixing
 
-  Write(io_L,106) "Block Ye Q=",Q,"# (SUSY scale)"
-
-  ierr = 0
-  If (GenerationMixing) Then
-   !-------------------------------------------
-   ! check if any off-diagonal term is non-zero
-   !-------------------------------------------
-   Do i1=1,3
-    Do i2=1,3
-     If ((i1.Ne.i2).And.(Abs(Y_l(i2,i1)).Ne.0._dp)) ierr = ierr + 1
-    End Do
-   End Do
-  End If
-
-  If (ierr.Ne.0) Then
-   Do i1=1,3
-    Do i2=1,3
-     Write(io_L,105) i2,i1,Real(Y_l(i2,i1),dp),"# Y_(l,"//bu(i2)//bu(i1)//")"  
-    End Do
-   End Do
-  Else 
-   Write(io_L,107) 1,1,Real(y_l(1,1),dp), "# Y_e(Q)^DRbar"
-   Write(io_L,107) 2,2,Real(y_l(2,2),dp), "# Y_mu(Q)^DRbar"
-   Write(io_L,107) 3,3,Real(y_l(3,3),dp), "# Y_tau(Q)^DRbar"
-  End If
-  If (Maxval(Abs(Aimag(Y_l))).Gt.0._dp) Then
-   Write(io_L,106) "Block IMYe Q=",Q,"# (SUSY scale)"
-   If (GenerationMixing) Then
-    Do i1=1,3
-      Do i2=1,3
-      Write(io_L,105) i2,i1,Aimag(Y_l(i2,i1)),"# Im(Y_(l,"//bu(i2)//bu(i1)//"))"
-     End Do
-    End Do
-   Else 
-    Write(io_L,107) 1,1,Aimag(y_l(1,1)), "# Im(Y_e)(Q)^DRbar"
-    Write(io_L,107) 2,2,Aimag(y_l(2,2)), "# Im(Y_mu)(Q)^DRbar"
-    Write(io_L,107) 3,3,Aimag(y_l(3,3)), "# Im(Y_tau)(Q)^DRbar"
-   End If
-  End If
 
   If (GenerationMixing) Then
-   Write(io_L,106) "Block Tu Q=",Q,"# (SUSY scale)"
-   Do i1=1,3
-    Do i2=1,3
-     Write(io_L,105) i2,i1,Real(Au_sckm(i1,i2),dp) &
-                   &  ,"# T_(u,"//bu(i2)//bu(i1)//")"  
-    End Do
-   End Do
+
+   Call WriteMatrixBlockC(io_L,3,Au_sckm,Q,"Tu","SUSY scale","T_(u,",tr=.True.)
+
   Else 
    Write(io_L,106) "Block Au Q=",Q,"# (SUSY scale)"
    If (Abs(y_u(1,1)).Gt.0._dp) &
@@ -3682,17 +3855,7 @@ Contains
         & Write(io_L,107) 2,2,Real(Au_sckm(2,2)/y_u(2,2),dp), "# A_c(Q)^DRbar"
    If (Abs(y_u(3,3)).Gt.0._dp) &
         & Write(io_L,107) 3,3,Real(Au_sckm(3,3)/y_u(3,3),dp), "# A_t(Q)^DRbar"
-  End If
-  If (Maxval(Abs(Aimag(Au_sckm))).Gt.0._dp) Then
-   If (GenerationMixing) Then
-    Write(io_L,106) "Block IMTu Q=",Q,"# (SUSY scale)"
-    Do i1=1,3
-      Do i2=1,3
-      Write(io_L,105) i2,i1,Aimag(Au_sckm(i1,i2))  &
-                    & ,"# Im(T_(u,"//bu(i2)//bu(i1)//"))"
-     End Do
-    End Do
-   Else 
+   If (Maxval(Abs(Aimag(Au_sckm))).Gt.0._dp) Then
     Write(io_L,106) "Block IMAu Q=",Q,"# (SUSY scale)"
     If (Abs(y_u(1,1)).Gt.0._dp) &
         & Write(io_L,107) 1,1,Aimag(Au_sckm(1,1)/y_u(1,1)), "# Im(A_u)(Q)^DRbar"
@@ -3704,13 +3867,9 @@ Contains
   End If
 
   If (GenerationMixing) Then
-   Write(io_L,106) "Block Td Q=",Q,"# (SUSY scale)"
-   Do i1=1,3
-    Do i2=1,3
-     Write(io_L,105) i2,i1,Real(Ad_sckm(i1,i2),dp) &
-                       & ,"# T_(d,"//bu(i2)//bu(i1)//")"  
-    End Do
-   End Do
+
+   Call WriteMatrixBlockC(io_L,3,Ad_sckm,Q,"Td","SUSY scale","T_(d,",tr=.True.)
+
   Else 
    Write(io_L,106) "Block Ad Q=",Q,"# (SUSY scale)"
    If (Abs(y_d(1,1)).Gt.0._dp) &
@@ -3719,17 +3878,7 @@ Contains
         & Write(io_L,107) 2,2,Real(Ad_sckm(2,2)/y_d(2,2),dp), "# A_s(Q)^DRbar"
    If (Abs(y_d(3,3)).Gt.0._dp) &
         & Write(io_L,107) 3,3,Real(Ad_sckm(3,3)/y_d(3,3),dp), "# A_b(Q)^DRbar"
-  End If
-  If (Maxval(Abs(Aimag(Ad_sckm))).Gt.0._dp) Then
-   If (GenerationMixing) Then
-    Write(io_L,106) "Block IMTd Q=",Q,"# (SUSY scale)"
-    Do i1=1,3
-      Do i2=1,3
-      Write(io_L,105) i2,i1,Aimag(Ad_sckm(i1,i2)) &
-                   & ,"# Im(T_(d,"//bu(i2)//bu(i1)//"))"
-     End Do
-    End Do
-   Else 
+   If (Maxval(Abs(Aimag(Ad_sckm))).Gt.0._dp) Then
     Write(io_L,106) "Block IMAd Q=",Q,"# (SUSY scale)"
     If (Abs(y_d(1,1)).Gt.0._dp) &
         & Write(io_L,107) 1,1,Aimag(Ad_sckm(1,1)/y_d(1,1)), "# Im(A_d)(Q)^DRbar"
@@ -3747,43 +3896,31 @@ Contains
    !-------------------------------------------
    Do i1=1,3
     Do i2=1,3
-     If ((i1.Ne.i2).And.(Abs(A_l(i2,i1)).Ne.0._dp)) ierr = ierr + 1
+     If ((i1.Ne.i2).And.(Abs(Al_pmns(i2,i1)).Ne.0._dp)) ierr = ierr + 1
     End Do
    End Do
   End If
 
   If (ierr.Ne.0) Then
-   Write(io_L,106) "Block Te Q=",Q,"# (SUSY scale)"
-   Do i1=1,3
-    Do i2=1,3
-     Write(io_L,105) i2,i1,Real(A_l(i2,i1),dp),"# T_(l,"//bu(i2)//bu(i1)//")"  
-    End Do
-   End Do
+
+   Call WriteMatrixBlockC(io_L,3,Al_pmns,Q,"Te","SUSY scale","T_(l,") ! ,tr=.True.) checken
+
   Else 
    Write(io_L,106) "Block Ae Q=",Q,"# (SUSY scale)"
-   If (Abs(y_l(1,1)).Gt.0._dp) &
-        & Write(io_L,107) 1,1,Real(A_l(1,1)/y_l(1,1),dp), "# A_e(Q)^DRbar"
-   If (Abs(y_l(2,2)).Gt.0._dp) &
-        & Write(io_L,107) 2,2,Real(A_l(2,2)/y_l(2,2),dp), "# A_mu(Q)^DRbar"
-   If (Abs(y_l(3,3)).Gt.0._dp) &
-        & Write(io_L,107) 3,3,Real(A_l(3,3)/y_l(3,3),dp), "# A_tau(Q)^DRbar"
-  End If
-  If (Maxval(Abs(Aimag(A_l))).Gt.0._dp) Then
-   If (ierr.Ne.0) Then
-    Write(io_L,106) "Block IMTe Q=",Q,"# (SUSY scale)"
-    Do i1=1,3
-      Do i2=1,3
-      Write(io_L,105) i2,i1,Aimag(A_l(i2,i1)),"# Im(T_(l,"//bu(i2)//bu(i1)//"))"
-     End Do
-    End Do
-   Else 
+   If (Abs(Yl(1)).Gt.0._dp) &
+        & Write(io_L,107) 1,1,Real(Al_pmns(1,1)/Yl(1),dp), "# A_e(Q)^DRbar"
+   If (Abs(Yl(2)).Gt.0._dp) &
+        & Write(io_L,107) 2,2,Real(Al_pmns(2,2)/Yl(2),dp), "# A_mu(Q)^DRbar"
+   If (Abs(Yl(3)).Gt.0._dp) &
+        & Write(io_L,107) 3,3,Real(Al_pmns(3,3)/Yl(3),dp), "# A_tau(Q)^DRbar"
+   If (Maxval(Abs(Aimag(Al_pmns))).Gt.0._dp) Then
     Write(io_L,106) "Block IMAe Q=",Q,"# (SUSY scale)"
-    If (Abs(y_l(1,1)).Gt.0._dp) &
-        & Write(io_L,107) 1,1,Aimag(A_l(1,1)/y_l(1,1)), "# Im(A_e)(Q)^DRbar"
-    If (Abs(y_l(2,2)).Gt.0._dp) &
-        & Write(io_L,107) 2,2,Aimag(A_l(2,2)/y_l(2,2)), "# Im(A_mu)(Q)^DRbar"
-    If (Abs(y_l(3,3)).Gt.0._dp) &
-        & Write(io_L,107) 3,3,Aimag(A_l(3,3)/y_l(3,3)), "# Im(A_tau)(Q)^DRbar"
+    If (Abs(Yl(1)).Gt.0._dp) &
+        & Write(io_L,107) 1,1,Aimag(Al_pmns(1,1)/Yl(1)), "# Im(A_e)(Q)^DRbar"
+    If (Abs(Yl(2)).Gt.0._dp) &
+        & Write(io_L,107) 2,2,Aimag(Al_pmns(2,2)/Yl(2)), "# Im(A_mu)(Q)^DRbar"
+    If (Abs(Yl(3)).Gt.0._dp) &
+        & Write(io_L,107) 3,3,Aimag(Al_pmns(3,3)/Yl(3)), "# Im(A_tau)(Q)^DRbar"
    End If
   End If
 
@@ -3795,12 +3932,12 @@ Contains
   Write(io_L,104) 21,M2_H(1),"# M^2_(H,d)"
   Write(io_L,104) 22,M2_H(2),"# M^2_(H,u)"
 
-  Write(io_L,104) 31,Sqrt(Real(M2_L(1,1),dp)),"# M_(L,11)"
-  Write(io_L,104) 32,Sqrt(Real(M2_L(2,2),dp)),"# M_(L,22)"
-  Write(io_L,104) 33,Sqrt(Real(M2_L(3,3),dp)),"# M_(L,33)"
-  Write(io_L,104) 34,Sqrt(Real(M2_E(1,1),dp)),"# M_(E,11)"
-  Write(io_L,104) 35,Sqrt(Real(M2_E(2,2),dp)),"# M_(E,22)"
-  Write(io_L,104) 36,Sqrt(Real(M2_E(3,3),dp)),"# M_(E,33)"
+  Write(io_L,104) 31,Sqrt(Real(M2L_pmns(1,1),dp)),"# M_(L,11)"
+  Write(io_L,104) 32,Sqrt(Real(M2L_pmns(2,2),dp)),"# M_(L,22)"
+  Write(io_L,104) 33,Sqrt(Real(M2L_pmns(3,3),dp)),"# M_(L,33)"
+  Write(io_L,104) 34,Sqrt(Real(M2E_pmns(1,1),dp)),"# M_(E,11)"
+  Write(io_L,104) 35,Sqrt(Real(M2E_pmns(2,2),dp)),"# M_(E,22)"
+  Write(io_L,104) 36,Sqrt(Real(M2E_pmns(3,3),dp)),"# M_(E,33)"
   Write(io_L,104) 41,Sqrt(Real(M2Q_SCKM(1,1),dp)),"# M_(Q,11)"
   Write(io_L,104) 42,Sqrt(Real(M2Q_SCKM(2,2),dp)),"# M_(Q,22)"
   Write(io_L,104) 43,Sqrt(Real(M2Q_SCKM(3,3),dp)),"# M_(Q,33)"
@@ -3812,95 +3949,21 @@ Contains
   Write(io_L,104) 49,Sqrt(Real(M2D_SCKM(3,3),dp)),"# M_(D,33)"
 
   If (GenerationMixing) Then
-   Write(io_L,106) "Block MSL2 Q=",Q,"# M^2_L soft SUSY breaking masses at Q"
-   Do i2=1,3
-    Do i1=1,3
-     Write(io_L,105) i2,i1,Real(M2_L(i2,i1),dp)  &
-                  & ,"# M^2_(L,"//bu(i2)//bu(i1)//")"  
-    End Do
-   End Do
-   If (Maxval(Abs(Aimag(M2_L))).Gt.0._dp) Then
-    Write(io_L,106) "Block IMMSL2 Q=",Q  &
-                  & ,"# Im(M^2_L) soft SUSY breaking masses at Q"
-    Do i2=1,3
-     Do i1=1,3
-      Write(io_L,105) i2,i1,Aimag(M2_L(i2,i1)) &
-                 &   ,"# Im(M^2_(L,"//bu(i2)//bu(i1)//"))"  
-     End Do
-    End Do
-   End If
 
-   Write(io_L,106) "Block MSE2 Q=",Q,"# M^2_E soft SUSY breaking masses at Q"
-   Do i2=1,3
-    Do i1=1,3
-     Write(io_L,105) i2,i1,Real(M2_E(i2,i1),dp)  &
-                  & ,"# M^2_(E,"//bu(i2)//bu(i1)//")"  
-    End Do
-   End Do
-   If (Maxval(Abs(Aimag(M2_E))).Gt.0._dp) Then
-    Write(io_L,106) "Block IMMSE2 Q=",Q  &
-                  & ,"# Im(M^2_E) soft SUSY breaking masses at Q"
-    Do i2=1,3
-     Do i1=1,3
-      Write(io_L,105) i2,i1,Aimag(M2_E(i2,i1)) &
-                 &   ,"# Im(M^2_(E,"//bu(i2)//bu(i1)//"))"  
-     End Do
-    End Do
-   End If
+   Call WriteMatrixBlockC(io_L,3,M2L_pmns,Q,"MSL2" &
+           & ,"M^2_L soft SUSY breaking masses","M^2_(L,")
 
-   Write(io_L,106) "Block MSQ2 Q=",Q,"# M^2_Q soft SUSY breaking masses at Q"
-   Do i2=1,3
-    Do i1=1,3
-     Write(io_L,105) i2,i1,Real(M2Q_SCKM(i2,i1),dp) &
-                   & ,"# M^2_(Q,"//bu(i2)//bu(i1)//")"  
-    End Do
-   End Do
-   If (Maxval(Abs(Aimag(M2Q_SCKM))).Gt.0._dp) Then
-    Write(io_L,106) "Block IMMSQ2 Q=",Q  &
-                  & ,"# Im(M^2_Q) soft SUSY breaking masses at Q"
-    Do i2=1,3
-     Do i1=1,3
-      Write(io_L,105) i2,i1,Aimag(M2Q_SCKM(i2,i1)) &
-                 &   ,"# Im(M^2_(Q,"//bu(i2)//bu(i1)//"))"  
-     End Do
-    End Do
-   End If
+   Call WriteMatrixBlockC(io_L,3,M2E_pmns,Q,"MSE2" &
+           & ,"M^2_E soft SUSY breaking masses","M^2_(E,")
 
-   Write(io_L,106) "Block MSU2 Q=",Q,"# M^2_U soft SUSY breaking masses at Q"
-   Do i2=1,3
-    Do i1=1,3
-     Write(io_L,105) i2,i1,Real(M2U_SCKM(i1,i2),dp)  &
-                  & ,"# M^2_(U,"//bu(i2)//bu(i1)//")"  
-    End Do
-   End Do
-   If (Maxval(Abs(Aimag(M2U_SCKM))).Gt.0._dp) Then
-    Write(io_L,106) "Block IMMSU2 Q=",Q  &
-                  & ,"# Im(M^2_U) soft SUSY breaking masses at Q"
-    Do i2=1,3
-     Do i1=1,3
-      Write(io_L,105) i2,i1,Aimag(M2U_SCKM(i1,i2)) &
-                 &   ,"# Im(M^2_(U,"//bu(i2)//bu(i1)//"))"  
-     End Do
-    End Do
-   End If
+   Call WriteMatrixBlockC(io_L,3,M2Q_SCKM,Q,"MSQ2" &
+           & ,"M^2_Q soft SUSY breaking masses","M^2_(Q,")
 
-   Write(io_L,106) "Block MSD2 Q=",Q,"# M^2_D soft SUSY breaking masses at Q"
-   Do i2=1,3
-    Do i1=1,3
-     Write(io_L,105) i2,i1,Real(M2D_SCKM(i1,i2),dp)  &
-                  & ,"# M^2_(D,"//bu(i2)//bu(i1)//")"  
-    End Do
-   End Do
-   If (Maxval(Abs(Aimag(M2D_SCKM))).Gt.0._dp) Then
-    Write(io_L,106) "Block IMMSD2 Q=",Q  &
-                  & ,"# Im(M^2_D) soft SUSY breaking masses at Q"
-    Do i2=1,3
-     Do i1=1,3
-      Write(io_L,105) i2,i1,Aimag(M2D_SCKM(i1,i2)) &
-                 &   ,"# Im(M^2_(D,"//bu(i2)//bu(i1)//"))"  
-     End Do
-    End Do
-   End If
+   Call WriteMatrixBlockC(io_L,3,M2U_SCKM,Q,"MSU2" &
+           & ,"M^2_U soft SUSY breaking masses","M^2_(U,")
+
+   Call WriteMatrixBlockC(io_L,3,M2D_SCKM,Q,"MSD2" &
+           & ,"M^2_D soft SUSY breaking masses","M^2_(D,")
 
   End If
 
@@ -4047,51 +4110,90 @@ Contains
   If (GenerationMixing) Then
    If (Use_Flavour_States) Then ! using flavour ordering, old fashionnd
      i_zaehl = 1
+     mat6R = Abs(RDsq_ckm)
      Do i1=1,6
-      MaxCont = Maxval(Abs( RDsq_ckm(i1,:))**2)
-      If (Abs(Abs( RDsq_ckm(i1,1))**2-maxCont).Lt. 10._dp * Epsilon(1._dp)) Then
-       id_sd(i1) = 1000001
-       c_sd(i1) = "~d_L"
-      Else If (Abs(Abs( RDsq_ckm(i1,2))**2-maxCont).Lt.10._dp*Epsilon(1._dp)) Then
-       id_sd(i1) = 1000003
-       c_sd(i1) = "~s_L-"
-      Else If (Abs(Abs( RDsq_ckm(i1,4))**2-maxCont).Lt.10._dp*Epsilon(1._dp)) Then
-       id_sd(i1) = 2000001
-       c_sd(i1) = "~d_R"
-      Else If (Abs(Abs( RDsq_ckm(i1,5))**2-maxCont).Lt.10._dp*Epsilon(1._dp)) Then
-       id_sd(i1) = 2000003
-       c_sd(i1) = "~s_R"
-      Else
-       id_sd(i1) = 1000000 * i_zaehl + 5
-       c_sd(i1) = "~b_"//bu(i_zaehl)//"-"
+      MaxCont = Maxval(mat6R)
+      Call FindPosition(6, mat6R, MaxCont, ii, jj)
+      Select Case(jj)
+      Case(1)
+       id_sd(ii) = 1000001
+       c_sd(ii) = "~d_L"
+      Case(2)
+       id_sd(ii) = 1000003
+       c_sd(ii) = "~s_L-"
+      Case(4)
+       id_sd(ii) = 2000001
+       c_sd(ii) = "~d_R"
+      Case(5)
+       id_sd(ii) = 2000003
+       c_sd(ii) = "~s_R"
+      Case default
+       id_sd(ii) = 1000000 * i_zaehl + 5
+       c_sd(ii) = "~b_"//bu(i_zaehl)//"-"
        i_zaehl = I_zaehl + 1
-      End If
-      Write(io_L,102) id_sd(i1),msdown(i1),"# "//Trim(c_sd(i1))
+      End Select
+      mat6R(ii,:) = 0._dp
+      mat6R(:,jj) = 0._dp
+     End Do
+     Do ii=1,6 ! check ordering of sbottoms
+      If (id_sd(ii).Eq.1000005)  id_check(1) = ii
+      If (id_sd(ii).Eq.2000005)  id_check(2) = ii
+     End Do
+     If (id_check(1).Gt.id_check(2)) Then ! switch ordering
+      ii = id_check(2)  ! the lighter one
+      id_sd(ii) = 1000005
+      c_sd(ii) = "~b_1"
+      ii = id_check(1)  ! the heavier one
+      id_sd(ii) = 2000005
+      c_sd(ii) = "~b_2"
+     End If
+     Do ii=1,6
+      Write(io_L,102) id_sd(ii),msdown(ii),"# "//Trim(c_sd(ii))
      End Do
 
      i_zaehl = 1
+     mat6R = Abs(RUsq_ckm)
      Do i1=1,6
-      MaxCont = Maxval(Abs( RUsq_ckm(i1,:))**2)
-      If (Abs(Abs( RUsq_ckm(i1,1))**2-maxCont).Lt. 10._dp * Epsilon(1._dp)) Then
-       id_su(i1) = 1000002
-       c_su(i1) = "~u_L"
-      Else If (Abs(Abs( RUsq_ckm(i1,2))**2-maxCont).Lt.10._dp*Epsilon(1._dp)) Then
-       id_su(i1) = 1000004
-       c_su(i1) = "~c_L-"
-      Else If (Abs(Abs( RUsq_ckm(i1,4))**2-maxCont).Lt.10._dp*Epsilon(1._dp)) Then
-       id_su(i1) = 2000002
-       c_su(i1) = "~u_R"
-      Else If (Abs(Abs( RUsq_ckm(i1,5))**2-maxCont).Lt.10._dp*Epsilon(1._dp)) Then
-       id_su(i1) = 2000004
-       c_su(i1) = "~c_R"
-      Else
-       id_su(i1) = 1000000 * i_zaehl + 6
-       c_su(i1) = "~t_"//bu(i_zaehl)//"-"
+      MaxCont = Maxval(mat6R)
+      Call FindPosition(6, mat6R, MaxCont, ii, jj)
+      Select Case(jj)
+      Case(1)
+       id_su(ii) = 1000002
+       c_su(ii) = "~u_L"
+      Case(2)
+       id_su(ii) = 1000004
+       c_su(ii) = "~c_L-"
+      Case(4)
+       id_su(ii) = 2000002
+       c_su(ii) = "~u_R"
+      Case(5)
+       id_su(ii) = 2000004
+       c_su(ii) = "~c_R"
+      Case default
+       id_su(ii) = 1000000 * i_zaehl + 6
+       c_su(ii) = "~t_"//bu(i_zaehl)//"-"
        i_zaehl = I_zaehl + 1
-      End If
-      Write(io_L,102) id_su(i1),msup(i1),"# "//Trim(c_su(i1))
+      End Select
+      mat6R(ii,:) = 0._dp
+      mat6R(:,jj) = 0._dp
      End Do
-   
+     Do ii=1,6 ! check ordering of stops
+      If (id_su(ii).Eq.1000006)  id_check(1) = ii
+      If (id_su(ii).Eq.2000006)  id_check(2) = ii
+     End Do
+     If (id_check(1).Gt.id_check(2)) Then ! switch ordering
+      ii = id_check(2)  ! the lighter one
+      id_su(ii) = 1000006
+      c_su(ii) = "~t_1"
+      ii = id_check(1)  ! the heavier one
+      id_su(ii) = 2000006
+      c_su(ii) = "~t_2"
+     End If
+
+     Do ii=1,6
+      Write(io_L,102) id_su(ii),msup(ii),"# "//Trim(c_su(ii))
+     End Do
+      
     Else ! use mass ordering
 
      id_sd(1) = 1000001
@@ -4198,23 +4300,30 @@ Contains
     If (GenerationMixing) Then
      If (Use_Flavour_States) Then ! using flavour ordering, old fashionnd
  
+      mat3R = Abs(RSn_pmns)
       Do i1=1,3
-       MaxCont = Maxval(Abs(Rsneut(i1,:))**2)
-       If (Abs(Rsneut(i1,1))**2.Eq.maxCont) Then
-        id_snu(i1) = 1000012
-        c_snu(i1) = "~nu_eL"
-       Else If (Abs(Rsneut(i1,2))**2.Eq.maxCont) Then
-        id_snu(i1) = 1000014
-        c_snu(i1) = "~nu_muL"
-       Else
-        id_snu(i1) = 1000016
-        c_snu(i1) = "~nu_tauL"
-       End If
-       Write(io_L,102) id_snu(i1),msneut(i1),"# "//Trim(c_snu(i1))
+       MaxCont = Maxval(mat3R)
+       Call FindPosition(3, mat3R, MaxCont, ii, jj)
+       Select Case (jj)
+       Case(1)
+        id_snu(ii) = 1000012
+        c_snu(ii) = "~nu_eL"
+       Case(2)
+        id_snu(ii) = 1000014
+        c_snu(ii) = "~nu_muL"
+       Case(3)
+        id_snu(ii) = 1000016
+        c_snu(ii) = "~nu_tauL"
+       End Select
+       mat3R(ii,:) = 0._dp
+       mat3R(:,jj) = 0._dp
+      End Do
+      Do ii=1,3
+       Write(io_L,102) id_snu(ii),msneut(ii),"# "//Trim(c_snu(ii))
       End Do
 
       i_zaehl = 1
-      mat6R = Abs(RSlepton)
+      mat6R = Abs(RSl_pmns)
       Do i1=1,6
        MaxCont = Maxval(mat6R)
        Call FindPosition(6, mat6R, MaxCont, ii, jj)
@@ -4244,6 +4353,21 @@ Contains
        mat6R(ii,:) = 0._dp
        mat6R(:,jj) = 0._dp
       End Do
+      Do ii=1,6 ! check ordering of staus
+       If (id_sle(ii).Eq.1000015)  id_check(1) = ii
+       If (id_sle(ii).Eq.2000015)  id_check(2) = ii
+      End Do
+      If (id_check(1).Gt.id_check(2)) Then ! switch ordering
+       ii = id_check(2)  ! the lighter one
+       id_sle(ii) = 1000015
+       c_sle(ii) = "~tau_1-"
+       c_slep(ii) = "~tau_1+"
+       ii = id_check(1)  ! the heavier one
+       id_sle(ii) = 2000015
+       c_sle(ii) = "~tau_2-"
+       c_slep(ii) = "~tau_2+"
+      End If
+
       Do ii=1,6
        Write(io_L,102) id_sle(ii),mslepton(ii),"# "//Trim(c_sle(ii))
       End Do
@@ -4274,7 +4398,7 @@ Contains
     Else ! .not.GenerationMixing
 
      id_snu = (/ 1000012, 1000014, 1000016 /)
-     If (Abs(rslepton(1,1)).Gt.0.5_dp) Then
+     If (Abs(RSl_pmns(1,1)).Gt.0.5_dp) Then
       Write(io_L,102) 1000011,mslepton(1),"# ~e_L-"
       Write(io_L,102) 2000011,mslepton(2),"# ~e_R-"
       id_sle(1) = 1000011
@@ -4295,7 +4419,7 @@ Contains
      End If
      Write(io_L,102) 1000012,msneut(1),"# ~nu_eL"
      c_snu(1) = "~nu_eL"
-     If (Abs(rslepton(3,3)).Gt.0.5_dp) Then
+     If (Abs(RSl_pmns(3,3)).Gt.0.5_dp) Then
       Write(io_L,102) 1000013,mslepton(3),"# ~mu_L-"
       Write(io_L,102) 2000013,mslepton(4),"# ~mu_R-"
       id_sle(3) = 1000013
@@ -4332,14 +4456,15 @@ Contains
  ! gauginos/higgsinos
    Write(io_L,102) 1000021,mglu,"# ~g"
    ! checking for negative sign
+   nr = ZeroC
    If (HighScaleModel.Eq."NMSSM") Then
     Do i1=1,5
-     If (Sum(Abs(Real(N5(i1,:)))).Lt.0.1_dp) Then
+     If (Sum(Abs(Real(N5(i1,:)))).Eq.0._dp) Then
       mNr(i1) = - mN5(i1)
-      nr(i1,1:5) = Aimag(n5(i1,:))
+      nr(i1,1:5) = (0._dp,-1._dp) * n5(i1,:)
      Else   
       mNr(i1) =  mN5(i1)
-      nr(i1,1:5) = Real(n5(i1,:),dp)
+      nr(i1,1:5) = n5(i1,:)
      End If
     End Do
 
@@ -4352,30 +4477,30 @@ Contains
       If (Sum(Abs(Real(N(i1,:)))).Lt.0.1_dp) Then
        nr(i1,1:4) = Aimag(n(i1,:))
       Else   
-       nr(i1,1:4) = Real(n(i1,:),dp)
+       nr(i1,1:4) = n(i1,:)
       End If
      End Do
 
     Else
      Do i1=1,7
-      If (Sum(Abs(Real(N7(i1,:)))).Lt.0.1_dp) Then
+      If (Sum(Abs(Real(N7(i1,:)))).Eq.0._dp) Then
        mNr(i1) = - mN7(i1)
        nr(i1,1:7) = Aimag(n7(i1,:))
       Else   
        mNr(i1) =  mN7(i1)
-       nr(i1,1:7) = Real(n7(i1,:),dp)
+       nr(i1,1:7) = n7(i1,:)
       End If
      End Do
     End If
 
    Else
     Do i1=1,4
-     If (Sum(Abs(Real(N(i1,:)))).Lt.0.1_dp) Then
+     If (Sum(Abs(Real(N(i1,:)))).Eq.0._dp) Then
       mNr(i1) = - mN(i1)
       nr(i1,1:4) = Aimag(n(i1,:))
      Else   
       mNr(i1) =  mN(i1)
-      nr(i1,1:4) = Real(n(i1,:),dp)
+      nr(i1,1:4) = n(i1,:)
      End If
     End Do
    End If
@@ -4444,10 +4569,10 @@ Contains
     Write(io_L,104) 3,vev_Q,"# v(Q)"
     Write(io_L,104) 4,mA2_Q,"# m^2_A(Q)"
     Write(io_L,100) "Block staumix  # stau mixing matrix"
-    Write(io_L,105) 1,1,Real(Rslepton(5,5),dp),"# R_sta(1,1)"
-    Write(io_L,105) 1,2,Real(Rslepton(5,6),dp),"# R_sta(1,2)"
-    Write(io_L,105) 2,1,Real(Rslepton(6,5),dp),"# R_sta(2,1)"
-    Write(io_L,105) 2,2,Real(Rslepton(6,6),dp),"# R_sta(2,2)"
+    Write(io_L,105) 1,1,Real(RSl_pmns(5,5),dp),"# R_sta(1,1)"
+    Write(io_L,105) 1,2,Real(RSl_pmns(5,6),dp),"# R_sta(1,2)"
+    Write(io_L,105) 2,1,Real(RSl_pmns(6,5),dp),"# R_sta(2,1)"
+    Write(io_L,105) 2,2,Real(RSl_pmns(6,6),dp),"# R_sta(2,2)"
 
    Else
 
@@ -4485,211 +4610,50 @@ Contains
   End If
 
   If (generationmixing) Then
-   Write(io_L,100) "Block USQmix  # u-sqark mixing matrix"
-   Do i1=1,6
-    Do i2=1,6
-     Write(io_L,105) i1,i2,Real(RUsq_ckm(i1,i2),dp) &
-                   & ,"# R_Su("//bu(i1)//","//bu(i2)//")"
-    End Do
-   End Do
-   If (Maxval(Abs(Aimag((RUsq_ckm)))).Ne.0._dp) Then
-    Write(io_L,100) "Block IMUSQmix  # imaginiary parts of u-sqark mixing matrix"
-    Do i1=1,6
-     Do i2=1,6
-      Write(io_L,105) i1,i2,Aimag(RUsq_ckm(i1,i2)) &
-                    & ,"# Im[R_Su("//bu(i1)//","//bu(i2)//")]"
-     End Do
-    End Do
-   End If
-   Write(io_L,100) "Block DSQmix  # d-squark mixing matrix"
-   Do i1=1,6
-    Do i2=1,6
-     Write(io_L,105) i1,i2,Real(RDsq_ckm(i1,i2),dp) &
-                   & ,"# R_Sd("//bu(i1)//","//bu(i2)//")"
-    End Do
-   End Do
-   If (Maxval(Abs(Aimag((RDsq_ckm)))).Ne.0._dp) Then
-    Write(io_L,100) "Block IMDSQmix  # imaginiary parts of d-sqark mixing matrix"
-    Do i1=1,6
-     Do i2=1,6
-      Write(io_L,105) i1,i2,Aimag(Rdsq_ckm(i1,i2)) &
-                    & ,"# Im[R_Sd("//bu(i1)//","//bu(i2)//")]"
-     End Do
-    End Do
-   End If
+   Call WriteMatrixBlockC2(io_L, 6, RUsq_ckm, "USQmix" &
+                         &, "u-sqark mixing matrix", "R_Su(")
+
+   Call WriteMatrixBlockC2(io_L, 6, RDsq_ckm, "DSQmix" &
+                         &, "d-sqark mixing matrix", "R_Sd(")
 
    If (HighScaleModel.Ne."RPexplicit") Then
-    Write(io_L,100) "Block SELMIX  # Slepton mixing matrix"
-    Do i1=1,6
-     Do i2=1,6
-      Write(io_L,105) i1,i2,Real(RSlepton(i1,i2),dp) &
-                    & ,"# R_Sl("//bu(i1)//","//bu(i2)//")"
-     End Do
-    End Do
-    If (Maxval(Abs(Aimag((RSlepton)))).Ne.0._dp) Then
-     Write(io_L,100) &
-         & "Block IMSELMIX  # imaginiary parts of slepton mixing matrix"
-     Do i1=1,6
-      Do i2=1,6
-       Write(io_L,105) i1,i2,Aimag(RSlepton(i1,i2)) &
-                     & ,"# Im[R_Sl("//bu(i1)//","//bu(i2)//")]"
-      End Do
-     End Do
-    End If
-    Write(io_L,100) "Block SNUMIX  # Sneutrino mixing matrix"
-    Do i1=1,3
-     Do i2=1,3
-      Write(io_L,105) i1,i2,Real(RSneut(i1,i2),dp) &
-                    & ,"# R_Sn("//bu(i1)//","//bu(i2)//")"
-     End Do
-    End Do
-    If (Maxval(Abs(Aimag((RSneut)))).Ne.0._dp) Then
-     Write(io_L,100) &
-         & "Block IMSNUMIX  # imaginiary parts of sneutrino mixing matrix"
-     Do i1=1,6
-      Do i2=1,6
-       Write(io_L,105) i1,i2,Aimag(RSneut(i1,i2)) &
-                     & ,"# Im[R_Sn("//bu(i1)//","//bu(i2)//")]"
-      End Do
-     End Do
-    End If
+
+    Call WriteMatrixBlockC2(io_L, 6, RSl_pmns, "SELmix" &
+                         &, "slepton mixing matrix", "R_Sl(")
+
+    Call WriteMatrixBlockC2(io_L, 3, RSn_pmns, "SNUmix" &
+                         &, "sneutrino mixing matrix", "R_Sn(")
+
    End If
 
   Else ! .not.GenerationMixing
 
-   Write(io_L,100) "Block stopmix  # stop mixing matrix"
-   Write(io_L,105) 1,1,Real(RUsq_ckm(5,5),dp),"# R_st(1,1)"
-   Write(io_L,105) 1,2,Real(RUsq_ckm(5,6),dp),"# R_st(1,2)"
-   Write(io_L,105) 2,1,Real(RUsq_ckm(6,5),dp),"# R_st(2,1)"
-   Write(io_L,105) 2,2,Real(RUsq_ckm(6,6),dp),"# R_st(2,2)"
-   If (Maxval(Abs(Aimag(RUsq_ckm(5:6,5:6)))).Ne.0._dp) Then
-    Write(io_L,100) "Block IMstopmix  # stop mixing matrix, imaginary parts"
-    Write(io_L,105) 1,1,Aimag(RUsq_ckm(5,5)),"# R_st(1,1)"
-    Write(io_L,105) 1,2,Aimag(RUsq_ckm(5,6)),"# R_st(1,2)"
-    Write(io_L,105) 2,1,Aimag(RUsq_ckm(6,5)),"# R_st(2,1)"
-    Write(io_L,105) 2,2,Aimag(RUsq_ckm(6,6)),"# R_st(2,2)"
-   End If
-   Write(io_L,100) "Block sbotmix  # sbottom mixing matrix"
-   Write(io_L,105) 1,1,Real(RDsq_ckm(5,5),dp),"# R_sb(1,1)"
-   Write(io_L,105) 1,2,Real(RDsq_ckm(5,6),dp),"# R_sb(1,2)"
-   Write(io_L,105) 2,1,Real(RDsq_ckm(6,5),dp),"# R_sb(2,1)"
-   Write(io_L,105) 2,2,Real(RDsq_ckm(6,6),dp),"# R_sb(2,2)"
-   If (Maxval(Abs(Aimag(RDsq_ckm(5:6,5:6)))).Ne.0._dp) Then
-    Write(io_L,100) "Block IMsbotmix  # sbottom mixing matrix, imaginary parts"
-    Write(io_L,105) 1,1,Aimag(RDsq_ckm(5,5)),"# R_sb(1,1)"
-    Write(io_L,105) 1,2,Aimag(RDsq_ckm(5,6)),"# R_sb(1,2)"
-    Write(io_L,105) 2,1,Aimag(RDsq_ckm(6,5)),"# R_sb(2,1)"
-    Write(io_L,105) 2,2,Aimag(RDsq_ckm(6,6)),"# R_sb(2,2)"
-   End If
-   If (HighScaleModel.Ne."RPexplicit") Then
-    Write(io_L,100) "Block staumix  # stau mixing matrix"
-    Write(io_L,105) 1,1,Real(Rslepton(5,5),dp),"# R_sta(1,1)"
-    Write(io_L,105) 1,2,Real(Rslepton(5,6),dp),"# R_sta(1,2)"
-    Write(io_L,105) 2,1,Real(Rslepton(6,5),dp),"# R_sta(2,1)"
-    Write(io_L,105) 2,2,Real(Rslepton(6,6),dp),"# R_sta(2,2)"
-    If (Maxval(Abs(Aimag(RUsq_ckm(5:6,5:6)))).Ne.0._dp) Then
-     Write(io_L,100) "Block IMstaumix  # stau mixing matrix, imaginary parts"
-     Write(io_L,105) 1,1,Aimag(Rslepton(5,5)),"# R_sta(1,1)"
-     Write(io_L,105) 1,2,Aimag(Rslepton(5,6)),"# R_sta(1,2)"
-     Write(io_L,105) 2,1,Aimag(Rslepton(6,5)),"# R_sta(2,1)"
-     Write(io_L,105) 2,2,Aimag(Rslepton(6,6)),"# R_sta(2,2)"
-    End If
-   End If
+   Call WriteMatrixBlockC2(io_L, 2, RUsq_ckm(5:6,5:6), "stopmix" &
+                         &, "stop mixing matrix", "R_st(")
 
+   Call WriteMatrixBlockC2(io_L, 2, RDsq_ckm(5:6,5:6), "sbotmix" &
+                         &, "sbottom mixing matrix", "R_sb(")
+
+   If (HighScaleModel.Ne."RPexplicit") & 
+    & Call WriteMatrixBlockC2(io_L, 2, RSl_pmns(5:6,5:6), "staumix" &
+                            &, "stau mixing matrix", "R_sta(")
   End If
 
-  If (HighScaleModel.Ne."RPexplicit") Then
-   Write(io_L,100) "Block Nmix  # neutralino/neutrino mixing matrix"
-  Else
-   Write(io_L,100) "Block RVNmix  # neutralino mixing matrix"
+  If ((HighScaleModel.Eq."RPexplicit").And.(.Not.l_RP_Pythia)) Then
+   Call WriteMatrixBlockC2(io_L, n_n+delta_n_rp, nr(1:n_n+delta_n_rp,1:n_n+delta_n_rp) &
+                         &, "RVNmix", "/neutrino/neutralino mixing matrix", "N(")
+   Call WriteMatrixBlockC2(io_L, 5, U5, "RVUmix" &
+                         &, "lepton/chargino mixing matrix", "U(")
+   Call WriteMatrixBlockC2(io_L, 5, V5, "RVVmix" &
+                         &, "lepton/chargino mixing matrix", "V(")
+  Else   
+   Call WriteMatrixBlockC2(io_L, n_n, nr(1:n_n,1:n_n), "Nmix" &
+                         &, "neutralino mixing matrix", "N(")
+   Call WriteMatrixBlockC2(io_L, n_c, U, "Umix" &
+                         &, "chargino mixing matrix", "U(")
+   Call WriteMatrixBlockC2(io_L, n_c, V, "Vmix" &
+                         &, "chargino mixing matrix", "V(")
   End If
-
-  If (l_RP_Pythia) Then ! short fixing because Pythia handles only 4x4
-   Do i1=1,n_n
-    Do i2=1,n_n
-     name = "# N("//Char(48+i1)//","//Char(48+i2)//")"
-     Write(io_L,105) i1,i2,nr(i1,i2),name
-    End Do
-   End Do
-  Else
-   Do i1=1,n_n + delta_n_rp
-    Do i2=1,n_n + delta_n_rp
-     name = "# N("//Char(48+i1)//","//Char(48+i2)//")"
-     Write(io_L,105) i1,i2,nr(i1,i2),name
-    End Do
-   End Do
-  End If
-
-  
-  If (HighScaleModel.Eq."RPexplicit") Then
-   If (l_RP_Pythia) Then ! short fixing because Pythia handles only 4x4
-    Write(io_L,100) "Block Umix  # chargino U mixing matrix"
-    Write(io_L,105) 1,1,Real(U(1,1),dp),"# U(1,1)"
-    Write(io_L,105) 1,2,Real(U(1,2),dp),"# U(1,2)"
-    Write(io_L,105) 2,1,Real(U(2,1),dp),"# U(2,1)"
-    Write(io_L,105) 2,2,Real(U(2,2),dp),"# U(2,2)"
-    If (Maxval(Abs(Aimag(U))).Ne.0._dp) Then
-     Write(io_L,100) "Block IMUmix  # chargino U mixing matrix, imaginary parts"
-     Write(io_L,105) 1,1,Aimag(U(1,1)),"# U(1,1)"
-     Write(io_L,105) 1,2,Aimag(U(1,2)),"# U(1,2)"
-     Write(io_L,105) 2,1,Aimag(U(2,1)),"# U(2,1)"
-     Write(io_L,105) 2,2,Aimag(U(2,2)),"# U(2,2)"
-    End If
-    Write(io_L,100) "Block Vmix  # chargino V mixing matrix"
-    Write(io_L,105) 1,1,Real(V(1,1),dp),"# V(1,1)"
-    Write(io_L,105) 1,2,Real(V(1,2),dp),"# V(1,2)"
-    Write(io_L,105) 2,1,Real(V(2,1),dp),"# V(2,1)"
-    Write(io_L,105) 2,2,Real(V(2,2),dp),"# V(2,2)"
-    If (Maxval(Abs(Aimag(V))).Ne.0._dp) Then
-     Write(io_L,100) "Block IMVmix  # chargino UVmixing matrix, imaginary parts"
-     Write(io_L,105) 1,1,Aimag(V(1,1)),"# V(1,1)"
-     Write(io_L,105) 1,2,Aimag(V(1,2)),"# V(1,2)"
-     Write(io_L,105) 2,1,Aimag(V(2,1)),"# V(2,1)"
-     Write(io_L,105) 2,2,Aimag(v(2,2)),"# V(2,2)"
-    End If
-   Else   
-    Write(io_L,100) "Block RVUmix  # chargino-lepton U mixing matrix"
-    Do i1=1,n_c + delta_c_rp
-     Do i2=1,n_c + delta_c_rp
-      name = "# U("//Char(48+i1)//","//Char(48+i2)//")"
-      Write(io_L,105) i1,i2,Real(U5(i1,i2),dp),name
-     End Do
-    End Do
-    Write(io_L,100) "Block RVVmix  # chargino-lepton V mixing matrix"
-    Do i1=1,n_c + delta_c_rp
-     Do i2=1,n_c + delta_c_rp
-      name = "# V("//Char(48+i1)//","//Char(48+i2)//")"
-      Write(io_L,105) i1,i2,Real(V5(i1,i2),dp),name
-     End Do
-    End Do
-   End If
-  Else
-   Write(io_L,100) "Block Umix  # chargino U mixing matrix"
-   Write(io_L,105) 1,1,Real(U(1,1),dp),"# U(1,1)"
-   Write(io_L,105) 1,2,Real(U(1,2),dp),"# U(1,2)"
-   Write(io_L,105) 2,1,Real(U(2,1),dp),"# U(2,1)"
-   Write(io_L,105) 2,2,Real(U(2,2),dp),"# U(2,2)"
-   If (Maxval(Abs(Aimag(U))).Ne.0._dp) Then
-    Write(io_L,100) "Block IMUmix  # chargino U mixing matrix, imaginary parts"
-    Write(io_L,105) 1,1,Aimag(U(1,1)),"# U(1,1)"
-    Write(io_L,105) 1,2,Aimag(U(1,2)),"# U(1,2)"
-    Write(io_L,105) 2,1,Aimag(U(2,1)),"# U(2,1)"
-    Write(io_L,105) 2,2,Aimag(U(2,2)),"# U(2,2)"
-   End If
-   Write(io_L,100) "Block Vmix  # chargino V mixing matrix"
-   Write(io_L,105) 1,1,Real(V(1,1),dp),"# V(1,1)"
-   Write(io_L,105) 1,2,Real(V(1,2),dp),"# V(1,2)"
-   Write(io_L,105) 2,1,Real(V(2,1),dp),"# V(2,1)"
-   Write(io_L,105) 2,2,Real(V(2,2),dp),"# V(2,2)"
-   If (Maxval(Abs(Aimag(V))).Ne.0._dp) Then
-    Write(io_L,100) "Block IMVmix  # chargino UVmixing matrix, imaginary parts"
-    Write(io_L,105) 1,1,Aimag(V(1,1)),"# V(1,1)"
-    Write(io_L,105) 1,2,Aimag(V(1,2)),"# V(1,2)"
-    Write(io_L,105) 2,1,Aimag(V(2,1)),"# V(2,1)"
-    Write(io_L,105) 2,2,Aimag(v(2,2)),"# V(2,2)"
-   End If
-  End If
-
 
   !---------------------------------------------------
   ! parameters + masses for SPheno.out
@@ -4722,11 +4686,11 @@ Contains
 
    If (HighScaleModel.Eq."NMSSM") Then
     Call WriteMassesNMSSM(io, .True., mGlu, PhaseGlu, mC, U, V, mN5, N5  &
-           &, mSneut, Rsneut, mSlepton, RSlepton, mSdown, RDsq_ckm, mSup &
+           &, mSneut, RSn_pmns, mSlepton, RSl_pmns, mSdown, RDsq_ckm, mSup &
            & , RUsq_ckm, mP03, RP03, mS03, RS03, mSpm, GenerationMixing)
    Else
     Call WriteMassesMSSM(io, .True., mGlu, PhaseGlu, mC, U, V, mN, N     &
-           &, mSneut, Rsneut, mSlepton, RSlepton, mSdown, RDsq_ckm, mSup &
+           &, mSneut, RSn_pmns, mSlepton, RSl_pmns, mSdown, RDsq_ckm, mSup &
            & , RUsq_ckm, mP0, mS0, RS0, mSpm, GenerationMixing)
    End If
   End If
@@ -7896,20 +7860,8 @@ Contains
                 & ," # Delta(m^2_atm) in eV^2"
    Write(io_L,101) 5,(mf_nu(2)**2-mf_nu(1)**2)*1.e18_dp &
                 & ," # Delta(m^2_sol) in eV^2"
-   Write(io_L,100) "Block Unu # neutrino mixiing matrix"
-   Do i2=1,3
-    Do i1=1,3
-     Write(io_L,105) i1,i2,Real(Unu(i1,i2),dp),"# U_(nu,"//bu(i1)//bu(i2)//")"  
-    End Do
-   End Do
-   If (Maxval(Abs(Aimag(Unu))).Gt.0._dp) Then
-    Write(io_L,106) "Block IMUnu # imaginary part of neutrino mixing matrix"
-    Do i2=1,3
-     Do i1=1,3
-       Write(io_L,105) i1,i2,Aimag(Unu(i1,i2)),"# Im(U_(nu,"//bu(i1)//bu(i2)//"))"  
-     End Do
-    End Do
-   End If
+!   Call WriteMatrixBlockC2(io_L, 3, Unu, "Unu" &
+!                         &, "neutrino mixing matrix", "U_(nu,")
   End If
   
   If (Present(omega)) Then
@@ -7917,6 +7869,118 @@ Contains
    Write(io_L,101) 1,omega," # omega h^2"   
   End If
 
+  If (LWrite_LHC_Observables) Then
+   Do i1=1,6
+    if (id_sle(i1).eq.1000011) then
+     mSle(2) = mSlepton(i1)
+    else if (id_sle(i1).eq.2000011) then
+     mSle(1) = mSlepton(i1)
+    else if (id_sle(i1).eq.1000013) then
+     mSle(4) = mSlepton(i1)
+    else if (id_sle(i1).eq.2000013) then
+     mSle(3) = mSlepton(i1)
+    else if (id_sle(i1).eq.1000015) then
+     mSle(5) = mSlepton(i1)
+    else if (id_sle(i1).eq.2000015) then
+     mSle(6) = mSlepton(i1)
+    end if
+
+    if (id_su(i1).eq.1000002) then
+     mSu(2) = mSup(i1)
+    else if (id_su(i1).eq.2000002) then
+     mSu(1) = mSup(i1)
+    else if (id_su(i1).eq.1000004) then
+     mSu(4) = mSup(i1)
+    else if (id_su(i1).eq.2000004) then
+     mSu(3) = mSup(i1)
+    else if (id_su(i1).eq.1000006) then
+     mSu(5) = mSup(i1)
+    else if (id_su(i1).eq.2000006) then
+     mSu(6) = mSup(i1)
+    end if
+
+    if (id_sd(i1).eq.1000001) then
+     mSd(2) = mSdown(i1)
+    else if (id_sd(i1).eq.2000001) then
+     mSd(1) = mSdown(i1)
+    else if (id_sd(i1).eq.1000003) then
+     mSd(4) = mSdown(i1)
+    else if (id_sd(i1).eq.2000003) then
+     mSd(3) = mSdown(i1)
+    else if (id_sd(i1).eq.1000005) then
+     mSd(5) = mSdown(i1)
+    else if (id_sd(i1).eq.2000005) then
+     mSd(6) = mSdown(i1)
+    end if
+   end do
+
+   call Calc_LHC_observables(mN, N, mC, U, V, mSle, Rslepton        &
+      & , mSd, RSdown, mSu, RSup, mGlu, PhaseGlu, mS0, RS0, mP0, RP0     &
+      & , mSpm, RSpm, gauge, Y_u, Y_d, A_u, A_d, mu, vevSM, .False. & ! GenerationMixing &
+      & , LHC_observ)
+
+   Write(io_L,100) "Block LHCobservables # edge observables for LHC"
+   i_zaehl = 1
+   Do i1=2,n_n
+    Do i2=1,i1-1
+     Write(io_L,101) i_zaehl,LHC_observ(i_zaehl) &
+       & ," # e+e- edge with right selectron, chi^0_"//Bu(i1)//", chi^0_"//Bu(i2)
+     i_zaehl = i_zaehl + 1
+    End Do
+   End Do
+   Do i1=2,n_n
+    Do i2=1,i1-1
+     Write(io_L,101) i_zaehl,LHC_observ(i_zaehl) &
+       & ," # e+e- edge with left selectron, chi^0_"//Bu(i1)//", chi^0_"//Bu(i2)
+     i_zaehl = i_zaehl + 1
+    End Do
+   End Do
+   Do i1=2,n_n
+    Do i2=1,i1-1
+     Write(io_L,101) i_zaehl,LHC_observ(i_zaehl) &
+       & ," # mu+mu- edge with right smuon, chi^0_"//Bu(i1)//", chi^0_"//Bu(i2)
+     i_zaehl = i_zaehl + 1
+    End Do
+   End Do
+   Do i1=2,n_n
+    Do i2=1,i1-1
+     Write(io_L,101) i_zaehl,LHC_observ(i_zaehl) &
+       & ," # mu+mu- edge with left smuon, chi^0_"//Bu(i1)//", chi^0_"//Bu(i2)
+     i_zaehl = i_zaehl + 1
+    End Do
+   End Do
+   Do i1=2,n_n
+    Do i2=1,i1-1
+     Write(io_L,101) i_zaehl,LHC_observ(i_zaehl) &
+       & ," # tau+tau- edge with lighter stau, chi^0_"//Bu(i1)//", chi^0_"//Bu(i2)
+     i_zaehl = i_zaehl + 1
+    End Do
+   End Do
+   Do i1=2,n_n
+    Do i2=1,i1-1
+     Write(io_L,101) i_zaehl,LHC_observ(i_zaehl) &
+       & ," # tau+tau- edge with heavier stau, chi^0_"//Bu(i1)//", chi^0_"//Bu(i2)
+     i_zaehl = i_zaehl + 1
+    End Do
+   End Do
+   Write(io_L,101) i_zaehl,LHC_observ(i_zaehl) &
+       & ," # l+ l- q edge, averaging over d_L, s_L, u_L, c_L"
+   i_zaehl = i_zaehl + 1
+   Write(io_L,101) i_zaehl,LHC_observ(i_zaehl) &
+       & ," # l+ l- q threshold, averaging over d_L, s_l, u_L, c_L"
+   i_zaehl = i_zaehl + 1
+   Write(io_L,101) i_zaehl,LHC_observ(i_zaehl) &
+       & ," # l+-_near q edge, averaging over d_L, s_l, u_L, c_L"
+   i_zaehl = i_zaehl + 1
+   Write(io_L,101) i_zaehl,LHC_observ(i_zaehl) &
+       & ," # l+-_far q edge, averaging over d_L, s_l, u_L, c_L"
+   i_zaehl = i_zaehl + 1
+   Write(io_L,101) i_zaehl,LHC_observ(i_zaehl) &
+       & ," # l+ l- b threshold"
+   i_zaehl = i_zaehl + 1
+
+
+  End If
 !  Close(io_L)
 
  99 Format(1x,i5,3x,a)
@@ -12689,7 +12753,7 @@ Contains
    Write(io_L,105) 2,1,Real(Rsf(2,1),dp),"# R_sta(2,1)"
    Write(io_L,105) 2,2,Real(Rsf(2,2),dp),"# R_sta(2,2)"
 
-   Write(io_L,100) "Block Nmix  # neutralino/neutrino mixing matrix"
+   Write(io_L,100) "Block Nmix  # neutralino mixing matrix"
    Do i1=1,n_n
     Do i2=1,n_n
      name = "# N("//Char(48+i1)//","//Char(48+i2)//")"
@@ -13213,6 +13277,175 @@ Contains
 
  End Subroutine WriteMassesNMSSM
 
+
+ Subroutine WriteMatrixBlockC(io, len, mat_in, scale, name, com1, com2, sym, tr)
+ Implicit None
+  Integer, Intent(in) :: io, len
+  Real(dp), Intent(in) :: scale
+  Complex(dp), Intent(in) :: mat_in(len,len)
+  Character(len=*), Intent(in) :: name, com1, com2
+  Logical, Intent(in), Optional :: tr, sym
+
+  Integer :: i1, i2
+  Real(dp) :: mat(len,len)
+  Logical :: trans, symmetric
+
+  trans = .False.
+  If (Present(tr)) trans = tr
+  symmetric = .False.
+  If (Present(sym)) symmetric = sym
+
+  mat = Real(mat_in,dp)
+
+  Write(io,106) "Block "//Trim(name)//" Q=",scale,"# "//Trim(com1)
+  If (trans) mat = Transpose(mat)
+
+  If (symmetric) Then
+   Do i2=1,len
+    Do i1=i2,len
+     Write(io,105) i2,i1,mat(i2,i1) &
+                 & ,"# Re["//Trim(com2)//bu(i2)//","//bu(i1)//")]"
+    End Do
+   End Do
+
+  Else
+
+   Do i2=1,len
+    Do i1=1,len
+     Write(io,105) i2,i1,mat(i2,i1) &
+           & ,"# Re["//Trim(com2)//bu(i2)//","//bu(i1)//")]"
+    End Do
+   End Do
+  End If
+
+  mat = Aimag(mat_in)
+  If (Maxval(Abs(mat)).ne.0._dp) then
+   Write(io,106) "Block IM"//Trim(name)//" Q=",scale,"# "//Trim(com1)
+   If (trans) mat = Transpose(mat)
+
+   If (symmetric) Then
+    Do i2=1,len
+     Do i1=i2,len
+      Write(io,105) i2,i1,mat(i2,i1) &
+           & ,"# Im["//Trim(com2)//bu(i2)//","//bu(i1)//")]"
+     End Do
+    End Do
+
+   Else
+
+    Do i2=1,len
+     Do i1=1,len
+      Write(io,105) i2,i1,mat(i2,i1) &
+           & ,"# Im["//Trim(com2)//bu(i2)//","//bu(i1)//")]"
+     End Do
+    End Do
+   End If
+  End If
+
+105 Format(1x,2i3,3x,1P,e16.8,3x,a)
+106 Format(a,1P,e16.8,2x,a)
+
+ End Subroutine WriteMatrixBlockC
+
+
+ Subroutine WriteMatrixBlockC2(io, len, mat_in, name, com1, com2, sym, tr)
+ Implicit None
+  Integer, Intent(in) :: io, len
+  Complex(dp), Intent(in) :: mat_in(len,len)
+  Character(len=*), Intent(in) :: name, com1, com2
+  Logical, Intent(in), Optional :: tr, sym
+
+  Integer :: i1, i2
+  Real(dp) :: mat(len,len)
+  Logical :: trans, symmetric
+
+  trans = .False.
+  If (Present(tr)) trans = tr
+  symmetric = .False.
+  If (Present(sym)) symmetric = sym
+
+  mat = Real(mat_in,dp)
+
+  Write(io,106) "Block "//Trim(name)//" # "//Trim(com1)
+  If (trans) mat = Transpose(mat)
+
+  If (symmetric) Then
+   Do i2=1,len
+    Do i1=i2,len
+     Write(io,105) i2,i1,mat(i2,i1) &
+                 & ,"# Re["//Trim(com2)//bu(i2)//","//bu(i1)//")]"
+    End Do
+   End Do
+
+  Else
+
+   Do i2=1,len
+    Do i1=1,len
+     Write(io,105) i2,i1,mat(i2,i1) &
+           & ,"# Re["//Trim(com2)//bu(i2)//","//bu(i1)//")]"
+    End Do
+   End Do
+  End If
+
+  mat = Aimag(mat_in)
+  If (Maxval(Abs(mat)).ne.0._dp) then
+   Write(io,106) "Block IM"//Trim(name)//" # imaginary parts of "//Trim(com1)
+   If (trans) mat = Transpose(mat)
+
+   If (symmetric) Then
+    Do i2=1,len
+     Do i1=i2,len
+      Write(io,105) i2,i1,mat(i2,i1) &
+           & ,"# Im["//Trim(com2)//bu(i2)//","//bu(i1)//")]"
+     End Do
+    End Do
+
+   Else
+
+    Do i2=1,len
+     Do i1=1,len
+      Write(io,105) i2,i1,mat(i2,i1) &
+           & ,"# Im["//Trim(com2)//bu(i2)//","//bu(i1)//")]"
+     End Do
+    End Do
+   End If
+  End If
+
+105 Format(1x,2i3,3x,1P,e16.8,3x,a)
+106 Format(a,1P,e16.8,2x,a)
+
+ End Subroutine WriteMatrixBlockC2
+
+
+ Subroutine WriteMatrixBlockR(io, len, mat, scale, name, com1, com2, com3, tr)
+ Implicit None
+  Integer, Intent(in) :: io, len
+  Real(dp), Intent(in) :: mat(len,len), scale
+  Character(len=*), Intent(in) :: name, com1, com2, com3
+  Logical, Intent(in), Optional :: tr
+
+  Integer :: i1, i2
+  Logical :: trans
+
+  trans = .False.
+  If (Present(tr)) trans = tr
+
+  Write(io,106) "Block "//Trim(name)//" Q=",scale,"# "//Trim(com1)
+  Do i2=1,len
+   Do i1=1,len
+    If (trans) Then
+     Write(io,105) i2,i1,mat(i1,i2),"# "//Trim(com2)//bu(i2)//","//bu(i1)//Trim(com3)
+    Else
+     Write(io,105) i2,i1,mat(i2,i1),"# "//Trim(com2)//bu(i2)//","//bu(i1)//Trim(com3)
+    End If
+
+   End Do
+  End Do
+
+105 Format(1x,2i3,3x,1P,e16.8,3x,a)
+106 Format(a,1P,e16.8,2x,a)
+
+ End Subroutine WriteMatrixBlockR
 
  Subroutine WriteMSSMParameters(n, CKM, Yd, Yu, WithComments)
  !-----------------------------------------------------------------------

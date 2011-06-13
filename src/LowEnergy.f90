@@ -879,7 +879,7 @@ Contains
 
  End Subroutine BR_lj_to_3li
 
- Real(dp) Function Bm_to_l_nu(i, j, mH2, tanb, RSpm, Yd, RuL, RdR, Yl, vevSM)
+ Real(dp) Function Bm_to_l_nu(i, j, mH2, tanb, RSpm, Yd, RuL, RdR, Yl, vevSM, ratio)
  !-------------------------------------------------------------------
  ! calculates the branching ratio of the rare decay B- -> tau nu
  ! based on the formula by W.Hou, PRD48 (1993) 2342 
@@ -894,8 +894,9 @@ Contains
                                    & , RdR(3,3)  & ! R d-quark mixing matrix
                                    & , Yl(3,3)     ! lepton Yukawa coupling
   Real(dp), Intent(in), Optional :: vevSM(2)       !
+  Logical, Intent(in), Optional :: ratio
 
-  real(dp) :: r_fac
+  Real(dp) :: r_fac, pre_fac
   Complex(dp) :: cL, cR
   Complex(dp), Parameter :: Zero3(3,3) = (0._dp,0._dp)
 
@@ -903,16 +904,27 @@ Contains
      .and.Present(Yl).and.Present(vevSM)) then
    call CoupChargedScalarFermion3(2, 3, j, RSpm, Yd, id3C, RdR, Zero3 &
                                     &, RuL, id3C, cL, cR)
-   r_fac = 0.25_dp * Abs(cL * Yl(i,i) / CKM(j,3))**2 * vevSM(1)**4 &
-         &         / (mf_l2(i) * mf_d_mZ(3)**2 ) 
+   r_fac = 0.25_dp * Abs(cL * Yl(i,i) / (CKM(j,3) * RSpm(2,1)))**2 &
+         &          * vevSM(1)**4 / (mf_l2(i) * mf_d_mZ(3)**2 ) 
   else
    r_fac = 1
   end if
 
-   Bm_to_l_nu = oo8pi * G_F**2 * mf_l2(i) * mBm(j)                   &
+  If (Present(ratio)) then
+   if (ratio) then
+    pre_fac = 1._dp
+   else
+    pre_fac =  oo8pi * G_F**2 * mf_l2(i) * mBm(j)                    &
             &   * (1._dp -  mf_l2(i) / mBm(j)**2)**2                 &
-            &   * Abs(CKM(j,3))**2 * FBhatB(j)**2 *  tauBm(j) / hbar    &
-            &   * (1._dp - r_fac * (tanb * mBm(j))**2 / mH2)**2
+            &   * Abs(CKM(j,3))**2 * FBhatB(j)**2 *  tauBm(j) / hbar
+   end if
+  else
+   pre_fac =  oo8pi * G_F**2 * mf_l2(i) * mBm(j)                     &
+            &   * (1._dp -  mf_l2(i) / mBm(j)**2)**2                 &
+            &   * Abs(CKM(j,3))**2 * FBhatB(j)**2 *  tauBm(j) / hbar
+  end if
+
+  Bm_to_l_nu = pre_fac * (1._dp - r_fac * (tanb * mBm(j))**2 / mH2)**2
 
  End Function Bm_to_l_nu
 
@@ -920,7 +932,7 @@ Contains
  Subroutine BtoQGamma(I_f, mf_d, gauge, mf_u, mW, Y_d, RdL, RdR, Y_u, RuL, RuR &
    & , mSpm2, RSpm, mC, U, V, mSup2, RSup, A_u, mSdown2, RSdown, A_d, mglu     &
    & , phi_g, mN, N, mu, mS02, RS0, mP02, RP0, vevSM, Bratio, c7_o, c7p_o      &
-   & , c8_o, c8p_o, A_CP, i_scheme)
+   & , c8_o, c8p_o, A_CP, i_scheme, NNLO_SM_in)
  !-------------------------------------------
  ! gives 10^4 Br(b->s gamma)
  ! input:
@@ -1000,12 +1012,16 @@ Contains
  !            the moment being
  ! 02.10.03: changing numbers in front of R_7,8 as given in coll. with 
  !           Enrico and Tobias, adding i_scheme for the various possiblities
- !           of the a^x_y - arrays, default = 4
+ !           of the a^x_y - arrays, default = 3
  !           i_scheme=i_t:  1 ... E_0=1.6 GeV, m_c/m_b=0.23 NLO
  !                          2 ... E_0=1.6 GeV, m_c/m_b=0.29 NLO
  !                          3 ... E_0=m_b/20 GeV, m_c/m_b=0.23 NLO
  !                          4 ... E_0=m_b/20 GeV, m_c/m_b=0.29 NLO
  !                          5 ... LO
+ ! 23.08.2008: adding  i_t = 0, using the formula of
+ !                     E.Lunghi, J.Matias, hep-ph/0612166, eq.18 still missing 1-loop part
+ !                     including the NNLO SM value of 2.98
+ ! 16.02.2010: adding a different NNLO SM value as optional input for option it=0
  !-------------------------------------------
  Implicit None
   Integer, Intent(in) :: I_f
@@ -1019,9 +1035,10 @@ Contains
   Complex(dp), Intent(out), Optional :: c7_o(7), c7p_o(6), c8_o(7), c8p_o(6)
   Real(dp), Intent(out), Optional :: A_CP
   Integer, Intent(in), Optional :: i_scheme
+  real(dp), intent(in), optional :: NNLO_SM_in
 
   Integer :: i1, i2, i3, i_t
-  Real(dp) :: g, gp, gs, mSup2_in(6)
+  Real(dp) :: g, gp, gs, mSup2_in(6), NNLO_SM
   Complex(dp) :: c7(7), c7p(6), c8(7), c8p(6), r7, r7p, r8, r8p, cpl_uWd(3,3) &
                & , cpl_CSQQp_L(2,3,3) , cpl_CSQQp_R(2,3,3), cpl_CDSu_L(2,3,6) &
                & , cpl_CDSu_R(2,3,6), RSup_in(6,6), mix(6,6), cpl_DGSd_L(3,6) &
@@ -1213,7 +1230,13 @@ Contains
    delta_C7p_1 = 0._dp
    delta_C8_1 = 0._dp
    delta_C8p_1 = 0._dp
-   Bratio = 2.98_dp + 4.743_dp * (Abs(delta_C7_0)**2 + Abs(delta_C7p_0)**2 ) &
+   if (present(NNLO_SM_in)) then
+    NNLO_SM = NNLO_SM_in
+   Else
+    NNLO_SM = 2.98_dp
+   end if
+
+   Bratio = NNLO_SM + 4.743_dp * (Abs(delta_C7_0)**2 + Abs(delta_C7p_0)**2 ) &
         & + 0.789_dp *  (Abs(delta_C8_0)**2 + Abs(delta_C8p_0)**2 )          &
         & + Real( (-7.184_dp,0.612_dp) * delta_C7_0                          &
         &       + (-2.225_dp,-0.557_dp) * delta_C8_0                         &
@@ -3947,7 +3970,7 @@ Contains
 
   Real(dp) :: xt
   Complex(dp) :: B_VLL, B_VRR, B_LR1, B_LR2, B_SLL1, B_SLL2, B_SRR1, B_SRR2 &
-    & , coupLC, coupRC
+    & , coupLC, coupRC, res1, resSM
   Real(dp), Parameter :: oo4r = 0.25_dp / 0.985_dp, P1_LR = -0.71_dp   &
     & , P2_LR = 0.9_dp, P1_SLL = -0.37_dp, P2_SLL = -0.72_dp           &
     & , T3= -0.5_dp, e_d =-1._dp/3._dp
@@ -3958,6 +3981,14 @@ Contains
   Call Delta_F2_Boxes(3, i, T3, g, Y_u, Ru_L, Ru_R, Y_d, Rd_L, Rd_R, mf_u, mf_d_mZ &
      & , mC, U, V, mN, N, mGlu, phi_g, mSpm2, RSpm, mSup2, RSup, mSdown2   &
      & , RSdown, B_VLL, B_VRR, B_LR1, B_LR2, B_SLL1, B_SLL2, B_SRR1, B_SRR2  )
+
+  resSM = oo6pi2 * MBq(i) * etaB * FBhatB(i)**2                               &
+      &        * ( (G_F*mW)**2 * CKM(3,i)**2 * Conjg(CKM(3,3))**2 * S0(xt)  &
+      &            )
+  res1 = oo6pi2 * MBq(i) * etaB * FBhatB(i)**2                               &
+      &        * ( (G_F*mW)**2 * CKM(3,i)**2 * Conjg(CKM(3,3))**2 * S0(xt)  &
+      &          + oo4r * (B_VLL + B_VRR) + P1_LR * B_LR1  + P2_LR * B_LR2  &
+      &          + P1_SLL * (B_SLL1 + B_SRR1) + P2_SLL * (B_SLL2 + B_SRR2)  )
 
   !------------------------------------------
   ! double penguins
@@ -5732,9 +5763,14 @@ end if
  !-------------------------------
  ! Eq.6.37
  !-------------------------------
+!  res = 2.32e-6_dp * (TauB(i)/1.5_dp) * (FBhatB(i)/0.23_dp)**2   &
+!      &            * (Abs(CKM(3,i)) / 0.04_dp)**2                &
+!      &            * ( Abs(0.04_dp * (ca-cap))**2  )
+
   res = 2.32e-6_dp * (TauB(i)/1.5_dp) * (FBhatB(i)/0.23_dp)**2   &
       &            * (Abs(CKM(3,i)) / 0.04_dp)**2                &
       &            * ( Abs(cs)**2 + Abs(cp + 0.04_dp * (ca-cap))**2  )
+
 
  End Subroutine Bs_to_MuMu
 
