@@ -85,7 +85,15 @@ Contains
     & , mP0(5), mP02(5), mS0(5), mS02(5), mSpm(8), mSpm2(8) &
     & , mN(7), mN1L(7), mN2(7), mN1L2(7)
   Complex(dp) :: PhaseGlu, RSdown(6,6), RSup(6,6), N(7,7), N1L(7,7), lam(3), epst(3)
+  Logical, save :: WriteOut = .False.
 
+  !------------------------------------------
+  ! check if neutrino data are consistent
+  !------------------------------------------
+  If ((m2_atm.lt.m2_atm_min).or.(m2_atm.gt.m2_atm_max)) &
+      & m2_atm = 0.5_dp * (m2_atm_min +m2_atm_max)
+  If ((m2_sol.lt.m2_sol_min).or.(m2_sol.gt.m2_sol_max)) &
+      & m2_sol = 0.5_dp * (m2_sol_min +m2_sol_max)
  !-------------------------------------------------
  ! evolve the parameters down to m_Z if necessary 
  !-------------------------------------------------
@@ -191,6 +199,8 @@ Contains
   !-----------------------------------------------------
   isol=100
   Do count = 0,isol
+   If (WriteOut) Write(Errcan,*) " "
+   If (WriteOut) Write(Errcan,*) "Step",count
 
    Call NeutralinoMass_Loop_RP(g0(1), g0(2), Y_d_mZ, Y_l_mZ, Y_u_mZ, vevSM     &
           & , vevL, Mi_mZ(1), Mi_mZ(2), mu_mZ, eps, mC, mC2, U, V, mSup2, RSup &
@@ -199,13 +209,20 @@ Contains
 
    m2_sol_rp = mN1L2(2)-mN1L2(1)
    m2_atm_rp = mN1L2(3)-mN1L2(1)
-
+   If (WriteOut) then
+    Write(Errcan,*) "m^2_atm,m^2_sol",m2_atm_rp,m2_sol_rp
+    Write(Errcan,*) "               ",mN2(3)-mN2(1),mN2(2)-mN2(1)
+    Write(errcan,*) m2_atm_min,m2_atm_max
+    Write(Errcan,*) (m2_atm_rp.Lt.m2_atm_min),(m2_atm_rp.Gt.m2_atm_max) &
+                &   ,(m2_sol_rp.Lt.m2_sol_min),(m2_sol_rp.Gt.m2_sol_max)
+   End If
    !------------------------------------------------
    ! checking experimental data, first the masses
    !------------------------------------------------
    check = .True. 
    If ((m2_atm_rp.Lt.m2_atm_min).or.(m2_atm_rp.Gt.m2_atm_max)) Then
     check = .False.
+
     Lambda = (m2_atm/m2_atm_rp)**0.25_dp * Lambda
    End If
 
@@ -235,8 +252,13 @@ Contains
 
    If ((tan2_atm.Lt.tan2_atm_min).or.(tan2_atm.Gt.tan2_atm_max)) Then
     check = .False.
-    Lambda(2) = Sqrt(tan2_atm/(tan2_atm+tan2_atm_opt)) * Lambda(2)
-    Lambda(3) = Sqrt(tan2_atm_opt/(tan2_atm+tan2_atm_opt)) * Lambda(3)
+
+    Lam_sq = Lambda(2)**2 + Lambda(3)**2
+    Lambda(2) = Sqrt(tan2_atm_opt/(tan2_atm+tan2_atm_opt)) * Lambda(2)
+    Lambda(3) = Sqrt(tan2_atm/(tan2_atm+tan2_atm_opt)) * Lambda(3)
+    Lam_sq = Lam_sq / (Lambda(2)**2 + Lambda(3)**2)
+    Lambda(2:3) =  Lambda(2:3) * Sqrt(Lam_sq) 
+
    End If
 
    If ((tan2_sol.Lt.tan2_sol_min).or.(tan2_sol.Gt.tan2_sol_max)) Then
@@ -244,9 +266,14 @@ Contains
 
     lam = Cmplx(lambda,0._dp,dp)
     Call CalculateEpsTilde_from_Eps(epsT,eps,lam)
+    epsT12 = epsT(1)**2 + epsT(2)**2
 
     epsT(1) = Sqrt(tan2_sol_opt/(tan2_sol+tan2_sol_opt)) * epsT(1)
     epsT(2) = Sqrt(tan2_sol/(tan2_sol+tan2_sol_opt)) * epsT(2)
+ 
+    epsT12 = epsT12 / (epsT(1)**2 + epsT(2)**2)
+    epsT(1:2) = epsT(1:2) * Sqrt(epsT12)
+
     Call CalculateEps_from_EpsTilde(eps,epsT,lam)
 
     bi(2:4) = eps
@@ -296,6 +323,7 @@ Contains
 
   If(.Not.check)Then 
     Write(ErrCan,*)'Error, no solution found',isol
+    kont = -isol
 !    Write(*,*)'Error, no solution found',isol
 !  Else
 !    Write(*,*)'solution found after:',count,Sqrt(Sum(Abs(eps)**2))/Real(mu_mZ,dp) 
