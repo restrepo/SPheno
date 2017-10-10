@@ -9,18 +9,21 @@ Use Control
 ! interfaces
  Interface EigenSystemQP
   Module Procedure ComplexEigenSystem_DP, RealEigenSystem_DP   &
-      & , ComplexEigenSystem_QP, RealEigenSystem_QP
+      & , ComplexEigenSystem_QP, RealEigenSystem_QP            &
+      & , ComplexEigenSystem_DP1
  End Interface
 ! interfaces
 
 ! private variables
  Real(dp), Parameter, Private :: MinimalPrecision = 1.e-25_dp
  Private :: ComplexEigenSystem_DP, RealEigenSystem_DP   &
-      & , ComplexEigenSystem_QP, RealEigenSystem_QP,Tred2a_QP, Tqli_QP, Pythag_QP
+      & , ComplexEigenSystem_QP, RealEigenSystem_QP,Tred2a_QP &
+      & , ComplexEigenSystem_DP1, Tqli_QP, Pythag_QP    &
+      & , HTRIBK_QP, HTRIDI_QP
 ! private variables
 
  Real(qp), Private :: Zero=0._qp, One=1._qp, PointTwo=0.2_qp, PointFive=0.5_qp &
-    &  , Hundred=1.e2_qp, Two=2._qp,  MACHEP=Tiny(1._qp)
+    &  , Hundred=1.e2_qp
  Complex(qp), Private :: IOne = (0._qp,1._qp)
 
 Contains
@@ -52,9 +55,6 @@ Contains
  !  EigenValues ..... n sorted EigenValues: |m_1| < |m_2| < .. < |m_n|
  !  EigenVectors .... n times n matrix with the eigenvectors
  ! written by Werner Porod, 10.11.2000
- ! 08.03.02: changing the algorithm accoring to 
- !               "Numerical Recipies in Fortran" by W.H.Press et al.
- !           page 475
  ! 19.07.02: adapting to multi precision
  !---------------------------------------------------------------------
  Implicit None
@@ -273,9 +273,6 @@ Contains
  !  EigenValues ..... n sorted EigenValues: |m_1| < |m_2| < .. < |m_n|
  !  EigenVectors .... n times n matrix with the eigenvectors
  ! written by Werner Porod, 10.11.2000
- ! 08.03.02: changing the algorithm accoring to 
- !               "Numerical Recipies in Fortran" by W.H.Press et al.
- !           page 475
  ! 19.07.02: adapting to multi precision
  !---------------------------------------------------------------------
  Implicit None
@@ -450,6 +447,198 @@ Contains
 
  End Subroutine ComplexEigenSystem_QP
 
+
+ Subroutine ComplexEigenSystem_DP1(Matrix, EigenValues, EigenVectors, kont, test, ii)
+ !---------------------------------------------------------------------
+ ! Subroutine for diagonalization of complex hermitian matrices, based on the
+ ! Householder algorithm. Is a portation of  EISCH1 to F90
+ ! Input:
+ !  Matrix ..... n times n matrix
+ ! Output
+ !  EigenValues ..... n sorted EigenValues: |m_1| < |m_2| < .. < |m_n|
+ !  EigenVectors .... n times n matrix with the eigenvectors
+ ! written by Werner Porod, 10.11.2000
+ !---------------------------------------------------------------------
+ Implicit None
+  !-------
+  ! input
+  !-------
+  Complex(Dp), Intent(in) :: Matrix(:,:)
+  !--------
+  ! output
+  !--------
+  Complex(Dp), Intent(out) :: EigenVectors(:,:)
+  Real(Dp), Intent(out) :: EigenValues(:), test(:)
+  Integer, Intent(in) :: ii
+  Integer, Intent(inout) :: kont
+
+  !-----------------
+  ! local variables
+  !-----------------
+  Integer :: N1,N2,N3
+  Real(qp), Allocatable :: AR(:,:),AI(:,:), WR(:), ZR(:,:),  WORK(:)  &
+    & , work2(:,:), ZI(:,:)
+  Complex(qp), Allocatable :: Ctest(:,:), Ctest2(:,:), CtestA(:,:)
+  Logical :: l_complex = .False.
+
+  Iname = Iname + 1
+  NameOfUnit(Iname) = 'ComplexEigenSystem_DP1'
+
+  If (ii.Eq.1) Write(*,*) "ComplexEigenSystem_DP1"
+  N1 = Size(Matrix, Dim=1)
+  N2 = Size(EigenValues)
+  N3 = Size(EigenVectors, Dim=1)
+  If ((N1.Ne.N2).Or.(N1.Ne.N3)) Then
+   Write(ErrCan,*) 'Error in Subroutine '//NameOfUnit(Iname)
+   Write(ErrCan,*) 'Dimensions to not match: ',N1,N2,N3
+   If (ErrorLevel.Ge.-1) Call TerminateProgram
+   kont = -13
+   Call AddError(13)
+   Iname = Iname - 1
+   Return
+  End If
+
+  If (Is_NaN(Real(Matrix,dp)).or.Is_NaN(Aimag(Matrix))) Then !  
+   Write(ErrCan,*) 'Error in Subroutine '//NameOfUnit(Iname)
+   Write(ErrCan,*) 'matrix contains NaN'
+   If (ErrorLevel.Ge.-1) Call TerminateProgram
+   kont = -31
+   Call AddError(31)
+   Iname = Iname - 1
+   Return 
+  End If
+
+  Allocate(AR(N1,N1)) 
+  Allocate(AI(N1,N1))
+  Allocate(Ctest(N1,N1))
+  Allocate(Ctest2(N1,N1))
+  Allocate(CtestA(N1,N1))
+
+  AR = Real( Matrix,qp )
+  AI = Aimag( Matrix )
+
+  Eigenvectors = ZeroC
+  Eigenvalues = 0._dp
+  test = 0._dp
+  !--------------------------------------------------------------------------
+  ! check first whether the matrix is really complex
+  ! if not, I use the only real diagonalization because it is more accurate
+  !--------------------------------------------------------------------------
+  If (Maxval( Abs(AI) ).Eq.0._qp) Then ! real matrix
+
+   Allocate(WR(N1))
+   Allocate(Work(N1))
+
+   Call Tred2A_QP(AR, WR, Work)
+   Call TQLi_QP(WR,WORK,AR,kont)
+
+   Do n2=1,n1-1
+    Do n3=n2+1,n1
+     If (wr(n2).Gt.wr(n3)) Then
+      work(1) = wr(n2) 
+      wr(n2) = wr(n3)
+      wr(n3) = work(1)
+      work = ar(:,n2)
+      ar(:,n2) = ar(:,n3)
+      ar(:,n3) = work
+     End If
+    End Do
+   End Do
+
+   EigenValues = WR
+   Ctest = Ar
+   EigenVectors = Transpose(AR) 
+
+  Else ! complex matrix
+   l_complex = .True.
+
+   Allocate(ZR(N1,N1))
+   Allocate(ZI(N1,N1))
+   Allocate(WR(N1))
+   Allocate(Work(N1))
+   Allocate(Work2(2,N1))
+
+   Call HTRIDI_QP(AR, AI, WR, Work, WORK2)
+   ZR = 0._qp
+   Do n2=1,n1
+    ZR(n2,n2) = 1._qp
+   End Do
+   Call TQLi_QP(WR,WORK,ZR,kont)
+   If(KONT/=0) Then
+    Iname = Iname - 1
+    Deallocate(AR,AI,WR,Work,Ctest)
+    Deallocate(ZR, zi, work2)
+    Return
+   End If
+   Call HTRIBK_QP(AR, AI, WORK2, ZR, ZI)
+   
+
+   Do n2=1,n1-1
+    Do n3=n2+1,n1
+     If (wr(n2).Gt.wr(n3)) Then
+      work(1) = wr(n2) 
+      wr(n2) = wr(n3)
+      wr(n3) = work(1)
+      work = zr(:,n2)
+      zr(:,n2) = zr(:,n3)
+      zr(:,n3) = work
+      work = zi(:,n2)
+      zi(:,n2) = zi(:,n3)
+      zi(:,n3) = work
+     End If
+    End Do
+   End Do
+
+   eigenvalues = wr
+   eigenvectors = Cmplx(zr,zi, dp)
+
+   Ctest = Cmplx(zr,zi, qp)
+   CtestA = Transpose(Ctest)
+   CtestA = Conjg(CtestA)
+   Eigenvectors = CtestA
+
+   Deallocate(ZR, zi, work2)
+
+  End If ! decision whether real or complex matrix
+
+  !----------------------------------
+  ! test of diagonalisation
+  !----------------------------------
+  Ctest2 = Matmul(Matrix, Ctest )
+  ! Ctest^\dagger = Transpose(Cmplx(zr,-zi, qp))
+  Ctest = Matmul( CtestA, Ctest2 )
+
+  test = 0._qp
+  Do n2=1,n1
+   Do n3=1,n1
+    If (n2.Eq.n3) Then
+     test(1) = Max(test(1), Abs( Ctest(n2,n3) ) )
+    Else
+     test(2) = Max(test(2), Abs( Ctest(n2,n3) ) )
+    End If
+   End Do
+  End Do
+  If (test(1).Gt.0._dp) Then
+   If (l_complex) Then
+    If ( (test(2)/test(1)).Gt.1.e5_qp*MinimalPrecision) then
+     kont = -14
+     Call AddError(14)
+    End If
+   Else 
+    If ( (test(2)/test(1)).Gt.MinimalPrecision) then
+     kont = -14
+     Call AddError(14)
+    End If
+   End If
+  End If
+
+  Deallocate(AR,AI,WR,Work,Ctest,Ctest2,CtestA)
+
+  Iname = Iname - 1
+
+ End Subroutine ComplexEigenSystem_DP1
+
+
  Subroutine JacobiQP(a,n,np,d,v,nrot)
  Implicit None
   Integer :: n, np, nrot
@@ -564,6 +753,14 @@ Contains
   End If
  End Function Pythag_QP
 
+ Function outerprod_QP(a,b)
+  Real(qp), Dimension(:), Intent(IN) :: a,b
+  Real(qp), Dimension(Size(a),Size(b)) :: outerprod_QP
+   outerprod_QP = Spread(a,dim=2,ncopies=Size(b))  &
+               & * Spread(b,dim=1,ncopies=Size(a))
+ End Function outerprod_QP
+
+
  Subroutine RealEigenSystem_DP(Matrix,EigenValues,EigenVectors,kont, test)
  !---------------------------------------------------------------------
  ! Subroutine for diagonalization of real symmetric matrices, based on the
@@ -580,8 +777,8 @@ Contains
   Real(dp), Intent(out) :: EigenVectors(:,:), EigenValues(:), test(2)
   Integer, Intent(inout) :: kont
 
-  Integer :: N1,N2,N3, nrot, i1, i2, i3, i4, n4
-  Real(qp), Allocatable :: AR(:,:), WR(:), WORK(:,:), testR(:,:)
+  Integer :: N1,N2,N3, i1, i2, i3, i4, n4
+  Real(qp), Allocatable :: AR(:,:), WR(:), WORK(:), testR(:,:), work2(:,:)
  
   Iname = Iname + 1
   NameOfUnit(Iname) = 'RealEigenSystem_DP'
@@ -603,24 +800,27 @@ Contains
   Allocate(AR(N1,N1))
   Allocate(testR(N1,N1))
   Allocate(WR(N1))
-  Allocate(Work(N1,N1))
+  Allocate(Work(N1))
+  Allocate(Work2(N1,N1))
 
   Wr = Zero
-  Ar = Zero
-  Work = Real( Matrix, qp )
+  Work = Zero
+  AR = Zero
+  AR = Real( Matrix, qp )
 
-  Call JacobiQP(Work, n1, n1, wr, ar, nrot)
+  Call Tred2A_QP(AR, WR, Work)
+  Call TQLi_QP(WR,WORK,AR,kont)
 
   Do n2=1,n1-1
    Do n3=n2+1,n1
     If (wr(n2).Gt.wr(n3)) Then
-     work(1,1) = wr(n2) 
+     work(1) = wr(n2) 
      wr(n2) = wr(n3)
-     wr(n3) = work(1,1)
+     wr(n3) = work(1)
      Do n4=1,n1
-      work(n4,1) = ar(n4,n2)
+      work(n4) = ar(n4,n2)
       ar(n4,n2) = ar(n4,n3)
-      ar(n4,n3) = work(n4,1)
+      ar(n4,n3) = work(n4)
      End Do
     End If
    End Do
@@ -633,7 +833,7 @@ Contains
    End Do
   End Do
 
-  work = Real( Matrix, qp)
+  work2 = Real( Matrix, qp)
 
    test = 0._dp
    Do i1=1,n1
@@ -642,7 +842,7 @@ Contains
      Do i3=1,n1
       Do i4=1,n1
        testR(i1,i2) = testR(i1,i2) &
-          & + ar(i3,i1)* work(i3,i4) *  ar(i4,i2)
+          & + ar(i3,i1)* work2(i3,i4) *  ar(i4,i2)
       End Do
      End Do
      If (i1.Eq.i2) Then
@@ -660,11 +860,12 @@ Contains
    End If
   End If
 
-  Deallocate(AR,WR,Work,testR)
+  Deallocate(AR,WR,Work,testR,work2)
 
   Iname = Iname - 1
 
  End Subroutine RealEigenSystem_DP
+
 
  Subroutine RealEigenSystem_QP(Matrix,EigenValues,EigenVectors,kont)
  !---------------------------------------------------------------------
@@ -732,248 +933,52 @@ Contains
 
  End Subroutine RealEigenSystem_QP
 
- Subroutine Tred2_QP(a,d,e)
- Implicit None
-  Real(qp), Dimension(:,:), Intent(INOUT) :: a
-  Real(qp), Dimension(:), Intent(OUT) :: d, e
-  
-  Integer :: i, j, k, l, n
-  Real(qp) :: f, g, h, hh, scale
-!  Real(qp), Dimension(Size(a,1),Size(a,1)) :: aa1
-
-  n = Size(a,1)
-
-  Do i=n,2,-1
-    l=i-1
-    h=Zero
-    scale=Zero
-    If (l.Gt.1) Then
-      Do k=1,l
-        scale=scale+Abs(a(i,k))
-      End Do
-      If(scale.Eq.Zero)Then
-       e(i)=a(i,l)
-      Else
-       h=Zero
-       Do k=1,l
-         a(i,k)=a(i,k)/scale
-         h=h+a(i,k)**2
-       End Do
-
-       f=a(i,l)
-       g=-Sign(Sqrt(h),f)
-       e(i)=scale*g
-       h=h-f*g
-       a(i,l)=f-g
-       f=Zero
-       Do j=1,l
-        a(j,i)=a(i,j)/h
-        g=Zero
-        Do k=1,j
-         g=g+a(j,k)*a(i,k)
-        End Do
-        Do k=j+1,l
-         g=g+a(k,j)*a(i,k)
-        End Do
-        e(j)=g/h
-        f=f+e(j)*a(i,j)
-       End Do
-       hh=f/(h+h)
-       Do j=1,l
-        f=a(i,j)
-        g=e(j)-hh*f
-        e(j)=g
-        Do  k=1,j
-         a(j,k)=a(j,k)-f*e(k)-g*a(i,k)
-        End Do
-       End Do
-      Endif
-    Else
-      e(i)=a(i,l)
-    Endif
-    d(i)=h
-  End Do
-
-  d(1)=Zero
-  e(1)=Zero
-  Do i=1,n
-    l=i-1
-    If(d(i).Ne.Zero)Then
-      Do j=1,l
-       g=Zero
-       Do k=1,l
-        g=g+a(i,k)*a(k,j)
-       End Do
-       Do k=1,l
-        a(k,j)=a(k,j)-g*a(k,i)
-       End Do
-      End Do
-    Endif
-    d(i)=a(i,i)
-    a(i,i)=One
-    Do j=1,l
-      a(i,j)=Zero
-      a(j,i)=Zero
-    End Do
-   End Do
-
- End Subroutine Tred2_QP
-
- Subroutine my_TRED2_QP(z, D, E)
- Implicit None
-  Real(qp), Dimension(:,:), Intent(INOUT) :: z
-  Real(qp), Dimension(:), Intent(OUT) :: d, e
-
-  Integer :: I,J,K,L,N,II,JP1
-   Real(qp) ::  F,G,H,HH,SCALEI
-
-  n = Size(z,1)
-
-  Do II = 2, N
-    I = N + 2 - II
-    L = I - 1
-    H = Zero
-    SCALEI = Zero
-    If (L .Lt. 2) GO TO 130
-     Do K = 1, L
-      SCALEI = SCALEI + Abs(Z(I,K))
-     End Do
-     If (SCALEI .Ne. Zero) GO TO 140
-  130    E(I) = Z(I,L)
-     GO TO 290
-  140 Do K = 1, L
-       Z(I,K) = Z(I,K) / SCALEI
-       H = H + Z(I,K) * Z(I,K)
-      End Do
-     F = Z(I,L)
-     G = -Sign(Sqrt(H),F)
-     E(I) = SCALEI * G
-     H = H - F * G
-     Z(I,L) = F - G
-     F = 0.d0
-     Do J = 1, L
-       Z(J,I) = Z(I,J) / (SCALEI * H)
-       G = Zero
-       Do K = 1, J
-         G = G + Z(J,K) * Z(I,K)
-       End Do
-       JP1 = J + 1
-       If (L .Ge. JP1) Then
-        Do K = JP1, L
-           G = G + Z(K,J) * Z(I,K)
-        End Do
-       End If
-       E(J) = G / H
-       F = F + E(J) * Z(I,J)
-     End Do
-     HH = F / (H + H)
-     Do J = 1, L
-       F = Z(I,J)
-       G = E(J) - HH * F
-       E(J) = G
-       Do K = 1, J
-         Z(J,K) = Z(J,K) - F * E(K) - G * Z(I,K)
-       End Do
-     End Do
-     Do K = 1, L
-       Z(I,K) = SCALEI * Z(I,K)
-     End Do
-  290    D(I) = H
-  End Do
-
-  D(1) = Zero
-  E(1) = Zero
-  Do I = 1, N
-     L = I - 1
-     If (D(I) .Ne. Zero) Then
-      Do J = 1, L
-       G = Zero
-       Do K = 1, L
-        G = G + Z(I,K) * Z(K,J)
-       End Do
-       Do K = 1, L
-         Z(K,J) = Z(K,J) - G * Z(K,I)
-       End Do
-      End Do
-     End If
-     D(I) = Z(I,I)
-     Z(I,I) = Zero
-     If (L .Lt. 1) Exit
-     Do J = 1, L
-      Z(I,J) = Zero
-      Z(J,I) = Zero
-     End Do
-  End Do
-
- End Subroutine my_TRED2_QP
-
- Subroutine Tred2a_QP(a,d,e,novectors)
+ Subroutine tred2A_QP(a,d,e,novectors)
 
  Implicit None
   Real(qp), Dimension(:,:), Intent(INOUT) :: a
   Real(qp), Dimension(:), Intent(OUT) :: d, e
   Logical, Optional, Intent(IN) :: novectors
 
-  Integer :: i, j, l, n, i1
+  Integer :: i, j, l, n
   Real(qp) :: f, g, h, hh, scale
+  Real(qp), Dimension(Size(a,1)) :: gg
   Logical, Save :: yesvec=.True.
 
   n = Size(a,1)
 
   If ((n.Ne.Size(a,2)).Or.(n.Ne.Size(d)).Or.(n.Ne.Size(e)) ) Then
-   Write(ErrCan,*) "Error in Tred2_QP",n,Size(a,2),Size(d),Size(e)
+   Write(ErrCan,*) "Error in tred2A_QP",n,Size(a,2),Size(d),Size(e)
    If (ErrorLevel.Gt.-2) Call TerminateProgram
   End If
 
   If (Present(novectors)) yesvec=.Not. novectors
 
   Do i=n,2,-1
-    l=i-1 
-    h= Zero
+    l=i-1
+    h=0.0_qp
     If (l > 1) Then
-      scale = Zero
-      Do i1=1,l
-       scale=scale+ Abs(a(i,i1))
-      End Do
-      If (scale == Zero) Then
+      scale=Sum(Abs(a(i,1:l)))
+      If (scale == 0._qp) Then
         e(i)=a(i,l)
       Else
-        h=Zero
-        Do i1=1,l
-         a(i,i1)=a(i,i1)/scale
-         h=h+a(i,i1)**2
-        End Do
+        a(i,1:l)=a(i,1:l)/scale
+        h=Sum(a(i,1:l)**2)
         f=a(i,l)
         g=-Sign(Sqrt(h),f)
         e(i)=scale*g
         h=h-f*g
         a(i,l)=f-g
-        f = Zero
-        If (yesvec) Then
-         Do j=1,l
-          a(j,i)=a(i,j)/h
-         End Do
-        End If
+        If (yesvec) a(1:l,i)=a(i,1:l)/h
         Do j=1,l
-!         If (yesvec) a(j,i)=a(i,j)/h
-         g = Zero
-         Do i1=1,j         
-          g = g + a(j,i1) * a(i,i1)
-         End Do
-         Do i1=j+1,l       
-          g = g + a(i1,j)*a(i,i1)
-         End Do
-         e(j) = g / h
-         f = f + e(j)*a(i,j)
+          e(j)=(Dot_product(a(j,1:j),a(i,1:j)) &
+          +Dot_product(a(j+1:l,j),a(i,j+1:l)))/h
         End Do
+        f=Dot_product(e(1:l),a(i,1:l))
         hh=f/(h+h)
+        e(1:l)=e(1:l)-hh*a(i,1:l)
         Do j=1,l
-         f = a(i,j)
-         g = e(j) - hh * f
-         e(j) = g
-         Do i1=1,j
-          a(j,i1)=a(j,i1) - f*e(i1) -g*a(i,i1)
-         End Do
+          a(j,1:j)=a(j,1:j)-a(i,j)*e(1:j)-e(j)*a(i,1:j)
         End Do
       End If
     Else
@@ -981,315 +986,250 @@ Contains
     End If
     d(i)=h
   End Do
-  If (yesvec) d(1)=Zero
-  e(1)=Zero
+
+  If (yesvec) d(1)=0.0_qp
+  e(1)=0.0_qp
   Do i=1,n
     If (yesvec) Then
       l=i-1
-      If (d(i) /= Zero) Then
-       Do j=1,l
-        g=Zero
-        Do i1=1,l
-         g=g+a(i,i1)*a(i1,j)
-        End Do
-        Do i1=1,l
-         a(i1,j)=a(i1,j)-g*a(i1,i)
-        End Do
-       End Do
+      If (d(i) /= 0.0_qp) Then
+        gg(1:l)=Matmul(a(i,1:l),a(1:l,1:l))
+        a(1:l,1:l)=a(1:l,1:l)-outerprod_QP(a(1:l,i),gg(1:l))
       End If
       d(i)=a(i,i)
-      a(i,i)=One
-      a(i,1:l)=Zero
-      a(1:l,i)=Zero
+      a(i,i)=1.0_qp
+      If (i.Gt.1) Then
+       a(i,1:l)=0.0_qp
+       a(1:l,i)=0.0_qp
+      End If
     Else
       d(i)=a(i,i)
     End If
   End Do
 
- End Subroutine Tred2a_QP
-
- Subroutine TQL2_QP(D, E, Z, kont)
- Implicit None
-
-   Integer, Intent(inout) :: kont
-   Real(qp), Dimension(:), Intent(INOUT) :: d, e
-   Real(qp), Dimension(:,:), Optional, Intent(INOUT) :: z
-
-  Integer :: I,J,K,L,M,N,II,MML
-  Real(qp) :: B,C,F,G,H,P,R,S
+ End Subroutine tred2A_QP
 
 
-  n = Size( d )
-  KONT = 0
-
-  Do I = 2, N
-    E(I-1) = E(I)
-  End Do
-
-  F = Zero
-  B = Zero
-  E(N) = Zero
-
-  Do L = 1, N
-     J = 0
-     H = MACHEP * (Abs(D(L)) + Abs(E(L)))
-     If (B .Lt. H) B = H
-     Do M = L, N
-      If (Abs(E(M)) .Le. B) Exit
-     End Do
-     If (M .Eq. L) Then
-      D(L) = D(L) + F
-      Cycle
-     End If
-     iterate: Do 
-      If (J .Eq. 30) Then
-       Write(ErrCan,*) "To many iteration in tql2",j
-       kont = -1010
-       Call AddError(1010)
-       Return
-      End If
-      J = J + 1
-      P = (D(L+1) - D(L)) / (two * E(L))
-      R = Sqrt(P*P+One)
-      H = D(L) - E(L) / (P + Sign(R,P))
-      Do I = L, N
-       D(I) = D(I) - H
-      End Do
-      F = F + H
-      P = D(M)
-      C = One
-      S = Zero
-      MML = M - L
-      Do II = 1, MML
-       I = M - II
-       G = C * E(I)
-       H = C * P
-       If (Abs(P) .Ge. Abs(E(I))) Then
-        C = E(I) / P
-        R = Sqrt(C*C+One)
-        E(I+1) = S * P * R
-        S = C / R
-        C = One / R
-       Else
-        C = P / E(I)
-        R = Sqrt(C*C+One)
-        E(I+1) = S * E(I) * R
-        S = One / R
-        C = C * S
-       End If
-       P = C * D(I) - S * G
-       D(I+1) = H + S * (C * G + S * D(I))
-       Do K = 1, N
-        H = Z(K,I+1)
-        Z(K,I+1) = S * Z(K,I) + C * H
-        Z(K,I) = C * Z(K,I) - S * H
-       End Do
-      End Do
-      E(L) = S * P
-      D(L) = C * P
-      If (Abs(E(L)) .Gt. B) Cycle iterate
-      D(L) = D(L) + F
-      Exit iterate
-     End Do iterate
-  End Do
-  Do II = 2, N
-     I = II - 1
-     K = I
-     P = D(I)
-     Do J = II, N
-      If (D(J) .Ge. P) Cycle
-      K = J
-      P = D(J)
-     End Do
-     If (K .Eq. I) Cycle
-     D(K) = D(I)
-     D(I) = P
-     Do J = 1, N
-      P = Z(J,I)
-      Z(J,I) = Z(J,K)
-      Z(J,K) = P
-     End Do
-  End Do
-
-  End Subroutine TQL2_QP
-
-  Subroutine Tqli_QP(d,e,z,kont)
-   Integer, Intent(inout) :: kont
-   Real(qp), Dimension(:), Intent(INOUT) :: d, e
-   Real(qp), Dimension(:,:), Optional, Intent(INOUT) :: z
-   Integer :: i,iter,l,m,n,ndum
-   Real(qp) :: b,c,dd,f,g,p,r,s
-
-  n = Size(d)
-
-  kont = 0
-  If (n.Ne.Size(e)) Then
-   Write(ErrCan,*) "Error in Tqli_QP",n,Size(e)
-   If (ErrorLevel.Gt.-2) Call TerminateProgram
-   kont = -1008
-   Call AddError(1008)
-  End If
-
-  If (Present(z)) Then
-   ndum = n
-   If ((n.Ne.Size(z,dim=1)).Or.(n.Ne.Size(z,dim=2)) ) Then
-    Write(ErrCan,*) "Error in Tqli_QP",n,Size(z,dim=1),Size(z,dim=2)
-    If (ErrorLevel.Gt.-2) Call TerminateProgram
-    kont = -1008
-    Call AddError(1008)
-   End If
-  End If
-
-  Do i=2,n
-    e(i-1)=e(i)
-  End Do
-  e(n)=Zero
-  Do l=1,n
-    iter=0
-    iterate: Do
-!     Write(*,*) "l a",l,iter    
-     Do m=l,n-1
-!      Write(*,*) "l b",l,iter    
-       dd=Abs(d(m))+Abs(d(m+1))
-       If ((Abs(e(m))+dd).Eq.dd) Exit 
-     End Do
-!     m=n
-
-     If (m.Eq.l) Exit iterate
-       If(iter.Eq.30) Then
-         Write(ErrCan,*) 'too many iterations in Tqli_QP',iter
-         kont = -1009
-         Call AddError(1009)
-         Return
-       End If
-       iter=iter+1
-       g=(d(l+1)-d(l))/(two*e(l))
-       r=Pythag_QP(g,One)
-       g=d(m)-d(l)+e(l)/(g+Sign(r,g))
-       s=One
-       c=One
-       p=Zero
-!        Write(*,*) "m-1, l",m-1,l
-       Do i=m-1,l,-1
-!        Write(*,*) "i",i
-        f=s*e(i)
-        b=c*e(i)
-        r=Pythag_QP(f,g)
-        e(i+1)=r
-        If(r.Eq.Zero)Then
-          d(i+1)=d(i+1)-p
-          e(m)=Zero
-          Cycle iterate
-        Endif
-        s=f/r
-        c=g/r
-        g=d(i+1)-p
-        r=(d(i)-g)*s+Two*c*b
-        p=s*r
-        d(i+1)=g+p
-        g=c*r-b
-        Do k=1,n
-          f=z(k,i+1)
-          z(k,i+1)=s*z(k,i)+c*f
-          z(k,i)=c*z(k,i)-s*f
-        End Do
-       End Do
-       d(l)=d(l)-p
-       e(l)=g
-       e(m)=Zero
-!     endif
-    End Do iterate
-  End Do
-
- End Subroutine Tqli_QP
-
- Subroutine TqliA_QP(kont,d,e,z)
+ Subroutine tqli_QP(d,e,z,kont)
 
  Implicit None
   Integer, Intent(inout) :: kont
-  Real(qp), Dimension(:), Intent(INOUT) :: d, e
+  Real(qp), Dimension(:), Intent(INOUT) :: d,e
   Real(qp), Dimension(:,:), Optional, Intent(INOUT) :: z
-  Integer :: i,iter,l,m,n,ndum, i1
+  Integer :: i,iter,l,m,n
   Real(qp) :: b,c,dd,f,g,p,r,s
   Real(qp), Dimension(Size(e)) :: ff
 
   n = Size(d)
-
   kont = 0
   If (n.Ne.Size(e)) Then
-   Write(ErrCan,*) "Error in tqli",n,Size(e)
+   Write(ErrCan,*) "Error in tqli_QP",n,Size(e)
    If (ErrorLevel.Gt.-2) Call TerminateProgram
-   kont = -10
+   kont = -17
+   Call AddError(17)
   End If
 
   If (Present(z)) Then
-   ndum = n
    If ((n.Ne.Size(z,dim=1)).Or.(n.Ne.Size(z,dim=2)) ) Then
-    Write(ErrCan,*) "Error in tqli",n,Size(z,dim=1),Size(z,dim=2)
+    Write(ErrCan,*) "Error in tqli_QP",n,Size(z,dim=1),Size(z,dim=2)
     If (ErrorLevel.Gt.-2) Call TerminateProgram
-    kont = -15
+    kont = -17
+    Call AddError(17)
    End If
   End If
 
-  Do i1=2,n
-   E(i1-1) = E(i1)
-  End Do
-  e(n) = Zero
+  e(:)=Eoshift(e(:),1)
 
   Do l=1,n
     iter=0
     iterate: Do
       Do m=l,n-1
         dd=Abs(d(m))+Abs(d(m+1))
-
-        If ((Abs(e(m))+dd) == dd) Exit
+        If (Abs(e(m))+dd == dd) Exit
       End Do
-
       If (m == l) Exit iterate
       If (iter == 30) Then
-       Write(ErrCan,*) "Problem in tqli, too many iterations"
-       kont = -20
+       Write(ErrCan,*) "Problem in tqli_QP, too many iterations"
+       kont = -18
+       Call AddError(18)
        Return
       End If
       iter=iter+1
-      g=(d(l+1)-d(l))/(Two*e(l))
-      r=Pythag_QP(g, One)
+      g=(d(l+1)-d(l))/(2.0_qp*e(l))
+      r=pythag_qp(g,1.0_qp)
       g=d(m)-d(l)+e(l)/(g+Sign(r,g))
-      s=One
-      c=One
-      p=Zero
+      s=1.0_qp
+      c=1.0_qp
+      p=0.0_qp
       Do i=m-1,l,-1
         f=s*e(i)
         b=c*e(i)
-        r=Pythag_QP(f,g)
+        r=pythag_QP(f,g)
         e(i+1)=r
-        If (r == Zero) Then
+        If (r == 0.0_qp) Then
           d(i+1)=d(i+1)-p
-          e(m)=Zero
+          e(m)=0.0_qp
           Cycle iterate
         End If
         s=f/r
         c=g/r
         g=d(i+1)-p
-        r=(d(i)-g)*s+Two*c*b
+        r=(d(i)-g)*s+2.0_qp*c*b
         p=s*r
         d(i+1)=g+p
         g=c*r-b
         If (Present(z)) Then
           ff(1:n)=z(1:n,i+1)
-          Do i1=1,n
-           z(i1,i+1)=s*z(i1,i)+c*ff(i1)
-           z(i1,i)=c*z(i1,i)-s*ff(i1)
-          End Do
+          z(1:n,i+1)=s*z(1:n,i)+c*ff(1:n)
+          z(1:n,i)=c*z(1:n,i)-s*ff(1:n)
         End If
       End Do
       d(l)=d(l)-p
       e(l)=g
-      e(m)=Zero
-
+      e(m)=0.0_qp
     End Do iterate
   End Do
 
- End Subroutine TqliA_QP
+ End Subroutine tqli_QP
+
+  
+  Subroutine HTRIBK_QP(AR, AI, TAU, ZR, ZI)
+  Implicit None
+   Real(qp) :: AR(:,:), AI(:,:), TAU(:,:), ZR(:,:), ZI(:,:)
+
+   Integer :: n, m, k, j, i, l
+   Real(qp) :: s, si, h
+
+   n = Size(ar,2)
+   m = Size(zr,2)
+
+   Do K = 1, N
+    Do J = 1, M
+      ZI(K,J) = - ZR(K,J) * TAU(2,K)
+      ZR(K,J) = ZR(K,J) * TAU(1,K)
+    Enddo
+   Enddo
+   If (N == 1) Return
+  Do I = 2, N
+    L = I - 1
+    H = AI(I,I)
+    If (H == 0._qp) Cycle
+    Do J = 1, M
+      S = 0._qp
+      SI = 0._qp
+      Do K = 1, L
+        S = S + AR(I,K) * ZR(K,J) - AI(I,K) * ZI(K,J)
+        SI = SI + AR(I,K) * ZI(K,J) + AI(I,K) * ZR(K,J)
+      Enddo
+      S = S / H
+      SI = SI / H
+      Do K = 1, L
+        ZR(K,J) = ZR(K,J) - S * AR(I,K) - SI * AI(I,K)
+        ZI(K,J) = ZI(K,J) - SI * AR(I,K) + S * AI(I,K)
+      Enddo
+    Enddo
+  End Do
+
+  End Subroutine HTRIBK_QP
+
+
+
+  Subroutine HTRIDI_QP(AR, AI, D, E, TAU)
+  Implicit None
+   Real(qp) :: AR(:,:), AI(:,:), D(:), E(:), TAU(:,:)
+
+   Integer :: n, i, ii, l, k, j, jp1
+   Real(qp) :: scalei, h, g, f, si, hh, fi, gi
+
+   n = Size(ar,2)
+
+   TAU(1,N) = 1._qp
+   TAU(2,N) = 0._qp
+   Do I = 1, N
+    D(I) = AR(I,I)
+   End Do
+
+   Do II = 1, N
+    I = N + 1 - II
+    L = I - 1
+    H = 0._qp
+    SCALEI = 0._qp
+    If (L < 1) GO TO 130
+    Do K = 1, L
+      SCALEI = SCALEI + Abs(AR(I,K)) + Abs(AI(I,K))
+    Enddo
+    If (SCALEI /= 0._qp) GO TO 140
+    TAU(1,L) = 1._qp
+    TAU(2,L) = 0._qp
+  130 E(I) = 0._qp
+    GO TO 290
+  140 Do K = 1, L
+      AR(I,K) = AR(I,K) / SCALEI
+      AI(I,K) = AI(I,K) / SCALEI
+      H = H + AR(I,K) * AR(I,K) + AI(I,K) * AI(I,K)
+    Enddo
+    G = Sqrt(H)
+    E(I) = SCALEI * G
+    F = Abs(Cmplx(AR(I,L),AI(I,L),qp))
+    If (F == 0._qp) GO TO 160
+    TAU(1,L) = (AI(I,L) * TAU(2,I) - AR(I,L) * TAU(1,I)) / F
+    SI = (AR(I,L) * TAU(2,I) + AI(I,L) * TAU(1,I)) / F
+    H = H + F * G
+    G = 1._qp + G / F
+    AR(I,L) = G * AR(I,L)
+    AI(I,L) = G * AI(I,L)
+    If (L == 1) GO TO 270
+    GO TO 170
+  160 TAU(1,L) = -TAU(1,I)
+    SI = TAU(2,I)
+    AR(I,L) = G
+  170 F = 0._qp
+    Do J = 1, L
+      G = 0._qp
+      GI = 0._qp
+      Do K = 1, J
+        G = G + AR(J,K) * AR(I,K) + AI(J,K) * AI(I,K)
+        GI = GI - AR(J,K) * AI(I,K) + AI(J,K) * AR(I,K)
+      Enddo
+      JP1 = J + 1
+      If (L < JP1) GO TO 220
+      Do K = JP1, L
+        G = G + AR(K,J) * AR(I,K) - AI(K,J) * AI(I,K)
+        GI = GI - AR(K,J) * AI(I,K) - AI(K,J) * AR(I,K)
+      Enddo
+  220 E(J) = G / H
+      TAU(2,J) = GI / H
+      F = F + E(J) * AR(I,J) - TAU(2,J) * AI(I,J)
+    Enddo
+    HH = F / (H + H)
+    Do J = 1, L
+      F = AR(I,J)
+      G = E(J) - HH * F
+      E(J) = G
+      FI = -AI(I,J)
+      GI = TAU(2,J) - HH * FI
+      TAU(2,J) = -GI
+      Do K = 1, J
+        AR(J,K) = AR(J,K) - F * E(K) - G * AR(I,K) &
+          + FI * TAU(2,K) + GI * AI(I,K)
+        AI(J,K) = AI(J,K) - F * TAU(2,K) - G * AI(I,K) &
+          - FI * E(K) - GI * AR(I,K)
+      Enddo
+    Enddo
+  270 Do K = 1, L
+      AR(I,K) = SCALEI * AR(I,K)
+      AI(I,K) = SCALEI * AI(I,K)
+    Enddo
+    TAU(2,L) = -SI
+  290 HH = D(I)
+    D(I) = AR(I,I)
+    AR(I,I) = HH
+    AI(I,I) = SCALEI * SCALEI * H
+  Enddo
+  Return
+
+  End Subroutine HTRIDI_QP
+
+
 
 End Module MathematicsQP

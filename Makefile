@@ -7,8 +7,10 @@
 # F90 = g95
 # F90 = lf95
 F90 = ifort
+Model = src
+version = 400.00
 bin/SPheno:
-	cd src ; ${MAKE} F90=${F90}
+	cd ${Model} ; ${MAKE} F90=${F90} version=${version}
 clean:
 	rm -f *.o *~ */*.o */*~
 cleanall:

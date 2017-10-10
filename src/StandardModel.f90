@@ -12,14 +12,21 @@ Use Mathematics
  ! W-boson
  Real(dp), Save :: mW,mW2,gamW,gamW2,gmW,gmW2,BrWqq(2),BrWln(3)
  ! fermion masses
- Real(dp), Save :: mf_l(3), mf_l2(3), mf_u(3), mf_u2(3), mf_d(3) &
-   & , mf_d2(3), mf_nu(3), mf_l_mZ(3), mf_d_mZ(3), mf_u_mZ(3)
+ Real(dp), Save :: mf_l(3), mf_l2(3), mf_u(3), mf_u2(3), mf_d(3), mf_d2(3)  &
+   & , mf_nu(3), mf_l_mZ(3), mf_d_mZ(3), mf_u_mZ(3), mf_d_mt(3), mf_u_mt(3) &
+   & , mf_l_mt(3), mf_d_125(3), mf_u_125(3), mf_l_125(3)
  ! scale at which the light quark masses for u, d, c, s are defined
  Real(dp), Save :: Q_light_quarks
  ! fermion decay widths
- Real(dp), Save :: g_T = 1.5_dp
+ Real(dp), Save :: g_T = 2.0_dp
+ ! meson masses
+ Real(dp), Parameter :: m_pi0=0.135_dp, m_pip=0.140_dp 
+ Real(dp), Parameter :: m_pi02=m_pi0**2, m_pip2=m_pip**2
+ ! decay constants
+ Real(dp), Parameter :: f_pi=0.092_dp
  ! couplings
- Real(dp), Save :: Alpha, Alpha_mZ, AlphaS_mZ, G_F, Alpha_mZ_MS, AlphaS_mB
+ Real(dp), Save :: Alpha, Alpha_mZ, AlphaS_mZ, G_F, Alpha_mZ_MS, AlphaS_mB &
+   & , AlphaS_mT, Alpha_mT, AlphaS_125, Alpha_125
  Real(dp), Save :: Delta_Alpha_Lepton, Delta_Alpha_Hadron
 ! pseudo observables
  Real(dp), Save :: Rho_parameter
@@ -29,19 +36,132 @@ Use Mathematics
  Real(dp), Save :: KFactorLee  ! for ISR corrections in e+ e- 
 
  Complex(dp), Save :: CKM(3,3)
-! update to PDG 2009
- Real(dp), Save :: lam_wolf=0.2257_dp, A_wolf=0.814_dp, rho_wolf=0.135_dp &
-                 & , eta_wolf=0.349_dp
+! update to PDG 2013
+ Real(dp), Save :: lam_wolf=0.22535_dp, A_wolf=0.811_dp, rho_wolf=0.131_dp &
+                 & , eta_wolf=0.345_dp
 
  Complex(dp), Save :: Unu(3,3)
  Real(dp), Save :: theta_12, theta_13, theta_23, delta_nu, alpha_nu1, alpha_nu2
  ! h-bar
- Real(dp), Save :: hbar = 6.58211889e-25_dp
+ Real(dp), Save :: hbar = 6.58211928e-25_dp
+!-----------------------------------------------------------------
+! constants for B-physics, can be changed using the FLHA
+! taking data from arXiv:0808.1297v3 and arXiv:0910.2928
+! update: http://krone.physik.unizh.ch/~lunghi/webpage/LatAves/page7/page7.html
+! experimental data from PDG 2013
+!-----------------------------------------------------------------
+  Real(dp) :: MassBq(2) = (/ 5.2796_dp, 5.3667_dp /), etaB = 0.55_dp &
+    & , FB(2) = (/ 0.193_dp, 0.239_dp /)                             &
+    & , FBhatB(2) = (/ 0.216_dp, 0.275_dp /)                         &
+    & , TauBq(2) = (/ 1.519e-12_dp, 1.516e-12_dp/) ! in seconds
+  Real(dp) :: MassBm(2) = (/ 5.2793_dp, 6.2745_dp /)  &
+    & , TauBm(2) = (/ 1.641e-12_dp, 0.452e-12_dp /) ! in seconds
+!-----------------------------------------------------------
+! constants for K-physics, can be changed using the FLHA
+! experimental data from PDG 2013
+!-----------------------------------------------------------
+  Real(dp) :: MassK0 = 0.497616_dp 
+  Real(dp) :: DeltaMK = 3.483e-15_dp 
+  Real(dp) :: FK = 0.1558_dp
+!-----------------------------------------------------------
+! constants for edms
+!-----------------------------------------------------------
+  Real(dp) :: ecmfactor = 5.975e-15_dp, elimit = 1.6e-27_dp               &
+    & , nlimit = 2.9e-26_dp, qcdCorrection = 1.53_dp                      &
+    & , CqcdCorrection = 3.4_dp, chiralMass = 1.19_dp, deltaUp = 0.746_dp &
+    & , deltaDown = -0.508_dp, deltaStrange = -0.226_dp
 ! global variables
 
  Private :: RGE10_SMa
 
 Contains
+
+ Subroutine CalculateLowScaleMasses(mf_l_in, mf_d_in, mf_u_in, Qhigh, alpha &
+     &  , alphas, mf_l_out, mf_d_out, mf_u_out, kont)
+ !-----------------------------------------------------------------------
+ ! calculates the low scale masses from the running masses at Qhigh,
+ ! which is assumed to be below m_t as the top-quark is not included here.
+ ! The formulas for the decoupling procedure can
+ ! be found in K.G.Chetyrkin et al., hep-ph/0004189
+ ! input:
+ !  Qhigh ........... high energy scale, must be larger than Qlow and mb(mb)
+ !  mf_l_in ......... lepton masses at Qhigh
+ !  mf_d_in ......... d-quark masses (d,s,b) at Qhigh
+ !  mf_u_in ......... u-quark masses (u,c) at Qhigh
+ !  alpha ........... alpha_electromagnetic at Qhigh
+ !  alphas .......... alpha_strong at Qhigh
+ ! output:
+ !  mf_l_out ........ mf_l onshell
+ !  mf_d_out ........ mf_d with d and s at Q=2 GeV and mb(4.8)
+ !  mf_u_out ........ mf_u with u and ca at Q=2 GeV
+ !  kont ............ contains the error, =0 if everything is fine
+ ! written by Werner Porod, 02.08.16
+ !-----------------------------------------------------------------------
+ Implicit None
+  Real(dp), Intent(in) ::  mf_l_in(3), mf_d_in(3), mf_u_in(3), alpha &
+     &  , alphas, Qhigh
+  Real(dp), Intent(out) :: mf_l_out(3), mf_d_out(3), mf_u_out(3)
+  Integer, Intent(inout) :: kont
+
+  Real(dp) :: g9(9), g10(10), as_nf, as_nf_minus_1, as_nf_d_pi, aem , tz, dt
+  Real(dp), Parameter :: zeta3 = 1.202056903159594285399738161511449990765_dp &
+     & , c_as(2) = (/ 11._dp / 72._dp                                         &
+     &             , 58067._dp / 13824._dp - 82043._dp * zeta3 / 27648._dp /) 
+     
+  Iname = Iname + 1
+  NameOfUnit(Iname) = "CalculateRunningMasses"
+
+  kont = 0 
+
+  !-------------------------------------------------------------------------
+  ! calculate first coupling at low scales, putting abritary fermion masses
+  ! because they are not needed at this stage
+  !-------------------------------------------------------------------------
+  g10(1) = Sqrt(4._dp * Pi * alphas)
+  g10(2) = Sqrt(4._dp * Pi * alpha)
+  g10(3:5)= mf_l_in
+  g10(6:7)= mf_u_in(1:2)
+  g10(8:10)= mf_d_in
+
+  tz = Log(Qhigh/4.8_dp) ! mb(mb)~4.8 GeV in SM
+  dt = tz / 50._dp
+
+  Call odeint(g10, 10, tz, 0._dp, 1.e-7_dp, dt, 0._dp, RGE10_SMa, kont)
+
+  !-------------------------------------------
+  ! at mb(mb) we have to decouple the b-quark
+  !--------------------------------------------
+  as_nf = g10(1)**2 / (4._dp * Pi)
+  as_nf_d_pi = as_nf / Pi
+  as_nf_minus_1 = as_nf *(1._dp+ as_nf_d_pi**2 *(c_as(1) +c_as(2)*as_nf_d_pi))
+  g9(1) = Sqrt(4._dp * Pi * as_nf_minus_1)
+  g9(2:9) = g10(2:9)
+  tz = Log(2._dp/4.8_dp) 
+  dt = tz / 50._dp
+  Call odeint(g9, 9, 0._dp, tz, 1.e-7_dp, dt, 0._dp, RGE10_SMa, kont)
+  
+  !--------------------------------------------------
+  ! lepton masses at Qlow, note that aem is alpha/pi
+  ! shift to on-shell masses
+  !--------------------------------------------------
+  aem = g9(2)**2 / (4._dp * Pi**2)
+  mf_l_out = g9(3:5) / (1._dp - aem)
+  
+  !-----------
+  ! m_u, m_c, m_t
+  !-----------
+  mf_u_out(1:2) = g9(6:7) 
+  mf_u_out(3) = mf_u_in(3) ! top quark mass did not run
+  !----------------
+  ! m_d, m_s, m_b
+  !----------------
+  mf_d_out(1:2) = g9(8:9)
+  mf_d_out(3) = g10(10)
+
+  Iname = Iname - 1
+
+ End Subroutine CalculateLowScaleMasses
+
 
  Subroutine CalculateRunningMasses(mf_l_in, mf_d_in, mf_u_in, Qlow, alpha &
      &  , alphas, Qhigh, mf_l_out, mf_d_out, mf_u_out, kont)
@@ -273,7 +393,7 @@ Contains
   Endif
 
   Do i1=1,2
-   If ((mC2(i1).Lt.0._dp).And.(Abs(mc2(i1)/mc2(3)).Lt.Epsilon(1._dp))) &
+   If ((mC2(i1).Lt.0._dp).And.(Abs(mc2(i1)/mc2(3)).Lt.(10._dp*Epsilon(1._dp)))) &
           &  mc2(i1) = 0._dp
   End Do
 
@@ -285,6 +405,68 @@ Contains
 
  End Subroutine FermionMass
 
+ Subroutine QuarkMasses_and_PhaseShifts(Yd, Yu, vSM, mf_d, uD_L, uD_R &
+                                     & , mf_u, uU_L, uU_R, CKM)
+ !-----------------------------------------------------------------------------
+ ! takes the Yukawa couplings, calculates the quark masses and the CKM
+ ! from given Yukawa couplings. In this process also phase shifts are
+ ! preformed such that the CKM is in the standard form
+ ! written by Werner Porod, 27.02.2014  
+ !-----------------------------------------------------------------------------
+ Implicit None
+  Complex(dp), Intent(in) :: Yu(3,3), Yd(3,3)
+  Real(dp), Intent(in) :: vSM(2)
+  Complex(dp), Dimension(3,3), Intent(out) :: uD_L, uD_R, uU_L, uU_R
+  Real(dp), Dimension(3), Intent(out) :: mf_d, mf_u
+  Complex(dp), Intent(out), Optional :: CKM(3,3)
+  Complex(dp) :: CKM_Q(3,3), EPhi
+  Integer :: kont
+  Real(dp) :: s13, c13, s23, s12, aR, aI
+
+  Call FermionMass(Yd,vSM(1),mf_d,uD_L,uD_R,kont)
+  Call FermionMass(Yu,vSM(2),mf_u,uU_L,uU_R,kont)
+
+  CKM_Q =  Matmul(uU_L, Transpose(Conjg(ud_L)) )
+  if (Abs(CKM_Q(1,1)).ne.0._dp) &
+        &   uD_L(1,:) = uD_L(1,:) / Conjg(CKM_Q(1,1)) * Abs(CKM_Q(1,1))
+  if (Abs(CKM_Q(1,2)).ne.0._dp) &
+        &   uD_L(2,:) = uD_L(2,:) / Conjg(CKM_Q(1,2)) * Abs(CKM_Q(1,2))
+  if (Abs(CKM_Q(2,3)).ne.0._dp) &
+        &   uU_L(2,:) = uU_L(2,:) / CKM_Q(2,3) * Abs(CKM_Q(2,3))
+  if (Abs(CKM_Q(3,3)).ne.0._dp) &
+        &   uU_L(3,:) = uU_L(3,:) / CKM_Q(3,3) * Abs(CKM_Q(3,3))
+  
+  if (Abs(CKM_Q(1,1)).ne.0._dp) &
+        &   uD_R(1,:) = uD_R(1,:) / CKM_Q(1,1) * Abs(CKM_Q(1,1))
+  if (Abs(CKM_Q(1,2)).ne.0._dp) &
+        &   uD_R(2,:) = uD_R(2,:) / CKM_Q(1,2) * Abs(CKM_Q(1,2))
+  if (Abs(CKM_Q(2,3)).ne.0._dp) &
+        &   uU_R(2,:) = uU_R(2,:) / Conjg(CKM_Q(2,3)) * Abs(CKM_Q(2,3))
+  if (Abs(CKM_Q(3,3)).ne.0._dp) &
+        &   uU_R(3,:) = uU_R(3,:) / Conjg(CKM_Q(3,3)) * Abs(CKM_Q(3,3))
+  CKM_Q =  Matmul(uU_L, Transpose(Conjg(ud_L)) )
+
+  !--------------------------------------------------------------
+  ! one more freedom left
+  !--------------------------------------------------------------
+  s13 = Abs(CKM_Q(1,3))
+  c13 = Sqrt(1._dp - s13**2)
+  s23 = Abs(CKM_Q(2,3))/c13
+  s12 = Abs(CKM_Q(1,2))/c13
+
+  aR = Real(CKM_Q(2,2),dp) + s12 * s23 * Real(CKM_Q(1,3),dp)
+  aI =  s12 * s23 * Aimag(CKM_Q(1,3)) - Aimag(CKM_Q(2,2))
+  Ephi = Cmplx(aR/Sqrt(aR**2+aI**2),aI/Sqrt(aR**2+aI**2),dp)
+
+  uU_L(2:3,:) = Ephi * uU_L(2:3,:)
+  uD_L(3,:) = Ephi * uD_L(3,:)
+  Ephi = Conjg(Ephi)
+  uU_R(2:3,:) = Ephi * uU_R(2:3,:)
+  uD_R(3,:) = Ephi * uD_R(3,:)
+
+  If (Present(CKM)) CKM = Matmul(uU_L,Conjg(Transpose(uD_L)))
+
+ End Subroutine QuarkMasses_and_PhaseShifts
 
  Subroutine InitializeStandardModel
  !-----------------------------------------------------------------
@@ -297,7 +479,7 @@ Contains
 
   Integer          :: i1, kont
   Real(dp) :: oo_alpha, s12, s23, s13, phase, c13, c23, c12 &
-                &, TimeMu, TimeTau 
+                &, TimeMu, TimeTau, g10(10), tz, dt 
 
   Iname = Iname + 1
   NameOfUnit(Iname) = "InitializeStandardModel"
@@ -420,8 +602,45 @@ Contains
 
   Close(99)
 
+  !-------------------------------------------
+  ! masses and couplings at m_Z
+  !-------------------------------------------
   Call CalculateRunningMasses(mf_l, mf_d, mf_u, Q_light_quarks, alpha_mZ &
      &  , alphas_mZ, mZ, mf_l_mZ, mf_d_mZ, mf_u_mZ, kont)
+  !-------------------------------------------
+  ! masses and couplings at m_h~125 GeV
+  !-------------------------------------------
+  tz = Log(mZ/125._dp)
+  dt = - tz / 50._dp
+  g10(1) = Sqrt(4._dp * Pi * alphas_mZ)
+  g10(2) = Sqrt(4._dp * Pi * alpha_mZ)
+  g10(3:5) = mf_l_mZ
+  g10(6:7) = mf_u_mZ(1:2)
+  g10(8:10) = mf_d_mZ
+  Call odeint(g10, 10, tz, 0._dp, 1.e-7_dp, dt, 0._dp, RGE10_SMa, kont)
+  AlphaS_125 = oo4pi * g10(1)**2
+  Alpha_125 = oo4pi * g10(2)**2
+  mf_l_125 = g10(3:5)
+  mf_d_125 = g10(8:10)
+  mf_u_125(1:2) = g10(6:7)
+  mf_u_125(3) = mf_u(3) * (1._dp - alphaS_125/Pi * 4._dp/3._dp)
+  !-------------------------------------------
+  ! masses and couplings at m_t(m_t)~160 GeV
+  !-------------------------------------------
+  tz = Log(mZ/160._dp)
+  dt = - tz / 50._dp
+  g10(1) = Sqrt(4._dp * Pi * alphas_mZ)
+  g10(2) = Sqrt(4._dp * Pi * alpha_mZ)
+  g10(3:5) = mf_l_mZ
+  g10(6:7) = mf_u_mZ(1:2)
+  g10(8:10) = mf_d_mZ
+  Call odeint(g10, 10, tz, 0._dp, 1.e-7_dp, dt, 0._dp, RGE10_SMa, kont)
+  AlphaS_mt = oo4pi * g10(1)**2
+  Alpha_mt = oo4pi * g10(2)**2
+  mf_l_mt = g10(3:5)
+  mf_d_mt = g10(8:10)
+  mf_u_mt(1:2) = g10(6:7)
+  mf_u_mt(3) = mf_u(3) * (1._dp - alphaS_mt/Pi * 4._dp/3._dp)
 
   Iname = Iname - 1
   Return
@@ -431,12 +650,16 @@ Contains
  !---------
  ! Z-boson  
  !---------
-200  mZ = 91.187_dp            ! mass
-  gamZ = 2.49_dp            ! width
-  BrZqq = 0.14_dp           ! branching ratios in q \bar{q} 
-  BrZll(1:2) = 0.035_dp     ! branching ratios in leptons
-  BrZll(3) = 0.03_dp 
+200  mZ = 91.1876_dp            ! mass
+  gamZ = 2.4952_dp           ! width
+  BrZll(1:2) = 0.0336_dp    ! branching ratios in leptons
+  BrZll(3) = 0.0338_dp      ! tau+ tau-
   BrZinv = 0.2_dp ! invisible branching ratio
+  BrZqq(1) = 0.156_dp       ! d \bar{d}
+  BrZqq(2) = 0.156_dp       ! s \bar{s}
+  BrZqq(3) = 0.151_dp       ! b \bar{b}
+  BrZqq(4) = 0.116_dp       ! u \bar{u}
+  BrZqq(5) = 0.12_dp        ! c \bar{c}
 
   mZ2 = mZ**2
   gamZ2 = gamZ**2
@@ -445,8 +668,8 @@ Contains
  !---------
  ! W-boson
  !---------
-  mW = 80.40_dp      ! mass
-  gamW = 2.06_dp     ! width
+  mW = 80.385_dp      ! mass
+  gamW = 2.085_dp     ! width
   BrWqq = 0.35_dp    ! branching ratios in q \bar{q}
   BrWln = 0.1_dp     ! branching ratios in leptons
 
@@ -458,9 +681,9 @@ Contains
  !-----------------------------
  ! lepton masses: e, muon, tau
  !-----------------------------
-  mf_l(1) = 0.51099891e-3_dp
-  mf_l(2) = 0.105658_dp
-  mf_l(3) = 1.7768_dp
+  mf_l(1) = 0.51099893e-3_dp
+  mf_l(2) = 0.1056583715_dp
+  mf_l(3) = 1.77682_dp
 
  !---------------------------------------------------------
  ! scale where masses of light quarks are defined [in GeV]
@@ -469,16 +692,16 @@ Contains
  !--------------------------
  ! up-quark masses: u, c, t
  !--------------------------
-  mf_u(1) = 0.003_dp 
+  mf_u(1) = 0.0025_dp 
   mf_u(2) = 1.27_dp
-  mf_u(3) = 171.3_dp
+  mf_u(3) = 173.1_dp
 
  !----------------------------
  ! down-quark masses: d, s, b
  !----------------------------
   mf_d(1) = 0.005_dp
-  mf_d(2) = 0.105_dp
-  mf_d(3) = 4.2_dp
+  mf_d(2) = 0.095_dp
+  mf_d(3) = 4.18_dp
 
   Do i1=1,3
    mf_l2(i1) = mf_l(i1)**2
@@ -489,11 +712,11 @@ Contains
  !--------------------------------------------------------------------
  ! couplings: Alpha(Q=0), Alpha(mZ), Alpha_S(mZ), Fermi constant G_F
  !--------------------------------------------------------------------
-  Alpha = 1._dp / 137.0359895_dp
+  Alpha = 1._dp / 137.035999074_dp
   Alpha_mZ = 1._dp / 127.9_dp
 
   AlphaS_mZ = 0.1184_dp
-  G_F = 1.16637e-5_dp
+  G_F = 1.1663787e-5_dp
 
  !-----------------------------------------
  ! for ISR correction in e+ e- annihilation
@@ -525,15 +748,51 @@ Contains
   !-----------------------------
   ! width of mu- and tau-lepton
   !-----------------------------
-  TimeMu = 2.19709e-6_dp
+  TimeMu = 2.1969811e-6_dp
   TimeTau = 2.9e-13_dp
   
-  GammaMu = G_F**2 * mf_l(2)**5 * (1._dp-8._dp * mf_l(1)**2 / mf_l(2)**2 ) &
-        & * (1._dp + 0.5_dp * Alpha * (6.25-Pi2)/Pi) / (192._dp*pi*pi2)
+  GammaMu = hbar / TimeMu
   GammaTau = hbar / TimeTau
 
+  !-------------------------------------------
+  ! masses and couplings at m_Z
+  !-------------------------------------------
   Call CalculateRunningMasses(mf_l, mf_d, mf_u, Q_light_quarks, alpha_mZ &
      &  , alphas_mZ, mZ, mf_l_mZ, mf_d_mZ, mf_u_mZ, kont)
+  !-------------------------------------------
+  ! masses and couplings at m_h~125 GeV
+  !-------------------------------------------
+  tz = Log(mZ/125._dp)
+  dt = - tz / 50._dp
+  g10(1) = Sqrt(4._dp * Pi * alphas_mZ)
+  g10(2) = Sqrt(4._dp * Pi * alpha_mZ)
+  g10(3:5) = mf_l_mZ
+  g10(6:7) = mf_u_mZ(1:2)
+  g10(8:10) = mf_d_mZ
+  Call odeint(g10, 10, tz, 0._dp, 1.e-7_dp, dt, 0._dp, RGE10_SMa, kont)
+  AlphaS_125 = oo4pi * g10(1)**2
+  Alpha_125 = oo4pi * g10(2)**2
+  mf_l_125 = g10(3:5)
+  mf_d_125 = g10(8:10)
+  mf_u_125(1:2) = g10(6:7)
+  mf_u_125(3) = mf_u(3) * (1._dp - alphaS_125/Pi * 4._dp/3._dp)
+  !-------------------------------------------
+  ! masses and couplings at m_t(m_t)~160 GeV
+  !-------------------------------------------
+  tz = Log(mZ/160._dp)
+  dt = - tz / 50._dp
+  g10(1) = Sqrt(4._dp * Pi * alphas_mZ)
+  g10(2) = Sqrt(4._dp * Pi * alpha_mZ)
+  g10(3:5) = mf_l_mZ
+  g10(6:7) = mf_u_mZ(1:2)
+  g10(8:10) = mf_d_mZ
+  Call odeint(g10, 10, tz, 0._dp, 1.e-7_dp, dt, 0._dp, RGE10_SMa, kont)
+  AlphaS_mt = oo4pi * g10(1)**2
+  Alpha_mt = oo4pi * g10(2)**2
+  mf_l_mt = g10(3:5)
+  mf_d_mt = g10(8:10)
+  mf_u_mt(1:2) = g10(6:7)
+  mf_u_mt(3) = mf_u(3) * (1._dp - alphaS_mt/Pi * 4._dp/3._dp)
 
   800  Format(f16.7)
 
@@ -630,9 +889,10 @@ Contains
    Return
   Endif
   !-------------------------------------------
-  ! standard convention in neutrino physics
+  ! note, that my mixing matrix is the
+  !  Transpose( Conjg( Nnu ) )
+  ! compared to standard convention in neutrino physics
   !-------------------------------------------
-  N = Transpose( Conjg( N ) )
 
   Iname = Iname - 1
 

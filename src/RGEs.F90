@@ -62,12 +62,14 @@ Module RGEs
     &                          ,  0._dp,  1._dp,  6._dp /) &
     &              , Shape = (/3, 3/) )
 
- Logical, Save :: TwoLoopRGE=.True.
+ Logical, Save :: TwoLoopRGE=.True., ThreeLoopRGE=.False.
  Real(dp) :: M2S_GUT
  Complex(dp) :: Alam_GUT, Alamp_GUT
 ! global variables
 
 ! private variables
+! gauge parameter Xi in the R_xi gauge
+Real(dp), Private, Save :: Xi = 1._dp, Xip2 = 1._dp
 ! simplifies matrix multiplication in case of diagonal entries only
 Logical, Private, Save :: OnlyDiagonal
 ! fix to completely decouple heavy states
@@ -313,57 +315,6 @@ Contains
   Iname = Iname - 1
 
  End Subroutine CouplingsToG5
-
- Function Frge3(t,gy) Result(f)
- !--------------------------------------------------------
- ! 2-loop rge's for g_3, e and m_b in the SM, valid in the
- ! range m_b<Q<m_Z
- ! written by Werner Porod, 3.1.01
- ! 25.09.01: Portation to f90
- !--------------------------------------------------------
- Implicit None
-
-  Real(dp), Intent(in) :: t  &  ! scale
-                     &  , gy(3) !g_s, e, m_b
-  Real(dp) :: f(3)
-
-  Real(dp) :: g32, g34, g36, e2, e4, g32e2, beta1, beta2, beta3, Q
-
-  Iname = Iname + 1
-  NameOfUnit(Iname) = 'Frge3'
-
-  q = t
-  g32 = gy(1)**2
-  g34 = gy(1)**4
-  g36 = gy(1)**6
-  e2 = gy(2)**2
-  e4 = gy(2)**4
-  g32e2 = g32 * e2 
- !--------
- ! g_3
- !--------
-  beta1 = - 23._dp * g32 / 3._dp
-  beta2 = 22._dp * g32e2 / 9._dp - 116._dp * g34 / 3._dp
-  beta3 = - 9769._dp * g36 / 54._dp
-  f(1) = oo16pi2 * gy(1) * ( beta1 + oo16pi2 * ( beta2 + oo16pi2 * beta3) )
- !--------
- ! e
- !--------
-  beta1 = 80._dp * e2 / 9._dp
-  beta2 = 464._dp * e4 / 27._dp + 176._dp * g32e2 / 9._dp
-  f(2) = oo16pi2 * gy(2) * ( beta1 + oo16pi2 * beta2)
- !--------
- ! m_b
- !--------
-  beta1 = - 8._dp * g32 - 2._dp * e2 / 3._dp
-  beta2 = - 1012._dp * g34 / 9._dp - 8._dp * g32e2 / 9._dp   &
-    &    + 397._dp * e4 / 81._dp
-  beta3 = - 949.742_dp * g36
-  f(3) = oo16pi2 * gy(3) * ( beta1 + oo16pi2 * ( beta2 + oo16pi2 * beta3) )
-
-  Iname = Iname - 1
-
- End Function Frge3
 
  Subroutine GToCouplings(g1, gauge, yuk_l, yuk_d, yuk_u)
  !-----------------------------------------------------------------------
@@ -1379,59 +1330,6 @@ Contains
 
  End Subroutine ParametersToG5
 
- Subroutine rge3(len, t,gy,f)
- !--------------------------------------------------------
- ! 2-loop rge's for g_3, e and m_b in the SM, valid in the
- ! range m_b<Q<m_Z
- ! written by Werner Porod, 3.1.01
- ! 25.09.01: Portation to f90
- !--------------------------------------------------------
- Implicit None
-
-  Integer, Intent(in) :: len
-  Real(dp), Intent(in) :: t, gy(len)
-  Real(dp), Intent(out) :: f(len)
-
-  Real(dp) :: g32, g34, g36, e2, e4, g32e2, beta1, beta2, beta3, q
-
-  Iname = Iname + 1
-  NameOfUnit(Iname) = 'rge3'
-
-  q = t
-
-  g32 = gy(1)**2
-  g34 = gy(1)**4
-  g36 = gy(1)**6
-  e2 = gy(2)**2
-  e4 = gy(2)**4
-  g32e2 = g32 * e2 
- !--------
- ! g_3
- !--------
-  beta1 = - 23._dp * g32 / 3._dp
-  beta2 = 22._dp * g32e2 / 9._dp - 116._dp * g34 / 3._dp
-  beta3 = - 9769._dp * g36 / 54._dp
-  f(1) = oo16pi2 * gy(1) * ( beta1 + oo16pi2 * ( beta2 + oo16pi2 * beta3) )
- !--------
- ! e
- !--------
-  beta1 = 80._dp * e2 / 9._dp
-  beta2 = 464._dp * e4 / 27._dp + 176._dp * g32e2 / 9._dp
-  f(2) = oo16pi2 * gy(2) * ( beta1 + oo16pi2 * beta2)
- !--------
- ! m_b
- !--------
-  beta1 = - 8._dp * g32 - 2._dp * e2 / 3._dp
-  beta2 = - 1012._dp * g34 / 9._dp - 8._dp * g32e2 / 9._dp   &
-    &    + 397._dp * e4 / 81._dp
-  beta3 = - 949.742_dp * g36
-  f(3) = oo16pi2 * gy(3) * ( beta1 + oo16pi2 * ( beta2 + oo16pi2 * beta3) )
-
-  Iname = Iname - 1
-
- End Subroutine rge3
-
-
  Subroutine rge6(len, T,GY,F)
  !-----------------------------------------------------------------
  !     Right hand side of truncated renormalization group equations
@@ -1492,93 +1390,6 @@ Contains
    End Do
 
   End Subroutine rge6
-
-
- Subroutine rge7(len, T,GY,F)
- !-----------------------------------------------------------------
- !     Right hand side of truncated renormalization group equations
- !          dGY_i/dT = F_i(G)
- !     for the determination of M_GUT and the value of alpha_GUT
- !     and values of the Yukawas
- !  written by Werner Porod, 28.12.99
- !  10.01.00: including tan(beta)
- !  6.10.2000: changing to f90
- !-----------------------------------------------------------------
- Implicit None
-  Integer, Intent(in) :: len
-  Real(Dp), Intent(in) :: T, GY(len)
-  Real(Dp), Intent(out) :: F(len)
-
-  Integer :: j,i
-  Real(Dp) :: gy2(6), sumI, beta2(3), gamma1, gamma2, q
-
-  q = t
-
-  gy2 = gy(1:6)**2
-
-  If (TwoLoopRGE) Then
-   Do i=1,3       ! gauge couplings two loop
-    sumI = 0._dp
-    Do j=1,3
-     sumI = sumI + b_2(i,j) * gy2(j) - a_2(i,j) * gy2(3+j)
-    Enddo
-    f(i) = oo16pi2 * gy(i) * gy2(i) * ( b_1(i) + oo16pi2 * sumI )
-   Enddo
-
-   beta2(1) = ( 13.5_dp* gy2(1) + 1.8_dp * gy2(2) + 1.2_dp * gy2(4)  &
-   &         - 0.4_dp * gy2(5) ) * gy2(1)                            &
-   &       + (7.5_dp * gy2(2) + 6._dp * gy2(4) ) * gy2(2 )           &
-   &       + 16._dp * gy2(5) * gy2(3)                                &
-   &       - (10._dp * gy2(4) + 9._dp * gy2(5) ) * gy2(4)            &
-   &       - (9._dp * gy2(5) +  3._dp * gy2(6) ) * gy2(5)
-
-   beta2(2) = ( 287._dp * gy2(1) / 90._dp + gy2(2) + 8._dp * gy2(3) / 9._dp   &
-   &         + 1.2_dp * gy2(4) + 0.4_dp * gy2(5) + 0.8_dp * gy2(6) ) * gy2(1) &
-   &       + (7.5_dp * gy2(2) + 8._dp * gy2(3) + 6._dp * gy2(5) ) * gy2(2)    &
-   &       + 16._dp * (-gy2(3) / 9._dp + gy2(5) ) * gy2(3)                    &
-   &       - 3._dp * (gy2(4) + gy2(5) ) * gy2(4)                              &
-   &       - (22._dp * gy2(5) + 5._dp * gy2(6) ) * gy2(5)                     &
-   &       - 5._dp * gy2(6)**2
-
-   beta2(3) = ( 2743._dp * gy2(1) / 450._dp + gy2(2) +136._dp * gy2(3)/45._dp &
-   &         + 0.4_dp * gy2(5) + 1.2_dp * gy2(6) ) * gy2(1)                   &
-   &       + (7.5_dp * gy2(2) + 8._dp * gy2(3) + 6._dp * gy2(6) ) * gy2(2)    &
-   &       + 16._dp * (-gy2(3) / 9._dp + gy2(6) ) * gy2(3)                    &
-   &       - (gy2(4) + 5._dp * gy2(5) + 5._dp * gy2(6) ) * gy2(5)             &
-   &       - 22._dp * gy2(6)**2
-
-   Do i=1,3       ! yukawa couplings two loop
-    sumI = 0._dp
-    Do j=1,3
-     sumI = sumI + c1_1(i,j) * gy2(j)  + c2_1(j,i) * gy2(j+3) 
-    End Do
-    f(i+3) = oo16pi2 * gy(i+3) * (sumI + oo16pi2 * beta2(i) )
-   End Do
-  !---------------
-  ! Ln(tan(beta))
-  !---------------
-   gamma1 = 3._dp * (gy2(5) - gy2(6)) + gy2(4)
-
-   gamma2 = 0.75_dp * ( 3._dp * (gy2(6)**2 - gy2(5)**2) - gy2(4)**2)  &
-   &    - (1.9_dp * gy2(1) + 4.5_dp * gy2(2) + 20._dp * gy2(3) ) * gy2(6)  &
-   &   + (0.4_dp * gy2(1) + 4.5_dp * gy2(2) + 20._dp * gy2(3) ) * gy2(5)  &
-   &   + (1.8_dp * gy2(1) + 1.5_dp * gy2(2) ) * gy2(4)
-
-   f(7) = oo16pi2 * (gamma1 + oo16pi2 * gamma2 )
-
-  Else ! Everything at 1-loop
-   f(1:3) = oo16pi2 * gy(1:3) * gy2(1:3) * b_1   ! gauge couplings
-   Do i=1,3       ! yukawa couplings one loop
-    sumI = 0._dp
-    Do j=1,3
-     sumI = sumI + c1_1(i,j) * gy2(j)  + c2_1(j,i) * gy2(j+3) 
-    End Do
-    f(i+3) = oo16pi2 * gy(i+3) * sumI 
-   End Do
-   f(7) = oo16pi2 * ( 3._dp * (gy2(5) - gy2(6)) + gy2(4) )
-  End If
-
-  End Subroutine rge7
 
 
  Subroutine rge8_NMSSM(len, T,GY,F)
@@ -1659,6 +1470,8 @@ Contains
  !  10.01.00: including tan(beta)
  !  6.10.2000: changing to f90
  !  4.12.2008: extension to include NMSSM couplings
+ !  27.07.13: adding gauge dependence as discussed in 1305.1548
+ !            by Dominik Stoeckinger
  !-----------------------------------------------------------------
  Implicit None
   Integer, Intent(in) :: len
@@ -1715,10 +1528,11 @@ Contains
   !---------------
    gamma1 = 3._dp * (gy2(5) - gy2(6)) + gy2(4)
 
-   gamma2 = 0.75_dp * ( 3._dp * (gy2(6)**2 - gy2(5)**2) - gy2(4)**2)  &
-   &    - (1.9_dp * gy2(1) + 4.5_dp * gy2(2) + 20._dp * gy2(3) ) * gy2(6)  &
+   gamma2 = 0.75_dp * ( 3._dp * (gy2(6)**2 - gy2(5)**2) - gy2(4)**2)      &
+   &    - (1.9_dp * gy2(1) + 4.5_dp * gy2(2) + 20._dp * gy2(3) ) * gy2(6) &
    &   + (0.4_dp * gy2(1) + 4.5_dp * gy2(2) + 20._dp * gy2(3) ) * gy2(5)  &
-   &   + (1.8_dp * gy2(1) + 1.5_dp * gy2(2) ) * gy2(4)
+   &   + (1.8_dp * gy2(1) + 1.5_dp * gy2(2) ) * gy2(4)                    &
+   &   + (0.3_dp * gy2(1) + 1.5_dp * gy2(2) ) * gamma1 ! gauge dependence
 
    f(7) = oo16pi2 * gy(7) * (-gy2(1) - 3._dp * gy2(2) + gy2(4)         &
         &                   + 3._dp * (gy2(5)+gy2(6)) + 4._dp * gy2(7) &
@@ -1894,8 +1708,6 @@ Contains
 
   q = t
 
-  OnlyDiagonal = .Not.GenerationMixing
-
   Call GToCouplings(gy,gauge,Ye,Yd,Yu)
 
   gauge2 = gauge**2
@@ -1906,9 +1718,9 @@ Contains
   Call Adjungate(Ye,aYe)
   Call Adjungate(Yu,aYu)
 
-  aYdYd = Matmul2(aYd,Yd,OnlyDiagonal)
-  aYeYe = Matmul2(aYe,Ye,OnlyDiagonal)
-  aYuYu = Matmul2(aYu,Yu,OnlyDiagonal)
+  aYdYd = Matmul(aYd,Yd)
+  aYeYe = Matmul(aYe,Ye)
+  aYuYu = Matmul(aYu,Yu)
   !------------------------------------------------
   ! these are hermitian matrices, clean up to
   ! avoid numerical problems
@@ -1930,7 +1742,7 @@ Contains
    sume1(i1,i1) = sume1(i1,i1) + diagonal(1,1)
   End Do
 
-  betaYe1 = Matmul2(Ye,sume1,OnlyDiagonal)
+  betaYe1 = Matmul(Ye,sume1)
 
   diagonal(2,1) = (3._dp,0._dp) * TraceY(2) + TraceY(1)              &
     &  + c1_1(2,1) * gauge2(1) + c1_1(2,2) * gauge2(2) + c1_1(2,3) * gauge2(3)
@@ -1939,7 +1751,7 @@ Contains
    sumd1(i1,i1) = sumd1(i1,i1) + diagonal(2,1)
   End Do
 
-  betaYd1 = Matmul2(Yd,sumd1,OnlyDiagonal)
+  betaYd1 = Matmul(Yd,sumd1)
 
   diagonal(3,1) = (3._dp,0._dp) * TraceY(3)              &
    &  + c1_1(3,1) * gauge2(1) + c1_1(3,2) * gauge2(2) + c1_1(3,3) * gauge2(3)
@@ -1948,14 +1760,14 @@ Contains
    sumu1(i1,i1) = sumu1(i1,i1) + diagonal(3,1)
   End Do
 
-  betaYu1 = Matmul2(Yu,sumu1,OnlyDiagonal)
+  betaYu1 = Matmul(Yu,sumu1)
 
   If (TwoLoopRGE) Then
-   aYdYdaYdYd = Matmul2(aYdYd,aYdYd,OnlyDiagonal)
-   aYeYeaYeYe = Matmul2(aYeYe,aYeYe,OnlyDiagonal)
-   aYuYuaYuYu = Matmul2(aYuYu,aYuYu,OnlyDiagonal)
-   aYuYuaYdYd = Matmul2(aYuYu,aYdYd,OnlyDiagonal)
-   aYdYdaYuYu = Matmul2(aYdYd,aYuYu,OnlyDiagonal)
+   aYdYdaYdYd = Matmul(aYdYd,aYdYd)
+   aYeYeaYeYe = Matmul(aYeYe,aYeYe)
+   aYuYuaYuYu = Matmul(aYuYu,aYuYu)
+   aYuYuaYdYd = Matmul(aYuYu,aYdYd)
+   aYdYdaYuYu = Matmul(aYdYd,aYuYu)
 
    !------------------------------------------------
    ! these are hermitian matrices, clean up to
@@ -1983,7 +1795,7 @@ Contains
     sume2(i1,i1) = sume2(i1,i1) + diagonal(1,2)
    End Do
  
-   betaYe2 = Matmul2(Ye,sume2,OnlyDiagonal)
+   betaYe2 = Matmul(Ye,sume2)
     
    diagonal(2,2) = diagonal(1,2)                                        &
       &     + 8._dp * ( ( gauge2(1) - 2._dp * gauge2(3) ) / 9._dp       &
@@ -1999,7 +1811,7 @@ Contains
     sumd2(i1,i1) = sumd2(i1,i1) + diagonal(2,2)
    End Do
  
-   betaYd2 = Matmul2(Yd,sumd2,OnlyDiagonal)
+   betaYd2 = Matmul(Yd,sumd2)
     
    diagonal(3,2) = - 3._dp * (3._dp * TraceY2(3) + TraceY2(4) )            &
      &      + ( 16._dp * gauge2(3) + 0.8_dp * gauge2(1) ) * TraceY(3)      &
@@ -2015,7 +1827,7 @@ Contains
     sumu2(i1,i1) = sumu2(i1,i1) + diagonal(3,2)
    End Do
  
-   betaYu2 = Matmul2(Yu,sumu2,OnlyDiagonal)
+   betaYu2 = Matmul(Yu,sumu2)
     
   End If 
 
@@ -2065,7 +1877,7 @@ Contains
  End Subroutine rge57
 
 
- Subroutine rge59_SM(len,T,GY,F)
+ Subroutine rge58(len,T,GY,F)
  !-----------------------------------------------------------------------
  ! Right hand side of renormalization group equations dGY_i/dT = F_i(G) 
  ! of the gauge and Yukawa couplings.
@@ -2073,6 +1885,9 @@ Contains
  ! and values of the Yukawas, all complex 3 times 3 matrices
  ! written by Werner Porod, 17.8.1999
  ! 25.09.01: portation to f90
+ ! 01.06.11: include tan(beta) evolution
+ !  27.07.13: adding gauge dependence as discussed in 1305.1548
+ !            by Dominik Stoeckinger
  !-----------------------------------------------------------------------
  Implicit None
 
@@ -2080,50 +1895,25 @@ Contains
   Real(dp), Intent(in) :: T, GY(len)
   Real(dp), Intent(out) :: F(len)
 
-  !-------------------------------------------------------------------
-  ! coefficients for gauge contribution in RGEs for gauge couplings
-  !-------------------------------------------------------------------
-  Real(dp), Parameter :: b_1(3) = (/ 4.1_dp, -19._dp/6._dp, -7._dp /)  &
-    & , b_2(3,3) = Reshape( Source = (/ 199._dp / 50._dp, 0.9_dp, 1.1_dp    &
-    &                                , 2.7_dp,   35._dp/5._dp ,  4.5_dp     &
-    &                                , 8.8_dp,          12._dp, -26._dp /), &
-    &                       Shape = (/3, 3/) )
-  !-------------------------------------------------------------------
-  ! coefficients for Yukawa contribution in RGEs for gauge couplings
-  ! the matrix is revised compared to usual notation: tau,bottom,top
-  !-------------------------------------------------------------------
-  Real(dp), Parameter :: a_2(3,3) =     &
-    &       Reshape( Source = (/  1.5_dp,  0.5_dp,  0._dp       &
-    &                          ,  0.5_dp,  1.5_dp,  2._dp       &
-    &                          ,  1.7_dp,  1.5_dp,  2._dp  /),  &
-    &                Shape = (/3, 3/) )
-
   Integer :: i1
-  Real(dp) :: gauge(3), gauge2(3), TraceY(3), Dgauge(3), q, TraceY2(4)      &
-    & , lam, ln_v, lam2, Dlam, Dln_v, Y2, HS, Y4, chi4, gauge4(3), betaLam1 &
-    & , betaLam2, beta_v1, beta_v2
+  Real(dp) :: gauge(3), gauge2(3), TraceY(3), Dgauge(3), q, TraceY2(4)    &
+    & , gamma1, gamma2
   Complex(dp) :: Ye(3,3), Yd(3,3), Yu(3,3), aYe(3,3), aYd(3,3), aYu(3,3)  &
     & , aYdYd(3,3), aYeYe(3,3), aYuYu(3,3), sumd1(3,3), sume1(3,3)        &
     & , betaYd1(3,3), betaYd2(3,3), betaYe1(3,3), betaYe2(3,3)            &
     & , betaYu1(3,3), betaYu2(3,3), DYe(3,3), DYd(3,3), DYu(3,3)          &
     & , aYdYdaYdYd(3,3), aYeYeaYeYe(3,3), aYuYuaYuYu(3,3)                 &
-    & , aYdYdaYuYu(3,3), aYuYuaYdYd(3,3), diagonal(3,2)       &
+    & , aYdYdaYuYu(3,3), aYuYuaYdYd(3,3), diagonal(5,2)       &
     & , hd(2), sumu1(3,3), sumd2(3,3), sume2(3,3), sumu2(3,3)
 
   Iname = Iname + 1
-  NameOfUnit(Iname) = 'rge59_SM'
+  NameOfUnit(Iname) = 'rge58'
 
   q = t
 
-  OnlyDiagonal = .Not.GenerationMixing
-
   Call GToCouplings(gy(1:57),gauge,Ye,Yd,Yu)
-  lam = gy(58)
-  ln_v = gy(59)
 
   gauge2 = gauge**2
-  gauge4 = gauge2**2
-  lam2 = lam**2
 !-----------------
 ! beta functions
 !-----------------
@@ -2131,9 +1921,9 @@ Contains
   Call Adjungate(Ye,aYe)
   Call Adjungate(Yu,aYu)
 
-  aYdYd = Matmul2(aYd,Yd,OnlyDiagonal)
-  aYeYe = Matmul2(aYe,Ye,OnlyDiagonal)
-  aYuYu = Matmul2(aYu,Yu,OnlyDiagonal)
+  aYdYd = Matmul(aYd,Yd)
+  aYeYe = Matmul(aYe,Ye)
+  aYuYu = Matmul(aYu,Yu)
   !------------------------------------------------
   ! these are hermitian matrices, clean up to
   ! avoid numerical problems
@@ -2148,48 +1938,39 @@ Contains
   TraceY(2) = Real( cTrace(aYdYd),dp )
   TraceY(3) = Real( cTrace(aYuYu),dp )
 
-  Y2 = TraceY(1) + 3._dp * (TraceY(2)+TraceY(3))
-  diagonal(1:3,1) = Y2 - 2.25_dp * gauge2(2)
-
-  diagonal(1,1) =   diagonal(1,1) - 2.25_dp * gauge2(1)
-  sume1 = 1.5_dp * aYeYe
+  diagonal(1,1) = (3._dp,0._dp) * TraceY(2) + TraceY(1)     &
+              & + c1_1(1,1) * gauge2(1) + c1_1(1,2) * gauge2(2)
+  sume1 = 3._dp * aYeYe
   Do i1=1,3
    sume1(i1,i1) = sume1(i1,i1) + diagonal(1,1)
   End Do
 
-  betaYe1 = Matmul2(Ye,sume1,OnlyDiagonal)
+  betaYe1 = Matmul(Ye,sume1)
 
-  diagonal(2,1) = diagonal(2,1) - 0.25_dp * gauge2(1) - 8._dp * gauge2(3)
-  sumd1  = 1.5_dp * (aYdYd - aYuYu)
-  sumu1  =  - sumd1
+  diagonal(2,1) = (3._dp,0._dp) * TraceY(2) + TraceY(1)              &
+    &  + c1_1(2,1) * gauge2(1) + c1_1(2,2) * gauge2(2) + c1_1(2,3) * gauge2(3)
+  sumd1  = 3._dp * aYdYd + aYuYu
   Do i1=1,3
    sumd1(i1,i1) = sumd1(i1,i1) + diagonal(2,1)
   End Do
 
-  betaYd1 = Matmul2(Yd,sumd1,OnlyDiagonal)
+  betaYd1 = Matmul(Yd,sumd1)
 
-  diagonal(3,1) = diagonal(3,1) - 0.85_dp * gauge2(1) - 8._dp * gauge2(3)
+  diagonal(3,1) = (3._dp,0._dp) * TraceY(3)              &
+   &  + c1_1(3,1) * gauge2(1) + c1_1(3,2) * gauge2(2) + c1_1(3,3) * gauge2(3)
+  sumu1  = 3._dp * aYuYu + aYdYd
   Do i1=1,3
    sumu1(i1,i1) = sumu1(i1,i1) + diagonal(3,1)
   End Do
 
-  betaYu1 = Matmul2(Yu,sumu1,OnlyDiagonal)
-
-  HS = TraceY(1)**2 + 3._dp * (TraceY(2)**2+TraceY(3)**2)
-
-  betaLam1 = 12._dp * lam2 - 4._dp * HS                           &
-         & - (1.8_dp * gauge2(1)+9._dp*gauge2(2))*lam             &
-         & + 0.27_dp * gauge4(1) + 0.9_dp * gauge2(1) * gauge2(2) &
-         & + 2.25_dp * gauge4(2)
-
-  beta_v1 = 0.45_dp * gauge2(1) + 2.25_dp * gauge2(2) - Y2
+  betaYu1 = Matmul(Yu,sumu1)
 
   If (TwoLoopRGE) Then
-   aYdYdaYdYd = Matmul2(aYdYd,aYdYd,OnlyDiagonal)
-   aYeYeaYeYe = Matmul2(aYeYe,aYeYe,OnlyDiagonal)
-   aYuYuaYuYu = Matmul2(aYuYu,aYuYu,OnlyDiagonal)
-   aYuYuaYdYd = Matmul2(aYuYu,aYdYd,OnlyDiagonal)
-   aYdYdaYuYu = Matmul2(aYdYd,aYuYu,OnlyDiagonal)
+   aYdYdaYdYd = Matmul(aYdYd,aYdYd)
+   aYeYeaYeYe = Matmul(aYeYe,aYeYe)
+   aYuYuaYuYu = Matmul(aYuYu,aYuYu)
+   aYuYuaYdYd = Matmul(aYuYu,aYdYd)
+   aYdYdaYuYu = Matmul(aYdYd,aYuYu)
 
    !------------------------------------------------
    ! these are hermitian matrices, clean up to
@@ -2206,87 +1987,67 @@ Contains
    TraceY2(3) = Real( cTrace(aYuYuaYuYu), dp)
    TraceY2(4) = Real( cTrace(aYdYdaYuYu), dp)
 
-   chi4 = 6.75_dp * (TraceY2(2)+TraceY2(3)) + 2.25_dp * TraceY2(1) &
-        & - 1.5_dp * TraceY2(4)
-
-   Y4 = (0.85_dp * gauge2(1) + 2.25_dp * gauge2(2) + 8._dp * gauge2(3)) &
-    &    * TraceY(3)                                                    &
-    & + (0.25_dp * gauge2(1) + 2.25_dp * gauge2(2) + 8._dp * gauge2(3)) &
-    &    * TraceY(2)                                                    &
-    & + 0.75_dp * (gauge2(1) + gauge2(2)) * TraceY(1)
-
-   diagonal(2,1) = - chi4 + 1.5_dp * lam2 + 2.5_dp * Y4                       &
-             &   + ( -5.75_dp * gauge2(2) + 1.35_dp * gauge2(1) ) * gauge2(2) &
-             &   + 6.855_dp * gauge4(1)
-   hd(1) = 2.25_dp *Y2 + 6._dp * lam &
-       & - 4.8375_dp * gauge2(1) - 9._dp * gauge2(2)
-   sume2 = 1.5_dp * aYeYeaYeYe - hd(1) * aYeYe
+   diagonal(1,2) = - 3._dp * (3._dp * TraceY2(2) + TraceY2(4) + TraceY2(1) ) &
+             &   + ( 16._dp * gauge2(3) - 0.4_dp * gauge2(1) ) * TraceY(2)   &
+             &   + 1.2_dp * gauge2(1) * TraceY(1)                            &
+             &   + ( 7.5_dp * gauge2(2) + 1.8_dp * gauge2(1) ) * gauge2(2)   &
+             &   + 13.5_dp * gauge2(1)**2
+   hd(1) = 9._dp * TraceY(2) + 3._dp * TraceY(1) - 6._dp * gauge2(2)
+   sume2 = - 4._dp * aYeYeaYeYe - hd(1) * aYeYe
    Do i1=1,3
-    sume2(i1,i1) = sume2(i1,i1) + diagonal(2,1)
+    sume2(i1,i1) = sume2(i1,i1) + diagonal(1,2)
    End Do
  
-   betaYe2 = Matmul2(Ye,sume2,OnlyDiagonal)
+   betaYe2 = Matmul(Ye,sume2)
     
-   diagonal(2,2) = - chi4 + 1.5_dp * lam2 + 2.5_dp * Y4      &
-             &   - 5.75_dp * gauge4(2) - 108._dp * gauge4(3) &
-             & + 9._dp * gauge2(2) * gauge2(3)
-   diagonal(3,2) = diagonal(2,2)
-   diagonal(2,2) = diagonal(2,2) - 1.27_dp * gauge4(1) / 6._dp &
-     & + (31._dp * gauge2(3) / 15._dp - 1.35_dp * gauge2(2)) * gauge2(1)
-   
-   hd(1) = -2.25_dp * Y2 - 6._dp * lam &
-       & + 8.4375_dp * gauge2(2) + 16._dp * gauge2(3)
-   hd(2) =  1.25_dp * Y2 - 2._dp * lam   &
-       & + 0.5625_dp * gauge2(2) - 16._dp * gauge2(3)
-   sumd2 = 1.5_dp * aYdYdaYdYd - aYdYdaYuYu - 0.25_dp * aYuYuaYdYd         &
-       & + 2.75_dp * aYuYuaYuYu + (hd(1) + 2.3375_dp * gauge2(1) ) * aYdYd &
-       & + (hd(2) - 0.9875_dp * gauge2(1)) * aYuYu
+   diagonal(2,2) = diagonal(1,2)                                        &
+      &     + 8._dp * ( ( gauge2(1) - 2._dp * gauge2(3) ) / 9._dp       &
+      &              + gauge2(2)  ) * gauge2(3)                         &
+      &     - 0.8_dp * gauge2(1) * gauge2(2)                            &
+      &     - 928._dp * gauge2(1)**2 / 90._dp
+   hd(1) = 0.8_dp * gauge2(1) - 3._dp * TraceY(3)
+   hd(2) = 9._dp * TraceY(2) + 3._dp * TraceY(1)     &
+     &   - 6._dp * gauge2(2) - 0.8_dp * gauge2(1)
+   sumd2 = - 4._dp * aYdYdaYdYd - 2._dp * aYuYuaYuYu - 2._dp * aYuYuaYdYd &
+       & + hd(1) * aYuYu - hd(2) * aYdYd
    Do i1=1,3
     sumd2(i1,i1) = sumd2(i1,i1) + diagonal(2,2)
    End Do
  
-   betaYd2 = Matmul2(Yd,sumd2,OnlyDiagonal)
+   betaYd2 = Matmul(Yd,sumd2)
     
-   diagonal(3,2) = diagonal(3,2) + 12.41_dp * gauge4(1) / 18._dp &
-     & + (19._dp * gauge2(3) / 15._dp - 0.45_dp * gauge2(2)) * gauge2(1)
-   
-   sumd2 = 1.5_dp * aYuYuaYuYu - aYuYuaYdYd - 0.25_dp * aYdYdaYuYu         &
-       & + 2.75_dp * aYdYdaYdYd + (hd(2) - 0.5375_dp * gauge2(1) ) * aYdYd &
-       & + (hd(1) + 2.7875_dp * gauge2(1)) * aYuYu
+   diagonal(3,2) = - 3._dp * (3._dp * TraceY2(3) + TraceY2(4) )            &
+     &      + ( 16._dp * gauge2(3) + 0.8_dp * gauge2(1) ) * TraceY(3)      &
+     &      + 8._dp * ( ( 3.4_dp * gauge2(1) - 2._dp* gauge2(3) ) / 9._dp  &
+     &               + gauge2(2)  ) * gauge2(3)                            &
+     &      + ( 7.5_dp * gauge2(2) + gauge2(1) ) * gauge2(2)               &
+     &      + 2743._dp * gauge2(1)**2 / 450._dp
+   hd(1) = 9._dp * TraceY(3) - 6._dp * gauge2(2) - 0.4_dp * gauge2(1)
+   hd(2) = 3._dp * TraceY(2) + TraceY(1) - 0.4_dp * gauge2(1)
+   sumu2 = - 4._dp * aYuYuaYuYu - 2._dp * aYdYdaYdYd - 2._dp * aYdYdaYuYu  &
+       & - hd(1) * aYuYu - hd(2) * aYdYd
    Do i1=1,3
     sumu2(i1,i1) = sumu2(i1,i1) + diagonal(3,2)
    End Do
  
-   betaYu2 = Matmul2(Yu,sumu2,OnlyDiagonal)
+   betaYu2 = Matmul(Yu,sumu2)
     
-   betaLam2 = (10.8_dp * gauge2(1) + 54._dp * gauge2(2) -78._dp * lam) * lam2 &
-     & - (9.125_dp * gauge4(2) - 5.85_dp  * gauge2(2) * gauge2(1)             &
-     &   + 2.661_dp *  gauge4(1) ) * lam                                      &
-     & + (38.125_dp * gauge2(2) - 7.225_dp * gauge2(1)) * gauge4(2)           &
-     & - (8.385_dp * gauge2(2) + 3.411_dp * gauge2(1)) * gauge4(1)            &
-     & - 64._dp * gauge2(3) * (TraceY2(2) + TraceY2(3))                       &
-     & - 1.8_dp * gauge2(1)                                                   &
-     &          * ( 3._dp * TraceY2(1)-TraceY2(2) + 2._dp * TraceY2(3) )      &
-     & - 1.5_dp * gauge4(2) * Y4 - 24._dp * lam2 * Y2 - lam * HS              &
-     & + ( 7.5_dp * (gauge2(1)+gauge2(2)) * TraceY(1)                         &
-     &   + (2.5_dp * gauge2(1) + 22.5_dp * gauge2(2) + 80._dp * gauge2(3) )   &
-     &     * TraceY(2)                                                        &
-     &   + (8.5_dp * gauge2(1) + 22.5_dp * gauge2(2) + 80._dp * gauge2(3) )   &
-     &     * TraceY(3) ) * lam                                                &
-     & + ( (-7.5_dp * gauge2(1) + 11._dp * gauge2(2)) * TraceY(1)             &
-     &   + ( 1.5_dp * gauge2(1) + 9._dp * gauge2(2)) * TraceY(2)              &
-     &   + (-5.7_dp * gauge2(1) + 21._dp * gauge2(2)) * TraceY(3)             &
-     &   ) * 0.6_dp * gauge2(1)                                               &
-     & - 12._dp * ( TraceY2(2) + TraceY2(3) + 2._dp * TraceY2(4) )            &
-     & + 6._dp * lam  * TraceY2(4)                                            &
-     & + 20._dp * ( 3._dp * cTrace(MatMul2(aYuYuaYuYu,aYuYu,OnlyDiagonal) )   &
-     &            + 3._dp * cTrace(MatMul2(aYdYdaYdYd,aYdYd,OnlyDiagonal) )   &
-     &            + cTrace(MatMul2(aYeYeaYeYe,aYeYe,OnlyDiagonal) ) )
-
-   beta_v2 = chi4 - 1.5_dp * lam2 - 2.5_dp * Y4 - 1.61625_dp * gauge4(1) &
-     & - 0.3375_dp * gauge2(2) * gauge2(1) + 8.46875_dp * gauge4(2)
-     
   End If 
+
+  !---------------
+  ! Ln(tan(beta))
+  !---------------
+  gamma1 = 3._dp * (TraceY(2) - TraceY(3)) + TraceY(1)
+
+  If (TwoLoopRGE) Then 
+   gamma2 = 0.75_dp * ( 3._dp * (TraceY(3)**2 - TraceY(2)**2) - TraceY(1)**2)  &
+   &   - (1.9_dp * gauge2(1) + 4.5_dp * gauge2(2) + 20._dp * gauge2(3) )       &
+   &                                                              * TraceY(3)  &
+   &   + (0.4_dp * gauge2(1) + 4.5_dp * gauge2(2) + 20._dp * gauge2(3) )       &
+   &                                                              * TraceY(2)  &
+   &   + (1.8_dp * gauge2(1) + 1.5_dp * gauge2(2) ) * TraceY(1)                &
+   &   + (0.3_dp * gauge2(1) + 1.5_dp * gauge2(2) ) * gamma1 ! gauge dependence
+  End If
 
  !---------------
  ! 2-loop RGEs
@@ -2303,11 +2064,6 @@ Contains
    DYe = oo16pi2 * ( betaYe1 + oo16pi2 * betaYe2 )
    DYd = oo16pi2 * ( betaYd1 + oo16pi2 * betaYd2 )
    DYu = oo16pi2 * ( betaYu1 + oo16pi2 * betaYu2 )
-  !--------------
-  ! Higgs sector  
-  !--------------
-   Dlam = oo16pi2 * ( betaLam1 + oo16pi2 * betaLam2)
-   Dln_v = oo16pi2 * ( beta_v1 + oo16pi2 * beta_v2)
 
  !---------------
  ! 1-loop RGEs
@@ -2323,27 +2079,971 @@ Contains
    DYe = oo16pi2 * betaYe1
    DYd = oo16pi2 * betaYd1
    DYu = oo16pi2 * betaYu1
-  !--------------
-  ! Higgs sector 
-  !--------------
-   Dlam = oo16pi2 * betaLam1
-   Dln_v = oo16pi2 * beta_v1
   End If
 
-  !--------------------------------------------
-  ! This helps avoiding numerical instabilities
-  !--------------------------------------------
-!  Call Chop(DYe)
-!  Call Chop(DYd)
-!  Call Chop(DYu)
 
   Call CouplingsToG(Dgauge,DYe,DYd,DYu,f(1:57))
-  f(58) = Dlam
-  f(59) = Dln_v
+  If (TwoLoopRGE) Then 
+   f(58) = oo16pi2 * (gamma1 + oo16pi2 * gamma2 )
+  Else
+   f(58) = oo16pi2 * gamma1
+  End If
 
   Iname = Iname - 1
 
- End Subroutine rge59_SM
+ End Subroutine rge58
+
+
+ Subroutine GToParameters59(g,gi,Lam,Yu,Yd,Ye,Mu)
+
+ Implicit None 
+  Real(dp), Intent(in) :: g(59) 
+  Real(dp),Intent(out) :: gi(3),Lam,Mu
+
+  Complex(dp),Intent(out) :: Yu(3,3),Yd(3,3),Ye(3,3)
+
+  Integer :: i1, i2, SumI 
+ 
+  Iname = Iname +1 
+  NameOfUnit(Iname) = 'GToParameters59' 
+ 
+  gi = g(1:3) 
+  Lam = g(4)
+  Do i1 = 1,3
+   Do i2 = 1,3
+    SumI = (i2-1) + (i1-1)*3
+    SumI = SumI*2 
+    Yu(i1,i2) = Cmplx( g(SumI+5), g(SumI+6), dp) 
+   End Do 
+  End Do 
+
+  Do i1 = 1,3
+   Do i2 = 1,3
+    SumI = (i2-1) + (i1-1)*3
+    SumI = SumI*2 
+    Yd(i1,i2) = Cmplx( g(SumI+23), g(SumI+24), dp) 
+   End Do 
+  End Do 
+ 
+  Do i1 = 1,3
+   Do i2 = 1,3
+    SumI = (i2-1) + (i1-1)*3
+    SumI = SumI*2 
+    Ye(i1,i2) = Cmplx( g(SumI+41), g(SumI+42), dp) 
+   End Do 
+  End Do 
+ 
+  Mu= g(59) ! or ln(v)
+
+  Do i1=1,59 
+   If (g(i1).ne.g(i1)) Then 
+    Write(*,*) "NaN appearing in ",NameOfUnit(Iname) 
+    Write(*,*) "At position ", i1 
+    Call TerminateProgram 
+   End if 
+  End do
+ 
+  Iname = Iname - 1 
+ 
+ 
+ End Subroutine GToParameters59
+
+ Subroutine ParametersToG59(gi,Lam,Yu,Yd,Ye,Mu,g)
+
+ Implicit None 
+  Real(dp), Intent(out) :: g(59) 
+  Real(dp), Intent(in) :: Lam,gi(3),Mu
+
+  Complex(dp), Intent(in) :: Yu(3,3),Yd(3,3),Ye(3,3)
+
+  Integer :: i1, i2, SumI 
+ 
+  Iname = Iname +1 
+  NameOfUnit(Iname) = 'ParametersToG59' 
+ 
+  g(1:3) = gi  
+  g(4) = Lam
+
+  Do i1 = 1,3
+   Do i2 = 1,3
+    SumI = (i2-1) + (i1-1)*3
+    SumI = SumI*2 
+    g(SumI+5) = Real(Yu(i1,i2), dp) 
+    g(SumI+6) = Aimag(Yu(i1,i2)) 
+   End Do 
+  End Do 
+
+  Do i1 = 1,3
+   Do i2 = 1,3
+    SumI = (i2-1) + (i1-1)*3
+    SumI = SumI*2 
+    g(SumI+23) = Real(Yd(i1,i2), dp) 
+    g(SumI+24) = Aimag(Yd(i1,i2)) 
+   End Do 
+  End Do 
+
+  Do i1 = 1,3
+   Do i2 = 1,3
+    SumI = (i2-1) + (i1-1)*3
+    SumI = SumI*2 
+    g(SumI+41) = Real(Ye(i1,i2), dp) 
+    g(SumI+42) = Aimag(Ye(i1,i2)) 
+   End Do 
+  End Do 
+
+  g(59) = Mu ! or ln(v)
+
+  Iname = Iname - 1 
+ 
+ End Subroutine ParametersToG59
+
+
+ Subroutine rge59(len, T, GY, F) 
+ Implicit None 
+  Integer, Intent(in) :: len 
+  Real(dp), Intent(in) :: T, GY(len) 
+  Real(dp), Intent(out) :: F(len) 
+  Integer :: i2
+  Real(dp) :: q 
+  Real(dp) :: g1,betag11,betag12,Dg1,g2,betag21,betag22,Dg2,g3,betag31,betag32
+  Real(dp) :: Lam,betaLam1,betaLam2,DLam,Mu,betaMu1,betaMu2,DMu,Dg3, Dgi(3)
+  Complex(dp) :: Yu(3,3),betaYu1(3,3),betaYu2(3,3)           & 
+   & ,DYu(3,3),adjYu(3,3),Yd(3,3),betaYd1(3,3),betaYd2(3,3),DYd(3,3),adjYd(3,3) & 
+   & ,Ye(3,3),betaYe1(3,3),betaYe2(3,3),DYe(3,3),adjYe(3,3)
+  Complex(dp) :: YdadjYd(3,3),YeadjYe(3,3),YuadjYu(3,3),adjYdYd(3,3) &
+   & , adjYuYu(3,3), YdadjYdYd(3,3),YdadjYuYu(3,3),YeadjYeYe(3,3)    &
+   & , YuadjYuYu(3,3), adjYdYdadjYd(3,3),adjYeYeadjYe(3,3)           &
+   & , YdadjYdYdadjYd(3,3), YeadjYeYeadjYe(3,3),YuadjYuYuadjYu(3,3)  &
+   & , adjYeYe(3,3), YuadjYdYd(3,3), adjYuYuadjYu(3,3) 
+
+  Complex(dp) :: YuadjYd(3,3),adjYuYuadjYd(3,3),YdadjYuYuadjYd(3,3)        &
+   &  , YuadjYdYdadjYd(3,3), YuadjYuYuadjYd(3,3),adjYdYdadjYdYd(3,3)       &
+   &  , adjYdYdadjYuYu(3,3),adjYeYeadjYeYe(3,3), adjYuYuadjYdYd(3,3)       &
+   &  , adjYuYuadjYuYu(3,3),YdadjYdYdadjYdYd(3,3),YdadjYdYdadjYuYu(3,3)    &
+   &  , YdadjYuYuadjYdYd(3,3),YdadjYuYuadjYuYu(3,3),YeadjYeYeadjYeYe(3,3)  &
+   &  , YuadjYdYdadjYdYd(3,3), YuadjYdYdadjYuYu(3,3),YuadjYuYuadjYdYd(3,3) &
+   &  , YuadjYuYuadjYuYu(3,3),adjYdYdadjYdYdadjYd(3,3)                     & 
+   &  , adjYdYdadjYuYuadjYd(3,3),adjYeYeadjYeYeadjYe(3,3)                  &
+   &  , adjYuYuadjYdYdadjYd(3,3),  adjYuYuadjYuYuadjYd(3,3)                &
+   &  , adjYuYuadjYuYuadjYu(3,3),YdadjYdYdadjYdYdadjYd(3,3)                & 
+   &  , YdadjYdYdadjYuYuadjYd(3,3),YdadjYuYuadjYdYdadjYd(3,3)              &
+   &  , YdadjYuYuadjYuYuadjYd(3,3), YeadjYeYeadjYeYeadjYe(3,3)             &
+   &  , YuadjYuYuadjYuYuadjYu(3,3)
+
+  Complex(dp) :: TrYdadjYd,TrYeadjYe,TrYuadjYu,TrYdadjYdYdadjYd &
+   & ,TrYeadjYeYeadjYe,TrYuadjYuYuadjYu
+
+  Complex(dp) :: TrYdadjYuYuadjYd,TrYdadjYdYdadjYdYdadjYd       &
+   & , TrYdadjYdYdadjYuYuadjYd,TrYdadjYuYuadjYdYdadjYd          & 
+   & , TrYdadjYuYuadjYuYuadjYd,TrYeadjYeYeadjYeYeadjYe          &
+   & , TrYuadjYuYuadjYuYuadjYu
+
+  Real(dp) :: g1p2,g1p3,g1p4,g2p2,g2p3,g2p4,g3p2,g3p3, Lamp2
+
+  Real(dp) :: g1p5,g1p6,g2p5,g2p6,g3p4,g3p5, Lamp3, gi(3)
+
+  Iname = Iname +1 
+  NameOfUnit(Iname) = 'rge59' 
+   
+  OnlyDiagonal = .Not.GenerationMixing 
+  q = t 
+   
+  Call GToParameters59(gy,gi,Lam,Yu,Yd,Ye,Mu)
+  g1 = gi(1)
+  g2 = gi(2)
+  g3 = gi(3)
+  !Write(*,*) gy(60), gy(61)
+
+  Call Adjungate(Yu,adjYu)
+  Call Adjungate(Yd,adjYd)
+  Call Adjungate(Ye,adjYe)
+   YdadjYd = Matmul(Yd,adjYd) 
+  Forall(i2=1:3)  YdadjYd(i2,i2) =  Real(YdadjYd(i2,i2),dp) 
+   YeadjYe = Matmul(Ye,adjYe) 
+  Forall(i2=1:3)  YeadjYe(i2,i2) =  Real(YeadjYe(i2,i2),dp) 
+   YuadjYu = Matmul(Yu,adjYu) 
+  Forall(i2=1:3)  YuadjYu(i2,i2) =  Real(YuadjYu(i2,i2),dp) 
+   adjYdYd = Matmul(adjYd,Yd) 
+  Forall(i2=1:3)  adjYdYd(i2,i2) =  Real(adjYdYd(i2,i2),dp) 
+   adjYeYe = Matmul(adjYe,Ye) 
+  Forall(i2=1:3)  adjYeYe(i2,i2) =  Real(adjYeYe(i2,i2),dp) 
+   adjYuYu = Matmul(adjYu,Yu) 
+  Forall(i2=1:3)  adjYuYu(i2,i2) =  Real(adjYuYu(i2,i2),dp) 
+   YdadjYdYd = Matmul(Yd,adjYdYd) 
+   YdadjYuYu = Matmul(Yd,adjYuYu) 
+   YeadjYeYe = Matmul(Ye,adjYeYe) 
+   YuadjYdYd = Matmul(Yu,adjYdYd) 
+   YuadjYuYu = Matmul(Yu,adjYuYu) 
+   adjYdYdadjYd = Matmul(adjYd,YdadjYd) 
+   adjYeYeadjYe = Matmul(adjYe,YeadjYe) 
+   adjYuYuadjYu = Matmul(adjYu,YuadjYu) 
+   YdadjYdYdadjYd = Matmul(Yd,adjYdYdadjYd) 
+   Forall(i2=1:3)  YdadjYdYdadjYd(i2,i2) =  Real(YdadjYdYdadjYd(i2,i2),dp)
+   YeadjYeYeadjYe = Matmul(Ye,adjYeYeadjYe) 
+   Forall(i2=1:3)  YeadjYeYeadjYe(i2,i2) =  Real(YeadjYeYeadjYe(i2,i2),dp) 
+   YuadjYuYuadjYu = Matmul(Yu,adjYuYuadjYu) 
+   Forall(i2=1:3)  YuadjYuYuadjYu(i2,i2) =  Real(YuadjYuYuadjYu(i2,i2),dp) 
+   TrYdadjYd = Real(cTrace(YdadjYd),dp) 
+   TrYeadjYe = Real(cTrace(YeadjYe),dp) 
+   TrYuadjYu = Real(cTrace(YuadjYu),dp) 
+   TrYdadjYdYdadjYd = Real(cTrace(YdadjYdYdadjYd),dp) 
+   TrYeadjYeYeadjYe = Real(cTrace(YeadjYeYeadjYe),dp) 
+   TrYuadjYuYuadjYu = Real(cTrace(YuadjYuYuadjYu),dp) 
+   g1p2 =g1**2 
+   g1p3 =g1**3 
+   g1p4 =g1**4 
+   g2p2 =g2**2 
+   g2p3 =g2**3 
+   g2p4 =g2**4 
+   g3p2 =g3**2 
+   g3p3 =g3**3 
+   Lamp2 =Lam**2 
+   g1p5 =g1**5 
+   g1p6 =g1**6 
+   g2p5 =g2**5 
+   g2p6 =g2**6 
+   g3p4 =g3**4 
+   g3p5 =g3**5 
+   Lamp3 =Lam**3 
+
+
+  If (TwoLoopRGE) Then 
+   YuadjYd = Matmul(Yu,adjYd) 
+   adjYuYuadjYd = Matmul(adjYu,YuadjYd) 
+   YdadjYuYuadjYd = Matmul(Yd,adjYuYuadjYd) 
+  Forall(i2=1:3)  YdadjYuYuadjYd(i2,i2) =  Real(YdadjYuYuadjYd(i2,i2),dp) 
+   YuadjYdYdadjYd = Matmul(Yu,adjYdYdadjYd) 
+   YuadjYuYuadjYd = Matmul(Yu,adjYuYuadjYd) 
+   adjYdYdadjYdYd = Matmul(adjYd,YdadjYdYd) 
+  Forall(i2=1:3)  adjYdYdadjYdYd(i2,i2) =  Real(adjYdYdadjYdYd(i2,i2),dp) 
+   adjYdYdadjYuYu = Matmul(adjYd,YdadjYuYu) 
+   adjYeYeadjYeYe = Matmul(adjYe,YeadjYeYe) 
+  Forall(i2=1:3)  adjYeYeadjYeYe(i2,i2) =  Real(adjYeYeadjYeYe(i2,i2),dp) 
+   adjYuYuadjYdYd = Matmul(adjYu,YuadjYdYd) 
+   adjYuYuadjYuYu = Matmul(adjYu,YuadjYuYu) 
+  Forall(i2=1:3)  adjYuYuadjYuYu(i2,i2) =  Real(adjYuYuadjYuYu(i2,i2),dp) 
+   YdadjYdYdadjYdYd = Matmul(Yd,adjYdYdadjYdYd) 
+   YdadjYdYdadjYuYu = Matmul(Yd,adjYdYdadjYuYu) 
+   YdadjYuYuadjYdYd = Matmul(Yd,adjYuYuadjYdYd) 
+   YdadjYuYuadjYuYu = Matmul(Yd,adjYuYuadjYuYu) 
+   YeadjYeYeadjYeYe = Matmul(Ye,adjYeYeadjYeYe) 
+   YuadjYdYdadjYdYd = Matmul(Yu,adjYdYdadjYdYd) 
+   YuadjYdYdadjYuYu = Matmul(Yu,adjYdYdadjYuYu) 
+   YuadjYuYuadjYdYd = Matmul(Yu,adjYuYuadjYdYd) 
+   YuadjYuYuadjYuYu = Matmul(Yu,adjYuYuadjYuYu) 
+   adjYdYdadjYdYdadjYd = Matmul(adjYd,YdadjYdYdadjYd) 
+   adjYdYdadjYuYuadjYd = Matmul(adjYd,YdadjYuYuadjYd) 
+   adjYeYeadjYeYeadjYe = Matmul(adjYe,YeadjYeYeadjYe) 
+   adjYuYuadjYdYdadjYd = Matmul(adjYu,YuadjYdYdadjYd) 
+   adjYuYuadjYuYuadjYd = Matmul(adjYu,YuadjYuYuadjYd) 
+   adjYuYuadjYuYuadjYu = Matmul(adjYu,YuadjYuYuadjYu) 
+   YdadjYdYdadjYdYdadjYd = Matmul(Yd,adjYdYdadjYdYdadjYd) 
+   Forall(i2=1:3)  YdadjYdYdadjYdYdadjYd(i2,i2) =  &
+                       &     Real(YdadjYdYdadjYdYdadjYd(i2,i2),dp) 
+   YdadjYdYdadjYuYuadjYd = Matmul(Yd,adjYdYdadjYuYuadjYd) 
+   YdadjYuYuadjYdYdadjYd = Matmul(Yd,adjYuYuadjYdYdadjYd) 
+   YdadjYuYuadjYuYuadjYd = Matmul(Yd,adjYuYuadjYuYuadjYd) 
+   Forall(i2=1:3)  YdadjYuYuadjYuYuadjYd(i2,i2) =  &
+                       &    Real(YdadjYuYuadjYuYuadjYd(i2,i2),dp) 
+   YeadjYeYeadjYeYeadjYe = Matmul(Ye,adjYeYeadjYeYeadjYe) 
+   Forall(i2=1:3)  YeadjYeYeadjYeYeadjYe(i2,i2) =  &
+                       &   Real(YeadjYeYeadjYeYeadjYe(i2,i2),dp) 
+   YuadjYuYuadjYuYuadjYu = Matmul(Yu,adjYuYuadjYuYuadjYu) 
+   Forall(i2=1:3)  YuadjYuYuadjYuYuadjYu(i2,i2) =  &
+                       &   Real(YuadjYuYuadjYuYuadjYu(i2,i2),dp) 
+   TrYdadjYuYuadjYd = cTrace(YdadjYuYuadjYd) 
+   TrYdadjYdYdadjYdYdadjYd = cTrace(YdadjYdYdadjYdYdadjYd) 
+   TrYdadjYdYdadjYuYuadjYd = cTrace(YdadjYdYdadjYuYuadjYd) 
+   TrYdadjYuYuadjYdYdadjYd = cTrace(YdadjYuYuadjYdYdadjYd) 
+   TrYdadjYuYuadjYuYuadjYd = cTrace(YdadjYuYuadjYuYuadjYd) 
+   TrYeadjYeYeadjYeYeadjYe = cTrace(YeadjYeYeadjYeYeadjYe) 
+   TrYuadjYuYuadjYuYuadjYu = cTrace(YuadjYuYuadjYuYuadjYu) 
+   g1p5 =g1**5 
+   g1p6 =g1**6 
+   g2p5 =g2**5 
+   g2p6 =g2**6 
+   g3p4 =g3**4 
+   g3p5 =g3**5 
+   Lamp3 =Lam**3 
+  End If 
+   
+   
+  !-------------------- 
+  ! g1 
+  !-------------------- 
+   
+  betag11  = 41._dp*(g1p3)/10._dp
+
+  
+  If (TwoLoopRGE) Then 
+   betag12 = 199._dp*(g1p5)/50._dp + (27*g1p3*g2p2)/10._dp &
+         & + (44*g1p3*g3p2)/5._dp - (g1p3*TrYdadjYd)/2._dp & 
+         & - (3*g1p3*TrYeadjYe)/2._dp - (17*g1p3*TrYuadjYu)/10._dp
+ 
+   Dg1 = oo16pi2*( betag11 + oo16pi2 * betag12 ) 
+   
+  Else 
+   Dg1 = oo16pi2* betag11 
+  End If 
+
+  !-------------------- 
+  ! g2 
+  !-------------------- 
+   
+  betag21  = -19._dp*(g2p3)/6._dp
+   
+  If (TwoLoopRGE) Then 
+   betag22 = (9*g1p2*g2p3)/10._dp + 35._dp*(g2p5)/6._dp + 12*g2p3*g3p2 &
+         & - (3*g2p3*TrYdadjYd)/2._dp - (g2p3*TrYeadjYe)/2._dp         &
+         & - (3*g2p3*TrYuadjYu)/2._dp
+
+   
+  Dg2 = oo16pi2*( betag21 + oo16pi2 * betag22 ) 
+
+  Else 
+   Dg2 = oo16pi2* betag21 
+  End If 
+  
+  !-------------------- 
+  ! g3 
+  !-------------------- 
+   
+  betag31  = -7._dp*(g3p3)
+   
+  If (TwoLoopRGE) Then 
+   betag32 = (11*g1p2*g3p3)/10._dp + (9*g2p2*g3p3)/2._dp - 26._dp*(g3p5) &
+          & - 2*g3p3*TrYdadjYd - 2*g3p3*TrYuadjYu
+
+   Dg3 = oo16pi2*( betag31 + oo16pi2 * betag32 ) 
+
+  Else 
+   Dg3 = oo16pi2* betag31 
+  End If 
+   
+   
+  !-------------------- 
+  ! Lam 
+  !-------------------- 
+   
+  betaLam1  = 27._dp*(g1p4)/100._dp + (9*g1p2*g2p2)/10._dp + 9._dp*(g2p4)/4._dp & 
+     &  + 12._dp*(Lamp2) - 12._dp*(TrYdadjYdYdadjYd) - 4._dp*(TrYeadjYeYeadjYe) & 
+     &  - 12._dp*(TrYuadjYuYuadjYu) - (9*g1p2*Lam)/5._dp - 9*g2p2*Lam           &
+     &  + 12*TrYdadjYd*Lam + 4*TrYeadjYe*Lam + 12*TrYuadjYu*Lam
+   
+  If (TwoLoopRGE) Then 
+   betaLam2 = -3411._dp*(g1p6)/1000._dp - (1677*g1p4*g2p2)/200._dp           & 
+     & - (289*g1p2*g2p4)/40._dp + 305._dp*(g2p6)/8._dp                       & 
+     & + (54*g1p2*Lamp2)/5._dp + 54*g2p2*Lamp2 - 78._dp*(Lamp3)              & 
+     & + (9*g1p4*TrYdadjYd)/10._dp + (27*g1p2*g2p2*TrYdadjYd)/5._dp          & 
+     & - (9*g2p4*TrYdadjYd)/2._dp - 72*Lamp2*TrYdadjYd                       & 
+     & + (8*g1p2*TrYdadjYdYdadjYd)/5._dp - 64*g3p2*TrYdadjYdYdadjYd          & 
+     & + 60._dp*(TrYdadjYdYdadjYdYdadjYd) + 12._dp*(TrYdadjYdYdadjYuYuadjYd) & 
+     & - 24._dp*(TrYdadjYuYuadjYdYdadjYd) - 12._dp*(TrYdadjYuYuadjYuYuadjYd) & 
+     & - (9*g1p4*TrYeadjYe)/2._dp + (33*g1p2*g2p2*TrYeadjYe)/5._dp           & 
+     & - (3*g2p4*TrYeadjYe)/2._dp - 24*Lamp2*TrYeadjYe                       & 
+     & - (24*g1p2*TrYeadjYeYeadjYe)/5._dp + 20._dp*(TrYeadjYeYeadjYeYeadjYe) & 
+     & - (171*g1p4*TrYuadjYu)/50._dp + (63*g1p2*g2p2*TrYuadjYu)/5._dp        & 
+     & - (9*g2p4*TrYuadjYu)/2._dp - 72*Lamp2*TrYuadjYu                       & 
+     & - (16*g1p2*TrYuadjYuYuadjYu)/5._dp - 64*g3p2*TrYuadjYuYuadjYu         & 
+     & + 60._dp*(TrYuadjYuYuadjYuYuadjYu) + (1887*g1p4*Lam)/200._dp          & 
+     & + (117*g1p2*g2p2*Lam)/20._dp - (73*g2p4*Lam)/8._dp                    & 
+     & + (5*g1p2*TrYdadjYd*Lam)/2._dp + (45*g2p2*TrYdadjYd*Lam)/2._dp        & 
+     & + 80*g3p2*TrYdadjYd*Lam - 3*TrYdadjYdYdadjYd*Lam                      & 
+     & - 42*TrYdadjYuYuadjYd*Lam + (15*g1p2*TrYeadjYe*Lam)/2._dp             & 
+     & + (15*g2p2*TrYeadjYe*Lam)/2._dp - TrYeadjYeYeadjYe*Lam                & 
+     & + (17*g1p2*TrYuadjYu*Lam)/2._dp + (45*g2p2*TrYuadjYu*Lam)/2._dp       & 
+     & + 80*g3p2*TrYuadjYu*Lam - 3*TrYuadjYuYuadjYu*Lam
+
+   DLam = oo16pi2*( betaLam1 + oo16pi2 * betaLam2 ) 
+  
+  Else 
+   DLam = oo16pi2* betaLam1 
+  End If 
+   
+  !-------------------- 
+  ! Yu 
+  !-------------------- 
+   
+  betaYu1  = (-17*g1p2*Yu)/20._dp - (9*g2p2*Yu)/4._dp - 8*g3p2*Yu + 3*TrYdadjYd*Yu +    & 
+  &  TrYeadjYe*Yu + 3*TrYuadjYu*Yu - 3._dp*(YuadjYdYd)/2._dp + 3._dp*(YuadjYuYu)/2._dp
+
+   
+   
+  If (TwoLoopRGE) Then 
+  betaYu2 = (1187*g1p4*Yu)/600._dp - (9*g1p2*g2p2*Yu)/20._dp - (23*g2p4*Yu)/4._dp +               & 
+  &  (19*g1p2*g3p2*Yu)/15._dp + 9*g2p2*g3p2*Yu - 108*g3p4*Yu + (3*Lamp2*Yu)/2._dp +        & 
+  &  (5*g1p2*TrYdadjYd*Yu)/8._dp + (45*g2p2*TrYdadjYd*Yu)/8._dp + 20*g3p2*TrYdadjYd*Yu -   & 
+  &  (27*TrYdadjYdYdadjYd*Yu)/4._dp + (3*TrYdadjYuYuadjYd*Yu)/2._dp + (15*g1p2*TrYeadjYe*Yu)/8._dp +& 
+  &  (15*g2p2*TrYeadjYe*Yu)/8._dp - (9*TrYeadjYeYeadjYe*Yu)/4._dp + (17*g1p2*TrYuadjYu*Yu)/8._dp +& 
+  &  (45*g2p2*TrYuadjYu*Yu)/8._dp + 20*g3p2*TrYuadjYu*Yu - (27*TrYuadjYuYuadjYu*Yu)/4._dp -& 
+  &  (43*g1p2*YuadjYdYd)/80._dp + (9*g2p2*YuadjYdYd)/16._dp - 16*g3p2*YuadjYdYd +          & 
+  &  (15*TrYdadjYd*YuadjYdYd)/4._dp + (5*TrYeadjYe*YuadjYdYd)/4._dp + (15*TrYuadjYu*YuadjYdYd)/4._dp +& 
+  &  11._dp*(YuadjYdYdadjYdYd)/4._dp - YuadjYdYdadjYuYu/4._dp + (223*g1p2*YuadjYuYu)/80._dp +& 
+  &  (135*g2p2*YuadjYuYu)/16._dp + 16*g3p2*YuadjYuYu - (27*TrYdadjYd*YuadjYuYu)/4._dp -    & 
+  &  (9*TrYeadjYe*YuadjYuYu)/4._dp - (27*TrYuadjYu*YuadjYuYu)/4._dp - YuadjYuYuadjYdYd +   & 
+  &  3._dp*(YuadjYuYuadjYuYu)/2._dp - 6*YuadjYuYu*Lam
+
+   
+  DYu = oo16pi2*( betaYu1 + oo16pi2 * betaYu2 ) 
+
+   
+  Else 
+  DYu = oo16pi2* betaYu1 
+  End If 
+   
+   
+  Call Chop(DYu) 
+
+  !-------------------- 
+  ! Yd 
+  !-------------------- 
+   
+  betaYd1  = -(g1p2*Yd)/4._dp - (9*g2p2*Yd)/4._dp - 8*g3p2*Yd + 3*TrYdadjYd*Yd +        & 
+  &  TrYeadjYe*Yd + 3*TrYuadjYu*Yd + 3._dp*(YdadjYdYd)/2._dp - 3._dp*(YdadjYuYu)/2._dp
+
+   
+   
+  If (TwoLoopRGE) Then 
+  betaYd2 = (-127*g1p4*Yd)/600._dp - (27*g1p2*g2p2*Yd)/20._dp - (23*g2p4*Yd)/4._dp +              & 
+  &  (31*g1p2*g3p2*Yd)/15._dp + 9*g2p2*g3p2*Yd - 108*g3p4*Yd + (3*Lamp2*Yd)/2._dp +        & 
+  &  (5*g1p2*TrYdadjYd*Yd)/8._dp + (45*g2p2*TrYdadjYd*Yd)/8._dp + 20*g3p2*TrYdadjYd*Yd -   & 
+  &  (27*TrYdadjYdYdadjYd*Yd)/4._dp + (3*TrYdadjYuYuadjYd*Yd)/2._dp + (15*g1p2*TrYeadjYe*Yd)/8._dp +& 
+  &  (15*g2p2*TrYeadjYe*Yd)/8._dp - (9*TrYeadjYeYeadjYe*Yd)/4._dp + (17*g1p2*TrYuadjYu*Yd)/8._dp +& 
+  &  (45*g2p2*TrYuadjYu*Yd)/8._dp + 20*g3p2*TrYuadjYu*Yd - (27*TrYuadjYuYuadjYu*Yd)/4._dp +& 
+  &  (187*g1p2*YdadjYdYd)/80._dp + (135*g2p2*YdadjYdYd)/16._dp + 16*g3p2*YdadjYdYd -       & 
+  &  (27*TrYdadjYd*YdadjYdYd)/4._dp - (9*TrYeadjYe*YdadjYdYd)/4._dp - (27*TrYuadjYu*YdadjYdYd)/4._dp +& 
+  &  3._dp*(YdadjYdYdadjYdYd)/2._dp - YdadjYdYdadjYuYu - (79*g1p2*YdadjYuYu)/80._dp +      & 
+  &  (9*g2p2*YdadjYuYu)/16._dp - 16*g3p2*YdadjYuYu + (15*TrYdadjYd*YdadjYuYu)/4._dp +      & 
+  &  (5*TrYeadjYe*YdadjYuYu)/4._dp + (15*TrYuadjYu*YdadjYuYu)/4._dp - YdadjYuYuadjYdYd/4._dp +& 
+  &  11._dp*(YdadjYuYuadjYuYu)/4._dp - 6*YdadjYdYd*Lam
+
+   
+  DYd = oo16pi2*( betaYd1 + oo16pi2 * betaYd2 ) 
+
+   
+  Else 
+  DYd = oo16pi2* betaYd1 
+  End If 
+   
+   
+  Call Chop(DYd) 
+
+  !-------------------- 
+  ! Ye 
+  !-------------------- 
+   
+  betaYe1  = (-9*g1p2*Ye)/4._dp - (9*g2p2*Ye)/4._dp + 3*TrYdadjYd*Ye + TrYeadjYe*Ye +   & 
+  &  3*TrYuadjYu*Ye + 3._dp*(YeadjYeYe)/2._dp
+
+   
+   
+  If (TwoLoopRGE) Then 
+  betaYe2 = (1371*g1p4*Ye)/200._dp + (27*g1p2*g2p2*Ye)/20._dp - (23*g2p4*Ye)/4._dp +              & 
+  &  (3*Lamp2*Ye)/2._dp + (5*g1p2*TrYdadjYd*Ye)/8._dp + (45*g2p2*TrYdadjYd*Ye)/8._dp +     & 
+  &  20*g3p2*TrYdadjYd*Ye - (27*TrYdadjYdYdadjYd*Ye)/4._dp + (3*TrYdadjYuYuadjYd*Ye)/2._dp +& 
+  &  (15*g1p2*TrYeadjYe*Ye)/8._dp + (15*g2p2*TrYeadjYe*Ye)/8._dp - (9*TrYeadjYeYeadjYe*Ye)/4._dp +& 
+  &  (17*g1p2*TrYuadjYu*Ye)/8._dp + (45*g2p2*TrYuadjYu*Ye)/8._dp + 20*g3p2*TrYuadjYu*Ye -  & 
+  &  (27*TrYuadjYuYuadjYu*Ye)/4._dp + (387*g1p2*YeadjYeYe)/80._dp + (135*g2p2*YeadjYeYe)/16._dp -& 
+  &  (27*TrYdadjYd*YeadjYeYe)/4._dp - (9*TrYeadjYe*YeadjYeYe)/4._dp - (27*TrYuadjYu*YeadjYeYe)/4._dp +& 
+  &  3._dp*(YeadjYeYeadjYeYe)/2._dp - 6*YeadjYeYe*Lam
+
+
+
+   
+  DYe = oo16pi2*( betaYe1 + oo16pi2 * betaYe2 ) 
+
+   
+  Else 
+  DYe = oo16pi2* betaYe1 
+  End If 
+   
+   
+  Call Chop(DYe) 
+
+  !-------------------- 
+  ! Mu 
+  !-------------------- 
+   
+  betaMu1  = (-9*g1p2*Mu)/10._dp - (9*g2p2*Mu)/2._dp + 6*Mu*TrYdadjYd + 2*Mu*TrYeadjYe +& 
+  &  6*Mu*TrYuadjYu + 6*Mu*Lam
+
+   
+   
+  If (TwoLoopRGE) Then 
+  betaMu2 = (1671*g1p4*Mu)/400._dp + (9*g1p2*g2p2*Mu)/8._dp - (145*g2p4*Mu)/16._dp -              & 
+  &  15*Lamp2*Mu + (5*g1p2*Mu*TrYdadjYd)/4._dp + (45*g2p2*Mu*TrYdadjYd)/4._dp +            & 
+  &  40*g3p2*Mu*TrYdadjYd - (27*Mu*TrYdadjYdYdadjYd)/2._dp - 21*Mu*TrYdadjYuYuadjYd +      & 
+  &  (15*g1p2*Mu*TrYeadjYe)/4._dp + (15*g2p2*Mu*TrYeadjYe)/4._dp - (9*Mu*TrYeadjYeYeadjYe)/2._dp +& 
+  &  (17*g1p2*Mu*TrYuadjYu)/4._dp + (45*g2p2*Mu*TrYuadjYu)/4._dp + 40*g3p2*Mu*TrYuadjYu -  & 
+  &  (27*Mu*TrYuadjYuYuadjYu)/2._dp + (36*g1p2*Mu*Lam)/5._dp + 36*g2p2*Mu*Lam -            & 
+  &  36*Mu*TrYdadjYd*Lam - 12*Mu*TrYeadjYe*Lam - 36*Mu*TrYuadjYu*Lam
+
+   
+  DMu = oo16pi2*( betaMu1 + oo16pi2 * betaMu2 ) 
+
+   
+  Else 
+   DMu = oo16pi2* betaMu1 
+  End If 
+   Dgi(1) = Dg1   
+   Dgi(2) = Dg2   
+   Dgi(3) = Dg3   
+   Call ParametersToG59(Dgi,DLam,DYu,DYd,DYe,DMu,f)
+
+  Iname = Iname - 1 
+
+ End Subroutine rge59  
+
+
+ Subroutine rge59a(len, T, GY, F)
+ !---------------------------------------------------------------
+ ! taking the routine rge59 and replace the RGE for mu^2 by the
+ ! one for the vev 
+ ! 01.02.2017: adding the known 3-loop parts, thanks to Florian Staub
+ !             and Alexander Voigt
+ !---------------------------------------------------------------
+ Implicit None 
+  Integer, Intent(in) :: len 
+  Real(dp), Intent(in) :: T, GY(len) 
+  Real(dp), Intent(out) :: F(len) 
+  Integer :: i2
+  Real(dp) :: q 
+  Real(dp) :: g1,betag11,betag12,Dg1,g2,betag21,betag22,Dg2,g3,betag31,betag32
+  Real(dp) :: Lam,betaLam1,betaLam2,DLam,ln_v,betaVEV1,betaVEV2,Dln_v,Dg3, Dgi(3)
+  Complex(dp) :: Yu(3,3),betaYu1(3,3),betaYu2(3,3)           & 
+   & ,DYu(3,3),adjYu(3,3),Yd(3,3),betaYd1(3,3),betaYd2(3,3),DYd(3,3),adjYd(3,3) & 
+   & ,Ye(3,3),betaYe1(3,3),betaYe2(3,3),DYe(3,3),adjYe(3,3)
+  Complex(dp) :: YdadjYd(3,3),YeadjYe(3,3),YuadjYu(3,3),adjYdYd(3,3) &
+   & , adjYuYu(3,3), YdadjYdYd(3,3),YdadjYuYu(3,3),YeadjYeYe(3,3)    &
+   & , YuadjYuYu(3,3), adjYdYdadjYd(3,3),adjYeYeadjYe(3,3)           &
+   & , YdadjYdYdadjYd(3,3), YeadjYeYeadjYe(3,3),YuadjYuYuadjYu(3,3)  &
+   & , adjYeYe(3,3), YuadjYdYd(3,3), adjYuYuadjYu(3,3) 
+
+  Complex(dp) :: YuadjYd(3,3),adjYuYuadjYd(3,3),YdadjYuYuadjYd(3,3)        &
+   &  , YuadjYdYdadjYd(3,3), YuadjYuYuadjYd(3,3),adjYdYdadjYdYd(3,3)       &
+   &  , adjYdYdadjYuYu(3,3),adjYeYeadjYeYe(3,3), adjYuYuadjYdYd(3,3)       &
+   &  , adjYuYuadjYuYu(3,3),YdadjYdYdadjYdYd(3,3),YdadjYdYdadjYuYu(3,3)    &
+   &  , YdadjYuYuadjYdYd(3,3),YdadjYuYuadjYuYu(3,3),YeadjYeYeadjYeYe(3,3)  &
+   &  , YuadjYdYdadjYdYd(3,3), YuadjYdYdadjYuYu(3,3),YuadjYuYuadjYdYd(3,3) &
+   &  , YuadjYuYuadjYuYu(3,3),adjYdYdadjYdYdadjYd(3,3)                     & 
+   &  , adjYdYdadjYuYuadjYd(3,3),adjYeYeadjYeYeadjYe(3,3)                  &
+   &  , adjYuYuadjYdYdadjYd(3,3),  adjYuYuadjYuYuadjYd(3,3)                &
+   &  , adjYuYuadjYuYuadjYu(3,3),YdadjYdYdadjYdYdadjYd(3,3)                & 
+   &  , YdadjYdYdadjYuYuadjYd(3,3),YdadjYuYuadjYdYdadjYd(3,3)              &
+   &  , YdadjYuYuadjYuYuadjYd(3,3), YeadjYeYeadjYeYeadjYe(3,3)             &
+   &  , YuadjYuYuadjYuYuadjYu(3,3)
+
+  Complex(dp) :: TrYdadjYd,TrYeadjYe,TrYuadjYu,TrYdadjYdYdadjYd &
+   & ,TrYeadjYeYeadjYe,TrYuadjYuYuadjYu
+
+  Complex(dp) :: TrYdadjYuYuadjYd,TrYdadjYdYdadjYdYdadjYd       &
+   & , TrYdadjYdYdadjYuYuadjYd,TrYdadjYuYuadjYdYdadjYd          & 
+   & , TrYdadjYuYuadjYuYuadjYd,TrYeadjYeYeadjYeYeadjYe          &
+   & , TrYuadjYuYuadjYuYuadjYu, Yt
+
+  Real(dp) :: g1p2,g1p3,g1p4,g2p2,g2p3,g2p4,g3p2,g3p3, Lamp2
+
+  Real(dp) :: g1p5,g1p6,g2p5,g2p6,g3p4,g3p5, Lamp3, gi(3), chi4, Y4 &
+   & , betag33, Ytp2, Ytp4, betaLam3, betaYu3, Lamp4
+
+  Real(dp), Parameter :: Z3=1.2020569031595942366_dp
+
+  Iname = Iname +1 
+  NameOfUnit(Iname) = 'rge59a' 
+   
+  OnlyDiagonal = .Not.GenerationMixing 
+  q = t 
+   
+  Call GToParameters59(gy,gi,Lam,Yu,Yd,Ye,ln_v)
+  g1 = gi(1)
+  g2 = gi(2)
+  g3 = gi(3)
+  Yt = Yu(3,3)
+
+  Call Adjungate(Yu,adjYu)
+  Call Adjungate(Yd,adjYd)
+  Call Adjungate(Ye,adjYe)
+   YdadjYd = Matmul(Yd,adjYd) 
+  Forall(i2=1:3)  YdadjYd(i2,i2) =  Real(YdadjYd(i2,i2),dp) 
+   YeadjYe = Matmul(Ye,adjYe) 
+  Forall(i2=1:3)  YeadjYe(i2,i2) =  Real(YeadjYe(i2,i2),dp) 
+   YuadjYu = Matmul(Yu,adjYu) 
+  Forall(i2=1:3)  YuadjYu(i2,i2) =  Real(YuadjYu(i2,i2),dp) 
+   adjYdYd = Matmul(adjYd,Yd) 
+  Forall(i2=1:3)  adjYdYd(i2,i2) =  Real(adjYdYd(i2,i2),dp) 
+   adjYeYe = Matmul(adjYe,Ye) 
+  Forall(i2=1:3)  adjYeYe(i2,i2) =  Real(adjYeYe(i2,i2),dp) 
+   adjYuYu = Matmul(adjYu,Yu) 
+  Forall(i2=1:3)  adjYuYu(i2,i2) =  Real(adjYuYu(i2,i2),dp) 
+   YdadjYdYd = Matmul(Yd,adjYdYd) 
+   YdadjYuYu = Matmul(Yd,adjYuYu) 
+   YeadjYeYe = Matmul(Ye,adjYeYe) 
+   YuadjYdYd = Matmul(Yu,adjYdYd) 
+   YuadjYuYu = Matmul(Yu,adjYuYu) 
+   adjYdYdadjYd = Matmul(adjYd,YdadjYd) 
+   adjYeYeadjYe = Matmul(adjYe,YeadjYe) 
+   adjYuYuadjYu = Matmul(adjYu,YuadjYu) 
+   YdadjYdYdadjYd = Matmul(Yd,adjYdYdadjYd) 
+   Forall(i2=1:3)  YdadjYdYdadjYd(i2,i2) =  Real(YdadjYdYdadjYd(i2,i2),dp)
+   YeadjYeYeadjYe = Matmul(Ye,adjYeYeadjYe) 
+   Forall(i2=1:3)  YeadjYeYeadjYe(i2,i2) =  Real(YeadjYeYeadjYe(i2,i2),dp) 
+   YuadjYuYuadjYu = Matmul(Yu,adjYuYuadjYu) 
+   Forall(i2=1:3)  YuadjYuYuadjYu(i2,i2) =  Real(YuadjYuYuadjYu(i2,i2),dp) 
+   TrYdadjYd = Real(cTrace(YdadjYd),dp) 
+   TrYeadjYe = Real(cTrace(YeadjYe),dp) 
+   TrYuadjYu = Real(cTrace(YuadjYu),dp) 
+   TrYdadjYdYdadjYd = Real(cTrace(YdadjYdYdadjYd),dp) 
+   TrYeadjYeYeadjYe = Real(cTrace(YeadjYeYeadjYe),dp) 
+   TrYuadjYuYuadjYu = Real(cTrace(YuadjYuYuadjYu),dp) 
+   g1p2 =g1**2 
+   g1p3 =g1**3 
+   g1p4 =g1**4 
+   g2p2 =g2**2 
+   g2p3 =g2**3 
+   g2p4 =g2**4 
+   g3p2 =g3**2 
+   g3p3 =g3**3 
+   Lamp2 =Lam**2 
+   g1p5 =g1**5 
+   g1p6 =g1**6 
+   g2p5 =g2**5 
+   g2p6 =g2**6 
+   g3p4 =g3**4 
+   g3p5 =g3**5 
+   Lamp3 =Lam**3 
+
+
+  If (TwoLoopRGE) Then 
+   YuadjYd = Matmul(Yu,adjYd) 
+   adjYuYuadjYd = Matmul(adjYu,YuadjYd) 
+   YdadjYuYuadjYd = Matmul(Yd,adjYuYuadjYd) 
+  Forall(i2=1:3)  YdadjYuYuadjYd(i2,i2) =  Real(YdadjYuYuadjYd(i2,i2),dp) 
+   YuadjYdYdadjYd = Matmul(Yu,adjYdYdadjYd) 
+   YuadjYuYuadjYd = Matmul(Yu,adjYuYuadjYd) 
+   adjYdYdadjYdYd = Matmul(adjYd,YdadjYdYd) 
+  Forall(i2=1:3)  adjYdYdadjYdYd(i2,i2) =  Real(adjYdYdadjYdYd(i2,i2),dp) 
+   adjYdYdadjYuYu = Matmul(adjYd,YdadjYuYu) 
+   adjYeYeadjYeYe = Matmul(adjYe,YeadjYeYe) 
+  Forall(i2=1:3)  adjYeYeadjYeYe(i2,i2) =  Real(adjYeYeadjYeYe(i2,i2),dp) 
+   adjYuYuadjYdYd = Matmul(adjYu,YuadjYdYd) 
+   adjYuYuadjYuYu = Matmul(adjYu,YuadjYuYu) 
+  Forall(i2=1:3)  adjYuYuadjYuYu(i2,i2) =  Real(adjYuYuadjYuYu(i2,i2),dp) 
+   YdadjYdYdadjYdYd = Matmul(Yd,adjYdYdadjYdYd) 
+   YdadjYdYdadjYuYu = Matmul(Yd,adjYdYdadjYuYu) 
+   YdadjYuYuadjYdYd = Matmul(Yd,adjYuYuadjYdYd) 
+   YdadjYuYuadjYuYu = Matmul(Yd,adjYuYuadjYuYu) 
+   YeadjYeYeadjYeYe = Matmul(Ye,adjYeYeadjYeYe) 
+   YuadjYdYdadjYdYd = Matmul(Yu,adjYdYdadjYdYd) 
+   YuadjYdYdadjYuYu = Matmul(Yu,adjYdYdadjYuYu) 
+   YuadjYuYuadjYdYd = Matmul(Yu,adjYuYuadjYdYd) 
+   YuadjYuYuadjYuYu = Matmul(Yu,adjYuYuadjYuYu) 
+   adjYdYdadjYdYdadjYd = Matmul(adjYd,YdadjYdYdadjYd) 
+   adjYdYdadjYuYuadjYd = Matmul(adjYd,YdadjYuYuadjYd) 
+   adjYeYeadjYeYeadjYe = Matmul(adjYe,YeadjYeYeadjYe) 
+   adjYuYuadjYdYdadjYd = Matmul(adjYu,YuadjYdYdadjYd) 
+   adjYuYuadjYuYuadjYd = Matmul(adjYu,YuadjYuYuadjYd) 
+   adjYuYuadjYuYuadjYu = Matmul(adjYu,YuadjYuYuadjYu) 
+   YdadjYdYdadjYdYdadjYd = Matmul(Yd,adjYdYdadjYdYdadjYd) 
+   Forall(i2=1:3)  YdadjYdYdadjYdYdadjYd(i2,i2) =  &
+                       &     Real(YdadjYdYdadjYdYdadjYd(i2,i2),dp) 
+   YdadjYdYdadjYuYuadjYd = Matmul(Yd,adjYdYdadjYuYuadjYd) 
+   YdadjYuYuadjYdYdadjYd = Matmul(Yd,adjYuYuadjYdYdadjYd) 
+   YdadjYuYuadjYuYuadjYd = Matmul(Yd,adjYuYuadjYuYuadjYd) 
+   Forall(i2=1:3)  YdadjYuYuadjYuYuadjYd(i2,i2) =  &
+                       &    Real(YdadjYuYuadjYuYuadjYd(i2,i2),dp) 
+   YeadjYeYeadjYeYeadjYe = Matmul(Ye,adjYeYeadjYeYeadjYe) 
+   Forall(i2=1:3)  YeadjYeYeadjYeYeadjYe(i2,i2) =  &
+                       &   Real(YeadjYeYeadjYeYeadjYe(i2,i2),dp) 
+   YuadjYuYuadjYuYuadjYu = Matmul(Yu,adjYuYuadjYuYuadjYu) 
+   Forall(i2=1:3)  YuadjYuYuadjYuYuadjYu(i2,i2) =  &
+                       &   Real(YuadjYuYuadjYuYuadjYu(i2,i2),dp) 
+   TrYdadjYuYuadjYd = cTrace(YdadjYuYuadjYd) 
+   TrYdadjYdYdadjYdYdadjYd = cTrace(YdadjYdYdadjYdYdadjYd) 
+   TrYdadjYdYdadjYuYuadjYd = cTrace(YdadjYdYdadjYuYuadjYd) 
+   TrYdadjYuYuadjYdYdadjYd = cTrace(YdadjYuYuadjYdYdadjYd) 
+   TrYdadjYuYuadjYuYuadjYd = cTrace(YdadjYuYuadjYuYuadjYd) 
+   TrYeadjYeYeadjYeYeadjYe = cTrace(YeadjYeYeadjYeYeadjYe) 
+   TrYuadjYuYuadjYuYuadjYu = cTrace(YuadjYuYuadjYuYuadjYu) 
+   g1p5 =g1**5 
+   g1p6 =g1**6 
+   g2p5 =g2**5 
+   g2p6 =g2**6 
+   g3p4 =g3**4 
+   g3p5 =g3**5 
+   Lamp3 =Lam**3 
+   Lamp4 =Lam**4 
+
+   Ytp2 = Abs(Yt)**2
+   Ytp4 = Ytp2**2
+  End If 
+   
+   
+  !-------------------- 
+  ! g1 
+  !-------------------- 
+   
+  betag11  = 41._dp*(g1p3)/10._dp
+
+  
+  If (TwoLoopRGE) Then 
+   betag12 = 199._dp*(g1p5)/50._dp + (27*g1p3*g2p2)/10._dp &
+         & + (44*g1p3*g3p2)/5._dp - (g1p3*TrYdadjYd)/2._dp & 
+         & - (3*g1p3*TrYeadjYe)/2._dp - (17*g1p3*TrYuadjYu)/10._dp
+ 
+   Dg1 = oo16pi2*( betag11 + oo16pi2 * betag12 ) 
+   
+  Else 
+   Dg1 = oo16pi2* betag11 
+  End If 
+
+  !-------------------- 
+  ! g2 
+  !-------------------- 
+   
+  betag21  = -19._dp*(g2p3)/6._dp
+   
+  If (TwoLoopRGE) Then 
+   betag22 = (9*g1p2*g2p3)/10._dp + 35._dp*(g2p5)/6._dp + 12*g2p3*g3p2 &
+         & - (3*g2p3*TrYdadjYd)/2._dp - (g2p3*TrYeadjYe)/2._dp         &
+         & - (3*g2p3*TrYuadjYu)/2._dp
+
+   
+  Dg2 = oo16pi2*( betag21 + oo16pi2 * betag22 ) 
+
+  Else 
+   Dg2 = oo16pi2* betag21 
+  End If 
+  
+  !-------------------- 
+  ! g3 
+  !-------------------- 
+   
+  betag31  = -7._dp*(g3p3)
+   
+  If (TwoLoopRGE) Then 
+   betag32 = (11*g1p2*g3p3)/10._dp + (9*g2p2*g3p3)/2._dp - 26._dp*(g3p5) &
+          & - 2*g3p3*TrYdadjYd - 2*g3p3*TrYuadjYu
+
+!betag33 = (65._dp*g3**7)/2._dp - 40*g3**5*Yt**2 + 15*g3**3*Yt**4
+   If (ThreeLoopRGE) Then 
+    betag33 = (65._dp*g3p5*g3p2)/2._dp - g3p3 * Ytp2 * ( 40*g3p2 + 15*Ytp2)
+    Dg3 = oo16pi2*( betag31 + oo16pi2 * (betag32 + oo16pi2 * betag33) ) 
+   Else
+    Dg3 = oo16pi2*( betag31 + oo16pi2 * betag32 ) 
+   End If
+
+  Else 
+   Dg3 = oo16pi2* betag31 
+  End If 
+   
+   
+  !-------------------- 
+  ! Lam 
+  !-------------------- 
+   
+  betaLam1  = 27._dp*(g1p4)/100._dp + (9*g1p2*g2p2)/10._dp + 9._dp*(g2p4)/4._dp & 
+     &  + 12._dp*(Lamp2) - 12._dp*(TrYdadjYdYdadjYd) - 4._dp*(TrYeadjYeYeadjYe) & 
+     &  - 12._dp*(TrYuadjYuYuadjYu) - (9*g1p2*Lam)/5._dp - 9*g2p2*Lam           &
+     &  + 12*TrYdadjYd*Lam + 4*TrYeadjYe*Lam + 12*TrYuadjYu*Lam
+   
+  If (TwoLoopRGE) Then 
+   betaLam2 = -3411._dp*(g1p6)/1000._dp - (1677*g1p4*g2p2)/200._dp           & 
+     & - (289*g1p2*g2p4)/40._dp + 305._dp*(g2p6)/8._dp                       & 
+     & + (54*g1p2*Lamp2)/5._dp + 54*g2p2*Lamp2 - 78._dp*(Lamp3)              & 
+     & + (9*g1p4*TrYdadjYd)/10._dp + (27*g1p2*g2p2*TrYdadjYd)/5._dp          & 
+     & - (9*g2p4*TrYdadjYd)/2._dp - 72*Lamp2*TrYdadjYd                       & 
+     & + (8*g1p2*TrYdadjYdYdadjYd)/5._dp - 64*g3p2*TrYdadjYdYdadjYd          & 
+     & + 60._dp*(TrYdadjYdYdadjYdYdadjYd) + 12._dp*(TrYdadjYdYdadjYuYuadjYd) & 
+     & - 24._dp*(TrYdadjYuYuadjYdYdadjYd) - 12._dp*(TrYdadjYuYuadjYuYuadjYd) & 
+     & - (9*g1p4*TrYeadjYe)/2._dp + (33*g1p2*g2p2*TrYeadjYe)/5._dp           & 
+     & - (3*g2p4*TrYeadjYe)/2._dp - 24*Lamp2*TrYeadjYe                       & 
+     & - (24*g1p2*TrYeadjYeYeadjYe)/5._dp + 20._dp*(TrYeadjYeYeadjYeYeadjYe) & 
+     & - (171*g1p4*TrYuadjYu)/50._dp + (63*g1p2*g2p2*TrYuadjYu)/5._dp        & 
+     & - (9*g2p4*TrYuadjYu)/2._dp - 72*Lamp2*TrYuadjYu                       & 
+     & - (16*g1p2*TrYuadjYuYuadjYu)/5._dp - 64*g3p2*TrYuadjYuYuadjYu         & 
+     & + 60._dp*(TrYuadjYuYuadjYuYuadjYu) + (1887*g1p4*Lam)/200._dp          & 
+     & + (117*g1p2*g2p2*Lam)/20._dp - (73*g2p4*Lam)/8._dp                    & 
+     & + (5*g1p2*TrYdadjYd*Lam)/2._dp + (45*g2p2*TrYdadjYd*Lam)/2._dp        & 
+     & + 80*g3p2*TrYdadjYd*Lam - 3*TrYdadjYdYdadjYd*Lam                      & 
+     & - 42*TrYdadjYuYuadjYd*Lam + (15*g1p2*TrYeadjYe*Lam)/2._dp             & 
+     & + (15*g2p2*TrYeadjYe*Lam)/2._dp - TrYeadjYeYeadjYe*Lam                & 
+     & + (17*g1p2*TrYuadjYu*Lam)/2._dp + (45*g2p2*TrYuadjYu*Lam)/2._dp       & 
+     & + 80*g3p2*TrYuadjYu*Lam - 3*TrYuadjYuYuadjYu*Lam
+
+!betaLam3 =   (5238*Lam**3*Yt**2 + Lam*Yt**2*(24*g3**2*Yt**2*(895 - 1296*Z3) + 27*Yt**4*(13 - 176*Z3) &
+!& + 32*g3**4*(311 - 36*Z3)) + 36*Lam**4*(299 + 168*Z3) + &
+!& 2*Yt**4*(16*g3**4*(-133 + 48*Z3) - 9*Yt**4*(533 + 96*Z3) + 48*g3**2*Yt**2*(-19 + 120*Z3)) + &
+!& 54*Lam**2*Yt**2*(16*g3**2*(-17 + 16*Z3) + Yt**2*(191 + 168*Z3)))/48._dp
+   
+   If (ThreeLoopRGE) Then 
+    betaLam3 = (5238*Lamp3*Ytp2 + Lam*Ytp2*(24*g3p2*Ytp2*(895 - 1296*Z3)    &
+          &   + 27*Ytp4*(13 - 176*Z3) + 32*g3p4*(311 - 36*Z3))              &
+          &   + 36*Lamp4*(299 + 168*Z3) + 2*Ytp4*(16*g3p4*(-133 + 48*Z3)    &
+          &   - 9*Ytp4*(533 + 96*Z3) + 48*g3p2*Ytp2*(-19 + 120*Z3))         &
+          &   + 54*Lamp3*Ytp2*(16*g3p2*(-17 + 16*Z3) + Ytp2*(191 + 168*Z3)) &
+          &   ) / 48._dp
+
+    DLam = oo16pi2*( betaLam1 + oo16pi2 * (betaLam2 + oo16pi2 * betaLam3)) 
+   Else
+    DLam = oo16pi2*( betaLam1 + oo16pi2 * betaLam2 ) 
+   End If
+
+  
+  Else 
+   DLam = oo16pi2* betaLam1 
+  End If 
+   
+  !-------------------- 
+  ! Yu 
+  !-------------------- 
+   
+  betaYu1  = (-17*g1p2*Yu)/20._dp - (9*g2p2*Yu)/4._dp - 8*g3p2*Yu + 3*TrYdadjYd*Yu +    & 
+  &  TrYeadjYe*Yu + 3*TrYuadjYu*Yu - 3._dp*(YuadjYdYd)/2._dp + 3._dp*(YuadjYuYu)/2._dp
+
+   
+   
+  If (TwoLoopRGE) Then 
+  betaYu2 = (1187*g1p4*Yu)/600._dp - (9*g1p2*g2p2*Yu)/20._dp - (23*g2p4*Yu)/4._dp +               & 
+  &  (19*g1p2*g3p2*Yu)/15._dp + 9*g2p2*g3p2*Yu - 108*g3p4*Yu + (3*Lamp2*Yu)/2._dp +        & 
+  &  (5*g1p2*TrYdadjYd*Yu)/8._dp + (45*g2p2*TrYdadjYd*Yu)/8._dp + 20*g3p2*TrYdadjYd*Yu -   & 
+  &  (27*TrYdadjYdYdadjYd*Yu)/4._dp + (3*TrYdadjYuYuadjYd*Yu)/2._dp + (15*g1p2*TrYeadjYe*Yu)/8._dp +& 
+  &  (15*g2p2*TrYeadjYe*Yu)/8._dp - (9*TrYeadjYeYeadjYe*Yu)/4._dp + (17*g1p2*TrYuadjYu*Yu)/8._dp +& 
+  &  (45*g2p2*TrYuadjYu*Yu)/8._dp + 20*g3p2*TrYuadjYu*Yu - (27*TrYuadjYuYuadjYu*Yu)/4._dp -& 
+  &  (43*g1p2*YuadjYdYd)/80._dp + (9*g2p2*YuadjYdYd)/16._dp - 16*g3p2*YuadjYdYd +          & 
+  &  (15*TrYdadjYd*YuadjYdYd)/4._dp + (5*TrYeadjYe*YuadjYdYd)/4._dp + (15*TrYuadjYu*YuadjYdYd)/4._dp +& 
+  &  11._dp*(YuadjYdYdadjYdYd)/4._dp - YuadjYdYdadjYuYu/4._dp + (223*g1p2*YuadjYuYu)/80._dp +& 
+  &  (135*g2p2*YuadjYuYu)/16._dp + 16*g3p2*YuadjYuYu - (27*TrYdadjYd*YuadjYuYu)/4._dp -    & 
+  &  (9*TrYeadjYe*YuadjYuYu)/4._dp - (27*TrYuadjYu*YuadjYuYu)/4._dp - YuadjYuYuadjYdYd +   & 
+  &  3._dp*(YuadjYuYuadjYuYu)/2._dp - 6*YuadjYuYu*Lam
+
+   
+!betaYu3 =  (Yt*(48*g3**2*(8*Lam*Yt**2 - 157*Yt**4) + 8*g3**4*Yt**2*(3827 - 1368*Z3) + &
+!& 32*g3**6*(-2083 + 960*Z3) + 9*(-24*Lam**3 + 5*Lam**2*Yt**2 + 528*Lam*Yt**4 + &
+!& 2*Yt**6*(113 + 36*Z3))))/48._dp
+
+   DYu = oo16pi2*( betaYu1 + oo16pi2 * betaYu2 ) 
+   If (ThreeLoopRGE) Then 
+    betaYu3 = (Yt*(48*g3p2*(8*Lam*Ytp2 - 157*Ytp4)                     &
+        &   + 8*g3p4*Ytp2*(3827 - 1368*Z3) + 32*g3**6*(-2083 + 960*Z3) &
+        &   + 9*(-24*Lamp3 + 5*Lamp2*Ytp2 + 528*Lam*Ytp4               &
+        &   + 2*Yt**6*(113 + 36*Z3))) ) /48._dp
+
+    DYu(3,3) = DYu(3,3) +  oo16pi2**3*betaYu3 
+   End If 
+   
+  Else 
+  DYu = oo16pi2* betaYu1 
+  End If 
+   
+   
+  Call Chop(DYu) 
+
+  !-------------------- 
+  ! Yd 
+  !-------------------- 
+   
+  betaYd1  = -(g1p2*Yd)/4._dp - (9*g2p2*Yd)/4._dp - 8*g3p2*Yd + 3*TrYdadjYd*Yd +        & 
+  &  TrYeadjYe*Yd + 3*TrYuadjYu*Yd + 3._dp*(YdadjYdYd)/2._dp - 3._dp*(YdadjYuYu)/2._dp
+
+   
+   
+  If (TwoLoopRGE) Then 
+  betaYd2 = (-127*g1p4*Yd)/600._dp - (27*g1p2*g2p2*Yd)/20._dp - (23*g2p4*Yd)/4._dp +              & 
+  &  (31*g1p2*g3p2*Yd)/15._dp + 9*g2p2*g3p2*Yd - 108*g3p4*Yd + (3*Lamp2*Yd)/2._dp +        & 
+  &  (5*g1p2*TrYdadjYd*Yd)/8._dp + (45*g2p2*TrYdadjYd*Yd)/8._dp + 20*g3p2*TrYdadjYd*Yd -   & 
+  &  (27*TrYdadjYdYdadjYd*Yd)/4._dp + (3*TrYdadjYuYuadjYd*Yd)/2._dp + (15*g1p2*TrYeadjYe*Yd)/8._dp +& 
+  &  (15*g2p2*TrYeadjYe*Yd)/8._dp - (9*TrYeadjYeYeadjYe*Yd)/4._dp + (17*g1p2*TrYuadjYu*Yd)/8._dp +& 
+  &  (45*g2p2*TrYuadjYu*Yd)/8._dp + 20*g3p2*TrYuadjYu*Yd - (27*TrYuadjYuYuadjYu*Yd)/4._dp +& 
+  &  (187*g1p2*YdadjYdYd)/80._dp + (135*g2p2*YdadjYdYd)/16._dp + 16*g3p2*YdadjYdYd -       & 
+  &  (27*TrYdadjYd*YdadjYdYd)/4._dp - (9*TrYeadjYe*YdadjYdYd)/4._dp - (27*TrYuadjYu*YdadjYdYd)/4._dp +& 
+  &  3._dp*(YdadjYdYdadjYdYd)/2._dp - YdadjYdYdadjYuYu - (79*g1p2*YdadjYuYu)/80._dp +      & 
+  &  (9*g2p2*YdadjYuYu)/16._dp - 16*g3p2*YdadjYuYu + (15*TrYdadjYd*YdadjYuYu)/4._dp +      & 
+  &  (5*TrYeadjYe*YdadjYuYu)/4._dp + (15*TrYuadjYu*YdadjYuYu)/4._dp - YdadjYuYuadjYdYd/4._dp +& 
+  &  11._dp*(YdadjYuYuadjYuYu)/4._dp - 6*YdadjYdYd*Lam
+
+   
+  DYd = oo16pi2*( betaYd1 + oo16pi2 * betaYd2 ) 
+
+   
+  Else 
+  DYd = oo16pi2* betaYd1 
+  End If 
+   
+   
+  Call Chop(DYd) 
+
+  !-------------------- 
+  ! Ye 
+  !-------------------- 
+   
+  betaYe1  = (-9*g1p2*Ye)/4._dp - (9*g2p2*Ye)/4._dp + 3*TrYdadjYd*Ye + TrYeadjYe*Ye +   & 
+  &  3*TrYuadjYu*Ye + 3._dp*(YeadjYeYe)/2._dp
+
+   
+   
+  If (TwoLoopRGE) Then 
+  betaYe2 = (1371*g1p4*Ye)/200._dp + (27*g1p2*g2p2*Ye)/20._dp - (23*g2p4*Ye)/4._dp +              & 
+  &  (3*Lamp2*Ye)/2._dp + (5*g1p2*TrYdadjYd*Ye)/8._dp + (45*g2p2*TrYdadjYd*Ye)/8._dp +     & 
+  &  20*g3p2*TrYdadjYd*Ye - (27*TrYdadjYdYdadjYd*Ye)/4._dp + (3*TrYdadjYuYuadjYd*Ye)/2._dp +& 
+  &  (15*g1p2*TrYeadjYe*Ye)/8._dp + (15*g2p2*TrYeadjYe*Ye)/8._dp - (9*TrYeadjYeYeadjYe*Ye)/4._dp +& 
+  &  (17*g1p2*TrYuadjYu*Ye)/8._dp + (45*g2p2*TrYuadjYu*Ye)/8._dp + 20*g3p2*TrYuadjYu*Ye -  & 
+  &  (27*TrYuadjYuYuadjYu*Ye)/4._dp + (387*g1p2*YeadjYeYe)/80._dp + (135*g2p2*YeadjYeYe)/16._dp -& 
+  &  (27*TrYdadjYd*YeadjYeYe)/4._dp - (9*TrYeadjYe*YeadjYeYe)/4._dp - (27*TrYuadjYu*YeadjYeYe)/4._dp +& 
+  &  3._dp*(YeadjYeYeadjYeYe)/2._dp - 6*YeadjYeYe*Lam
+
+
+
+   
+  DYe = oo16pi2*( betaYe1 + oo16pi2 * betaYe2 ) 
+
+   
+  Else 
+  DYe = oo16pi2* betaYe1 
+  End If 
+   
+   
+  Call Chop(DYe) 
+
+  !-------------------- 
+  ! ln(vev)
+  !-------------------- 
+  betaVEV1 = (0.45_dp + 0.25_dp*Xi) * g1p2 &
+         & + (2.25_dp + 0.75_dp*Xi) * g2p2          &
+         & - TrYeadjYe - 3._dp * (TrYdadjYd+TrYuadjYu)
+
+   
+   
+  If (TwoLoopRGE) Then
+   chi4 = 6.75_dp * (TrYdadjYdYdadjYd + TrYuadjYuYuadjYu)          &
+      & + 2.25_dp * TrYeadjYeYeadjYe - 1.5_dp * TrYdadjYuYuadjYd
+
+   Y4 = (0.85_dp * g1p2 + 2.25_dp * g2p2 + 8._dp * g3p2) * TrYuadjYu &
+    & + (0.25_dp * g1p2 + 2.25_dp * g2p2 + 8._dp * g3p2) * TrYdadjYd &
+    & + 0.75_dp * (g1p2 + g2p2) * TrYeadjYe
+
+   betaVEV2 = chi4 - 1.5_dp * lamp2 - 2.5_dp * Y4 - 1.61625_dp * g1p4 &
+     & - 0.3375_dp * g2p2 * g1p2 + 8.46875_dp * g2p4
+   ! adding auge dependend part
+   betaVEV2 =  betaVEV2 &
+          & + (18*g1p4*Xi + 180*g1p2*g2p2*Xi + 2250*g2p4*Xi            &
+          &   - 360*g1p2*TrYuadjYu*Xi - 1800*g2p2*TrYuadjYu*Xi         & 
+          &   - 60*TrYeadjYe*(5*g2p2*(5 + 2._dp*Xi)                    &
+          &   + g1p2*(25 + 2._dp*(Xi))) - 20*TrYdadjYd*(800._dp*(g3p2) & 
+          &   + 45*g2p2*(5 + 2._dp*(Xi)) + g1p2*(25 + 18._dp*(Xi)))    &
+          &   + 18*g1p4*Xip2 + 180*g1p2*g2p2*Xip2 - 450*g2p4*Xip2)/800._dp
+   Dln_v = oo16pi2*( betaVEV1 + oo16pi2 * betaVEV2 ) 
+
+  Else 
+   Dln_v = oo16pi2* betaVEV1 
+  End If 
+   Dgi(1) = Dg1   
+   Dgi(2) = Dg2   
+   Dgi(3) = Dg3   
+   Call ParametersToG59(Dgi,DLam,DYu,DYd,DYe,Dln_v,f)
+
+  Iname = Iname - 1 
+
+ End Subroutine rge59a 
 
 
  Subroutine rge75(len, T,GY,F)
@@ -2377,8 +3077,6 @@ Contains
   NameOfUnit(Iname) = 'rge75'
 
   q = t
-
-  OnlyDiagonal = .Not.GenerationMixing
 
   Call GToCouplings2(gy,gauge,Ye,Ynu,Yd,Yu)
 
@@ -2569,7 +3267,6 @@ Contains
   Iname = Iname + 1
   NameOfUnit(Iname) = 'rge79'
 
-  OnlyDiagonal = .Not.GenerationMixing
   q = t
 
   Call GToCouplings4(gy, gauge, Ye, YT, Yd, Yu, lam1, lam2)
@@ -2586,10 +3283,10 @@ Contains
   Call Adjungate(Ye,aYe)
   Call Adjungate(Yu,aYu)
 
-  aYeYe = Matmul2(aYe,Ye,OnlyDiagonal)
-  aYTYT = Matmul2(aYT,YT,OnlyDiagonal)
-  aYdYd = Matmul2(aYd,Yd,OnlyDiagonal)
-  aYuYu = Matmul2(aYu,Yu,OnlyDiagonal)
+  aYeYe = Matmul(aYe,Ye)
+  aYTYT = Matmul(aYT,YT)
+  aYdYd = Matmul(aYd,Yd)
+  aYuYu = Matmul(aYu,Yu)
 
   TraceY(1) = Real( cTrace(aYeYe),dp )
   TraceY(2) = Real( cTrace(aYTYT),dp )
@@ -2603,7 +3300,7 @@ Contains
    sume1(i1,i1) = sume1(i1,i1) + diagonal(1,1)
   End Do
 
-  betaYe1 = Matmul2(Ye,sume1,OnlyDiagonal)
+  betaYe1 = Matmul(Ye,sume1)
 
   diagonal(2,1) = TraceY(2)  + lam12          &
             &   - 1.8_dp * gauge2(1) - 7._dp * gauge2(2)
@@ -2612,8 +3309,8 @@ Contains
    sumT1(i1,i1) = sumT1(i1,i1) + diagonal(2,1)
   End Do
 
-  betaYT1 = Matmul2(YT,sumT1,OnlyDiagonal)  &
-        & + Matmul2(Transpose(aYeYe),YT,OnlyDiagonal)
+  betaYT1 = Matmul(YT,sumT1)  &
+        & + Matmul(Transpose(aYeYe),YT)
 
   diagonal(3,1) = 3._dp * (TraceY(3)  + lam12) + TraceY(1)              &
     &  + c1_1(2,1) * gauge2(1) + c1_1(2,2) * gauge2(2) + c1_1(2,3) * gauge2(3)
@@ -2622,7 +3319,7 @@ Contains
    sumd1(i1,i1) = sumd1(i1,i1) + diagonal(3,1)
   End Do
 
-  betaYd1 = Matmul2(Yd,sumd1,OnlyDiagonal)
+  betaYd1 = Matmul(Yd,sumd1)
 
   diagonal(4,1) = 3._dp * (TraceY(4) + lam22)                &
    &  + c1_1(3,1) * gauge2(1) + c1_1(3,2) * gauge2(2) + c1_1(3,3) * gauge2(3)
@@ -2631,7 +3328,7 @@ Contains
    sumu1(i1,i1) = sumu1(i1,i1) + diagonal(4,1)
   End Do
 
-  betaYu1 = Matmul2(Yu,sumu1,OnlyDiagonal)
+  betaYu1 = Matmul(Yu,sumu1)
 
   betalam11 = lam1 * (7._dp * lam12 + TraceY(2) + 2._dp * TraceY(1) &
             &        + 6._dp * TraceY(3)                            &
@@ -2641,11 +3338,11 @@ Contains
             &        - 1.8_dp * gauge2(1) - 7._dp * gauge2(2) ) 
 
   If (TwoLoopRGE) Then
-   aYdYdaYdYd = Matmul2(aYdYd,aYdYd,OnlyDiagonal)
-   aYeYeaYeYe = Matmul2(aYeYe,aYeYe,OnlyDiagonal)
-   aYuYuaYuYu = Matmul2(aYuYu,aYuYu,OnlyDiagonal)
-   aYuYuaYdYd = Matmul2(aYuYu,aYdYd,OnlyDiagonal)
-   aYdYdaYuYu = Matmul2(aYdYd,aYuYu,OnlyDiagonal)
+   aYdYdaYdYd = Matmul(aYdYd,aYdYd)
+   aYeYeaYeYe = Matmul(aYeYe,aYeYe)
+   aYuYuaYuYu = Matmul(aYuYu,aYuYu)
+   aYuYuaYdYd = Matmul(aYuYu,aYdYd)
+   aYdYdaYuYu = Matmul(aYdYd,aYuYu)
 
    TraceY2(1) = Real( cTrace(aYeYeaYeYe), dp)
    TraceY2(2) = Real( cTrace(aYdYdaYdYd), dp)
@@ -2663,7 +3360,7 @@ Contains
     sume2(i1,i1) = sume2(i1,i1) + diagonal(1,2)
    End Do
  
-   betaYe2 = Matmul2(Ye,sume2,OnlyDiagonal)
+   betaYe2 = Matmul(Ye,sume2)
     
    diagonal(2,2) = diagonal(1,2)                                        &
       &     + 8._dp * ( ( gauge2(1) - 2._dp * gauge2(3) ) / 9._dp       &
@@ -2679,7 +3376,7 @@ Contains
     sumd2(i1,i1) = sumd2(i1,i1) + diagonal(2,2)
    End Do
  
-   betaYd2 = Matmul2(Yd,sumd2,OnlyDiagonal)
+   betaYd2 = Matmul(Yd,sumd2)
     
    diagonal(3,2) = - 3._dp * (3._dp * TraceY2(3) + TraceY2(4) )            &
      &      + ( 16._dp * gauge2(3) + 0.8_dp * gauge2(1) ) * TraceY(4)      &
@@ -2695,7 +3392,7 @@ Contains
     sumu2(i1,i1) = sumu2(i1,i1) + diagonal(3,2)
    End Do
  
-   betaYu2 = Matmul2(Yu,sumu2,OnlyDiagonal)
+   betaYu2 = Matmul(Yu,sumu2)
     
   End If 
 
@@ -2777,8 +3474,6 @@ Contains
   Iname = Iname + 1
   NameOfUnit(Iname) = 'rge93'
 
-  OnlyDiagonal = .Not.GenerationMixing
-
   Call GToCouplings3(gy,gauge,Ye,Ynu,Yd,Yu,Mnu)
   
   gauge2 = gauge**2
@@ -2791,10 +3486,10 @@ Contains
   Call Adjungate(Ye,aYe)
   Call Adjungate(Yu,aYu)
 
-  aYeYe = Matmul2(aYe,Ye,OnlyDiagonal)
-  aYnuYnu = Matmul2(aYnu,Ynu,OnlyDiagonal)
-  aYdYd = Matmul2(aYd,Yd,OnlyDiagonal)
-  aYuYu = Matmul2(aYu,Yu,OnlyDiagonal)
+  aYeYe = Matmul(aYe,Ye)
+  aYnuYnu = Matmul(aYnu,Ynu)
+  aYdYd = Matmul(aYd,Yd)
+  aYuYu = Matmul(aYu,Yu)
 
   TraceY(1) = Real( cTrace(aYeYe),dp )
   TraceY(2) = Real( cTrace(aYnuYnu),dp )
@@ -2808,7 +3503,7 @@ Contains
    sume1(i1,i1) = sume1(i1,i1) + diagonal(1,1)
   End Do
 
-  betaYe1 = Matmul2(Ye,sume1,OnlyDiagonal)
+  betaYe1 = Matmul(Ye,sume1)
 
   diagonal(2,1) = (3._dp,0._dp) * TraceY(4) + TraceY(2)     &
             &   - 0.6_dp * gauge2(1) - 3._dp * gauge2(2)
@@ -2817,7 +3512,7 @@ Contains
    sumnu1(i1,i1) = sumnu1(i1,i1) + diagonal(2,1)
   End Do
 
-  betaYnu1 = Matmul2(Ynu,sumnu1,OnlyDiagonal)
+  betaYnu1 = Matmul(Ynu,sumnu1)
 
   diagonal(3,1) = (3._dp,0._dp) * TraceY(3) + TraceY(1)              &
     &  + c1_1(2,1) * gauge2(1) + c1_1(2,2) * gauge2(2) + c1_1(2,3) * gauge2(3)
@@ -2826,7 +3521,7 @@ Contains
    sumd1(i1,i1) = sumd1(i1,i1) + diagonal(3,1)
   End Do
 
-  betaYd1 = Matmul2(Yd,sumd1,OnlyDiagonal)
+  betaYd1 = Matmul(Yd,sumd1)
 
   diagonal(4,1) = (3._dp,0._dp) * TraceY(4)  + TraceY(2)             &
    &  + c1_1(3,1) * gauge2(1) + c1_1(3,2) * gauge2(2) + c1_1(3,3) * gauge2(3)
@@ -2835,24 +3530,24 @@ Contains
    sumu1(i1,i1) = sumu1(i1,i1) + diagonal(4,1)
   End Do
 
-  betaYu1 = Matmul2(Yu,sumu1,OnlyDiagonal)
+  betaYu1 = Matmul(Yu,sumu1)
 
   !--------------------------------
   ! neutrino dim. 5 operator
   !--------------------------------
   sumM1 = aYeYe + aYnuYnu
   diagonal(5,1) = 2._dp * TraceY(2) + 6._dp * TraceY(4)   &
-              & - 2._dp * gauge2(1) - 6._dp * gauge2(2)
+              & - 1.2_dp * gauge2(1) - 6._dp * gauge2(2)
   betaMnu1 = Matmul( Transpose(sumM1), Mnu) + Matmul(Mnu, sumM1)  &
           & + diagonal(5,1) * Mnu
   
 
   If (TwoLoopRGE) Then
-   aYdYdaYdYd = Matmul2(aYdYd,aYdYd,OnlyDiagonal)
-   aYeYeaYeYe = Matmul2(aYeYe,aYeYe,OnlyDiagonal)
-   aYuYuaYuYu = Matmul2(aYuYu,aYuYu,OnlyDiagonal)
-   aYuYuaYdYd = Matmul2(aYuYu,aYdYd,OnlyDiagonal)
-   aYdYdaYuYu = Matmul2(aYdYd,aYuYu,OnlyDiagonal)
+   aYdYdaYdYd = Matmul(aYdYd,aYdYd)
+   aYeYeaYeYe = Matmul(aYeYe,aYeYe)
+   aYuYuaYuYu = Matmul(aYuYu,aYuYu)
+   aYuYuaYdYd = Matmul(aYuYu,aYdYd)
+   aYdYdaYuYu = Matmul(aYdYd,aYuYu)
 
    TraceY2(1) = cTrace(aYeYeaYeYe)
    TraceY2(2) = cTrace(aYdYdaYdYd)
@@ -2870,7 +3565,7 @@ Contains
     sume2(i1,i1) = sume2(i1,i1) + diagonal(1,2)
    End Do
  
-   betaYe2 = Matmul2(Ye,sume2,OnlyDiagonal)
+   betaYe2 = Matmul(Ye,sume2)
     
    diagonal(2,2) = diagonal(1,2)                                        &
       &     + 8._dp * ( ( gauge2(1) - 2._dp * gauge2(3) ) / 9._dp       &
@@ -2886,7 +3581,7 @@ Contains
     sumd2(i1,i1) = sumd2(i1,i1) + diagonal(2,2)
    End Do
  
-   betaYd2 = Matmul2(Yd,sumd2,OnlyDiagonal)
+   betaYd2 = Matmul(Yd,sumd2)
     
    diagonal(3,2) = - 3._dp * (3._dp * TraceY2(3) + TraceY2(4) )            &
      &      + ( 16._dp * gauge2(3) + 0.8_dp * gauge2(1) ) * TraceY(4)      &
@@ -2902,7 +3597,7 @@ Contains
     sumu2(i1,i1) = sumu2(i1,i1) + diagonal(3,2)
    End Do
  
-   betaYu2 = Matmul2(Yu,sumu2,OnlyDiagonal)
+   betaYu2 = Matmul(Yu,sumu2)
     
   End If 
 
@@ -2989,7 +3684,6 @@ Contains
   Iname = Iname + 1
   NameOfUnit(Iname) = 'rge118'
 
-  OnlyDiagonal = .Not.GenerationMixing
   q = t
 
   Call GToCouplings5(gy, gauge, Ye, YT, Yd, Yu, YZ, YS, lam1, lam2, M15)
@@ -3008,16 +3702,16 @@ Contains
   Call Adjungate(YZ,aYZ)
   Call Adjungate(YS,aYS)
 
-  aYeYe = Matmul2(aYe,Ye,OnlyDiagonal)
-  aYTYT = Matmul2(aYT,YT,OnlyDiagonal)
-  aYdYd = Matmul2(aYd,Yd,OnlyDiagonal)
-  aYuYu = Matmul2(aYu,Yu,OnlyDiagonal)
-  aYZYZ = Matmul2(aYZ,YZ,OnlyDiagonal)
-  aYSYS = Matmul2(aYS,YS,OnlyDiagonal)
+  aYeYe = Matmul(aYe,Ye)
+  aYTYT = Matmul(aYT,YT)
+  aYdYd = Matmul(aYd,Yd)
+  aYuYu = Matmul(aYu,Yu)
+  aYZYZ = Matmul(aYZ,YZ)
+  aYSYS = Matmul(aYS,YS)
 
-  YdaYd = Matmul2(Yd,aYd,OnlyDiagonal)
-  YZaYZ = Matmul2(YZ,aYZ,OnlyDiagonal)
-  YSaYS = Matmul2(YS,aYS,OnlyDiagonal)
+  YdaYd = Matmul(Yd,aYd)
+  YZaYZ = Matmul(YZ,aYZ)
+  YSaYS = Matmul(YS,aYS)
 
   TraceY(1) = Real( cTrace(aYeYe),dp )
   TraceY(2) = Real( cTrace(aYTYT),dp )
@@ -3033,7 +3727,7 @@ Contains
    sume1(i1,i1) = sume1(i1,i1) + diagonal(1,1)
   End Do
 
-  betaYe1 = Matmul2(Ye,sume1,OnlyDiagonal)
+  betaYe1 = Matmul(Ye,sume1)
 
   diagonal(2,1) = TraceY(2)  + lam12          &
             &   - 1.8_dp * gauge2(1) - 7._dp * gauge2(2)
@@ -3042,8 +3736,8 @@ Contains
    sumT1(i1,i1) = sumT1(i1,i1) + diagonal(2,1)
   End Do
 
-  betaYT1 = Matmul2(YT,sumT1,OnlyDiagonal)                 &
-        & + Matmul2(Transpose(aYeYe+3._dp * aYZYZ),YT,OnlyDiagonal)
+  betaYT1 = Matmul(YT,sumT1)                 &
+        & + Matmul(Transpose(aYeYe+3._dp * aYZYZ),YT)
 
   diagonal(3,1) = 3._dp * (TraceY(3)  + lam12) + TraceY(1)              &
     &  + c1_1(2,1) * gauge2(1) + c1_1(2,2) * gauge2(2) + c1_1(2,3) * gauge2(3)
@@ -3052,8 +3746,8 @@ Contains
    sumd1(i1,i1) = sumd1(i1,i1) + diagonal(3,1)
   End Do
 
-  betaYd1 = Matmul2(Yd,sumd1,OnlyDiagonal)  &
-        & + 2._dp * Matmul2(YZaYZ + 2._dp * YSaYS, Yd,OnlyDiagonal)
+  betaYd1 = Matmul(Yd,sumd1)  &
+        & + 2._dp * Matmul(YZaYZ + 2._dp * YSaYS, Yd)
 
   diagonal(4,1) = 3._dp * (TraceY(4) + lam22)                &
    &  + c1_1(3,1) * gauge2(1) + c1_1(3,2) * gauge2(2) + c1_1(3,3) * gauge2(3)
@@ -3062,7 +3756,7 @@ Contains
    sumu1(i1,i1) = sumu1(i1,i1) + diagonal(4,1)
   End Do
 
-  betaYu1 = Matmul2(Yu,sumu1,OnlyDiagonal)
+  betaYu1 = Matmul(Yu,sumu1)
 
   diagonal(5,1) = TraceY(5) + c1_1(2,1) * gauge2(1) &
             &   + c1_1(2,2) * gauge2(2) + c1_1(2,3) * gauge2(3)
@@ -3071,8 +3765,8 @@ Contains
    sumZ1(i1,i1) = sumZ1(i1,i1) + diagonal(5,1)
   End Do
 
-  betaYZ1 = Matmul2(YZ,sumZ1,OnlyDiagonal)                 &
-        & + 2._dp * Matmul2(YdaYd+2._dp * aYSYS,YZ,OnlyDiagonal)
+  betaYZ1 = Matmul(YZ,sumZ1)                 &
+        & + 2._dp * Matmul(YdaYd+2._dp * aYSYS,YZ)
 
   diagonal(6,1) = TraceY(6) - 0.8_dp * gauge2(1) - 12._dp * gauge2(3)
   sumS1 = 2._dp * Transpose(YdaYd + YZaYZ) + 8._dp * aYSYS
@@ -3080,8 +3774,8 @@ Contains
    sumS1(i1,i1) = sumS1(i1,i1) + diagonal(6,1)
   End Do
 
-  betaYS1 = Matmul2(YS,sumS1,OnlyDiagonal)                 &
-        & + 2._dp * Matmul2(YdaYd + YZaYZ,YS,OnlyDiagonal)
+  betaYS1 = Matmul(YS,sumS1)                 &
+        & + 2._dp * Matmul(YdaYd + YZaYZ,YS)
 
 
   betalam11 = lam1 * (7._dp * lam12 + TraceY(2) + 2._dp * TraceY(1) &
@@ -3102,11 +3796,11 @@ Contains
                      & - (3.2_dp * gauge2(1) + 40._dp * gauge2(3))/3._dp  )
 
   If (TwoLoopRGE) Then
-   aYdYdaYdYd = Matmul2(aYdYd,aYdYd,OnlyDiagonal)
-   aYeYeaYeYe = Matmul2(aYeYe,aYeYe,OnlyDiagonal)
-   aYuYuaYuYu = Matmul2(aYuYu,aYuYu,OnlyDiagonal)
-   aYuYuaYdYd = Matmul2(aYuYu,aYdYd,OnlyDiagonal)
-   aYdYdaYuYu = Matmul2(aYdYd,aYuYu,OnlyDiagonal)
+   aYdYdaYdYd = Matmul(aYdYd,aYdYd)
+   aYeYeaYeYe = Matmul(aYeYe,aYeYe)
+   aYuYuaYuYu = Matmul(aYuYu,aYuYu)
+   aYuYuaYdYd = Matmul(aYuYu,aYdYd)
+   aYdYdaYuYu = Matmul(aYdYd,aYuYu)
 
    TraceY2(1) = Real( cTrace(aYeYeaYeYe), dp)
    TraceY2(2) = Real( cTrace(aYdYdaYdYd), dp)
@@ -3124,7 +3818,7 @@ Contains
     sume2(i1,i1) = sume2(i1,i1) + diagonal(1,2)
    End Do
  
-   betaYe2 = Matmul2(Ye,sume2,OnlyDiagonal)
+   betaYe2 = Matmul(Ye,sume2)
     
    diagonal(2,2) = diagonal(1,2)                                        &
       &     + 8._dp * ( ( gauge2(1) - 2._dp * gauge2(3) ) / 9._dp       &
@@ -3140,7 +3834,7 @@ Contains
     sumd2(i1,i1) = sumd2(i1,i1) + diagonal(2,2)
    End Do
  
-   betaYd2 = Matmul2(Yd,sumd2,OnlyDiagonal)
+   betaYd2 = Matmul(Yd,sumd2)
     
    diagonal(3,2) = - 3._dp * (3._dp * TraceY2(3) + TraceY2(4) )            &
      &      + ( 16._dp * gauge2(3) + 0.8_dp * gauge2(1) ) * TraceY(4)      &
@@ -3156,7 +3850,7 @@ Contains
     sumu2(i1,i1) = sumu2(i1,i1) + diagonal(3,2)
    End Do
  
-   betaYu2 = Matmul2(Yu,sumu2,OnlyDiagonal)
+   betaYu2 = Matmul(Yu,sumu2)
     
   End If 
 
@@ -3643,12 +4337,12 @@ Contains
    MqaYuYu = Matmul(Mq,aYuYu)
    MuYuaYu = Matmul(Mu,YuaYu)
 
-   Call Adjungate(MdYdaYd, YdaYdMd) ! YdaYdMd = Matmul(YdaYd,Md,OnlyDiagonal)
-   Call Adjungate(MeYeaYe, YeaYeMe) ! YeaYeMe = Matmul(YeaYe,Me,OnlyDiagonal)
-   Call Adjungate(MlaYeYe, aYeYeMl) ! aYeYeMl = Matmul(aYeYe,Ml,OnlyDiagonal)
-   Call Adjungate(MqaYdYd, aYdYdMq) ! aYdYdMq = Matmul(aYdYd,Mq,OnlyDiagonal)
-   Call Adjungate(MqaYuYu, aYuYuMq) ! aYuYuMq = Matmul(aYuYu,Mq,OnlyDiagonal)
-   Call Adjungate(MuYuaYu, YuaYuMu) ! YuaYuMu = Matmul(YuaYu,Mu,OnlyDiagonal)
+   Call Adjungate(MdYdaYd, YdaYdMd) ! YdaYdMd = Matmul(YdaYd,Md)
+   Call Adjungate(MeYeaYe, YeaYeMe) ! YeaYeMe = Matmul(YeaYe,Me)
+   Call Adjungate(MlaYeYe, aYeYeMl) ! aYeYeMl = Matmul(aYeYe,Ml)
+   Call Adjungate(MqaYdYd, aYdYdMq) ! aYdYdMq = Matmul(aYdYd,Mq)
+   Call Adjungate(MqaYuYu, aYuYuMq) ! aYuYuMq = Matmul(aYuYu,Mq)
+   Call Adjungate(MuYuaYu, YuaYuMu) ! YuaYuMu = Matmul(YuaYu,Mu)
 
    aYdMdYd = MatMul3(aYd,Md,Yd,OnlyDiagonal)
    aYeMeYe = MatMul3(aYe,Me,Ye,OnlyDiagonal)
@@ -4117,10 +4811,8 @@ Contains
       &         + 4.14_dp * gauge2(1)**2
     betaMue2 = mue * TraceMue(2)
 
-    TraceB(1) = cTrace( 3._dp * (Matmul(AuaYu,YuaYu)     &
-              &                 + Matmul(AdaYd,YdaYd) )  &
-              &       + Matmul(AeaYe,YeaYe)              &
-              &       + Matmul(aYuAu,aYdYd)              &
+    TraceB(1) = cTrace( 3._dp * (Matmul(AuaYu,YuaYu) + Matmul(AdaYd,YdaYd) )  &
+              &       + Matmul(AeaYe,YeaYe) + Matmul(aYuAu,aYdYd)             &
               &       + Matmul(aYdAd,aYuYu) ) 
     TraceB(2) = -12._dp * TraceB(1)                                           &
       &   + (32._dp * gauge2(3) + 1.6_dp * gauge2(1) ) * TraceaYA(3)          &
@@ -4241,6 +4933,11 @@ Contains
    DMu(i1,i1) = Real(DMu(i1,i1),dp)
    DMq(i1,i1) = Real(DMq(i1,i1),dp)
   End Do
+  Dmd = 0.5_dp * ( Dmd + Transpose(Conjg(Dmd)) )
+  Dme = 0.5_dp * ( Dme + Transpose(Conjg(Dme)) )
+  Dml = 0.5_dp * ( Dml + Transpose(Conjg(Dml)) )
+  Dmq = 0.5_dp * ( Dmq + Transpose(Conjg(Dmq)) )
+  Dmu = 0.5_dp * ( Dmu + Transpose(Conjg(Dmu)) )
 
   !--------------------------------------------
   ! This helps avoiding numerical instabilities
@@ -4257,8 +4954,8 @@ Contains
 !   Call Chop(DMd)
 !   Call Chop(DMu)
 !   Call Chop(DMq)
-!   Call Chop(Dmue)
-!   Call Chop(DB)
+   Call Chop(Dmue)
+   Call Chop(DB)
 
 
   Call ParametersToG(Dgauge, DYe, DYd, DYu, DMhlf, DAe, DAd, DAu &
@@ -4267,6 +4964,1081 @@ Contains
   Iname = Iname - 1
 
  End Subroutine rge213
+
+
+ Subroutine rge214(len, T,GY,F)
+ !-----------------------------------------------------------------------
+ ! Right hand side of renormalization group equations dGY_i/dT = F_i(G) 
+ ! of the gauge and Yukawa couplings.
+ ! For the determination of M_GUT and the value of alpha_GUT
+ ! and values of the Yukawas, all complex 3 times 3 matrices
+ ! written by Werner Porod, 17.8.1999
+ ! 25.09.01: portation to f90
+ !  27.07.13: adding gauge dependence as discussed in 1305.1548
+ !            by Dominik Stoeckinger
+ !-----------------------------------------------------------------------
+ Implicit None
+
+  Integer, Intent(in) :: len
+  Real(dp), Intent(in) :: T, GY(len)
+  Real(dp), Intent(out) :: F(len)
+
+  Integer :: i1, i2
+  Real(dp) :: gauge(3), gauge2(3), sumI, TraceY(3), Dgauge(3), TraceY2(4)
+  Complex(dp) :: Ye(3,3), Yd(3,3), Yu(3,3), aYe(3,3), aYd(3,3), aYu(3,3)  &
+    & , aYdYd(3,3), aYeYe(3,3), aYuYu(3,3), sumd1(3,3), sume1(3,3)        &
+    & , betaYd1(3,3), betaYd2(3,3), betaYe1(3,3), betaYe2(3,3)            &
+    & , betaYu1(3,3), betaYu2(3,3), DYe(3,3), DYd(3,3), DYu(3,3)          &
+    & , aYdYdaYdYd(3,3), aYeYeaYeYe(3,3), aYuYuaYuYu(3,3)                 &
+    & , aYdYdaYuYu(3,3), aYuYuaYdYd(3,3), diagonal(5,2)       &
+    & , hd(2), sumu1(3,3), sumd2(3,3), sume2(3,3), sumu2(3,3), hc(4)
+
+  Complex(dp) :: Mhlf(3),DMhlf(3)
+
+  Complex(dp) :: Ae(3,3), Ad(3,3), Au(3,3), aAe(3,3), aAd(3,3), aAu(3,3)   &
+     &  , DAe(3,3), DAd(3,3), DAu(3,3), aAdAd(3,3), aAeAe(3,3), aAuAu(3,3) &
+     &  , aYdAd(3,3), aYeAe(3,3), aYuAu(3,3), TraceaYA(3), betaAd1(3,3)    &
+     &  , betaAd2(3,3), betaAe1(3,3), betaAe2(3,3), betaAu1(3,3), betaAu2(3,3)
+  Real(dp) :: TraceA(3)
+  Complex(dp) :: aYdYdaYdAd(3,3), aYdAdaYdYd(3,3), TraceAY2(5)               &
+     &  , aYeYeaYeAe(3,3), aYeAeaYeYe(3,3), aYuYuaYuAu(3,3), aYuAuaYuYu(3,3) &
+     &  , aYuYuaYdAd(3,3), aYuAuaYdYd(3,3), aYdYdaYuAu(3,3), aYdAdaYuYu(3,3)
+   
+  Complex(dp) :: Me(3,3), Ml(3,3), Md(3,3), Mq(3,3), Mu(3,3), DMe(3,3)        &
+     & , DMl(3,3), DMd(3,3), DMq(3,3), DMu(3,3), YdaYd(3,3), YeaYe(3,3)       &
+     & , YuaYu(3,3), MdYdaYd(3,3), MeYeaYe(3,3), MuYuaYu(3,3), YdaYdMd(3,3)   &
+     & , YeaYeMe(3,3), YuaYuMu(3,3), YdMqaYd(3,3), YeMlaYe(3,3)               &
+     & ,  YuMqaYu(3,3), AdaAd(3,3), AeaAe(3,3), AuaAu(3,3), betaMd1(3,3)      &
+     & , betaMd2(3,3), betaMe1(3,3), betaMe2(3,3), betaMl1(3,3), betaMl2(3,3) &
+     & , betaMq1(3,3), betaMq2(3,3), betaMu1(3,3), betaMu2(3,3), MqaYdYd(3,3) &
+     & , MqaYuYu(3,3), aYdYdMq(3,3), aYuYuMq(3,3), aYeYeMl(3,3), MlaYeYe(3,3) &
+     & , aYeMeYe(3,3), aYdMdYd(3,3), aYuMuYu(3,3)                             &
+     & , YdaYdYdaYd(3,3), YeaYeYeaYe(3,3), YuaYuYuaYu(3,3), MeYeaYeYeaYe(3,3) &
+     & , YeaYeYeaYeMe(3,3), YeaYeMeYeaYe(3,3), YeMlaYeYeaYe(3,3), AeaYe(3,3)  &
+     & , YeaYeYeMlaYe(3,3), AeaAeYeaYe(3,3), YeaYeAeaAe(3,3), YeaAe(3,3)      &
+     & , AeaYeYeaAe(3,3), YeaAeAeaYe(3,3), Tr3aAdYdaAeYe
+
+  Complex(dp) :: Tr3aYdAdaYeAe, AdaYd(3,3), YdaAd(3,3), MlaYeYeaYeYe(3,3)     &
+     & , aYeYeaYeYeMl(3,3), aYeYeMlaYeYe(3,3), aYeYeaYeMeYe(3,3)              &
+     & , aYeMeYeaYeYe(3,3), aAdYd(3,3),aAeYe(3,3), aAeAeaYeYe(3,3)            &
+     & , aYeYeaAeAe(3,3), aAeYeaYeAe(3,3), aYeAeaAeYe(3,3), MdYdaYdYdaYd(3,3) &
+     & , YdaYdYdaYdMd(3,3), YdMqaYdYdaYd(3,3),YdaYdMdYdaYd(3,3)               &
+     & , YdaYdYdMqaYd(3,3), AdaAdYdaYd(3,3), YdaYDAdaAd(3,3), AdaYdYdaAd(3,3) &
+     & , YdaAdAdaYd(3,3)
+  Complex(dp) :: MdYdaYuYuaYd(3,3), YdaYuYuaYdMd(3,3), YdMqaYuYuaYd(3,3)      &
+     & , YdaYuYuMqaYd(3,3), YdaYuMuYuaYd(3,3), AdaAuYuaYd(3,3)                &
+     & , YdaYuAuaAd(3,3), AdaYuYuaAd(3,3), YdaAuAuaYd(3,3), YdaYuYuaYd(3,3)   &
+     & , Tr3aYuAu, Tr3aAuYu, YuaAu(3,3)                                       &
+     & , MqaYdYdaYdYd(3,3), aYdYdaYdYDMq(3,3), aYdMdYdaYdYd(3,3)              &
+     & , aYdYdMqaYdYd(3,3), aYdYdaYdMdYd(3,3), aAdAdaYdYd(3,3)                &
+     & , aYdYDaAdAd(3,3), aAdYdaYdAd(3,3), aYdAdaAdYd(3,3), MqaYuYuaYuYu(3,3) &
+     & , aYuYuaYuYUMq(3,3), aYuMuYuaYuYu(3,3), aYuYuMqaYuYu(3,3)              &
+     & , aYuYuaYuMuYu(3,3), aAuAuaYuYu(3,3), aYuYUaAuAu(3,3), aAuYuaYuAu(3,3) &
+     & , aYuAuaAuYu(3,3), aAuYu(3,3), AuaYu(3,3), YuaYdYdaYu(3,3)             &
+     & , AuaYdYdaAu(3,3), YuaAdAdaYu(3,3), AuaAdYdaYu(3,3), YuaYdAdaAu(3,3)   &
+     & , YuMqaYuYuaYu(3,3), YuaYuYuMqaYu(3,3), MuYuaYuYuaYu(3,3)              &
+     & , YuaYuYuaYuMu(3,3), YuaYuMuYuaYu(3,3), AuaAuYuaYu(3,3)                &
+     & , YuaYuAuaAu(3,3), AuaYuYuaAu(3,3), YuaAuAuaYu(3,3), MuYuaYdYdaYu(3,3) &
+     & , YuaYdYdaYuMu(3,3), YuMqaYdYdaYu(3,3), YuaYdYdMqaYu(3,3)              &
+     & , YuaYdMdYdaYu(3,3)
+
+  Real(dp) :: S1, S2, sig(3), Tr3aYdYdaYeYe, Tr3aAdAdaAeAe, AbsGM2(3)         &
+     & , Tr3MqaYdYd3aYDMdYd , Tr3MqaYuYu3aYuMu, Tr3aAuAu
+
+  Real(dp) :: Mh(2), DMh(2), TraceMH1(3), TraceMH2(2), betaMH11        &
+     &  , betaMH12, betaMH21, betaMH22, q, gamma1, gamma2
+
+  Complex(dp) :: mue, B, Dmue, DB, TraceMue(2), TraceB(2), betaMue1, betaMue2 &
+     & , betaB1, betaB2, g2Mi(3)
+
+  Iname = Iname + 1
+  NameOfUnit(Iname) = 'rge214'
+
+  OnlyDiagonal = .Not.GenerationMixing
+
+  q = t
+
+  Call GToParameters(gy, gauge, Ye, Yd, Yu                            &
+                  & , Mhlf, Ae, Ad, Au, Me, Ml, Md, Mq, Mu, Mh, mue, B)
+
+  gauge2 = gauge**2
+  AbsGM2 = gauge2 * Abs( Mhlf )**2
+!-----------------
+! beta functions
+!-----------------
+  Call Adjungate(Yd,aYd)
+  Call Adjungate(Ye,aYe)
+  Call Adjungate(Yu,aYu)
+
+  aYdYd = Matmul(aYd,Yd)
+  aYeYe = Matmul(aYe,Ye)
+  aYuYu = Matmul(aYu,Yu)
+
+  !------------------------------------------------
+  ! these are hermitian matrices, clean up to
+  ! avoid numerical problems
+  !------------------------------------------------
+  Do i1=1,3
+   aYdYd(i1,i1) = Real(aYdYd(i1,i1), dp)
+   aYeYe(i1,i1) = Real(aYeYe(i1,i1), dp)
+   aYuYu(i1,i1) = Real(aYuYu(i1,i1), dp)
+  End Do
+  
+  TraceY(1) = Real( cTrace(aYeYe),dp )
+  TraceY(2) = Real( cTrace(aYdYd),dp )
+  TraceY(3) = Real( cTrace(aYuYu),dp )
+
+  diagonal(1,1) = 3._dp * TraceY(2) + TraceY(1)     &
+              & + c1_1(1,1) * gauge2(1) + c1_1(1,2) * gauge2(2)
+  sume1 = 3._dp * aYeYe
+  Do i1=1,3
+   sume1(i1,i1) = sume1(i1,i1) + diagonal(1,1)
+  End Do
+
+  betaYe1 = Matmul(Ye,sume1)
+
+  diagonal(2,1) = 3._dp * TraceY(2) + TraceY(1)              &
+    &  + c1_1(2,1) * gauge2(1) + c1_1(2,2) * gauge2(2) + c1_1(2,3) * gauge2(3)
+  sumd1  = 3._dp * aYdYd + aYuYu
+  Do i1=1,3
+   sumd1(i1,i1) = sumd1(i1,i1) + diagonal(2,1)
+  End Do
+
+  betaYd1 = Matmul(Yd,sumd1)
+
+  diagonal(3,1) = 3._dp * TraceY(3)              &
+   &  + c1_1(3,1) * gauge2(1) + c1_1(3,2) * gauge2(2) + c1_1(3,3) * gauge2(3)
+  sumu1  = 3._dp * aYuYu + aYdYd
+  Do i1=1,3
+   sumu1(i1,i1) = sumu1(i1,i1) + diagonal(3,1)
+  End Do
+
+  betaYu1 = Matmul(Yu,sumu1)
+
+  If (TwoLoopRGE) Then
+   aYdYdaYdYd = Matmul(aYdYd,aYdYd)
+   aYeYeaYeYe = Matmul(aYeYe,aYeYe)
+   aYuYuaYuYu = Matmul(aYuYu,aYuYu)
+   aYuYuaYdYd = Matmul(aYuYu,aYdYd)
+!   aYdYdaYuYu = Matmul(aYdYd,aYuYu)
+   !------------------------------------------------
+   ! this are hermitian matrices, clean up to
+   ! avoid numerical problems
+   !------------------------------------------------
+   Do i1=1,3
+    aYdYdaYdYd(i1,i1) = Real(aYdYdaYdYd(i1,i1), dp)
+    aYeYeaYeYe(i1,i1) = Real(aYeYeaYeYe(i1,i1), dp)
+    aYuYuaYuYu(i1,i1) = Real(aYuYuaYuYu(i1,i1), dp)
+   End Do
+
+   Call Adjungate(aYuYuaYdYd, aYdYdaYuYu)
+
+   TraceY2(1) = Real( cTrace(aYeYeaYeYe), dp)
+   TraceY2(2) = Real( cTrace(aYdYdaYdYd), dp)
+   TraceY2(3) = Real( cTrace(aYuYuaYuYu), dp)
+   TraceY2(4) = Real( cTrace(aYdYdaYuYu), dp)
+
+   diagonal(1,2) = - 3._dp * (3._dp * TraceY2(2) + TraceY2(4) + TraceY2(1) ) &
+             &   + ( 16._dp * gauge2(3) - 0.4_dp * gauge2(1) ) * TraceY(2)   &
+             &   + 1.2_dp * gauge2(1) * TraceY(1)                            &
+             &   + ( 7.5_dp * gauge2(2) + 1.8_dp * gauge2(1) ) * gauge2(2)   &
+             &   + 13.5_dp * gauge2(1)**2
+   hd(1) = 9._dp * TraceY(2) + 3._dp * TraceY(1) - 6._dp * gauge2(2)
+   sume2 = - 4._dp * aYeYeaYeYe - hd(1) * aYeYe
+   Do i1=1,3
+    sume2(i1,i1) = sume2(i1,i1) + diagonal(1,2)
+   End Do
+ 
+   betaYe2 = Matmul(Ye,sume2)
+    
+   diagonal(2,2) = diagonal(1,2)                                        &
+      &     + 8._dp * ( ( gauge2(1) - 2._dp * gauge2(3) ) / 9._dp       &
+      &              + gauge2(2)  ) * gauge2(3)                         &
+      &     - 0.8_dp * gauge2(1) * gauge2(2)                            &
+      &     - 928._dp * gauge2(1)**2 / 90._dp
+   hd(1) = 0.8_dp * gauge2(1) - 3._dp * TraceY(3)
+   hd(2) = 9._dp * TraceY(2) + 3._dp * TraceY(1)     &
+     &   - 6._dp * gauge2(2) - 0.8_dp * gauge2(1)
+   sumd2 = - 4._dp * aYdYdaYdYd - 2._dp * aYuYuaYuYu - 2._dp * aYuYuaYdYd &
+       & + hd(1) * aYuYu - hd(2) * aYdYd
+   Do i1=1,3
+    sumd2(i1,i1) = sumd2(i1,i1) + diagonal(2,2)
+   End Do
+ 
+   betaYd2 = Matmul(Yd,sumd2)
+    
+   diagonal(3,2) = - 3._dp * (3._dp * TraceY2(3) + TraceY2(4) )            &
+     &      + ( 16._dp * gauge2(3) + 0.8_dp * gauge2(1) ) * TraceY(3)      &
+     &      + 8._dp * ( ( 3.4_dp * gauge2(1) - 2._dp* gauge2(3) ) / 9._dp  &
+     &               + gauge2(2)  ) * gauge2(3)                            &
+     &      + ( 7.5_dp * gauge2(2) + gauge2(1) ) * gauge2(2)               &
+     &      + 2743._dp * gauge2(1)**2 / 450._dp
+   hd(1) = 9._dp * TraceY(3) - 6._dp * gauge2(2) - 0.4_dp * gauge2(1)
+   hd(2) = 3._dp * TraceY(2) + TraceY(1) - 0.4_dp * gauge2(1)
+   sumu2 = - 4._dp * aYuYuaYuYu - 2._dp * aYdYdaYdYd - 2._dp * aYdYdaYuYu  &
+       & - hd(1) * aYuYu - hd(2) * aYdYd
+   Do i1=1,3
+    sumu2(i1,i1) = sumu2(i1,i1) + diagonal(3,2)
+   End Do
+ 
+   betaYu2 = Matmul(Yu,sumu2)
+    
+  End If 
+
+  !------------------------------------
+  ! beta functions for A-parameters
+  !-----------------------------------
+  Call Adjungate(Ad,aAd)
+  Call Adjungate(Ae,aAe)
+  Call Adjungate(Au,aAu)
+
+  aAdAd = Matmul(aAd,Ad)
+  aAeAe = Matmul(aAe,Ae)
+  aAuAu = Matmul(aAu,Au)
+
+  !------------------------------------------------
+  ! these are hermitian matrices, clean up to
+  ! avoid numerical problems
+  !------------------------------------------------
+  Do i1=1,3
+   aAdAd(i1,i1) = Real(aAdAd(i1,i1), dp)
+   aAeAe(i1,i1) = Real(aAeAe(i1,i1), dp)
+   aAuAu(i1,i1) = Real(aAuAu(i1,i1), dp)
+  End Do
+
+  TraceA(1) = Real( cTrace(aAeAe),dp )
+  TraceA(2) = Real( cTrace(aAdAd),dp )
+  TraceA(3) = Real( cTrace(aAuAu),dp )
+
+  aYdAd = Matmul(aYd,Ad)
+  aYeAe = Matmul(aYe,Ae)
+  aYuAu = Matmul(aYu,Au)
+
+  TraceaYA(1) = cTrace(aYeAe) 
+  TraceaYA(2) = cTrace(aYdAd) 
+  TraceaYA(3) = cTrace(aYuAu) 
+
+  g2Mi = gauge2 * Mhlf
+  !--------------
+  ! A_e
+  !--------------
+  sume1 = sume1 + 2._dp * aYeYe
+  betaAe1 = Matmul(Ae,sume1)
+
+  diagonal(1,1) = 2._dp * ( 3._dp * TraceaYA(2) + TraceaYA(1)  &
+                &         - c1_1(1,1) * g2Mi(1) - c1_1(1,2) * g2Mi(2)    )
+  sume1 = 4._dp * aYeAe
+  Do i1=1,3
+   sume1(i1,i1) = sume1(i1,i1) + diagonal(1,1)
+  End Do 
+  betaAe1 = betaAe1 + Matmul(Ye,sume1)
+
+  !--------------
+  ! A_d
+  !--------------
+  sumd1 = sumd1 + 2._dp * aYdYd
+  betaAd1 = Matmul(Ad,sumd1)
+  
+  diagonal(2,1) = 2._dp * ( 3._dp * TraceaYA(2) + TraceaYA(1) &
+                &         - c1_1(2,1) * g2Mi(1) - c1_1(2,2) * g2Mi(2)   &
+                &         - c1_1(2,3) * g2Mi(3) )
+  sumd1 = 4._dp * aYdAd + 2._dp * aYuAu
+  Do i1=1,3
+   sumd1(i1,i1) = sumd1(i1,i1) + diagonal(2,1)
+  End Do
+  betaAd1 = betaAd1 + Matmul(Yd,sumd1)
+
+  !--------------
+  ! A_u
+  !--------------
+  sumu1 = sumu1 + 2._dp * aYuYu
+  betaAu1 = Matmul(Au,sumu1)
+  
+  diagonal(3,1) = 2._dp * ( 3._dp * TraceaYA(3)              &
+                &         - c1_1(3,1) * g2Mi(1) - c1_1(3,2) * g2Mi(2)   &
+                &         - c1_1(3,3) * g2Mi(3) )
+  sumu1 = 2._dp * aYdAd + 4._dp * aYuAu
+  Do i1=1,3
+   sumu1(i1,i1) = sumu1(i1,i1) + diagonal(3,1)
+  End Do
+  betaAu1 = betaAu1 + Matmul(Yu,sumu1)
+
+  If (TwoLoopRGE) Then
+   aYdYdaYdAd = Matmul(aYdYd,aYdAd)
+   aYdAdaYdYd = Matmul(aYdAd,aYdYd)
+   aYeYeaYeAe = Matmul(aYeYe,aYeAe)
+   aYeAeaYeYe = Matmul(aYeAe,aYeYe)
+   aYuYuaYuAu = Matmul(aYuYu,aYuAu)
+   aYuAuaYuYu = Matmul(aYuAu,aYuYu)
+   aYuAuaYdYd = Matmul(aYuAu,aYdYd)
+   aYuYuaYdAd = Matmul(aYuYu,aYdAd)
+   aYdAdaYuYu = Matmul(aYdAd,aYuYu)
+   aYdYdaYuAu = Matmul(aYdYd,aYuAu)
+   TraceAY2(1) = cTrace(aYeYeaYeAe)
+   TraceAY2(2) = cTrace(aYdYdaYdAd)
+   TraceAY2(3) = cTrace(aYuYuaYuAu)
+   TraceAY2(4) = cTrace(aYuYuaYdAd)
+   TraceAY2(5) = cTrace(aYdYdaYuAu)
+
+  !--------------
+  ! A_e
+  !--------------
+   hd(1) = 6._dp * TraceY(2) + 2._dp * TraceY(1)   &
+       & - 6._dp * gauge2(2) + 1.2_dp * gauge2(1)
+   sume2 = sume2 - 2._dp * aYeYeaYeYe - hd(1) * aYeYe
+   betaAe2 = Matmul(Ae,sume2)
+    
+   diagonal(1,2) = -6._dp * ( 6._dp * TraceAY2(2) + TraceAY2(4)       &
+     &                      + TraceAY2(5) + 2._dp * TraceAY2(1)  )    &
+     &  + ( 32._dp * gauge2(3) - 0.8_dp * gauge2(1) ) * TraceaYA(2)   &
+     &  - ( 32._dp * g2Mi(3) - 0.8_dp * g2Mi(1) ) * TraceY(2)                &
+     &  + 2.4_dp * gauge2(1) * TraceaYA(1) - 2.4_dp * g2Mi(1) * TraceY(1)    &
+     &  - ( 30._dp * g2Mi(2)                              &
+     &    + 3.6_dp * gauge2(1) * (Mhlf(1)+Mhlf(2)) ) * gauge2(2)      &
+     &  - 54._dp * gauge2(1)**2 * Mhlf(1)
+   hd(1) = 12._dp * TraceY(2) + 4._dp * TraceY(1)     &
+       & - 6._dp * gauge2(2) - 1.2_dp * gauge2(1)
+   hc(1) = 18._dp * TraceaYA(2) + 6._dp * TraceaYA(1) &
+       & + 1.2e1_dp * gauge2(2) *  Mhlf(2)
+   sume2 = - 6._dp * aYeYeaYeAe - 8._dp * aYeAeaYeYe  &
+         & - hd(1) * aYeAe - hc(1) * aYeYe
+   Do i1=1,3
+    sume2(i1,i1) = sume2(i1,i1) + diagonal(1,2)
+   End Do
+   betaAe2 = betaAe2 + Matmul(Ye,sume2)
+
+  !--------------
+  ! A_d
+  !--------------
+   hd(1) = 6._dp * TraceY(2) + 2._dp * TraceY(1)    &
+       & - 6._dp * gauge2(2) - 0.4_dp * gauge2(1)
+   sumd2 = sumd2 - 2._dp * ( aYdYdaYdYd + aYuYuaYdYd ) - hd(1) * aYdYd
+   betaAd2 = Matmul(Ad,sumd2)
+    
+   diagonal(2,2) = diagonal(1,2)                                   &
+     &  + 16._dp * ( ( 4._dp * g2Mi(3)                 &
+     &              - gauge2(1) * (Mhlf(3)+Mhlf(1)) ) / 9._dp      &
+     &            - gauge2(2) * (Mhlf(3)+Mhlf(2)) ) * gauge2(3)    &
+     &  + 1.6_dp * gauge2(1) * gauge2(2) * (Mhlf(1)+Mhlf(2))       & 
+     &  + 1.856e3_dp * gauge2(1)**2 * Mhlf(1) / 4.5e1_dp
+
+   hd(1) = 12._dp * TraceY(2) + 4._dp * TraceY(1)  &
+       & - 6._dp * gauge2(2) - 1.2_dp * gauge2(1)
+   hd(2) = 6._dp * TraceY(3) - 1.6_dp * gauge2(1) 
+   hc(1) = 18._dp * TraceaYA(2) + 6._dp * TraceaYA(1)                 &
+       & + 1.2e1_dp * gauge2(2) *  Mhlf(2) + 1.6_dp * gauge2(1) *  Mhlf(1)
+   hc(2) = 6._dp * TraceaYA(3) + 1.6_dp * gauge2(1) *  Mhlf(1)
+   sumd2 = - 6._dp * aYdYdaYdAd - 8._dp * aYdAdaYdYd                  &
+       &   - 4._dp * ( aYuAuaYuYu + aYuYuaYuAu + aYuAuaYdYd )         &
+       &   - 2._dp * aYuYuaYdAd - hd(1) * aYdAd - hc(1) * aYdYd       &
+       &  - hd(2) * aYuAu - hc(2) * aYuYu
+   Do i1=1,3
+    sumd2(i1,i1) = sumd2(i1,i1) + diagonal(2,2)
+   End Do
+   betaAd2 = betaAd2 + Matmul(Yd,sumd2)
+
+  !--------------
+  ! A_u
+  !--------------
+   hd(1) = 6._dp * ( TraceY(3) - gauge2(2) ) + 0.4_dp * gauge2(1)
+   sumu2 = sumu2 - 2._dp * ( aYuYuaYuYu + aYdYdaYuYu ) - hd(1) * aYuYu
+   betaAu2 = Matmul(Au,sumu2)
+    
+   diagonal(3,2) =  -6._dp * ( 6._dp * TraceAY2(3) + TraceAY2(4)        &
+     &                        + TraceAY2(5)  )                          &
+     &  + ( 32._dp * gauge2(3) + 1.6_dp * gauge2(1) ) * TraceaYA(3)     &
+     &  - ( 32._dp * g2Mi(3) + 1.6_dp * g2Mi(1) ) * TraceY(3)           &
+     &  + 16._dp * ( ( 4._dp * g2Mi(3)                      &
+     &              - 3.4_dp * gauge2(1) * (Mhlf(3)+Mhlf(1)) ) / 9._dp  &
+     &            - gauge2(2) * (Mhlf(3)+Mhlf(2)) ) * gauge2(3)         &
+     &  - ( 30._dp * g2Mi(2)                                &
+     &    + 2._dp * gauge2(1) * (Mhlf(1)+Mhlf(2)) ) * gauge2(2)         &
+     &  - 5486._dp * gauge2(1)**2 * Mhlf(1) / 225._dp
+   hd(1) = 6._dp * TraceY(2) + 2._dp * TraceY(1) - 0.8_dp * gauge2(1)
+   hc(1) = 6._dp * TraceaYA(2) + 2._dp * TraceaYA(1)   &
+       &  + 0.8_dp * gauge2(1) *  Mhlf(1)
+   hd(2) = 12._dp * TraceY(3) - 6._dp * gauge2(2) - 1.2_dp * gauge2(1)
+   hc(2) = 18._dp * TraceaYA(3) + 1.2e1_dp * g2Mi(2) + 0.8_dp * g2Mi(1)
+   sumu2 = - 6._dp * aYuYuaYuAu - 8._dp * aYuAuaYuYu                     &
+       &   - 4._dp * ( aYdAdaYdYd + aYdYdaYdAd + aYdAdaYuYu )            &
+       &   - 2._dp * aYdYdaYuAu - hd(1) * aYdAd - hc(1) * aYdYd          &
+       &   - hd(2) * aYuAu - hc(2) * aYuYu
+   Do i1=1,3
+    sumu2(i1,i1) = sumu2(i1,i1) + diagonal(3,2)
+   End Do
+   betaAu2 = betaAu2 + Matmul(Yu,sumu2)
+
+  End If 
+!----------------------------------------------
+! beta functions for Sfermion mass parameters
+!----------------------------------------------
+   S1 = mH(2) - mH(1)
+   Do i1=1,3
+    S1 = S1 + Real(Me(i1,i1),dp) - Real(Ml(i1,i1),dp) &
+       &    + Real(Md(i1,i1),dp) + Real(Mq(i1,i1),dp) &
+       &    - 2._dp * Real(Mu(i1,i1),dp)
+   End Do
+   S1 = S1 * gauge2(1)
+
+   YdaYd = Matmul(Yd,aYd)
+   YeaYe = Matmul(Ye,aYe)
+   YuaYu = Matmul(Yu,aYu)
+
+   MdYdaYd = Matmul(Md,YdaYd)
+   MeYeaYe = Matmul(Me,YeaYe)
+   MlaYeYe = Matmul(Ml,aYeYe)
+   MqaYdYd = Matmul(Mq,aYdYd)
+   MqaYuYu = Matmul(Mq,aYuYu)
+   MuYuaYu = Matmul(Mu,YuaYu)
+
+   Call Adjungate(MdYdaYd, YdaYdMd) ! YdaYdMd = Matmul(YdaYd,Md)
+   Call Adjungate(MeYeaYe, YeaYeMe) ! YeaYeMe = Matmul(YeaYe,Me)
+   Call Adjungate(MlaYeYe, aYeYeMl) ! aYeYeMl = Matmul(aYeYe,Ml)
+   Call Adjungate(MqaYdYd, aYdYdMq) ! aYdYdMq = Matmul(aYdYd,Mq)
+   Call Adjungate(MqaYuYu, aYuYuMq) ! aYuYuMq = Matmul(aYuYu,Mq)
+   Call Adjungate(MuYuaYu, YuaYuMu) ! YuaYuMu = Matmul(YuaYu,Mu)
+
+   aYdMdYd = MatMul3(aYd,Md,Yd,OnlyDiagonal)
+   aYeMeYe = MatMul3(aYe,Me,Ye,OnlyDiagonal)
+   aYuMuYu = MatMul3(aYu,Mu,Yu,OnlyDiagonal)
+   YdMqaYd = MatMul3(Yd,Mq,aYd,OnlyDiagonal)
+   YeMlaYe = MatMul3(Ye,Ml,aYe,OnlyDiagonal)
+   YuMqaYu = MatMul3(Yu,Mq,aYu,OnlyDiagonal)
+
+   AdaAd = Matmul(Ad,aAd)
+   AeaAe = Matmul(Ae,aAe)
+   AuaAu = Matmul(Au,aAu)
+
+   !------------------------------------------------
+   ! these are hermitian matrices, clean up to
+   ! avoid numerical problems
+   !------------------------------------------------
+   Do i1=1,3
+    aYdMdYd(i1,i1) = Real(aYdMdYd(i1,i1), dp)
+    aYeMeYe(i1,i1) = Real(aYeMeYe(i1,i1), dp)
+    aYuMuYu(i1,i1) = Real(aYuMuYu(i1,i1), dp)
+    YdMqaYd(i1,i1) = Real(YdMqaYd(i1,i1), dp)
+    YeMlaYe(i1,i1) = Real(YeMlaYe(i1,i1), dp)
+    YuMqaYu(i1,i1) = Real(YuMqaYu(i1,i1), dp)
+    AdaAd(i1,i1) = Real(AdaAd(i1,i1), dp)
+    AeaAe(i1,i1) = Real(AeaAe(i1,i1), dp)
+    AuaAu(i1,i1) = Real(AuaAu(i1,i1), dp)
+   End Do
+
+   diagonal(1,1) = - 4.8_dp * AbsGM2(1) + 1.2_dp * S1
+   betaMe1 = 2._dp * (MeYeaYe + YeaYeMe)             &
+         & + 4._dp * ( mH(1) * YeaYe + YeMlaYe + AeaAe )
+   Do i1=1,3
+    betaMe1(i1,i1) = betaMe1(i1,i1) + diagonal(1,1)
+   End Do
+
+   diagonal(2,1) = - 6._dp * AbsGM2(2) - 1.2_dp * AbsGM2(1) - 0.6_dp * S1
+   betaMl1 = MlaYeYe + aYeYeMl + 2._dp * ( mH(1) * aYeYe + aYeMeYe + aAeAe )
+   Do i1=1,3
+    betaMl1(i1,i1) = betaMl1(i1,i1) + diagonal(2,1)
+   End Do
+
+   diagonal(3,1) = - ( 32._dp * AbsGM2(3) + 1.6_dp * AbsGM2(1) ) / 3._dp &
+               & + 0.4_dp * S1
+   betaMd1 = 2._dp * (MdYdaYd + YdaYdMd)             &
+         & + 4._dp * ( mH(1) * YdaYd + YdMqaYd + AdaAd )
+   Do i1=1,3
+    betaMd1(i1,i1) = betaMd1(i1,i1) + diagonal(3,1)
+   End Do
+
+   diagonal(4,1) = - ( 32._dp * AbsGM2(3) + 0.4_dp * AbsGM2(1) ) / 3._dp &
+               & - 6._dp * AbsGM2(2) + 0.2_dp * S1
+   betaMq1 = MqaYuYu + aYuYuMq + MqaYdYd + aYdYdMq             &
+         & + 2._dp * ( mH(2) * aYuYu + mH(1) * aYdYd + aYuMuYu     &
+         &           + aYdMdYd + aAuAu + aAdAd )
+   Do i1=1,3
+    betaMq1(i1,i1) = betaMq1(i1,i1) + diagonal(4,1)
+   End Do
+
+   diagonal(5,1) = - ( 32._dp * AbsGM2(3) + 6.4_dp * AbsGM2(1) ) / 3._dp &
+               &   - 0.8_dp * S1
+   betaMu1 = 2._dp * (MuYuaYu + YuaYuMu)             &
+         & + 4._dp * ( mH(2) * YuaYu + YuMqaYu + AuaAu )
+   Do i1=1,3
+    betaMu1(i1,i1) = betaMu1(i1,i1) + diagonal(5,1)
+   End Do
+
+   If (TwoLoopRGE) Then
+    YdaYdYdaYd = MatSquare(YdaYd,OnlyDiagonal)
+    YeaYeYeaYe = MatSquare(YeaYe,OnlyDiagonal)
+    YuaYuYuaYu = MatSquare(YuaYu,OnlyDiagonal)
+
+    !------------------------------------------------
+    ! these are hermitian matrices, clean up to
+    ! avoid numerical problems
+    !------------------------------------------------
+    Do i1=1,3
+     YdaYdYdaYd(i1,i1) = Real( YdaYdYdaYd(i1,i1), dp)
+     YeaYeYeaYe(i1,i1) = Real( YeaYeYeaYe(i1,i1), dp)
+     YuaYuYuaYu(i1,i1) = Real( YuaYuYuaYu(i1,i1), dp)
+    End Do
+
+    AdaYd = Matmul(Ad,aYd)
+    AeaYe = Matmul(Ae,aYe)
+    AuaYu = Matmul(Au,aYu)
+
+    aAdYd = Matmul(aAd,Yd)
+    aAeYe = Matmul(aAe,Ye)
+    aAuYu = Matmul(aAu,Yu)
+
+    Call Adjungate(AdaYd,YdaAd) ! YdaAd = Matmul(Yd,aAd,OnlyDiagonal)
+    Call Adjungate(AeaYe,YeaAe) ! YeaAe = Matmul(Ye,aAe)
+    Call Adjungate(AuaYu,YuaAu) ! YuaAu = Matmul(Yu,aAu)
+
+    YdaYuYuaYd = MatMul3(Yd,aYuYu,aYd,OnlyDiagonal)
+    AdaYuYuaAd = MatMul3(Ad,aYuYu,aAd,OnlyDiagonal)
+    YdaAuAuaYd = MatMul3(Yd,aAuAu,aYd,OnlyDiagonal)
+    AdaAuYuaYd = MatMul4(Ad,aAu,Yu,aYd,OnlyDiagonal)
+    YdaYuAuaAd = MatMul3(Yd,aYuAu,aAd,OnlyDiagonal)
+
+    YuaYdYdaYu = MatMul3(Yu,aYdYd,aYu,OnlyDiagonal)
+    AuaYdYdaAu = MatMul3(Au,aYdYd,aAu,OnlyDiagonal)
+    YuaAdAdaYu = MatMul3(Yu,aAdAd,aYu,OnlyDiagonal)
+    AuaAdYdaYu = MatMul4(Au,aAd,Yd,aYu,OnlyDiagonal)
+    YuaYdAdaAu = MatMul3(Yu,aYdAd,aAu,OnlyDiagonal)
+
+    MdYdaYuYuaYd = Matmul(Md,YdaYuYuaYd)
+    Call Adjungate(MdYdaYuYuaYd, YdaYuYuaYdMd)
+    YdMqaYuYuaYd = MatMul3(Yd,MqaYuYu,aYd,OnlyDiagonal)
+    Call Adjungate(YdMqaYuYuaYd, YdaYuYuMqaYd)
+    YdaYuMuYuaYd = MatMul3(Yd,aYuMuYu,aYd,OnlyDiagonal)
+
+    MuYuaYdYdaYu = Matmul(Mu,YuaYdYdaYu)
+    Call Adjungate(MuYuaYdYdaYu, YuaYdYdaYuMu)
+    YuMqaYdYdaYu = MatMul3(Yu,MqaYdYd,aYu,OnlyDiagonal)
+    Call Adjungate(YuMqaYdYdaYu, YuaYdYdMqaYu)
+    YuaYdMdYdaYu = MatMul3(Yu,aYdMdYd,aYu,OnlyDiagonal)
+
+    MeYeaYeYeaYe = Matmul(MeYeaYe,YeaYe)
+    Call Adjungate(MeYeaYeYeaYe,YeaYeYeaYeMe)
+    aYeMeYeaYeYe = Matmul(aYeMeYe,aYeYe)
+    Call Adjungate(aYeMeYeaYeYe,aYeYeaYeMeYe)
+    YeaYeMeYeaYe = Matmul(YeaYeMe,YeaYe)
+
+    MlaYeYeaYeYe = Matmul(MlaYeYe,aYeYe)
+    Call Adjungate(MlaYeYeaYeYe, aYeYeaYeYeMl)
+    YeMlaYeYeaYe = Matmul(YeMlaYe,YeaYe)
+    Call Adjungate(YeMlaYeYeaYe, YeaYeYeMlaYe)
+    aYeYeMlaYeYe = Matmul(aYeYeMl,aYeYe)
+
+    MdYdaYdYdaYd = Matmul(MdYdaYd,YdaYd)
+    Call Adjungate(MdYdaYdYdaYd, YdaYdYdaYdMd)
+    aYdMdYdaYdYd = Matmul(aYdMdYd,aYdYd)
+    Call Adjungate(aYdMdYdaYdYd, aYdYdaYdMdYd)
+    YdaYdMdYdaYd = Matmul(YdaYdMd,YdaYd)
+
+    MqaYdYdaYdYd = Matmul(MqaYdYd,aYdYd)
+    Call Adjungate(MqaYdYdaYdYd, aYdYdaYdYdMq)
+    YdMqaYdYdaYd = Matmul(YdMqaYd,YdaYd)
+    Call Adjungate(YdMqaYdYdaYd, YdaYdYdMqaYd)
+    aYdYdMqaYdYd = Matmul(aYdYdMq,aYdYd)
+
+    MqaYuYuaYuYu = Matmul(MqaYuYu,aYuYu)
+    Call Adjungate(MqaYuYuaYuYu, aYuYuaYuYuMq)
+    YuMqaYuYuaYu = Matmul(YuMqaYu,YuaYu)
+    Call Adjungate(YuMqaYuYuaYu, YuaYuYuMqaYu)
+    aYuYuMqaYuYu = Matmul(aYuYuMq,aYuYu)
+
+    MuYuaYuYuaYu = Matmul(MuYuaYu,YuaYu)
+    Call Adjungate(MuYuaYuYuaYu, YuaYuYuaYuMu)
+    aYuMuYuaYuYu = Matmul(aYuMuYu,aYuYu)
+    Call Adjungate(aYuMuYuaYuYu, aYuYuaYuMuYu)
+    YuaYuMuYuaYu = Matmul(YuaYuMu,YuaYu)
+
+    AdaAdYdaYd = Matmul(AdaAd,YdaYd)
+    Call Adjungate(AdaAdYdaYd, YdaYdAdaAd)
+    AdaYdYdaAd = Matmul(AdaYd,YdaAd)
+    YdaAdAdaYd = Matmul(YdaAd,AdaYd)
+
+    aAdAdaYdYd = Matmul(aAdAd,aYdYd)
+    Call Adjungate(aAdAdaYdYd, aYdYdaAdAd)
+    aAdYdaYdAd = Matmul(aAdYd,aYdAd)
+    aYdAdaAdYd = Matmul(aYdAd,aAdYd)
+
+    AeaAeYeaYe = Matmul(AeaAe,YeaYe)
+    Call Adjungate(AeaAeYeaYe, YeaYeAeaAe)
+    AeaYeYeaAe = Matmul(AeaYe,YeaAe)
+    YeaAeAeaYe = Matmul(YeaAe,AeaYe)
+
+    aAeAeaYeYe = Matmul(aAeAe,aYeYe)
+    Call Adjungate(aAeAeaYeYe, aYeYeaAeAe)
+    aAeYeaYeAe = Matmul(aAeYe,aYeAe)
+    aYeAeaAeYe = Matmul(aYeAe,aAeYe)
+
+    AuaAuYuaYu = Matmul(AuaAu,YuaYu)
+    Call Adjungate(AuaAuYuaYu, YuaYuAuaAu)
+    AuaYuYuaAu = Matmul(AuaYu,YuaAu)
+    YuaAuAuaYu = Matmul(YuaAu,AuaYu)
+
+    aAuAuaYuYu = Matmul(aAuAu,aYuYu)
+    Call Adjungate(aAuAuaYuYu, aYuYuaAuAu)
+    aAuYuaYuAu = Matmul(aAuYu,aYuAu)
+    aYuAuaAuYu = Matmul(aYuAu,aAuYu)
+
+    S2 = (1.5_dp * gauge2(2) + 0.3_dp * gauge2(1) )            &
+     &      * (MH(2) - MH(1) - Real(cTrace(ML),dp) )              &
+     & + ( (8._dp * gauge2(3) + 0.1_dp*gauge2(1)) / 3._dp      &
+     &   + 1.5_dp * gauge2(2) ) * Real( cTrace(Mq),dp   )         &
+     & - (16._dp * gauge2(3) + 3.2_dp*gauge2(1) )              &
+     &    * Real(cTrace(Mu),dp) / 3._dp                           &
+     & + (8._dp * gauge2(3) + 0.4_dp*gauge2(1) )               &
+     &    * Real(cTrace(Md),dp) / 3._dp                           &
+     & + 1.2_dp*gauge2(1) * Real(cTrace(Me),dp)                   &
+     & - 3._dp * (MH(2)*TraceY(3) - MH(1) * TraceY(2) )        &
+     & + mH(1) * TraceY(1)
+    
+    Do i1=1,3
+     S2 = S2 - Real(YuMqaYu(i1,i1),dp) + 4._dp * Real(aYuMuYu(i1,i1),dp)   &
+        &    - Real(YdMqaYd(i1,i1),dp) - 2._dp * Real(aYdMdYd(i1,i1),dp)   &
+        &    + Real(YeMlaYe(i1,i1),dp) - 2._dp * Real(aYeMeYe(i1,i1),dp)
+    End Do
+
+    sig(1) = 3._dp * (MH(1) + MH(2) + Real(cTrace(Ml),dp) )          &
+         & + Real(cTrace(Mq),dp) + 8._dp * Real(cTrace(Mu),dp)          &
+         & + 2._dp * Real(cTrace(Md),dp) + 6._dp * Real(cTrace(Me),dp) 
+    sig(1) = 0.2_dp * gauge2(1) * sig(1)
+    sig(2) = gauge2(2) * ( MH(1) + MH(2) + Real( cTrace(Ml),dp )    &
+           &             + 3._dp * Real( cTrace(Mq),dp ) )
+    sig(3) = gauge2(3) * ( 2._dp * Real( cTrace(Mq),dp )            &
+           &             + Real(cTrace(Mu),dp) + Real(cTrace(Md),dp) )
+
+    Tr3aYdYdaYeYe = 3._dp * TraceY(2) + TraceY(1)
+    Tr3MqaYdYd3aYDMdYd = Real(cTrace(MlaYeYe),dp) + Real(cTrace(aYeMeYe),dp)  &
+              & + 3._dp * ( Real(cTrace(MqaYdYd),dp)+Real(cTrace(aYdMdYd),dp) )
+    Tr3aAdAdaAeAe = 3._dp * TraceA(2) + TraceA(1)
+    Tr3aYdAdaYeAe = 3._dp * TraceaYA(2) + TraceaYA(1)
+    Tr3aAdYdaAeYe = Conjg( Tr3aYdAdaYeAe )
+    Tr3MqaYuYu3aYuMu = 3._dp * (Real(cTrace(MqaYuYu),dp) &
+                     &         +Real(cTrace(aYuMuYu),dp) )
+    Tr3aAuAu = 3._dp * TraceA(3)
+    Tr3aYuAu = 3._dp * TraceaYA(3)
+    Tr3aAuYu = Conjg( Tr3aYuAu )
+
+    diagonal(1,2) = 2.4_dp * gauge2(1) * (S2 + sig(1) )   &
+                & + 112.32_dp * gauge2(1) * AbsGM2(1)
+    hd(1) = 6._dp*gauge2(2)-1.2_dp*gauge2(1)
+    hd(2) = 24._dp * AbsGM2(2) - 4.8_dp * AbsGM2(1)
+    hc(2) = - 12._dp * g2Mi(2) + 2.4_dp * g2Mi(1)
+    hc(1) = Conjg( hc(2) )
+    betaMe2 = -2._dp * ( MeYeaYeYeaYe + YeaYeYeaYeMe )                       &
+      & - 4._dp * ( YeMlaYeYeaYe + YeaYeMeYeaYe + YeaYeYeMlaYe )             &
+      & - 8._dp * mH(1) * YeaYeYeaYe                                         &
+      & - 2._dp * Tr3aYdYdaYeYe * ( MeYeaYe + YeaYeMe + 4._dp * MH(1) * YeaYe &
+      &                           + 2._dp * (YeMlaYe + AeaAE)  )             &
+      & - 4._dp * ( Tr3MqaYdYd3aYDMdYd * YeaYe + AeaAeYeaYe + YeaYEAeaAe     &
+      &           + AeaYeYeaAe + YeaAeAeaYe + Tr3aAdAdaAeAe * YeaYe          &
+      &           + Tr3aAdYdaAeYe * AeaYe + Tr3aYdAdaYeAe * YeaAe )          &
+      & + hd(1) * ( MeYeaYe + YeaYeMe                                        &
+      &           + 2._dp * ( mH(1) * YeaYe + YeMlaYe + AeaAe ) )            &
+      & + hd(2) * YeaYe + hc(1) * AeaYe + hc(2) * YeaAe
+    Do i1=1,3
+     betaMe2(i1,i1) = betaMe2(i1,i1) + diagonal(1,2)
+    End Do
+
+    diagonal(2,2) = gauge2(1) * ( 0.6_dp * sig(1) - 1.2_dp * S2)        &
+     &     + 3._dp * gauge2(2) * sig(2)                                 &
+     &     + gauge2(2) * ( 33._dp * AbsGM2(2) + 3.6_dp * AbsGM2(1)      &
+     &                   + 3.6_dp * gauge2(1) * ( Abs(Mhlf(2))**2       &
+     &                          +Real( Mhlf(1)*Conjg(Mhlf(2)),dp ) ) )     &
+     &     + 24.84_dp * gauge2(1) * AbsGM2(1)
+    betaMl2 = -2._dp * ( MlaYeYeaYeYe + aYeYeaYeYeMl )                   &
+      & - 4._dp * ( aYeMeYeaYeYe + aYeYeMlaYeYe + aYeYeaYeMeYe )         &
+      & - 8._dp * mH(1) * aYeYeaYeYe                                     &
+      & - Tr3aYdYdaYeYe * ( MlaYeYe + aYeYeML + 4._dp * MH(1) * aYeYe    &
+      &                   + 2._dp * (aYeMeYe + aAeAE)  )                 &
+      & - 4._dp * (aAeAeaYeYe + aYeYeaAeAe + aAeYeaYeAe + aYeAeaAeYe )   &
+      & - 2._dp * ( Tr3MqaYdYd3aYDMdYd * aYeYe +  Tr3aAdAdaAeAe * aYeYe  &
+      &           + Tr3aAdYdaAeYe * aYeAe + Tr3aYdAdaYeAe * aAeYe     )  &
+      & + 1.2_dp*gauge2(1) * ( MlaYeYe + aYeYeMl                         &
+      &                      + 2._dp * ( mH(1) * aYeYe + aYeMeYe + aAeAe &
+      &                                - Mhlf(1) * aAeYe                 &
+      &                                - Conjg(Mhlf(1)) * aYeAe ) )      &
+      & + 4.8_dp * AbsGM2(1) * aYeYe
+    Do i1=1,3
+     betaMl2(i1,i1) = betaMl2(i1,i1) + diagonal(2,2)
+    End Do
+
+    diagonal(3,2) = 0.8_dp * gauge2(1) * (S2 + sig(1)/3._dp )             &
+      &   + 16._dp * gauge2(3) * (-8._dp * AbsGM2(3) + sig(3) ) / 3._dp   &
+      &   + 8.08e2_dp * gauge2(1) * AbsGM2(1) / 75._dp                    &
+      &   + 1.28e2_dp * ( gauge2(1) * AbsGM2(3)                           &
+      &                 + gauge2(3) * AbsGM2(1) + gauge2(1)*gauge2(3)     &
+      &                   * Real( Mhlf(1) * Conjg(Mhlf(3)),dp ) ) / 4.5e1_dp
+
+    hd(1) = 6._dp*gauge2(2)+0.4_dp*gauge2(1)
+    hd(2) = 24._dp * AbsGM2(2) + 1.6_dp * AbsGM2(1)
+    hc(2) = - 12._dp * g2Mi(2) - 0.8_dp * g2Mi(1)
+    hc(1) = Conjg( hc(2) )
+    betaMd2 = -2._dp * ( MdYdaYdYdaYd + YdaYdYdaYdMd )                       &
+      & - 4._dp * ( YdMqaYdYdaYd + YdaYdMdYdaYd + YdaYdYdMqaYd )             &
+      & - 8._dp * mH(1) * YdaYdYdaYd                                         &
+      & - 2._dp * Tr3aYdYdaYeYe * ( MdYdaYd + YdaYdMd + 4._dp * MH(1) * YdaYd &
+      &                           + 2._dp * (YdMqaYd + AdaAD)  )             &
+      & - 4._dp * ( Tr3MqaYdYd3aYDMdYd * YdaYd + AdaAdYdaYd + YdaYDAdaAd     &
+      &           + AdaYdYdaAd + YdaAdAdaYd + Tr3aAdAdaAeAe * YdaYd          &
+      &           + Tr3aAdYdaAeYe * AdaYd + Tr3aYdAdaYeAe * YdaAd )          &
+      & + hd(1) * ( MdYdaYd + YdaYdMd                                        &
+      &           + 2._dp * ( mH(1) * YdaYd + YdMqaYd + AdaAd ) )            &
+      & + hd(2) * YdaYd + hc(1) * AdaYd + hc(2) * YdaAd                      &
+      & - 2._dp * (MdYdaYuYuaYd + YdaYuYuaYdMd )                             &
+      & - 4._dp * ( (MH(1)+MH(2)) * YdaYuYuaYd + YdMqaYuYuaYd+ YdaYuYuMqaYd  &
+      &           + YdaYuMuYuaYd + AdaAuYuaYd + YdaYuAuaAd                   &
+      &           + AdaYuYuaAd + YdaAuAuaYd )
+    Do i1=1,3
+     betaMd2(i1,i1) = betaMd2(i1,i1) + diagonal(3,2)
+    End Do
+
+    diagonal(4,2) = 0.2_dp * gauge2(1) * (2._dp * S2 + sig(1)/3._dp )     &
+      &  + 3._dp * gauge2(2) * sig(2)                                     &
+      &  + 16._dp * gauge2(3) * (-8._dp * AbsGM2(3) + sig(3) ) / 3._dp    &
+      &  + 1.99e2_dp * gauge2(1) * AbsGM2(1) / 75._dp                     &
+      &  + 32._dp * ( gauge2(1) * AbsGM2(3)                               &
+      &             + gauge2(3) * AbsGM2(1) + gauge2(1)*gauge2(3)         &
+      &              * Real( Mhlf(1) * Conjg(Mhlf(3)),dp ) ) / 4.5e1_dp      &
+      &  + 33._dp * gauge2(2) * AbsGM2(2)                                 &
+      &  + 32._dp * ( gauge2(2) * AbsGM2(3)                               &
+      &             + gauge2(3) * AbsGM2(2)  + gauge2(3)*gauge2(2)        &
+      &              * Real( Mhlf(2) * Conjg(Mhlf(3)),dp ) )                 &
+      &  + 0.4_dp * ( gauge2(2) * AbsGM2(1)                               &
+      &             + gauge2(1) * AbsGM2(2) + gauge2(1)*gauge2(2)         &
+      &              * Real( Mhlf(2) * Conjg(Mhlf(1)),dp ) )
+    hd(1) = 1.6_dp * AbsGM2(1)
+    hc(1) = - 0.8_dp * g2Mi(1)
+    hc(2) = Conjg( hc(1) )
+    hd(2) = 3.2_dp * AbsGM2(1)
+    hc(3) = - 1.6_dp * g2Mi(1)
+    hc(4) = Conjg( hc(3) )
+    betaMq2 = -2._dp * ( MqaYdYdaYdYd + aYdYdaYdYDMq )                       &
+      & - 4._dp * ( aYdMdYdaYdYd + aYdYdMqaYdYd + aYdYdaYdMdYd )             &
+      & - 8._dp * mH(1) * aYdYdaYdYd                                         &
+      & - Tr3aYdYdaYeYe * ( MqaYdYd + aYdYdMq + 4._dp * MH(1) * aYdYd        &
+      &                   + 2._dp * (aYdMdYd + aAdAd)  )                     &
+      & - 2._dp * ( Tr3MqaYdYd3aYDMdYd * aYdYd                               &
+      &           + 2._dp * ( aAdAdaYdYd + aYdYDaAdAd + aAdYdaYdAd           &
+      &                     + aYdAdaAdYd )                                   &
+      &           + Tr3aAdAdaAeAe * aYdYd + Tr3aAdYdaAeYe * aYdAd            &
+      &           + Tr3aYdAdaYeAe * aAdYd )                                  &
+      & + 0.4_dp*gauge2(1) * ( MqaYdYd + aYdYdMq                             &
+      &                      + 2._dp * ( mH(1) * aYdYd + aYdMdYd + aAdAd ) ) &
+      & + hd(1) * aYdYd + hc(1) * aAdYd + hc(2) * aYdAd                      &
+      & - 2._dp * ( MqaYuYuaYuYu + aYuYuaYuYuMq )                            &
+      & - 4._dp * ( aYuMuYuaYuYu + aYuYuMqaYuYu + aYuYuaYuMuYu )             &
+      & - 8._dp * MH(2) * aYuYuaYuYu                                         &
+      & - 3._dp * TraceY(3) * ( MqaYuYu + aYuYuMq + 4._dp * MH(2) * aYuYu    &
+      &                       + 2._dp * (aYuMuYu + aAuAu) )                  &
+      & - 2._dp * ( Tr3MqaYuYu3aYuMu * aYuYu                                 &
+      &           + 2._dp * ( aAuAuaYuYu + aYuYuaAuAu                        &
+      &                     + aAuYuaYuAu + aYuAuaAuYu )                      &
+      &           + Tr3aAuAu * aYuYu + Tr3aAuYu * aYuAu + Tr3aYuAu * aAuYu ) &
+      & + 0.8_dp*gauge2(1) * ( MqaYuYu + aYuYuMq                             &
+      &                      + 2._dp * ( MH(2) * aYuYu + aYuMuYu + aAuAu ) ) &
+      & + hd(2) * aYuYu + hc(3) * aAuYu + hc(4) * aYuAu
+    Do i1=1,3
+     betaMq2(i1,i1) = betaMq2(i1,i1) + diagonal(4,2)
+    End Do
+
+    diagonal(5,2) = 1.6_dp * gauge2(1) * (2._dp*sig(1)/3._dp - S2)           &
+      &  + 16._dp * gauge2(3) * (-8._dp * AbsGM2(3) + sig(3) ) / 3._dp       &
+      &  + 3424._dp * gauge2(1) * AbsGM2(1) / 75._dp                         &
+      &  + 512._dp * ( gauge2(1) * AbsGM2(3)                                 &
+      &              + gauge2(3) * AbsGM2(1) + gauge2(1)*gauge2(3)           &
+      &                * Real( Mhlf(1) * Conjg(Mhlf(3)),dp ) ) / 4.5e1_dp
+
+    hd(1) = 6._dp*gauge2(2)-0.4_dp*gauge2(1)
+    hd(2) = 24._dp * AbsGM2(2) - 1.6_dp * AbsGM2(1)
+    hc(2) = - 12._dp * g2Mi(2) + 0.8_dp * g2Mi(1)
+    hc(1) = Conjg( hc(2) )
+    betaMu2 = -2._dp * ( MuYuaYuYuaYu + YuaYuYuaYuMu )                       &
+      & - 4._dp * ( YuMqaYuYuaYu + YuaYuMuYuaYu + YuaYuYuMqaYu )             &
+      & - 8._dp * MH(2) * YuaYuYuaYu                                         &
+      & - 6._dp * TraceY(3) * ( MuYuaYu + YuaYuMu + 4._dp * MH(2) * YuaYu    &
+      &                       + 2._dp * (YuMqaYu + AuaAu)  )                 &
+      & - 4._dp * ( Tr3MqaYuYu3aYuMu * YuaYu + AuaAuYuaYu + YuaYuAuaAu       &
+      &           + AuaYuYuaAu + YuaAuAuaYu + Tr3aAuAu * YuaYu               &
+      &           + Tr3aAuYu * AuaYu + Tr3aYuAu * YuaAu )                    &
+      & + hd(1) * ( MuYuaYu + YuaYuMu                                        &
+      &           + 2._dp * ( MH(2) * YuaYu + YuMqaYu + AuaAu ) )            &
+      & + hd(2) * YuaYu + hc(1) * AuaYu + hc(2) * YuaAu                      &
+      & - 2._dp * (MuYuaYdYdaYu + YuaYdYdaYuMu )                             &
+      & - 4._dp * ( (MH(1)+MH(2)) * YuaYdYdaYu + YuMqaYdYdaYu + YuaYdYdMqaYu &
+      &           + YuaYdMdYdaYu + AuaAdYdaYu + YuaYdAdaAu                   &
+      &           + AuaYdYdaAu + YuaAdAdaYu )
+    Do i1=1,3
+     betaMu2(i1,i1) = betaMu2(i1,i1) + diagonal(5,2)
+    End Do
+
+   End If 
+
+  !------------------------------------------
+  ! beta functions for Higgs mass parameters
+  !------------------------------------------
+   traceMH1(1) = mH(1) * TraceY(1) + Real( cTrace(YeMlaYe),dp ) &
+             & + Real( cTrace(aYeMeYe),dp ) + TraceA(1)
+   traceMH1(2) = mH(1) * TraceY(2) + Real( cTrace(YdMqaYd),dp ) &
+             & + Real( cTrace(aYdMdYd),dp ) + TraceA(2)
+   betamH11 = 6._dp * TraceMH1(2) + 2._dp * TraceMH1(1)      &
+          & - 6._dp * AbsGM2(2) - 1.2_dp * AbsGM2(1) - 0.6_dp * S1
+
+   traceMH2(1) = mH(2) * TraceY(3) + Real( cTrace(YuMqaYu),dp )  &
+             & + Real( cTrace(aYuMuYu),dp ) + TraceA(3)
+
+   betamH21 = 6._dp * TraceMH2(1) - 6._dp * AbsGM2(2) - 1.2_dp * AbsGM2(1)  &
+          & + 0.6_dp * S1
+
+   If (TwoLoopRGE) Then
+    traceMH1(3) = MH(1) * (6._dp*TraceY2(2) + 2._dp*TraceY2(1) + TraceY2(4) ) &
+              & + MH(2) * TraceY2(4)                                          &
+              & + 6._dp * ( Real( cTrace(MqaYdYdaYdYd),dp )                   &
+              &           + Real( cTrace(aYdMdYdaYdYd),dp )                   &
+              &           + Real( cTrace(aAdAdaYdYd),dp )                     &
+              &           + Real( cTrace(aAdYdaYdAd),dp )  )                  &
+              & + 2._dp * ( Real( cTrace(MlaYeYeaYeYe),dp )                   &
+              &           + Real( cTrace(aYeMeYeaYeYe),dp )                   &
+              &           + Real( cTrace(aAeAeaYeYe),dp )                     &
+              &           + Real( cTrace(aAeYeaYeAe),dp )  )                  &
+           & + Real(cTrace(YdMqaYuYuaYd),dp) + Real(cTrace(YdaYuMuYuaYd),dp ) &
+       & + Real( cTrace(YdaYuYuMqaYd),dp ) + Real( cTrace(YuaYdMdYdaYu),dp ) &
+       & + Real( cTrace(YdaAuAuaYd),dp ) + Real( cTrace(AdaYuYuaAd),dp )     &
+              & + Real( cTrace(AdaAuYuaYd),dp ) + Real( cTrace(YdaYuAuaAd),dp )
+    betaMH12 = - 6._dp * traceMH1(3)                                       &
+      &   + (32._dp*gauge2(3) - 0.8_dp*gauge2(1) ) * traceMH1(2)           &
+      &   + 64._dp * ( AbsGM2(3) * TraceY(2)                               &
+      &             - gauge2(3) * Real( Conjg(Mhlf(3))*TraceaYA(2),dp ) )     &
+      &   - 1.6_dp * ( AbsGM2(1) * TraceY(2)                               &
+      &             - gauge2(1) * Real( Conjg(Mhlf(1))*TraceaYA(2),dp ) )     &
+      &   + 2.4_dp*gauge2(1) * traceMH1(1)                                 &
+      &   + 4.8_dp * ( AbsGM2(1) * TraceY(1)                               &
+      &             - gauge2(1) * Real( Conjg(Mhlf(1))*TraceaYA(1),dp ) )     &
+      &   + gauge2(1) * ( 0.6_dp * sig(1) - 1.2_dp * S2)                   &
+      &   + 3._dp * gauge2(2) * sig(2)                                     &
+      &   + gauge2(2) * ( 33._dp * AbsGM2(2) + 3.6_dp * AbsGM2(1)          &
+      &                 + 3.6_dp * gauge2(1) * ( Abs(Mhlf(2))**2           &
+      &                          +Real( Mhlf(1)*Conjg(Mhlf(2)),dp ) ) )       &
+      &   + 24.84_dp * gauge2(1) * AbsGM2(1)
+
+    traceMH2(2) = MH(2) * ( 6._dp * TraceY2(3) + TraceY2(4) )                 &
+      &  + MH(1) * TraceY2(4)                                                 &
+      & + 6._dp*(Real(cTrace(MqaYuYuaYuYu),dp)+Real(cTrace(aYuMuYuaYuYu),dp)  &
+      &        + Real(cTrace(aAuAuaYuYu),dp) + Real(cTrace(aAuYuaYuAu),dp))   &
+      & + Real(cTrace(YuMqaYdYdaYu),dp)+Real(cTrace(YuaYdMdYdaYu),dp )        &
+      & + Real(cTrace(YuaYdYdMqaYu),dp)+Real(cTrace(YdaYuMuYuaYd),dp )        &
+      & + Real(cTrace(YuaAdAdaYu),dp) + Real( cTrace(AuaYdYdaAu),dp )         &
+      &  + Real( cTrace(AuaAdYdaYu),dp ) + Real( cTrace(YuaYdAdaAu),dp )
+    betaMH22 = - 6._dp * traceMH2(2)                                          &
+      &   + (32._dp*gauge2(3) + 1.6_dp*gauge2(1) ) * traceMH2(1)              &
+      &   + 64._dp * ( AbsGM2(3) * TraceY(3)                                  &
+      &             - gauge2(3) * Real( Conjg(Mhlf(3))*TraceaYA(3),dp ) )     &
+      &   + 3.2_dp * ( AbsGM2(1) * TraceY(3)                                  &
+      &             - gauge2(1) * Real( Conjg(Mhlf(1))*TraceaYA(3),dp ) )     &
+      &   + gauge2(1) * ( 0.6_dp * sig(1) + 1.2_dp * S2)                      &
+      &   + 3._dp * gauge2(2) * sig(2)                                        &
+      &   + gauge2(2) * ( 33._dp * AbsGM2(2) + 3.6_dp * AbsGM2(1)             &
+      &                 + 3.6_dp * gauge2(1) * ( Abs(Mhlf(2))**2              &
+      &                          +Real( Mhlf(1)*Conjg(Mhlf(2)),dp ) ) )       &
+      &   + 24.84_dp * gauge2(1) * AbsGM2(1)
+
+   End If
+!-----------------------------
+! beta functions for mu and B
+!-----------------------------
+   TraceMue(1) = 3._dp * (TraceY(2)+TraceY(3)) + TraceY(1)  &
+             & - 3._dp * gauge2(2) - 0.6_dp * gauge2(1)
+   betaMue1 = mue * TraceMue(1)
+
+   TraceB(1) = 6._dp * (TraceaYA(2)+TraceaYA(3)) + 2._dp * TraceaYA(1)    &
+           & + 6._dp * g2Mi(2) + 1.2_dp * g2Mi(1)
+   betaB1 = mue * TraceB(1) + B * TraceMue(1)
+
+   If (TwoLoopRGE) Then
+    TraceMue(2) = - 3._dp * ( 3._dp * (TraceY2(2) + TraceY2(3) )          &
+      &                     + 2._dp * TraceY2(4) + TraceY2(1) )           &
+      &         + (16._dp * gauge2(3) + 0.8_dp * gauge2(1)) * TraceY(3)   &
+      &         + (16._dp * gauge2(3) - 0.4_dp * gauge2(1)) * TraceY(2)   &
+      &         + 1.2_dp * gauge2(1) * TraceY(1)                          &
+      &         + 7.5_dp * gauge2(2)**2                                   &
+      &         + 1.8_dp * gauge2(2) * gauge2(1)                          &
+      &         + 4.14_dp * gauge2(1)**2
+    betaMue2 = mue * TraceMue(2)
+
+    TraceB(1) = cTrace( 3._dp * (Matmul(AuaYu,YuaYu) + Matmul(AdaYd,YdaYd) )  &
+              &       + Matmul(AeaYe,YeaYe) + Matmul(aYuAu,aYdYd)             &
+              &       + Matmul(aYdAd,aYuYu) ) 
+    TraceB(2) = -12._dp * TraceB(1)                                           &
+      &   + (32._dp * gauge2(3) + 1.6_dp * gauge2(1) ) * TraceaYA(3)          &
+      &   + (32._dp * gauge2(3) - 0.8_dp * gauge2(1) ) * TraceaYA(2)          &
+      &   + 2.4_dp * gauge2(1) * TraceaYA(1)                                  &
+      &   - ( 32._dp * g2Mi(3) + 1.6_dp * g2Mi(1) ) * TraceY(3)               &
+      &   - ( 32._dp * g2Mi(3) - 0.8_dp * g2Mi(1) ) * TraceY(2)               &
+      &   - 2.4_dp * g2Mi(1) * TraceY(1)                          &
+      &   - 30._dp * gauge2(2)**2 * Mhlf(2)                                   &
+      &   - 3.6_dp * gauge2(2) * gauge2(1) * (Mhlf(1) + Mhlf(2) )             &
+      &   - 16.56_dp * gauge2(1)**2 * Mhlf(1) 
+    betaB2 = mue * TraceB(2) + B * TraceMue(2)
+
+   End If
+
+  !---------------
+  ! Ln(tan(beta))
+  !---------------
+  gamma1 = 3._dp * (TraceY(2) - TraceY(3)) + TraceY(1)
+
+  If (TwoLoopRGE) Then 
+   gamma2 = 0.75_dp * ( 3._dp * (TraceY(3)**2 - TraceY(2)**2) - TraceY(1)**2)  &
+   &   - (1.9_dp * gauge2(1) + 4.5_dp * gauge2(2) + 20._dp * gauge2(3) )       &
+   &                                                              * TraceY(3)  &
+   &   + (0.4_dp * gauge2(1) + 4.5_dp * gauge2(2) + 20._dp * gauge2(3) )       &
+   &                                                              * TraceY(2)  &
+   &   + (1.8_dp * gauge2(1) + 1.5_dp * gauge2(2) ) * TraceY(1)                &
+   &   + (0.3_dp * gauge2(1) + 1.5_dp * gauge2(2) ) * gamma1 ! gauge dependence
+  end If
+
+ !---------------
+ ! 2-loop RGEs
+ !---------------
+  If (TwoLoopRGE) Then 
+ !----------------------
+ ! gauge couplings
+ !----------------------
+   Dgauge = oo16pi2 * gauge * gauge2  &
+        & * ( b_1 + oo16pi2 * (Matmul(b_2,gauge2) - Matmul(a_2,TraceY) ) )
+ !--------------------
+ ! Yukawa couplings
+ !--------------------
+   DYe = oo16pi2 * ( betaYe1 + oo16pi2 * betaYe2 )
+   DYd = oo16pi2 * ( betaYd1 + oo16pi2 * betaYd2 )
+   DYu = oo16pi2 * ( betaYu1 + oo16pi2 * betaYu2 )
+ !--------------------------
+ ! gaugino mass parameters
+ !--------------------------
+   Do i1 = 1,3    
+    sumI = 0._dp
+    Do i2=1,3
+     sumI = sumI + b_2(i1,i2) * gauge2(i2) * (Mhlf(i1) + Mhlf(i2) )     &
+          &      + a_2(i1,i2) * ( TraceaYA(i2) - Mhlf(i1)*TraceY(i2) )
+    End Do
+    DMhlf(i1) = oo8pi2 * gauge2(i1) * ( b_1(i1) * Mhlf(i1) + oo16pi2 * sumI)
+   End Do
+  !--------------------------
+  ! trilinear parameters
+  !--------------------------
+   DAe = oo16pi2 * ( betaAe1 + oo16pi2 * betaAe2 )
+   DAd = oo16pi2 * ( betaAd1 + oo16pi2 * betaAd2 )
+   DAu = oo16pi2 * ( betaAu1 + oo16pi2 * betaAu2 )
+  !---------------------------
+  ! Sfermion mass parameters
+  !---------------------------
+   DMe = oo16pi2 * ( betaMe1 + oo16pi2 * betaMe2 )
+   DMl = oo16pi2 * ( betaMl1 + oo16pi2 * betaMl2 )
+   DMd = oo16pi2 * ( betaMd1 + oo16pi2 * betaMd2 )
+   DMq = oo16pi2 * ( betaMq1 + oo16pi2 * betaMq2 )
+   DMu = oo16pi2 * ( betaMu1 + oo16pi2 * betaMu2 )
+  !-----------------------
+  ! Higgs mass parameters
+  !-----------------------
+   DmH(1) = oo16pi2 * ( betaMH11 + oo16pi2 * betaMH12 )
+   DmH(2) = oo16pi2 * ( betaMH21 + oo16pi2 * betaMH22 )
+  !----------
+  ! mu and B
+  !----------
+   DMue = oo16pi2 * ( betaMue1 + oo16pi2 * betaMue2 )
+   DB = oo16pi2 * ( betaB1 + oo16pi2 * betaB2 )
+
+ !---------------
+ ! 1-loop RGEs
+ !---------------
+  Else 
+ !----------------------
+ ! gauge couplings
+ !----------------------
+   Dgauge = oo16pi2 * gauge * gauge2 * b_1 
+ !--------------------
+ ! Yukawa couplings
+ !--------------------
+   DYe = oo16pi2 * betaYe1
+   DYd = oo16pi2 * betaYd1
+   DYu = oo16pi2 * betaYu1
+ !--------------------------
+ ! gaugino mass parameters
+ !--------------------------
+   DMhlf = oo8pi2 * gauge2 * b_1 * Mhlf
+  !--------------------------
+  ! trilinear parameters
+  !--------------------------
+   DAe = oo16pi2 * betaAe1
+   DAd = oo16pi2 * betaAd1
+   DAu = oo16pi2 * betaAu1
+  !---------------------------
+  ! Sfermion mass parameters
+  !---------------------------
+   DMe = oo16pi2 * betaMe1
+   DMl = oo16pi2 * betaMl1
+   DMd = oo16pi2 * betaMd1
+   DMq = oo16pi2 * betaMq1
+   DMu = oo16pi2 * betaMu1
+  !-----------------------
+  ! Higgs mass parameters
+  !-----------------------
+   DmH(1) = oo16pi2 * betaMH11
+   DmH(2) = oo16pi2 * betaMH21
+  !----------
+  ! mu and B
+  !----------
+   DMue = oo16pi2 * betaMue1
+   DB = oo16pi2 * betaB1
+  End If
+
+  !---------------------------------------
+  ! to avoid numerical problems in odeint
+  !---------------------------------------
+  Do i1=1,3
+   DMe(i1,i1) = Real(DMe(i1,i1),dp)
+   DMl(i1,i1) = Real(DMl(i1,i1),dp)
+   DMd(i1,i1) = Real(DMd(i1,i1),dp)
+   DMu(i1,i1) = Real(DMu(i1,i1),dp)
+   DMq(i1,i1) = Real(DMq(i1,i1),dp)
+  End Do
+  Dmd = 0.5_dp * ( Dmd + Transpose(Conjg(Dmd)) )
+  Dme = 0.5_dp * ( Dme + Transpose(Conjg(Dme)) )
+  Dml = 0.5_dp * ( Dml + Transpose(Conjg(Dml)) )
+  Dmq = 0.5_dp * ( Dmq + Transpose(Conjg(Dmq)) )
+  Dmu = 0.5_dp * ( Dmu + Transpose(Conjg(Dmu)) )
+
+  !--------------------------------------------
+  ! This helps avoiding numerical instabilities
+  !--------------------------------------------
+!   Call Chop(DYe)
+!   Call Chop(DYd)
+!   Call Chop(DYu)
+!   Call Chop(DMhlf)
+!   Call Chop(DAe)
+!   Call Chop(DAd)
+!   Call Chop(DAu)
+!   Call Chop(DMe)
+!   Call Chop(DMl)
+!   Call Chop(DMd)
+!   Call Chop(DMu)
+!   Call Chop(DMq)
+   Call Chop(Dmue)
+   Call Chop(DB)
+
+
+  Call ParametersToG(Dgauge, DYe, DYd, DYu, DMhlf, DAe, DAd, DAu &
+                   &, DMe, DMl, DMd, DMq, DMu, DMh, Dmue, DB, f(1:213))
+  If (TwoLoopRGE) Then 
+   f(214) = oo16pi2 * (gamma1 + oo16pi2 * gamma2 )
+  Else
+   f(214) = oo16pi2 * gamma1
+  End If
+
+
+  Iname = Iname - 1
+
+ End Subroutine rge214
 
 
  Subroutine rge267(len, T,GY,F)
@@ -4288,7 +6060,7 @@ Contains
   Real(dp), Intent(out) :: F(len)
 
   Integer :: i1, i2
-  Real(dp) :: gauge(3), gauge2(3), sumI, TraceY(4), Dgauge(3), TraceY2(4)
+  Real(dp) :: gauge(3), gauge2(3), TraceY(4), Dgauge(3), TraceY2(4)
   Complex(dp) :: Ye(3,3), Yd(3,3), Yu(3,3), aYe(3,3), aYd(3,3), aYu(3,3)      &
     & , aYdYd(3,3), aYeYe(3,3), aYuYu(3,3), sumd1(3,3), sume1(3,3)            &
     & , betaYd1(3,3), betaYd2(3,3), betaYe1(3,3), betaYe2(3,3)                &
@@ -4296,7 +6068,7 @@ Contains
     & , aYdYdaYdYd(3,3), aYeYeaYeYe(3,3), aYuYuaYuYu(3,3)                     &
     & , aYdYdaYuYu(3,3), aYuYuaYdYd(3,3), diagonal(6,2)           &
     & , hd(2), sumu1(3,3), sumd2(3,3), sume2(3,3), sumu2(3,3), hc(4),Ynu(3,3) &
-    & , aYnu(3,3), aYnuYnu(3,3), sumnu1(3,3), betaYnu1(3,3) ,DYnu(3,3)
+    & , aYnu(3,3), aYnuYnu(3,3), sumnu1(3,3), betaYnu1(3,3) ,DYnu(3,3), sumI
 
   Complex(dp) :: Mhlf(3),DMhlf(3)
 
@@ -4381,10 +6153,10 @@ Contains
   Call Adjungate(Ye,aYe)
   Call Adjungate(Yu,aYu)
 
-  aYeYe = Matmul2(aYe,Ye,OnlyDiagonal)
-  aYnuYnu = Matmul2(aYnu,Ynu,OnlyDiagonal)
-  aYdYd = Matmul2(aYd,Yd,OnlyDiagonal)
-  aYuYu = Matmul2(aYu,Yu,OnlyDiagonal)
+  aYeYe = Matmul(aYe,Ye)
+  aYnuYnu = Matmul(aYnu,Ynu)
+  aYdYd = Matmul(aYd,Yd)
+  aYuYu = Matmul(aYu,Yu)
 
   TraceY(1) = Real( cTrace(aYeYe),dp )
   TraceY(2) = Real( cTrace(aYnuYnu),dp )
@@ -4398,7 +6170,7 @@ Contains
    sume1(i1,i1) = sume1(i1,i1) + diagonal(1,1)
   End Do
 
-  betaYe1 = Matmul2(Ye,sume1,OnlyDiagonal)
+  betaYe1 = Matmul(Ye,sume1)
 
   diagonal(2,1) = 3._dp * TraceY(4) + TraceY(2)           &
             &   - 0.6_dp * gauge2(1) - 3._dp * gauge2(2)
@@ -4407,7 +6179,7 @@ Contains
    sumnu1(i1,i1) = sumnu1(i1,i1) + diagonal(2,1)
   End Do
 
-  betaYnu1 = Matmul2(Ynu,sumnu1,OnlyDiagonal)
+  betaYnu1 = Matmul(Ynu,sumnu1)
 
   diagonal(3,1) = (3._dp,0._dp) * TraceY(3) + TraceY(1)              &
     &  + c1_1(2,1) * gauge2(1) + c1_1(2,2) * gauge2(2) + c1_1(2,3) * gauge2(3)
@@ -4416,7 +6188,7 @@ Contains
    sumd1(i1,i1) = sumd1(i1,i1) + diagonal(3,1)
   End Do
 
-  betaYd1 = Matmul2(Yd,sumd1,OnlyDiagonal)
+  betaYd1 = Matmul(Yd,sumd1)
 
   diagonal(4,1) = (3._dp,0._dp) * TraceY(4)  + TraceY(2)             &
    &  + c1_1(3,1) * gauge2(1) + c1_1(3,2) * gauge2(2) + c1_1(3,3) * gauge2(3)
@@ -4425,14 +6197,14 @@ Contains
    sumu1(i1,i1) = sumu1(i1,i1) + diagonal(4,1)
   End Do
 
-  betaYu1 = Matmul2(Yu,sumu1,OnlyDiagonal)
+  betaYu1 = Matmul(Yu,sumu1)
 
   If (TwoLoopRGE) Then
-   aYdYdaYdYd = Matmul2(aYdYd,aYdYd,OnlyDiagonal)
-   aYeYeaYeYe = Matmul2(aYeYe,aYeYe,OnlyDiagonal)
-   aYuYuaYuYu = Matmul2(aYuYu,aYuYu,OnlyDiagonal)
-   aYuYuaYdYd = Matmul2(aYuYu,aYdYd,OnlyDiagonal)
-   aYdYdaYuYu = Matmul2(aYdYd,aYuYu,OnlyDiagonal)
+   aYdYdaYdYd = Matmul(aYdYd,aYdYd)
+   aYeYeaYeYe = Matmul(aYeYe,aYeYe)
+   aYuYuaYuYu = Matmul(aYuYu,aYuYu)
+   aYuYuaYdYd = Matmul(aYuYu,aYdYd)
+   aYdYdaYuYu = Matmul(aYdYd,aYuYu)
 
    TraceY2(1) = Real( cTrace(aYeYeaYeYe), dp)
    TraceY2(2) = Real( cTrace(aYdYdaYdYd), dp)
@@ -4450,7 +6222,7 @@ Contains
     sume2(i1,i1) = sume2(i1,i1) + diagonal(1,2)
    End Do
  
-   betaYe2 = Matmul2(Ye,sume2,OnlyDiagonal)
+   betaYe2 = Matmul(Ye,sume2)
     
    diagonal(2,2) = diagonal(1,2)                                        &
       &     + 8._dp * ( ( gauge2(1) - 2._dp * gauge2(3) ) / 9._dp       &
@@ -4466,7 +6238,7 @@ Contains
     sumd2(i1,i1) = sumd2(i1,i1) + diagonal(2,2)
    End Do
  
-   betaYd2 = Matmul2(Yd,sumd2,OnlyDiagonal)
+   betaYd2 = Matmul(Yd,sumd2)
     
    diagonal(3,2) = - 3._dp * (3._dp * TraceY2(3) + TraceY2(4) )            &
      &      + ( 16._dp * gauge2(3) + 0.8_dp * gauge2(1) ) * TraceY(4)      &
@@ -4482,7 +6254,7 @@ Contains
     sumu2(i1,i1) = sumu2(i1,i1) + diagonal(3,2)
    End Do
  
-   betaYu2 = Matmul2(Yu,sumu2,OnlyDiagonal)
+   betaYu2 = Matmul(Yu,sumu2)
     
   End If 
 
@@ -4494,20 +6266,20 @@ Contains
   Call Adjungate(Ad,aAd)
   Call Adjungate(Au,aAu)
 
-  aAdAd = MatMul2(aAd,Ad,OnlyDiagonal)
-  aAnuAnu = MatMul2(aAnu,Anu,OnlyDiagonal)
-  aAeAe = MatMul2(aAe,Ae,OnlyDiagonal)
-  aAuAu = MatMul2(aAu,Au,OnlyDiagonal)
+  aAdAd = Matmul(aAd,Ad)
+  aAnuAnu = Matmul(aAnu,Anu)
+  aAeAe = Matmul(aAe,Ae)
+  aAuAu = Matmul(aAu,Au)
 
   TraceA(1) = Real( cTrace(aAeAe),dp )
   TraceA(2) = Real( cTrace(aAnuAnu),dp )
   TraceA(3) = Real( cTrace(aAdAd),dp )
   TraceA(4) = Real( cTrace(aAuAu),dp )
 
-  aYdAd = MatMul2(aYd,Ad,OnlyDiagonal)
-  aYnuAnu = MatMul2(aYnu,Anu,OnlyDiagonal)
-  aYeAe = MatMul2(aYe,Ae,OnlyDiagonal)
-  aYuAu = MatMul2(aYu,Au,OnlyDiagonal)
+  aYdAd = Matmul(aYd,Ad)
+  aYnuAnu = Matmul(aYnu,Anu)
+  aYeAe = Matmul(aYe,Ae)
+  aYuAu = Matmul(aYu,Au)
 
   TraceaYA(1) = cTrace(aYeAe) 
   TraceaYA(2) = cTrace(aYnuAnu) 
@@ -4519,7 +6291,7 @@ Contains
   ! A_e
   !--------------
   sume1 = sume1 + 2._dp * aYeYe
-  betaAe1 = MatMul2(Ae,sume1,OnlyDiagonal)
+  betaAe1 = Matmul(Ae,sume1)
   
   diagonal(1,1) = 2._dp * ( 3._dp * TraceaYA(3) + TraceaYA(1)  &
                 &         - c1_1(1,1) * g2Mi(1) - c1_1(1,2) * g2Mi(2)    )
@@ -4527,13 +6299,13 @@ Contains
   Do i1=1,3
    sume1(i1,i1) = sume1(i1,i1) + diagonal(1,1)
   End Do 
-  betaAe1 = betaAe1 + MatMul2(Ye,sume1,OnlyDiagonal)
+  betaAe1 = betaAe1 + Matmul(Ye,sume1)
 
   !--------------
   ! A_nu
   !--------------
   sumnu1 = sumnu1 + 2._dp * aYnuYnu
-  betaAnu1 = MatMul2(Anu,sumnu1,OnlyDiagonal)
+  betaAnu1 = Matmul(Anu,sumnu1)
 
   diagonal(2,1) = 2._dp * ( 3._dp * TraceaYA(4) + TraceaYA(2)     &
       &         + 0.6_dp * g2Mi(1) + 3._dp * g2Mi(2) )
@@ -4541,13 +6313,13 @@ Contains
   Do i1=1,3
    sumnu1(i1,i1) = sumnu1(i1,i1) + diagonal(2,1)
   End Do
-  betaAnu1 = betaAnu1 + MatMul2(Ynu,sumnu1,OnlyDiagonal)
+  betaAnu1 = betaAnu1 + Matmul(Ynu,sumnu1)
 
   !--------------
   ! A_d
   !--------------
   sumd1 = sumd1 + 2._dp * aYdYd
-  betaAd1 = MatMul2(Ad,sumd1,OnlyDiagonal)
+  betaAd1 = Matmul(Ad,sumd1)
   
   diagonal(3,1) = 2._dp * ( 3._dp * TraceaYA(3) + TraceaYA(1)           &
                 &         - c1_1(2,1) * g2Mi(1) - c1_1(2,2) * g2Mi(2)   &
@@ -4556,13 +6328,13 @@ Contains
   Do i1=1,3
    sumd1(i1,i1) = sumd1(i1,i1) + diagonal(3,1)
   End Do
-  betaAd1 = betaAd1 + MatMul2(Yd,sumd1,OnlyDiagonal)
+  betaAd1 = betaAd1 + Matmul(Yd,sumd1)
 
   !--------------
   ! A_u
   !--------------
   sumu1 = sumu1 + 2._dp * aYuYu
-  betaAu1 = MatMul2(Au,sumu1,OnlyDiagonal)
+  betaAu1 = Matmul(Au,sumu1)
   
   diagonal(4,1) = 2._dp * ( 3._dp * TraceaYA(4) + TraceaYA(2)           &
                 &         - c1_1(3,1) * g2Mi(1) - c1_1(3,2) * g2Mi(2)   &
@@ -4571,19 +6343,19 @@ Contains
   Do i1=1,3
    sumu1(i1,i1) = sumu1(i1,i1) + diagonal(4,1)
   End Do
-  betaAu1 = betaAu1 + MatMul2(Yu,sumu1,OnlyDiagonal)
+  betaAu1 = betaAu1 + Matmul(Yu,sumu1)
 
   If (TwoLoopRGE) Then
-   aYdYdaYdAd = MatMul2(aYdYd,aYdAd,OnlyDiagonal)
-   aYdAdaYdYd = MatMul2(aYdAd,aYdYd,OnlyDiagonal)
-   aYeYeaYeAe = MatMul2(aYeYe,aYeAe,OnlyDiagonal)
-   aYeAeaYeYe = MatMul2(aYeAe,aYeYe,OnlyDiagonal)
-   aYuYuaYuAu = MatMul2(aYuYu,aYuAu,OnlyDiagonal)
-   aYuAuaYuYu = MatMul2(aYuAu,aYuYu,OnlyDiagonal)
-   aYuAuaYdYd = MatMul2(aYuAu,aYdYd,OnlyDiagonal)
-   aYuYuaYdAd = MatMul2(aYuYu,aYdAd,OnlyDiagonal)
-   aYdAdaYuYu = MatMul2(aYdAd,aYuYu,OnlyDiagonal)
-   aYdYdaYuAu = MatMul2(aYdYd,aYuAu,OnlyDiagonal)
+   aYdYdaYdAd = Matmul(aYdYd,aYdAd)
+   aYdAdaYdYd = Matmul(aYdAd,aYdYd)
+   aYeYeaYeAe = Matmul(aYeYe,aYeAe)
+   aYeAeaYeYe = Matmul(aYeAe,aYeYe)
+   aYuYuaYuAu = Matmul(aYuYu,aYuAu)
+   aYuAuaYuYu = Matmul(aYuAu,aYuYu)
+   aYuAuaYdYd = Matmul(aYuAu,aYdYd)
+   aYuYuaYdAd = Matmul(aYuYu,aYdAd)
+   aYdAdaYuYu = Matmul(aYdAd,aYuYu)
+   aYdYdaYuAu = Matmul(aYdYd,aYuAu)
    TraceAY2(1) = cTrace(aYeYeaYeAe)
    TraceAY2(2) = cTrace(aYdYdaYdAd)
    TraceAY2(3) = cTrace(aYuYuaYuAu)
@@ -4596,7 +6368,7 @@ Contains
    hd(1) = 6._dp * TraceY(3) + 2._dp * TraceY(1)   &
        & - 6._dp * gauge2(2) + 1.2_dp * gauge2(1)
    sume2 = sume2 - 2._dp * aYeYeaYeYe - hd(1) * aYeYe
-   betaAe2 = MatMul2(Ae,sume2,OnlyDiagonal)
+   betaAe2 = Matmul(Ae,sume2)
     
    diagonal(1,2) = -6._dp * ( 6._dp * TraceAY2(2) + TraceAY2(4)       &
      &                      + TraceAY2(5) + 2._dp * TraceAY2(1)  )    &
@@ -4616,7 +6388,7 @@ Contains
    Do i1=1,3
     sume2(i1,i1) = sume2(i1,i1) + diagonal(1,2)
    End Do
-   betaAe2 = betaAe2 + MatMul2(Ye,sume2,OnlyDiagonal)
+   betaAe2 = betaAe2 + Matmul(Ye,sume2)
 
   !--------------
   ! A_d
@@ -4624,7 +6396,7 @@ Contains
    hd(1) = 6._dp * TraceY(3) + 2._dp * TraceY(1)    &
        & - 6._dp * gauge2(2) - 0.4_dp * gauge2(1)
    sumd2 = sumd2 - 2._dp * ( aYdYdaYdYd + aYuYuaYdYd ) - hd(1) * aYdYd
-   betaAd2 = MatMul2(Ad,sumd2,OnlyDiagonal)
+   betaAd2 = Matmul(Ad,sumd2)
     
    diagonal(3,2) = diagonal(1,2)                                   &
      &  + 16._dp * ( ( 4._dp * g2Mi(3)                 &
@@ -4646,14 +6418,14 @@ Contains
    Do i1=1,3
     sumd2(i1,i1) = sumd2(i1,i1) + diagonal(3,2)
    End Do
-   betaAd2 = betaAd2 + MatMul2(Yd,sumd2,OnlyDiagonal)
+   betaAd2 = betaAd2 + Matmul(Yd,sumd2)
 
   !--------------
   ! A_u
   !--------------
    hd(1) = 6._dp * ( TraceY(4) - gauge2(2) ) + 0.4_dp * gauge2(1)
    sumu2 = sumu2 - 2._dp * ( aYuYuaYuYu + aYdYdaYuYu ) - hd(1) * aYuYu
-   betaAu2 = MatMul2(Au,sumu2,OnlyDiagonal)
+   betaAu2 = Matmul(Au,sumu2)
     
    diagonal(4,2) =  -6._dp * ( 6._dp * TraceAY2(3) + TraceAY2(4)        &
      &                        + TraceAY2(5)  )                          &
@@ -4677,7 +6449,7 @@ Contains
    Do i1=1,3
     sumu2(i1,i1) = sumu2(i1,i1) + diagonal(4,2)
    End Do
-   betaAu2 = betaAu2 + MatMul2(Yu,sumu2,OnlyDiagonal)
+   betaAu2 = betaAu2 + Matmul(Yu,sumu2)
 
   End If 
 !----------------------------------------------
@@ -4690,30 +6462,30 @@ Contains
    End Do
    S1 = S1 * gauge2(1)
 
-   YdaYd = MatMul2(Yd,aYd,OnlyDiagonal)
-   YnuaYnu = MatMul2(Ynu,aYnu,OnlyDiagonal)
-   YeaYe = MatMul2(Ye,aYe,OnlyDiagonal)
-   YuaYu = MatMul2(Yu,aYu,OnlyDiagonal)
+   YdaYd = Matmul(Yd,aYd)
+   YnuaYnu = Matmul(Ynu,aYnu)
+   YeaYe = Matmul(Ye,aYe)
+   YuaYu = Matmul(Yu,aYu)
 
-   MeYeaYe = MatMul2(Me,YeaYe,OnlyDiagonal)
-   MlaYeYe = MatMul2(Ml,aYeYe,OnlyDiagonal)
-   MlaYnuYnu = MatMul2(Ml,aYnuYnu,OnlyDiagonal)
-   MrYnuaYnu = MatMul2(Mr,YnuaYnu,OnlyDiagonal)
+   MeYeaYe = Matmul(Me,YeaYe)
+   MlaYeYe = Matmul(Ml,aYeYe)
+   MlaYnuYnu = Matmul(Ml,aYnuYnu)
+   MrYnuaYnu = Matmul(Mr,YnuaYnu)
 
-   MdYdaYd = MatMul2(Md,YdaYd,OnlyDiagonal)
-   MqaYdYd = MatMul2(Mq,aYdYd,OnlyDiagonal)
-   MqaYuYu = MatMul2(Mq,aYuYu,OnlyDiagonal)
-   MuYuaYu = MatMul2(Mu,YuaYu,OnlyDiagonal)
+   MdYdaYd = Matmul(Md,YdaYd)
+   MqaYdYd = Matmul(Mq,aYdYd)
+   MqaYuYu = Matmul(Mq,aYuYu)
+   MuYuaYu = Matmul(Mu,YuaYu)
 
-   YeaYeMe = MatMul2(YeaYe,Me,OnlyDiagonal)
-   aYeYeMl = MatMul2(aYeYe,Ml,OnlyDiagonal)
-   aYnuYnuMl = MatMul2(aYnuYnu,Ml,OnlyDiagonal)
-   YnuaYnuMr = MatMul2(YnuaYnu,Mr,OnlyDiagonal)
+   YeaYeMe = Matmul(YeaYe,Me)
+   aYeYeMl = Matmul(aYeYe,Ml)
+   aYnuYnuMl = Matmul(aYnuYnu,Ml)
+   YnuaYnuMr = Matmul(YnuaYnu,Mr)
 
-   YdaYdMd = MatMul2(YdaYd,Md,OnlyDiagonal)
-   aYdYdMq = MatMul2(aYdYd,Mq,OnlyDiagonal)
-   aYuYuMq = MatMul2(aYuYu,Mq,OnlyDiagonal)
-   YuaYuMu = MatMul2(YuaYu,Mu,OnlyDiagonal)
+   YdaYdMd = Matmul(YdaYd,Md)
+   aYdYdMq = Matmul(aYdYd,Mq)
+   aYuYuMq = Matmul(aYuYu,Mq)
+   YuaYuMu = Matmul(YuaYu,Mu)
 
    aYeMeYe = MatMul3(aYe,Me,Ye,OnlyDiagonal)
    YeMlaYe = MatMul3(Ye,Ml,aYe,OnlyDiagonal)
@@ -4725,10 +6497,10 @@ Contains
    YdMqaYd = MatMul3(Yd,Mq,aYd,OnlyDiagonal)
    YuMqaYu = MatMul3(Yu,Mq,aYu,OnlyDiagonal)
 
-   AeaAe = MatMul2(Ae,aAe,OnlyDiagonal)
-   AnuaAnu = MatMul2(Anu,aAnu,OnlyDiagonal)
-   AdaAd = MatMul2(Ad,aAd,OnlyDiagonal)
-   AuaAu = MatMul2(Au,aAu,OnlyDiagonal)
+   AeaAe = Matmul(Ae,aAe)
+   AnuaAnu = Matmul(Anu,aAnu)
+   AdaAd = Matmul(Ad,aAd)
+   AuaAu = Matmul(Au,aAu)
 
    diagonal(1,1) = - 4.8_dp * AbsGM2(1) + 1.2_dp * S1
    betaMe1 = 2._dp * (MeYeaYe + YeaYeMe)             &
@@ -4778,17 +6550,17 @@ Contains
     YeaYeYeaYe = MatSquare(YeaYe,OnlyDiagonal)
     YuaYuYuaYu = MatSquare(YuaYu,OnlyDiagonal)
 
-    AdaYd = MatMul2(Ad,aYd,OnlyDiagonal)
-    AeaYe = MatMul2(Ae,aYe,OnlyDiagonal)
-    AuaYu = MatMul2(Au,aYu,OnlyDiagonal)
+    AdaYd = Matmul(Ad,aYd)
+    AeaYe = Matmul(Ae,aYe)
+    AuaYu = Matmul(Au,aYu)
 
-    aAdYd = MatMul2(aAd,Yd,OnlyDiagonal)
-    aAeYe = MatMul2(aAe,Ye,OnlyDiagonal)
-    aAuYu = MatMul2(aAu,Yu,OnlyDiagonal)
+    aAdYd = Matmul(aAd,Yd)
+    aAeYe = Matmul(aAe,Ye)
+    aAuYu = Matmul(aAu,Yu)
 
-    YdaAd = MatMul2(Yd,aAd,OnlyDiagonal)
-    YeaAe = MatMul2(Ye,aAe,OnlyDiagonal)
-    YuaAu = MatMul2(Yu,aAu,OnlyDiagonal)
+    YdaAd = Matmul(Yd,aAd)
+    YeaAe = Matmul(Ye,aAe)
+    YuaAu = Matmul(Yu,aAu)
 
     YdaYuYuaYd = MatMul3(Yd,aYuYu,aYd,OnlyDiagonal)
     AdaYuYuaAd = MatMul3(Ad,aYuYu,aAd,OnlyDiagonal)
@@ -4802,83 +6574,83 @@ Contains
     AuaAdYdaYu = MatMul4(Au,aAd,Yd,aYu,OnlyDiagonal)
     YuaYdAdaAu = MatMul3(Yu,aYdAd,aAu,OnlyDiagonal)
 
-    MdYdaYuYuaYd = MatMul2(Md,YdaYuYuaYd,OnlyDiagonal)
+    MdYdaYuYuaYd = Matmul(Md,YdaYuYuaYd)
     Call Adjungate(MdYdaYuYuaYd, YdaYuYuaYdMd)
     YdMqaYuYuaYd = MatMul3(Yd,MqaYuYu,aYd,OnlyDiagonal)
     Call Adjungate(YdMqaYuYuaYd, YdaYuYuMqaYd)
     YdaYuMuYuaYd = MatMul3(Yd,aYuMuYu,aYd,OnlyDiagonal)
 
-    MuYuaYdYdaYu = MatMul2(Mu,YuaYdYdaYu,OnlyDiagonal)
+    MuYuaYdYdaYu = Matmul(Mu,YuaYdYdaYu)
     Call Adjungate(MuYuaYdYdaYu, YuaYdYdaYuMu)
     YuMqaYdYdaYu = MatMul3(Yu,MqaYdYd,aYu,OnlyDiagonal)
     Call Adjungate(YuMqaYdYdaYu, YuaYdYdMqaYu)
     YuaYdMdYdaYu = MatMul3(Yu,aYdMdYd,aYu,OnlyDiagonal)
 
-    MeYeaYeYeaYe = MatMul2(MeYeaYe,YeaYe,OnlyDiagonal)
+    MeYeaYeYeaYe = Matmul(MeYeaYe,YeaYe)
     Call Adjungate(MeYeaYeYeaYe,YeaYeYeaYeMe)
-    aYeMeYeaYeYe = MatMul2(aYeMeYe,aYeYe,OnlyDiagonal)
+    aYeMeYeaYeYe = Matmul(aYeMeYe,aYeYe)
     Call Adjungate(aYeMeYeaYeYe,aYeYeaYeMeYe)
-    YeaYeMeYeaYe = MatMul2(YeaYeMe,YeaYe,OnlyDiagonal)
+    YeaYeMeYeaYe = Matmul(YeaYeMe,YeaYe)
 
-    MlaYeYeaYeYe = MatMul2(MlaYeYe,aYeYe,OnlyDiagonal)
+    MlaYeYeaYeYe = Matmul(MlaYeYe,aYeYe)
     Call Adjungate(MlaYeYeaYeYe, aYeYeaYeYeMl)
-    YeMlaYeYeaYe = MatMul2(YeMlaYe,YeaYe,OnlyDiagonal)
+    YeMlaYeYeaYe = Matmul(YeMlaYe,YeaYe)
     Call Adjungate(YeMlaYeYeaYe, YeaYeYeMlaYe)
-    aYeYeMlaYeYe = MatMul2(aYeYeMl,aYeYe,OnlyDiagonal)
+    aYeYeMlaYeYe = Matmul(aYeYeMl,aYeYe)
 
-    MdYdaYdYdaYd = MatMul2(MdYdaYd,YdaYd,OnlyDiagonal)
+    MdYdaYdYdaYd = Matmul(MdYdaYd,YdaYd)
     Call Adjungate(MdYdaYdYdaYd, YdaYdYdaYdMd)
-    aYdMdYdaYdYd = MatMul2(aYdMdYd,aYdYd,OnlyDiagonal)
+    aYdMdYdaYdYd = Matmul(aYdMdYd,aYdYd)
     Call Adjungate(aYdMdYdaYdYd, aYdYdaYdMdYd)
-    YdaYdMdYdaYd = MatMul2(YdaYdMd,YdaYd,OnlyDiagonal)
+    YdaYdMdYdaYd = Matmul(YdaYdMd,YdaYd)
 
-    MqaYdYdaYdYd = MatMul2(MqaYdYd,aYdYd,OnlyDiagonal)
+    MqaYdYdaYdYd = Matmul(MqaYdYd,aYdYd)
     Call Adjungate(MqaYdYdaYdYd, aYdYdaYdYdMq)
-    YdMqaYdYdaYd = MatMul2(YdMqaYd,YdaYd,OnlyDiagonal)
+    YdMqaYdYdaYd = Matmul(YdMqaYd,YdaYd)
     Call Adjungate(YdMqaYdYdaYd, YdaYdYdMqaYd)
-    aYdYdMqaYdYd = MatMul2(aYdYdMq,aYdYd,OnlyDiagonal)
+    aYdYdMqaYdYd = Matmul(aYdYdMq,aYdYd)
 
-    MqaYuYuaYuYu = MatMul2(MqaYuYu,aYuYu,OnlyDiagonal)
+    MqaYuYuaYuYu = Matmul(MqaYuYu,aYuYu)
     Call Adjungate(MqaYuYuaYuYu, aYuYuaYuYuMq)
-    YuMqaYuYuaYu = MatMul2(YuMqaYu,YuaYu,OnlyDiagonal)
+    YuMqaYuYuaYu = Matmul(YuMqaYu,YuaYu)
     Call Adjungate(YuMqaYuYuaYu, YuaYuYuMqaYu)
-    aYuYuMqaYuYu = MatMul2(aYuYuMq,aYuYu,OnlyDiagonal)
+    aYuYuMqaYuYu = Matmul(aYuYuMq,aYuYu)
 
-    MuYuaYuYuaYu = MatMul2(MuYuaYu,YuaYu,OnlyDiagonal)
+    MuYuaYuYuaYu = Matmul(MuYuaYu,YuaYu)
     Call Adjungate(MuYuaYuYuaYu, YuaYuYuaYuMu)
-    aYuMuYuaYuYu = MatMul2(aYuMuYu,aYuYu,OnlyDiagonal)
+    aYuMuYuaYuYu = Matmul(aYuMuYu,aYuYu)
     Call Adjungate(aYuMuYuaYuYu, aYuYuaYuMuYu)
-    YuaYuMuYuaYu = MatMul2(YuaYuMu,YuaYu,OnlyDiagonal)
+    YuaYuMuYuaYu = Matmul(YuaYuMu,YuaYu)
 
-    AdaAdYdaYd = MatMul2(AdaAd,YdaYd,OnlyDiagonal)
+    AdaAdYdaYd = Matmul(AdaAd,YdaYd)
     Call Adjungate(AdaAdYdaYd, YdaYdAdaAd)
-    AdaYdYdaAd = MatMul2(AdaYd,YdaAd,OnlyDiagonal)
-    YdaAdAdaYd = MatMul2(YdaAd,AdaYd,OnlyDiagonal)
+    AdaYdYdaAd = Matmul(AdaYd,YdaAd)
+    YdaAdAdaYd = Matmul(YdaAd,AdaYd)
 
-    aAdAdaYdYd = MatMul2(aAdAd,aYdYd,OnlyDiagonal)
+    aAdAdaYdYd = Matmul(aAdAd,aYdYd)
     Call Adjungate(aAdAdaYdYd, aYdYdaAdAd)
-    aAdYdaYdAd = MatMul2(aAdYd,aYdAd,OnlyDiagonal)
-    aYdAdaAdYd = MatMul2(aYdAd,aAdYd,OnlyDiagonal)
+    aAdYdaYdAd = Matmul(aAdYd,aYdAd)
+    aYdAdaAdYd = Matmul(aYdAd,aAdYd)
 
-    AeaAeYeaYe = MatMul2(AeaAe,YeaYe,OnlyDiagonal)
+    AeaAeYeaYe = Matmul(AeaAe,YeaYe)
     Call Adjungate(AeaAeYeaYe, YeaYeAeaAe)
-    AeaYeYeaAe = MatMul2(AeaYe,YeaAe,OnlyDiagonal)
-    YeaAeAeaYe = MatMul2(YeaAe,AeaYe,OnlyDiagonal)
+    AeaYeYeaAe = Matmul(AeaYe,YeaAe)
+    YeaAeAeaYe = Matmul(YeaAe,AeaYe)
 
-    aAeAeaYeYe = MatMul2(aAeAe,aYeYe,OnlyDiagonal)
+    aAeAeaYeYe = Matmul(aAeAe,aYeYe)
     Call Adjungate(aAeAeaYeYe, aYeYeaAeAe)
-    aAeYeaYeAe = MatMul2(aAeYe,aYeAe,OnlyDiagonal)
-    aYeAeaAeYe = MatMul2(aYeAe,aAeYe,OnlyDiagonal)
+    aAeYeaYeAe = Matmul(aAeYe,aYeAe)
+    aYeAeaAeYe = Matmul(aYeAe,aAeYe)
 
-    AuaAuYuaYu = MatMul2(AuaAu,YuaYu,OnlyDiagonal)
+    AuaAuYuaYu = Matmul(AuaAu,YuaYu)
     Call Adjungate(AuaAuYuaYu, YuaYuAuaAu)
-    AuaYuYuaAu = MatMul2(AuaYu,YuaAu,OnlyDiagonal)
-    YuaAuAuaYu = MatMul2(YuaAu,AuaYu,OnlyDiagonal)
+    AuaYuYuaAu = Matmul(AuaYu,YuaAu)
+    YuaAuAuaYu = Matmul(YuaAu,AuaYu)
 
-    aAuAuaYuYu = MatMul2(aAuAu,aYuYu,OnlyDiagonal)
+    aAuAuaYuYu = Matmul(aAuAu,aYuYu)
     Call Adjungate(aAuAuaYuYu, aYuYuaAuAu)
-    aAuYuaYuAu = MatMul2(aAuYu,aYuAu,OnlyDiagonal)
-    aYuAuaAuYu = MatMul2(aYuAu,aAuYu,OnlyDiagonal)
+    aAuYuaYuAu = Matmul(aAuYu,aYuAu)
+    aYuAuaAuYu = Matmul(aYuAu,aAuYu)
 
     S2 = (1.5_dp * gauge2(2) + 0.3_dp * gauge2(1) )            &
      &      * (MH(2) - MH(1) - Real(cTrace(ML),dp) )              &
@@ -5167,11 +6939,9 @@ Contains
       &         + 4.14_dp * gauge2(1)**2
     betaMue2 = mue * TraceMue(2)
 
-    TraceB(1) = cTrace( 3._dp * ( Matmul2(AuaYu,YuaYu,OnlyDiagonal)     &
-              &                 + Matmul2(AdaYd,YdaYd,OnlyDiagonal) )   &
-              &       + MatMul2(AeaYe,YeaYe,OnlyDiagonal)               &
-              &       + Matmul2(aYuAu,aYdYd,OnlyDiagonal)               &
-              &       + MatMul2(aYdAd,aYuYu,OnlyDiagonal) ) 
+    TraceB(1) = cTrace( 3._dp * ( Matmul(AuaYu,YuaYu) + Matmul(AdaYd,YdaYd) ) &
+              &       + Matmul(AeaYe,YeaYe) + Matmul(aYuAu,aYdYd)             &
+              &       + Matmul(aYdAd,aYuYu) ) 
     TraceB(2) = -12._dp * TraceB(1)                                           &
       &   + (32._dp * gauge2(3) + 1.6_dp * gauge2(1) ) * TraceaYA(4)          &
       &   + (32._dp * gauge2(3) - 0.8_dp * gauge2(1) ) * TraceaYA(3)          &
@@ -5300,6 +7070,14 @@ Contains
    DMu(i1,i1) = Real(DMu(i1,i1),dp)
    DMq(i1,i1) = Real(DMq(i1,i1),dp)
   End Do
+  Dmd = 0.5_dp * ( Dmd + Transpose(Conjg(Dmd)) )
+  Dme = 0.5_dp * ( Dme + Transpose(Conjg(Dme)) )
+  Dml = 0.5_dp * ( Dml + Transpose(Conjg(Dml)) )
+  Dmq = 0.5_dp * ( Dmq + Transpose(Conjg(Dmq)) )
+  Dmu = 0.5_dp * ( Dmu + Transpose(Conjg(Dmu)) )
+
+  Call Chop(Dmue)
+  Call Chop(DB)
 
   Call ParametersToG2(Dgauge, DYe, DYnu, DYd, DYu, DMhlf, DAe, DAnu, DAd, DAu &
                    &, DMe, DMl, DMr, DMd, DMq, DMu, DMh, Dmue, DB, f)
@@ -5325,14 +7103,14 @@ Contains
   Real(dp), Intent(out) :: F(len)
 
   Integer :: i1, i2
-  Real(dp) :: gauge(3), gauge2(3), sumI, TraceY(4), Dgauge(3), TraceY2(4)
+  Real(dp) :: gauge(3), gauge2(3), TraceY(4), Dgauge(3), TraceY2(4)
   Complex(dp) :: Ye(3,3), Yd(3,3), Yu(3,3), aYe(3,3), aYd(3,3), aYu(3,3)      &
     & , aYdYd(3,3), aYeYe(3,3), aYuYu(3,3), sumd1(3,3), sume1(3,3)            &
     & , betaYd1(3,3), betaYd2(3,3), betaYe1(3,3), betaYe2(3,3)                &
     & , betaYu1(3,3), betaYu2(3,3), DYe(3,3), DYd(3,3), DYu(3,3)              &
     & , aYdYdaYdYd(3,3), aYeYeaYeYe(3,3), aYuYuaYuYu(3,3)                     &
     & , aYdYdaYuYu(3,3), aYuYuaYdYd(3,3), diagonal(6,2)           &
-    & , hd(2), sumu1(3,3), sumd2(3,3), sume2(3,3), sumu2(3,3), hc(4)
+    & , hd(2), sumu1(3,3), sumd2(3,3), sume2(3,3), sumu2(3,3), hc(4), sumI
 
   Complex(dp) :: Mhlf(3),DMhlf(3)
 
@@ -5425,10 +7203,10 @@ Contains
   Call Adjungate(Ye,aYe)
   Call Adjungate(Yu,aYu)
 
-  aYeYe = Matmul2(aYe,Ye,OnlyDiagonal)
-  aYTYT = Matmul2(aYT,YT,OnlyDiagonal)
-  aYdYd = Matmul2(aYd,Yd,OnlyDiagonal)
-  aYuYu = Matmul2(aYu,Yu,OnlyDiagonal)
+  aYeYe = Matmul(aYe,Ye)
+  aYTYT = Matmul(aYT,YT)
+  aYdYd = Matmul(aYd,Yd)
+  aYuYu = Matmul(aYu,Yu)
 
   TraceY(1) = Real( cTrace(aYeYe),dp )
   TraceY(2) = Real( cTrace(aYTYT),dp )
@@ -5442,7 +7220,7 @@ Contains
    sume1(i1,i1) = sume1(i1,i1) + diagonal(1,1)
   End Do
 
-  betaYe1 = Matmul2(Ye,sume1,OnlyDiagonal)
+  betaYe1 = Matmul(Ye,sume1)
 
   diagonal(2,1) = TraceY(2)  + lam12          &
             &   - 1.8_dp * gauge2(1) - 7._dp * gauge2(2)
@@ -5451,8 +7229,8 @@ Contains
    sumT1(i1,i1) = sumT1(i1,i1) + diagonal(2,1)
   End Do
 
-  betaYT1 = Matmul2(YT,sumT1,OnlyDiagonal)  &
-        & + Matmul2(Transpose(aYeYe),YT,OnlyDiagonal)
+  betaYT1 = Matmul(YT,sumT1)  &
+        & + Matmul(Transpose(aYeYe),YT)
 
   diagonal(3,1) = 3._dp * (TraceY(3)  + lam12) + TraceY(1)              &
     &  + c1_1(2,1) * gauge2(1) + c1_1(2,2) * gauge2(2) + c1_1(2,3) * gauge2(3)
@@ -5461,7 +7239,7 @@ Contains
    sumd1(i1,i1) = sumd1(i1,i1) + diagonal(3,1)
   End Do
 
-  betaYd1 = Matmul2(Yd,sumd1,OnlyDiagonal)
+  betaYd1 = Matmul(Yd,sumd1)
 
   diagonal(4,1) = 3._dp * (TraceY(4) + lam22)                &
    &  + c1_1(3,1) * gauge2(1) + c1_1(3,2) * gauge2(2) + c1_1(3,3) * gauge2(3)
@@ -5470,7 +7248,7 @@ Contains
    sumu1(i1,i1) = sumu1(i1,i1) + diagonal(4,1)
   End Do
 
-  betaYu1 = Matmul2(Yu,sumu1,OnlyDiagonal)
+  betaYu1 = Matmul(Yu,sumu1)
 
   betalam11 = lam1 * (7._dp * lam12 + TraceY(2) + 2._dp * TraceY(1) &
             &        + 6._dp * TraceY(3)                            &
@@ -5480,11 +7258,11 @@ Contains
             &        - 1.8_dp * gauge2(1) - 7._dp * gauge2(2) ) 
 
   If (TwoLoopRGE) Then
-   aYdYdaYdYd = Matmul2(aYdYd,aYdYd,OnlyDiagonal)
-   aYeYeaYeYe = Matmul2(aYeYe,aYeYe,OnlyDiagonal)
-   aYuYuaYuYu = Matmul2(aYuYu,aYuYu,OnlyDiagonal)
-   aYuYuaYdYd = Matmul2(aYuYu,aYdYd,OnlyDiagonal)
-   aYdYdaYuYu = Matmul2(aYdYd,aYuYu,OnlyDiagonal)
+   aYdYdaYdYd = Matmul(aYdYd,aYdYd)
+   aYeYeaYeYe = Matmul(aYeYe,aYeYe)
+   aYuYuaYuYu = Matmul(aYuYu,aYuYu)
+   aYuYuaYdYd = Matmul(aYuYu,aYdYd)
+   aYdYdaYuYu = Matmul(aYdYd,aYuYu)
 
    TraceY2(1) = Real( cTrace(aYeYeaYeYe), dp)
    TraceY2(2) = Real( cTrace(aYdYdaYdYd), dp)
@@ -5502,7 +7280,7 @@ Contains
     sume2(i1,i1) = sume2(i1,i1) + diagonal(1,2)
    End Do
  
-   betaYe2 = Matmul2(Ye,sume2,OnlyDiagonal)
+   betaYe2 = Matmul(Ye,sume2)
     
    diagonal(2,2) = diagonal(1,2)                                        &
       &     + 8._dp * ( ( gauge2(1) - 2._dp * gauge2(3) ) / 9._dp       &
@@ -5518,7 +7296,7 @@ Contains
     sumd2(i1,i1) = sumd2(i1,i1) + diagonal(2,2)
    End Do
  
-   betaYd2 = Matmul2(Yd,sumd2,OnlyDiagonal)
+   betaYd2 = Matmul(Yd,sumd2)
     
    diagonal(3,2) = - 3._dp * (3._dp * TraceY2(3) + TraceY2(4) )            &
      &      + ( 16._dp * gauge2(3) + 0.8_dp * gauge2(1) ) * TraceY(4)      &
@@ -5534,7 +7312,7 @@ Contains
     sumu2(i1,i1) = sumu2(i1,i1) + diagonal(3,2)
    End Do
  
-   betaYu2 = Matmul2(Yu,sumu2,OnlyDiagonal)
+   betaYu2 = Matmul(Yu,sumu2)
     
   End If 
 
@@ -5546,20 +7324,20 @@ Contains
   Call Adjungate(Ad,aAd)
   Call Adjungate(Au,aAu)
 
-  aAdAd = MatMul2(aAd,Ad,OnlyDiagonal)
-  aATAT = MatMul2(aAT,AT,OnlyDiagonal)
-  aAeAe = MatMul2(aAe,Ae,OnlyDiagonal)
-  aAuAu = MatMul2(aAu,Au,OnlyDiagonal)
+  aAdAd = Matmul(aAd,Ad)
+  aATAT = Matmul(aAT,AT)
+  aAeAe = Matmul(aAe,Ae)
+  aAuAu = Matmul(aAu,Au)
 
   TraceA(1) = Real( cTrace(aAeAe),dp )
   TraceA(2) = Real( cTrace(aATAT),dp )
   TraceA(3) = Real( cTrace(aAdAd),dp )
   TraceA(4) = Real( cTrace(aAuAu),dp )
 
-  aYdAd = MatMul2(aYd,Ad,OnlyDiagonal)
-  aYTAT = MatMul2(aYT,AT,OnlyDiagonal)
-  aYeAe = MatMul2(aYe,Ae,OnlyDiagonal)
-  aYuAu = MatMul2(aYu,Au,OnlyDiagonal)
+  aYdAd = Matmul(aYd,Ad)
+  aYTAT = Matmul(aYT,AT)
+  aYeAe = Matmul(aYe,Ae)
+  aYuAu = Matmul(aYu,Au)
 
   TraceaYA(1) = cTrace(aYeAe) 
   TraceaYA(2) = cTrace(aYTAT) 
@@ -5572,7 +7350,7 @@ Contains
   ! A_e
   !--------------
   sume1 = sume1 + 2._dp * aYeYe
-  betaAe1 = MatMul2(Ae,sume1,OnlyDiagonal)
+  betaAe1 = Matmul(Ae,sume1)
   
   diagonal(1,1) = 2._dp * ( 3._dp * TraceaYA(3) + TraceaYA(1)  &
                 &         + 3._dp * lam1Alam1                  &
@@ -5581,24 +7359,24 @@ Contains
   Do i1=1,3
    sume1(i1,i1) = sume1(i1,i1) + diagonal(1,1)
   End Do 
-  betaAe1 = betaAe1 + MatMul2(Ye,sume1,OnlyDiagonal)
+  betaAe1 = betaAe1 + Matmul(Ye,sume1)
 
   !--------------
   ! A_T
   !--------------
-   If (decoupling_heavy_states) then
+   If (decoupling_heavy_states) Then
     betaAT1 = 0._dp
    Else  
     diagonal(2,1) = TraceY(2)  + lam12          &
             &   - 1.8_dp * gauge2(1) - 7._dp * gauge2(2)
     sumT1 = aYeYe + 9._dp * aYTYT
-    betaAT1 = MatMul2(AT,sumT1,OnlyDiagonal)
+    betaAT1 = Matmul(AT,sumT1)
     betaAT1 = Transpose(betaAT1)
     Do i1=1,3
      sumT1(i1,i1) = sumT1(i1,i1) + diagonal(2,1)
     End Do
 
-    betaAT1 = betaAT1 + MatMul2(sumT1,AT,OnlyDiagonal)
+    betaAT1 = betaAT1 + Matmul(sumT1,AT)
   
     diagonal(2,1) = 2._dp * ( TraceaYA(2) + lam1Alam1    &
       &         + 1.8_dp * g2Mi(1) + 7._dp * g2Mi(2) )
@@ -5608,7 +7386,7 @@ Contains
   ! A_d
   !--------------
   sumd1 = sumd1 + 2._dp * aYdYd
-  betaAd1 = MatMul2(Ad,sumd1,OnlyDiagonal)
+  betaAd1 = Matmul(Ad,sumd1)
   
   diagonal(3,1) = 2._dp * ( 3._dp * TraceaYA(3) + TraceaYA(1) &
                 &         + 3._dp * lam1Alam1                 &
@@ -5618,13 +7396,13 @@ Contains
   Do i1=1,3
    sumd1(i1,i1) = sumd1(i1,i1) + diagonal(3,1)
   End Do
-  betaAd1 = betaAd1 + MatMul2(Yd,sumd1,OnlyDiagonal)
+  betaAd1 = betaAd1 + Matmul(Yd,sumd1)
 
   !--------------
   ! A_u
   !--------------
   sumu1 = sumu1 + 2._dp * aYuYu
-  betaAu1 = MatMul2(Au,sumu1,OnlyDiagonal)
+  betaAu1 = Matmul(Au,sumu1)
   
   diagonal(4,1) = 2._dp * ( 3._dp * TraceaYA(4)                       &
                 &         + 3._dp * lam2Alam2 - c1_1(3,1) * g2Mi(1)   &
@@ -5633,7 +7411,7 @@ Contains
   Do i1=1,3
    sumu1(i1,i1) = sumu1(i1,i1) + diagonal(4,1)
   End Do
-  betaAu1 = betaAu1 + MatMul2(Yu,sumu1,OnlyDiagonal)
+  betaAu1 = betaAu1 + Matmul(Yu,sumu1)
 
   !--------------
   ! A_1
@@ -5654,16 +7432,16 @@ Contains
           &                  + 1.8_dp * g2Mi(1) + 7._dp * g2Mi(2) ) 
 
   If (TwoLoopRGE) Then
-   aYdYdaYdAd = MatMul2(aYdYd,aYdAd,OnlyDiagonal)
-   aYdAdaYdYd = MatMul2(aYdAd,aYdYd,OnlyDiagonal)
-   aYeYeaYeAe = MatMul2(aYeYe,aYeAe,OnlyDiagonal)
-   aYeAeaYeYe = MatMul2(aYeAe,aYeYe,OnlyDiagonal)
-   aYuYuaYuAu = MatMul2(aYuYu,aYuAu,OnlyDiagonal)
-   aYuAuaYuYu = MatMul2(aYuAu,aYuYu,OnlyDiagonal)
-   aYuAuaYdYd = MatMul2(aYuAu,aYdYd,OnlyDiagonal)
-   aYuYuaYdAd = MatMul2(aYuYu,aYdAd,OnlyDiagonal)
-   aYdAdaYuYu = MatMul2(aYdAd,aYuYu,OnlyDiagonal)
-   aYdYdaYuAu = MatMul2(aYdYd,aYuAu,OnlyDiagonal)
+   aYdYdaYdAd = Matmul(aYdYd,aYdAd)
+   aYdAdaYdYd = Matmul(aYdAd,aYdYd)
+   aYeYeaYeAe = Matmul(aYeYe,aYeAe)
+   aYeAeaYeYe = Matmul(aYeAe,aYeYe)
+   aYuYuaYuAu = Matmul(aYuYu,aYuAu)
+   aYuAuaYuYu = Matmul(aYuAu,aYuYu)
+   aYuAuaYdYd = Matmul(aYuAu,aYdYd)
+   aYuYuaYdAd = Matmul(aYuYu,aYdAd)
+   aYdAdaYuYu = Matmul(aYdAd,aYuYu)
+   aYdYdaYuAu = Matmul(aYdYd,aYuAu)
    TraceAY2(1) = cTrace(aYeYeaYeAe)
    TraceAY2(2) = cTrace(aYdYdaYdAd)
    TraceAY2(3) = cTrace(aYuYuaYuAu)
@@ -5676,7 +7454,7 @@ Contains
    hd(1) = 6._dp * TraceY(3) + 2._dp * TraceY(1)   &
        & - 6._dp * gauge2(2) + 1.2_dp * gauge2(1)
    sume2 = sume2 - 2._dp * aYeYeaYeYe - hd(1) * aYeYe
-   betaAe2 = MatMul2(Ae,sume2,OnlyDiagonal)
+   betaAe2 = Matmul(Ae,sume2)
     
    diagonal(1,2) = -6._dp * ( 6._dp * TraceAY2(2) + TraceAY2(4)       &
      &                      + TraceAY2(5) + 2._dp * TraceAY2(1)  )    &
@@ -5695,7 +7473,7 @@ Contains
    Do i1=1,3
     sume2(i1,i1) = sume2(i1,i1) + diagonal(1,2)
    End Do
-   betaAe2 = betaAe2 + MatMul2(Ye,sume2,OnlyDiagonal)
+   betaAe2 = betaAe2 + Matmul(Ye,sume2)
 
   !--------------
   ! A_d
@@ -5703,7 +7481,7 @@ Contains
    hd(1) = 6._dp * TraceY(3) + 2._dp * TraceY(1)    &
        & - 6._dp * gauge2(2) - 0.4_dp * gauge2(1)
    sumd2 = sumd2 - 2._dp * ( aYdYdaYdYd + aYuYuaYdYd ) - hd(1) * aYdYd
-   betaAd2 = MatMul2(Ad,sumd2,OnlyDiagonal)
+   betaAd2 = Matmul(Ad,sumd2)
     
    diagonal(3,2) = diagonal(1,2)                                   &
      &  + 16._dp * ( ( 4._dp * g2Mi(3)                 &
@@ -5725,14 +7503,14 @@ Contains
    Do i1=1,3
     sumd2(i1,i1) = sumd2(i1,i1) + diagonal(3,2)
    End Do
-   betaAd2 = betaAd2 + MatMul2(Yd,sumd2,OnlyDiagonal)
+   betaAd2 = betaAd2 + Matmul(Yd,sumd2)
 
   !--------------
   ! A_u
   !--------------
    hd(1) = 6._dp * ( TraceY(4) - gauge2(2) ) + 0.4_dp * gauge2(1)
    sumu2 = sumu2 - 2._dp * ( aYuYuaYuYu + aYdYdaYuYu ) - hd(1) * aYuYu
-   betaAu2 = MatMul2(Au,sumu2,OnlyDiagonal)
+   betaAu2 = Matmul(Au,sumu2)
     
    diagonal(4,2) =  -6._dp * ( 6._dp * TraceAY2(3) + TraceAY2(4)        &
      &                        + TraceAY2(5)  )                          &
@@ -5756,7 +7534,7 @@ Contains
    Do i1=1,3
     sumu2(i1,i1) = sumu2(i1,i1) + diagonal(4,2)
    End Do
-   betaAu2 = betaAu2 + MatMul2(Yu,sumu2,OnlyDiagonal)
+   betaAu2 = betaAu2 + Matmul(Yu,sumu2)
 
   End If 
 !----------------------------------------------
@@ -5769,27 +7547,27 @@ Contains
    End Do
    S1 = S1 * gauge2(1)
 
-   YdaYd = MatMul2(Yd,aYd,OnlyDiagonal)
-   YeaYe = MatMul2(Ye,aYe,OnlyDiagonal)
-   YuaYu = MatMul2(Yu,aYu,OnlyDiagonal)
+   YdaYd = Matmul(Yd,aYd)
+   YeaYe = Matmul(Ye,aYe)
+   YuaYu = Matmul(Yu,aYu)
 
-   MeYeaYe = MatMul2(Me,YeaYe,OnlyDiagonal)
-   MlaYeYe = MatMul2(Ml,aYeYe,OnlyDiagonal)
-   MlaYTYT = MatMul2(Ml,aYTYT,OnlyDiagonal)
+   MeYeaYe = Matmul(Me,YeaYe)
+   MlaYeYe = Matmul(Ml,aYeYe)
+   MlaYTYT = Matmul(Ml,aYTYT)
 
-   MdYdaYd = MatMul2(Md,YdaYd,OnlyDiagonal)
-   MqaYdYd = MatMul2(Mq,aYdYd,OnlyDiagonal)
-   MqaYuYu = MatMul2(Mq,aYuYu,OnlyDiagonal)
-   MuYuaYu = MatMul2(Mu,YuaYu,OnlyDiagonal)
+   MdYdaYd = Matmul(Md,YdaYd)
+   MqaYdYd = Matmul(Mq,aYdYd)
+   MqaYuYu = Matmul(Mq,aYuYu)
+   MuYuaYu = Matmul(Mu,YuaYu)
 
-   YeaYeMe = MatMul2(YeaYe,Me,OnlyDiagonal)
-   aYeYeMl = MatMul2(aYeYe,Ml,OnlyDiagonal)
-   aYTYTMl = MatMul2(aYTYT,Ml,OnlyDiagonal)
+   YeaYeMe = Matmul(YeaYe,Me)
+   aYeYeMl = Matmul(aYeYe,Ml)
+   aYTYTMl = Matmul(aYTYT,Ml)
 
-   YdaYdMd = MatMul2(YdaYd,Md,OnlyDiagonal)
-   aYdYdMq = MatMul2(aYdYd,Mq,OnlyDiagonal)
-   aYuYuMq = MatMul2(aYuYu,Mq,OnlyDiagonal)
-   YuaYuMu = MatMul2(YuaYu,Mu,OnlyDiagonal)
+   YdaYdMd = Matmul(YdaYd,Md)
+   aYdYdMq = Matmul(aYdYd,Mq)
+   aYuYuMq = Matmul(aYuYu,Mq)
+   YuaYuMu = Matmul(YuaYu,Mu)
 
    aYeMeYe = MatMul3(aYe,Me,Ye,OnlyDiagonal)
    YeMlaYe = MatMul3(Ye,Ml,aYe,OnlyDiagonal)
@@ -5800,9 +7578,9 @@ Contains
    YdMqaYd = MatMul3(Yd,Mq,aYd,OnlyDiagonal)
    YuMqaYu = MatMul3(Yu,Mq,aYu,OnlyDiagonal)
 
-   AeaAe = MatMul2(Ae,aAe,OnlyDiagonal)
-   AdaAd = MatMul2(Ad,aAd,OnlyDiagonal)
-   AuaAu = MatMul2(Au,aAu,OnlyDiagonal)
+   AeaAe = Matmul(Ae,aAe)
+   AdaAd = Matmul(Ad,aAd)
+   AuaAu = Matmul(Au,aAu)
    Alam12 = Abs(Alam1)**2
    Alam22 = Abs(Alam2)**2
 
@@ -5851,17 +7629,17 @@ Contains
     YeaYeYeaYe = MatSquare(YeaYe,OnlyDiagonal)
     YuaYuYuaYu = MatSquare(YuaYu,OnlyDiagonal)
 
-    AdaYd = MatMul2(Ad,aYd,OnlyDiagonal)
-    AeaYe = MatMul2(Ae,aYe,OnlyDiagonal)
-    AuaYu = MatMul2(Au,aYu,OnlyDiagonal)
+    AdaYd = Matmul(Ad,aYd)
+    AeaYe = Matmul(Ae,aYe)
+    AuaYu = Matmul(Au,aYu)
 
-    aAdYd = MatMul2(aAd,Yd,OnlyDiagonal)
-    aAeYe = MatMul2(aAe,Ye,OnlyDiagonal)
-    aAuYu = MatMul2(aAu,Yu,OnlyDiagonal)
+    aAdYd = Matmul(aAd,Yd)
+    aAeYe = Matmul(aAe,Ye)
+    aAuYu = Matmul(aAu,Yu)
 
-    YdaAd = MatMul2(Yd,aAd,OnlyDiagonal)
-    YeaAe = MatMul2(Ye,aAe,OnlyDiagonal)
-    YuaAu = MatMul2(Yu,aAu,OnlyDiagonal)
+    YdaAd = Matmul(Yd,aAd)
+    YeaAe = Matmul(Ye,aAe)
+    YuaAu = Matmul(Yu,aAu)
 
     YdaYuYuaYd = MatMul3(Yd,aYuYu,aYd,OnlyDiagonal)
     AdaYuYuaAd = MatMul3(Ad,aYuYu,aAd,OnlyDiagonal)
@@ -5875,83 +7653,83 @@ Contains
     AuaAdYdaYu = MatMul4(Au,aAd,Yd,aYu,OnlyDiagonal)
     YuaYdAdaAu = MatMul3(Yu,aYdAd,aAu,OnlyDiagonal)
 
-    MdYdaYuYuaYd = MatMul2(Md,YdaYuYuaYd,OnlyDiagonal)
+    MdYdaYuYuaYd = Matmul(Md,YdaYuYuaYd)
     Call Adjungate(MdYdaYuYuaYd, YdaYuYuaYdMd)
     YdMqaYuYuaYd = MatMul3(Yd,MqaYuYu,aYd,OnlyDiagonal)
     Call Adjungate(YdMqaYuYuaYd, YdaYuYuMqaYd)
     YdaYuMuYuaYd = MatMul3(Yd,aYuMuYu,aYd,OnlyDiagonal)
 
-    MuYuaYdYdaYu = MatMul2(Mu,YuaYdYdaYu,OnlyDiagonal)
+    MuYuaYdYdaYu = Matmul(Mu,YuaYdYdaYu)
     Call Adjungate(MuYuaYdYdaYu, YuaYdYdaYuMu)
     YuMqaYdYdaYu = MatMul3(Yu,MqaYdYd,aYu,OnlyDiagonal)
     Call Adjungate(YuMqaYdYdaYu, YuaYdYdMqaYu)
     YuaYdMdYdaYu = MatMul3(Yu,aYdMdYd,aYu,OnlyDiagonal)
 
-    MeYeaYeYeaYe = MatMul2(MeYeaYe,YeaYe,OnlyDiagonal)
+    MeYeaYeYeaYe = Matmul(MeYeaYe,YeaYe)
     Call Adjungate(MeYeaYeYeaYe,YeaYeYeaYeMe)
-    aYeMeYeaYeYe = MatMul2(aYeMeYe,aYeYe,OnlyDiagonal)
+    aYeMeYeaYeYe = Matmul(aYeMeYe,aYeYe)
     Call Adjungate(aYeMeYeaYeYe,aYeYeaYeMeYe)
-    YeaYeMeYeaYe = MatMul2(YeaYeMe,YeaYe,OnlyDiagonal)
+    YeaYeMeYeaYe = Matmul(YeaYeMe,YeaYe)
 
-    MlaYeYeaYeYe = MatMul2(MlaYeYe,aYeYe,OnlyDiagonal)
+    MlaYeYeaYeYe = Matmul(MlaYeYe,aYeYe)
     Call Adjungate(MlaYeYeaYeYe, aYeYeaYeYeMl)
-    YeMlaYeYeaYe = MatMul2(YeMlaYe,YeaYe,OnlyDiagonal)
+    YeMlaYeYeaYe = Matmul(YeMlaYe,YeaYe)
     Call Adjungate(YeMlaYeYeaYe, YeaYeYeMlaYe)
-    aYeYeMlaYeYe = MatMul2(aYeYeMl,aYeYe,OnlyDiagonal)
+    aYeYeMlaYeYe = Matmul(aYeYeMl,aYeYe)
 
-    MdYdaYdYdaYd = MatMul2(MdYdaYd,YdaYd,OnlyDiagonal)
+    MdYdaYdYdaYd = Matmul(MdYdaYd,YdaYd)
     Call Adjungate(MdYdaYdYdaYd, YdaYdYdaYdMd)
-    aYdMdYdaYdYd = MatMul2(aYdMdYd,aYdYd,OnlyDiagonal)
+    aYdMdYdaYdYd = Matmul(aYdMdYd,aYdYd)
     Call Adjungate(aYdMdYdaYdYd, aYdYdaYdMdYd)
-    YdaYdMdYdaYd = MatMul2(YdaYdMd,YdaYd,OnlyDiagonal)
+    YdaYdMdYdaYd = Matmul(YdaYdMd,YdaYd)
 
-    MqaYdYdaYdYd = MatMul2(MqaYdYd,aYdYd,OnlyDiagonal)
+    MqaYdYdaYdYd = Matmul(MqaYdYd,aYdYd)
     Call Adjungate(MqaYdYdaYdYd, aYdYdaYdYdMq)
-    YdMqaYdYdaYd = MatMul2(YdMqaYd,YdaYd,OnlyDiagonal)
+    YdMqaYdYdaYd = Matmul(YdMqaYd,YdaYd)
     Call Adjungate(YdMqaYdYdaYd, YdaYdYdMqaYd)
-    aYdYdMqaYdYd = MatMul2(aYdYdMq,aYdYd,OnlyDiagonal)
+    aYdYdMqaYdYd = Matmul(aYdYdMq,aYdYd)
 
-    MqaYuYuaYuYu = MatMul2(MqaYuYu,aYuYu,OnlyDiagonal)
+    MqaYuYuaYuYu = Matmul(MqaYuYu,aYuYu)
     Call Adjungate(MqaYuYuaYuYu, aYuYuaYuYuMq)
-    YuMqaYuYuaYu = MatMul2(YuMqaYu,YuaYu,OnlyDiagonal)
+    YuMqaYuYuaYu = Matmul(YuMqaYu,YuaYu)
     Call Adjungate(YuMqaYuYuaYu, YuaYuYuMqaYu)
-    aYuYuMqaYuYu = MatMul2(aYuYuMq,aYuYu,OnlyDiagonal)
+    aYuYuMqaYuYu = Matmul(aYuYuMq,aYuYu)
 
-    MuYuaYuYuaYu = MatMul2(MuYuaYu,YuaYu,OnlyDiagonal)
+    MuYuaYuYuaYu = Matmul(MuYuaYu,YuaYu)
     Call Adjungate(MuYuaYuYuaYu, YuaYuYuaYuMu)
-    aYuMuYuaYuYu = MatMul2(aYuMuYu,aYuYu,OnlyDiagonal)
+    aYuMuYuaYuYu = Matmul(aYuMuYu,aYuYu)
     Call Adjungate(aYuMuYuaYuYu, aYuYuaYuMuYu)
-    YuaYuMuYuaYu = MatMul2(YuaYuMu,YuaYu,OnlyDiagonal)
+    YuaYuMuYuaYu = Matmul(YuaYuMu,YuaYu)
 
-    AdaAdYdaYd = MatMul2(AdaAd,YdaYd,OnlyDiagonal)
+    AdaAdYdaYd = Matmul(AdaAd,YdaYd)
     Call Adjungate(AdaAdYdaYd, YdaYdAdaAd)
-    AdaYdYdaAd = MatMul2(AdaYd,YdaAd,OnlyDiagonal)
-    YdaAdAdaYd = MatMul2(YdaAd,AdaYd,OnlyDiagonal)
+    AdaYdYdaAd = Matmul(AdaYd,YdaAd)
+    YdaAdAdaYd = Matmul(YdaAd,AdaYd)
 
-    aAdAdaYdYd = MatMul2(aAdAd,aYdYd,OnlyDiagonal)
+    aAdAdaYdYd = Matmul(aAdAd,aYdYd)
     Call Adjungate(aAdAdaYdYd, aYdYdaAdAd)
-    aAdYdaYdAd = MatMul2(aAdYd,aYdAd,OnlyDiagonal)
-    aYdAdaAdYd = MatMul2(aYdAd,aAdYd,OnlyDiagonal)
+    aAdYdaYdAd = Matmul(aAdYd,aYdAd)
+    aYdAdaAdYd = Matmul(aYdAd,aAdYd)
 
-    AeaAeYeaYe = MatMul2(AeaAe,YeaYe,OnlyDiagonal)
+    AeaAeYeaYe = Matmul(AeaAe,YeaYe)
     Call Adjungate(AeaAeYeaYe, YeaYeAeaAe)
-    AeaYeYeaAe = MatMul2(AeaYe,YeaAe,OnlyDiagonal)
-    YeaAeAeaYe = MatMul2(YeaAe,AeaYe,OnlyDiagonal)
+    AeaYeYeaAe = Matmul(AeaYe,YeaAe)
+    YeaAeAeaYe = Matmul(YeaAe,AeaYe)
 
-    aAeAeaYeYe = MatMul2(aAeAe,aYeYe,OnlyDiagonal)
+    aAeAeaYeYe = Matmul(aAeAe,aYeYe)
     Call Adjungate(aAeAeaYeYe, aYeYeaAeAe)
-    aAeYeaYeAe = MatMul2(aAeYe,aYeAe,OnlyDiagonal)
-    aYeAeaAeYe = MatMul2(aYeAe,aAeYe,OnlyDiagonal)
+    aAeYeaYeAe = Matmul(aAeYe,aYeAe)
+    aYeAeaAeYe = Matmul(aYeAe,aAeYe)
 
-    AuaAuYuaYu = MatMul2(AuaAu,YuaYu,OnlyDiagonal)
+    AuaAuYuaYu = Matmul(AuaAu,YuaYu)
     Call Adjungate(AuaAuYuaYu, YuaYuAuaAu)
-    AuaYuYuaAu = MatMul2(AuaYu,YuaAu,OnlyDiagonal)
-    YuaAuAuaYu = MatMul2(YuaAu,AuaYu,OnlyDiagonal)
+    AuaYuYuaAu = Matmul(AuaYu,YuaAu)
+    YuaAuAuaYu = Matmul(YuaAu,AuaYu)
 
-    aAuAuaYuYu = MatMul2(aAuAu,aYuYu,OnlyDiagonal)
+    aAuAuaYuYu = Matmul(aAuAu,aYuYu)
     Call Adjungate(aAuAuaYuYu, aYuYuaAuAu)
-    aAuYuaYuAu = MatMul2(aAuYu,aYuAu,OnlyDiagonal)
-    aYuAuaAuYu = MatMul2(aYuAu,aAuYu,OnlyDiagonal)
+    aAuYuaYuAu = Matmul(aAuYu,aYuAu)
+    aYuAuaAuYu = Matmul(aYuAu,aAuYu)
 
     S2 = (1.5_dp * gauge2(2) + 0.3_dp * gauge2(1) )            &
      &      * (MH(2) - MH(1) - Real(cTrace(ML),dp) )              &
@@ -6165,10 +7943,10 @@ Contains
    betamH21 = 2._dp * TraceMH2(1) + 6._dp * TraceMH2(2)       &
           & - 6._dp * AbsGM2(2) - 1.2_dp * AbsGM2(1) + 0.6_dp * S1
 
-   If (decoupling_heavy_states) then
+   If (decoupling_heavy_states) Then
     betaMT2 = 0._dp 
 
-   else
+   Else
     betaMT2(1) = MT(1) * (lam12 + TraceY(2)) + 2._dp * mH(1) * lam12   &
             & + 2._dp * Real( cTrace(aYTMlYT),dp ) + TraceA(2) + Alam12 &
             & - 2.4_dp * AbsGM2(1) - 8._dp * AbsGM2(2)
@@ -6256,11 +8034,9 @@ Contains
       &         + 4.14_dp * gauge2(1)**2
     betaMue2 = mue * TraceMue(2)
 
-    TraceB(1) = cTrace( 3._dp * ( Matmul2(AuaYu,YuaYu,OnlyDiagonal)     &
-              &                 + Matmul2(AdaYd,YdaYd,OnlyDiagonal) )   &
-              &       + MatMul2(AeaYe,YeaYe,OnlyDiagonal)               &
-              &       + Matmul2(aYuAu,aYdYd,OnlyDiagonal)               &
-              &       + MatMul2(aYdAd,aYuYu,OnlyDiagonal) ) 
+    TraceB(1) = cTrace( 3._dp * ( Matmul(AuaYu,YuaYu) + Matmul(AdaYd,YdaYd) ) &
+              &       + Matmul(AeaYe,YeaYe) + Matmul(aYuAu,aYdYd)             &
+              &       + Matmul(aYdAd,aYuYu) ) 
     TraceB(2) = -12._dp * TraceB(1)                                           &
       &   + (32._dp * gauge2(3) + 1.6_dp * gauge2(1) ) * TraceaYA(4)          &
       &   + (32._dp * gauge2(3) - 0.8_dp * gauge2(1) ) * TraceaYA(3)          &
@@ -6277,7 +8053,7 @@ Contains
   !--------------------------------
   ! neutrino dim. 5 operator
   !--------------------------------
-  diagonal(5,1) = 6._dp * TraceY(4) - 2._dp * gauge2(1) - 6._dp * gauge2(2)
+  diagonal(5,1) = 6._dp * TraceY(4) - 1.2_dp * gauge2(1) - 6._dp * gauge2(2)
   betaMnu1 = Matmul( Transpose(aYeYe), Mnu) + Matmul(Mnu, aYeYe)  &
           & + diagonal(5,1) * Mnu
   
@@ -6415,6 +8191,14 @@ Contains
    DMu(i1,i1) = Real(DMu(i1,i1),dp)
    DMq(i1,i1) = Real(DMq(i1,i1),dp)
   End Do
+  Dmd = 0.5_dp * ( Dmd + Transpose(Conjg(Dmd)) )
+  Dme = 0.5_dp * ( Dme + Transpose(Conjg(Dme)) )
+  Dml = 0.5_dp * ( Dml + Transpose(Conjg(Dml)) )
+  Dmq = 0.5_dp * ( Dmq + Transpose(Conjg(Dmq)) )
+  Dmu = 0.5_dp * ( Dmu + Transpose(Conjg(Dmu)) )
+
+  Call Chop(Dmue)
+  Call Chop(DB)
 
   Call ParametersToG4(Dgauge, DYe, DYT, DYd, DYu, Dlam1, Dlam2, DMhlf, DAe, DAT &
           & , DAd, DAu, DAlam1, DAlam2, DMe, DMl, DMd, DMq, DMu, DMh, DMT2      &
@@ -6444,13 +8228,13 @@ Contains
   Real(dp), Intent(out) :: F(len)
 
   Integer :: i1, i2
-  Real(dp) :: gauge(3), gauge2(3), sumI, TraceY(4), Dgauge(3), TraceY2(4)
+  Real(dp) :: gauge(3), gauge2(3), TraceY(4), Dgauge(3), TraceY2(4)
   Complex(dp) :: Ye(3,3), Yd(3,3), Yu(3,3), aYe(3,3), aYd(3,3), aYu(3,3)      &
     & , aYdYd(3,3), aYeYe(3,3), aYuYu(3,3), sumd1(3,3), sume1(3,3)            &
     & , betaYd1(3,3), betaYd2(3,3), betaYe1(3,3), betaYe2(3,3)                &
     & , betaYu1(3,3), betaYu2(3,3), DYe(3,3), DYd(3,3), DYu(3,3)              &
     & , aYdYdaYdYd(3,3), aYeYeaYeYe(3,3), aYuYuaYuYu(3,3)                     &
-    & , aYdYdaYuYu(3,3), aYuYuaYdYd(3,3), diagonal(6,2)           &
+    & , aYdYdaYuYu(3,3), aYuYuaYdYd(3,3), diagonal(6,2), sumI           &
     & , hd(2), sumu1(3,3), sumd2(3,3), sume2(3,3), sumu2(3,3), hc(4),Ynu(3,3) &
     & , aYnu(3,3), aYnuYnu(3,3), sumnu1(3,3), betaYnu1(3,3) ,DYnu(3,3)
 
@@ -6538,24 +8322,24 @@ Contains
   Call Adjungate(Ye,aYe)
   Call Adjungate(Yu,aYu)
 
-  aYeYe = Matmul2(aYe,Ye,OnlyDiagonal)
-  aYnuYnu = Matmul2(aYnu,Ynu,OnlyDiagonal)
-  aYdYd = Matmul2(aYd,Yd,OnlyDiagonal)
-  aYuYu = Matmul2(aYu,Yu,OnlyDiagonal)
+  aYeYe = Matmul(aYe,Ye)
+  aYnuYnu = Matmul(aYnu,Ynu)
+  aYdYd = Matmul(aYd,Yd)
+  aYuYu = Matmul(aYu,Yu)
 
   TraceY(1) = Real( cTrace(aYeYe),dp )
   TraceY(2) = Real( cTrace(aYnuYnu),dp )
   TraceY(3) = Real( cTrace(aYdYd),dp )
   TraceY(4) = Real( cTrace(aYuYu),dp )
 
-  diagonal(1,1) = (3._dp,0._dp) * TraceY(3) + TraceY(1)     &
+  diagonal(1,1) = 3._dp * TraceY(3) + TraceY(1)     &
               & + c1_1(1,1) * gauge2(1) + c1_1(1,2) * gauge2(2)
   sume1 = 3._dp * aYeYe + aYnuYnu
   Do i1=1,3
    sume1(i1,i1) = sume1(i1,i1) + diagonal(1,1)
   End Do
 
-  betaYe1 = Matmul2(Ye,sume1,OnlyDiagonal)
+  betaYe1 = Matmul(Ye,sume1)
 
   diagonal(2,1) = 3._dp * TraceY(4) + TraceY(2)           &
             &   - 0.6_dp * gauge2(1) - 3._dp * gauge2(2)
@@ -6564,32 +8348,32 @@ Contains
    sumnu1(i1,i1) = sumnu1(i1,i1) + diagonal(2,1)
   End Do
 
-  betaYnu1 = Matmul2(Ynu,sumnu1,OnlyDiagonal)
+  betaYnu1 = Matmul(Ynu,sumnu1)
 
-  diagonal(3,1) = (3._dp,0._dp) * TraceY(3) + TraceY(1)              &
+  diagonal(3,1) = 3._dp * TraceY(3) + TraceY(1)              &
     &  + c1_1(2,1) * gauge2(1) + c1_1(2,2) * gauge2(2) + c1_1(2,3) * gauge2(3)
   sumd1  = 3._dp * aYdYd + aYuYu
   Do i1=1,3
    sumd1(i1,i1) = sumd1(i1,i1) + diagonal(3,1)
   End Do
 
-  betaYd1 = Matmul2(Yd,sumd1,OnlyDiagonal)
+  betaYd1 = Matmul(Yd,sumd1)
 
-  diagonal(4,1) = (3._dp,0._dp) * TraceY(4)  + TraceY(2)             &
+  diagonal(4,1) = 3._dp * TraceY(4)  + TraceY(2)             &
    &  + c1_1(3,1) * gauge2(1) + c1_1(3,2) * gauge2(2) + c1_1(3,3) * gauge2(3)
   sumu1  = 3._dp * aYuYu + aYdYd
   Do i1=1,3
    sumu1(i1,i1) = sumu1(i1,i1) + diagonal(4,1)
   End Do
 
-  betaYu1 = Matmul2(Yu,sumu1,OnlyDiagonal)
+  betaYu1 = Matmul(Yu,sumu1)
 
   If (TwoLoopRGE) Then
-   aYdYdaYdYd = Matmul2(aYdYd,aYdYd,OnlyDiagonal)
-   aYeYeaYeYe = Matmul2(aYeYe,aYeYe,OnlyDiagonal)
-   aYuYuaYuYu = Matmul2(aYuYu,aYuYu,OnlyDiagonal)
-   aYuYuaYdYd = Matmul2(aYuYu,aYdYd,OnlyDiagonal)
-   aYdYdaYuYu = Matmul2(aYdYd,aYuYu,OnlyDiagonal)
+   aYdYdaYdYd = Matmul(aYdYd,aYdYd)
+   aYeYeaYeYe = Matmul(aYeYe,aYeYe)
+   aYuYuaYuYu = Matmul(aYuYu,aYuYu)
+   aYuYuaYdYd = Matmul(aYuYu,aYdYd)
+   aYdYdaYuYu = Matmul(aYdYd,aYuYu)
 
    TraceY2(1) = Real( cTrace(aYeYeaYeYe), dp)
    TraceY2(2) = Real( cTrace(aYdYdaYdYd), dp)
@@ -6607,7 +8391,7 @@ Contains
     sume2(i1,i1) = sume2(i1,i1) + diagonal(1,2)
    End Do
  
-   betaYe2 = Matmul2(Ye,sume2,OnlyDiagonal)
+   betaYe2 = Matmul(Ye,sume2)
     
    diagonal(2,2) = diagonal(1,2)                                        &
       &     + 8._dp * ( ( gauge2(1) - 2._dp * gauge2(3) ) / 9._dp       &
@@ -6623,7 +8407,7 @@ Contains
     sumd2(i1,i1) = sumd2(i1,i1) + diagonal(2,2)
    End Do
  
-   betaYd2 = Matmul2(Yd,sumd2,OnlyDiagonal)
+   betaYd2 = Matmul(Yd,sumd2)
     
    diagonal(3,2) = - 3._dp * (3._dp * TraceY2(3) + TraceY2(4) )            &
      &      + ( 16._dp * gauge2(3) + 0.8_dp * gauge2(1) ) * TraceY(4)      &
@@ -6639,7 +8423,7 @@ Contains
     sumu2(i1,i1) = sumu2(i1,i1) + diagonal(3,2)
    End Do
  
-   betaYu2 = Matmul2(Yu,sumu2,OnlyDiagonal)
+   betaYu2 = Matmul(Yu,sumu2)
     
   End If 
 
@@ -6651,20 +8435,20 @@ Contains
   Call Adjungate(Ad,aAd)
   Call Adjungate(Au,aAu)
 
-  aAdAd = MatMul2(aAd,Ad,OnlyDiagonal)
-  aAnuAnu = MatMul2(aAnu,Anu,OnlyDiagonal)
-  aAeAe = MatMul2(aAe,Ae,OnlyDiagonal)
-  aAuAu = MatMul2(aAu,Au,OnlyDiagonal)
+  aAdAd = Matmul(aAd,Ad)
+  aAnuAnu = Matmul(aAnu,Anu)
+  aAeAe = Matmul(aAe,Ae)
+  aAuAu = Matmul(aAu,Au)
 
   TraceA(1) = Real( cTrace(aAeAe),dp )
   TraceA(2) = Real( cTrace(aAnuAnu),dp )
   TraceA(3) = Real( cTrace(aAdAd),dp )
   TraceA(4) = Real( cTrace(aAuAu),dp )
 
-  aYdAd = MatMul2(aYd,Ad,OnlyDiagonal)
-  aYnuAnu = MatMul2(aYnu,Anu,OnlyDiagonal)
-  aYeAe = MatMul2(aYe,Ae,OnlyDiagonal)
-  aYuAu = MatMul2(aYu,Au,OnlyDiagonal)
+  aYdAd = Matmul(aYd,Ad)
+  aYnuAnu = Matmul(aYnu,Anu)
+  aYeAe = Matmul(aYe,Ae)
+  aYuAu = Matmul(aYu,Au)
 
   TraceaYA(1) = cTrace(aYeAe) 
   TraceaYA(2) = cTrace(aYnuAnu) 
@@ -6676,7 +8460,7 @@ Contains
   ! A_e
   !--------------
   sume1 = sume1 + 2._dp * aYeYe
-  betaAe1 = MatMul2(Ae,sume1,OnlyDiagonal)
+  betaAe1 = Matmul(Ae,sume1)
   
   diagonal(1,1) = 2._dp * ( 3._dp * TraceaYA(3) + TraceaYA(1)  &
                 &         - c1_1(1,1) * g2Mi(1) - c1_1(1,2) * g2Mi(2)    )
@@ -6684,13 +8468,13 @@ Contains
   Do i1=1,3
    sume1(i1,i1) = sume1(i1,i1) + diagonal(1,1)
   End Do 
-  betaAe1 = betaAe1 + MatMul2(Ye,sume1,OnlyDiagonal)
+  betaAe1 = betaAe1 + Matmul(Ye,sume1)
 
   !--------------
   ! A_nu
   !--------------
   sumnu1 = sumnu1 + 2._dp * aYnuYnu
-  betaAnu1 = MatMul2(Anu,sumnu1,OnlyDiagonal)
+  betaAnu1 = Matmul(Anu,sumnu1)
 
   diagonal(2,1) = 2._dp * ( 3._dp * TraceaYA(4) + TraceaYA(2)     &
       &         + 0.6_dp * g2Mi(1) + 3._dp * g2Mi(2) )
@@ -6698,13 +8482,13 @@ Contains
   Do i1=1,3
    sumnu1(i1,i1) = sumnu1(i1,i1) + diagonal(2,1)
   End Do
-  betaAnu1 = betaAnu1 + MatMul2(Ynu,sumnu1,OnlyDiagonal)
+  betaAnu1 = betaAnu1 + Matmul(Ynu,sumnu1)
 
   !--------------
   ! A_d
   !--------------
   sumd1 = sumd1 + 2._dp * aYdYd
-  betaAd1 = MatMul2(Ad,sumd1,OnlyDiagonal)
+  betaAd1 = Matmul(Ad,sumd1)
   
   diagonal(3,1) = 2._dp * ( 3._dp * TraceaYA(3) + TraceaYA(1) &
                 &         - c1_1(2,1) * g2Mi(1) - c1_1(2,2) * g2Mi(2)   &
@@ -6713,13 +8497,13 @@ Contains
   Do i1=1,3
    sumd1(i1,i1) = sumd1(i1,i1) + diagonal(3,1)
   End Do
-  betaAd1 = betaAd1 + MatMul2(Yd,sumd1,OnlyDiagonal)
+  betaAd1 = betaAd1 + Matmul(Yd,sumd1)
 
   !--------------
   ! A_u
   !--------------
   sumu1 = sumu1 + 2._dp * aYuYu
-  betaAu1 = MatMul2(Au,sumu1,OnlyDiagonal)
+  betaAu1 = Matmul(Au,sumu1)
   
   diagonal(4,1) = 2._dp * ( 3._dp * TraceaYA(4) + TraceaYA(2) &
                 &         - c1_1(3,1) * g2Mi(1) - c1_1(3,2) * g2Mi(2)   &
@@ -6728,19 +8512,19 @@ Contains
   Do i1=1,3
    sumu1(i1,i1) = sumu1(i1,i1) + diagonal(4,1)
   End Do
-  betaAu1 = betaAu1 + MatMul2(Yu,sumu1,OnlyDiagonal)
+  betaAu1 = betaAu1 + Matmul(Yu,sumu1)
 
   If (TwoLoopRGE) Then
-   aYdYdaYdAd = MatMul2(aYdYd,aYdAd,OnlyDiagonal)
-   aYdAdaYdYd = MatMul2(aYdAd,aYdYd,OnlyDiagonal)
-   aYeYeaYeAe = MatMul2(aYeYe,aYeAe,OnlyDiagonal)
-   aYeAeaYeYe = MatMul2(aYeAe,aYeYe,OnlyDiagonal)
-   aYuYuaYuAu = MatMul2(aYuYu,aYuAu,OnlyDiagonal)
-   aYuAuaYuYu = MatMul2(aYuAu,aYuYu,OnlyDiagonal)
-   aYuAuaYdYd = MatMul2(aYuAu,aYdYd,OnlyDiagonal)
-   aYuYuaYdAd = MatMul2(aYuYu,aYdAd,OnlyDiagonal)
-   aYdAdaYuYu = MatMul2(aYdAd,aYuYu,OnlyDiagonal)
-   aYdYdaYuAu = MatMul2(aYdYd,aYuAu,OnlyDiagonal)
+   aYdYdaYdAd = Matmul(aYdYd,aYdAd)
+   aYdAdaYdYd = Matmul(aYdAd,aYdYd)
+   aYeYeaYeAe = Matmul(aYeYe,aYeAe)
+   aYeAeaYeYe = Matmul(aYeAe,aYeYe)
+   aYuYuaYuAu = Matmul(aYuYu,aYuAu)
+   aYuAuaYuYu = Matmul(aYuAu,aYuYu)
+   aYuAuaYdYd = Matmul(aYuAu,aYdYd)
+   aYuYuaYdAd = Matmul(aYuYu,aYdAd)
+   aYdAdaYuYu = Matmul(aYdAd,aYuYu)
+   aYdYdaYuAu = Matmul(aYdYd,aYuAu)
    TraceAY2(1) = cTrace(aYeYeaYeAe)
    TraceAY2(2) = cTrace(aYdYdaYdAd)
    TraceAY2(3) = cTrace(aYuYuaYuAu)
@@ -6753,7 +8537,7 @@ Contains
    hd(1) = 6._dp * TraceY(3) + 2._dp * TraceY(1)   &
        & - 6._dp * gauge2(2) + 1.2_dp * gauge2(1)
    sume2 = sume2 - 2._dp * aYeYeaYeYe - hd(1) * aYeYe
-   betaAe2 = MatMul2(Ae,sume2,OnlyDiagonal)
+   betaAe2 = Matmul(Ae,sume2)
     
    diagonal(1,2) = -6._dp * ( 6._dp * TraceAY2(2) + TraceAY2(4)       &
      &                      + TraceAY2(5) + 2._dp * TraceAY2(1)  )    &
@@ -6772,7 +8556,7 @@ Contains
    Do i1=1,3
     sume2(i1,i1) = sume2(i1,i1) + diagonal(1,2)
    End Do
-   betaAe2 = betaAe2 + MatMul2(Ye,sume2,OnlyDiagonal)
+   betaAe2 = betaAe2 + Matmul(Ye,sume2)
 
   !--------------
   ! A_d
@@ -6780,7 +8564,7 @@ Contains
    hd(1) = 6._dp * TraceY(3) + 2._dp * TraceY(1)    &
        & - 6._dp * gauge2(2) - 0.4_dp * gauge2(1)
    sumd2 = sumd2 - 2._dp * ( aYdYdaYdYd + aYuYuaYdYd ) - hd(1) * aYdYd
-   betaAd2 = MatMul2(Ad,sumd2,OnlyDiagonal)
+   betaAd2 = Matmul(Ad,sumd2)
     
    diagonal(3,2) = diagonal(1,2)                                   &
      &  + 16._dp * ( ( 4._dp * g2Mi(3)                 &
@@ -6802,14 +8586,14 @@ Contains
    Do i1=1,3
     sumd2(i1,i1) = sumd2(i1,i1) + diagonal(3,2)
    End Do
-   betaAd2 = betaAd2 + MatMul2(Yd,sumd2,OnlyDiagonal)
+   betaAd2 = betaAd2 + Matmul(Yd,sumd2)
 
   !--------------
   ! A_u
   !--------------
    hd(1) = 6._dp * ( TraceY(4) - gauge2(2) ) + 0.4_dp * gauge2(1)
    sumu2 = sumu2 - 2._dp * ( aYuYuaYuYu + aYdYdaYuYu ) - hd(1) * aYuYu
-   betaAu2 = MatMul2(Au,sumu2,OnlyDiagonal)
+   betaAu2 = Matmul(Au,sumu2)
     
    diagonal(4,2) =  -6._dp * ( 6._dp * TraceAY2(3) + TraceAY2(4)        &
      &                        + TraceAY2(5)  )                          &
@@ -6833,7 +8617,7 @@ Contains
    Do i1=1,3
     sumu2(i1,i1) = sumu2(i1,i1) + diagonal(4,2)
    End Do
-   betaAu2 = betaAu2 + MatMul2(Yu,sumu2,OnlyDiagonal)
+   betaAu2 = betaAu2 + Matmul(Yu,sumu2)
 
   End If 
 !----------------------------------------------
@@ -6846,30 +8630,30 @@ Contains
    End Do
    S1 = S1 * gauge2(1)
 
-   YdaYd = MatMul2(Yd,aYd,OnlyDiagonal)
-   YnuaYnu = MatMul2(Ynu,aYnu,OnlyDiagonal)
-   YeaYe = MatMul2(Ye,aYe,OnlyDiagonal)
-   YuaYu = MatMul2(Yu,aYu,OnlyDiagonal)
+   YdaYd = Matmul(Yd,aYd)
+   YnuaYnu = Matmul(Ynu,aYnu)
+   YeaYe = Matmul(Ye,aYe)
+   YuaYu = Matmul(Yu,aYu)
 
-   MeYeaYe = MatMul2(Me,YeaYe,OnlyDiagonal)
-   MlaYeYe = MatMul2(Ml,aYeYe,OnlyDiagonal)
-   MlaYnuYnu = MatMul2(Ml,aYnuYnu,OnlyDiagonal)
-   MrYnuaYnu = MatMul2(Mr,YnuaYnu,OnlyDiagonal)
+   MeYeaYe = Matmul(Me,YeaYe)
+   MlaYeYe = Matmul(Ml,aYeYe)
+   MlaYnuYnu = Matmul(Ml,aYnuYnu)
+   MrYnuaYnu = Matmul(Mr,YnuaYnu)
 
-   MdYdaYd = MatMul2(Md,YdaYd,OnlyDiagonal)
-   MqaYdYd = MatMul2(Mq,aYdYd,OnlyDiagonal)
-   MqaYuYu = MatMul2(Mq,aYuYu,OnlyDiagonal)
-   MuYuaYu = MatMul2(Mu,YuaYu,OnlyDiagonal)
+   MdYdaYd = Matmul(Md,YdaYd)
+   MqaYdYd = Matmul(Mq,aYdYd)
+   MqaYuYu = Matmul(Mq,aYuYu)
+   MuYuaYu = Matmul(Mu,YuaYu)
 
-   YeaYeMe = MatMul2(YeaYe,Me,OnlyDiagonal)
-   aYeYeMl = MatMul2(aYeYe,Ml,OnlyDiagonal)
-   aYnuYnuMl = MatMul2(aYnuYnu,Ml,OnlyDiagonal)
-   YnuaYnuMr = MatMul2(YnuaYnu,Mr,OnlyDiagonal)
+   YeaYeMe = Matmul(YeaYe,Me)
+   aYeYeMl = Matmul(aYeYe,Ml)
+   aYnuYnuMl = Matmul(aYnuYnu,Ml)
+   YnuaYnuMr = Matmul(YnuaYnu,Mr)
 
-   YdaYdMd = MatMul2(YdaYd,Md,OnlyDiagonal)
-   aYdYdMq = MatMul2(aYdYd,Mq,OnlyDiagonal)
-   aYuYuMq = MatMul2(aYuYu,Mq,OnlyDiagonal)
-   YuaYuMu = MatMul2(YuaYu,Mu,OnlyDiagonal)
+   YdaYdMd = Matmul(YdaYd,Md)
+   aYdYdMq = Matmul(aYdYd,Mq)
+   aYuYuMq = Matmul(aYuYu,Mq)
+   YuaYuMu = Matmul(YuaYu,Mu)
 
    aYeMeYe = MatMul3(aYe,Me,Ye,OnlyDiagonal)
    YeMlaYe = MatMul3(Ye,Ml,aYe,OnlyDiagonal)
@@ -6881,10 +8665,10 @@ Contains
    YdMqaYd = MatMul3(Yd,Mq,aYd,OnlyDiagonal)
    YuMqaYu = MatMul3(Yu,Mq,aYu,OnlyDiagonal)
 
-   AeaAe = MatMul2(Ae,aAe,OnlyDiagonal)
-   AnuaAnu = MatMul2(Anu,aAnu,OnlyDiagonal)
-   AdaAd = MatMul2(Ad,aAd,OnlyDiagonal)
-   AuaAu = MatMul2(Au,aAu,OnlyDiagonal)
+   AeaAe = Matmul(Ae,aAe)
+   AnuaAnu = Matmul(Anu,aAnu)
+   AdaAd = Matmul(Ad,aAd)
+   AuaAu = Matmul(Au,aAu)
 
    diagonal(1,1) = - 4.8_dp * AbsGM2(1) + 1.2_dp * S1
    betaMe1 = 2._dp * (MeYeaYe + YeaYeMe)             &
@@ -6934,17 +8718,17 @@ Contains
     YeaYeYeaYe = MatSquare(YeaYe,OnlyDiagonal)
     YuaYuYuaYu = MatSquare(YuaYu,OnlyDiagonal)
 
-    AdaYd = MatMul2(Ad,aYd,OnlyDiagonal)
-    AeaYe = MatMul2(Ae,aYe,OnlyDiagonal)
-    AuaYu = MatMul2(Au,aYu,OnlyDiagonal)
+    AdaYd = Matmul(Ad,aYd)
+    AeaYe = Matmul(Ae,aYe)
+    AuaYu = Matmul(Au,aYu)
 
-    aAdYd = MatMul2(aAd,Yd,OnlyDiagonal)
-    aAeYe = MatMul2(aAe,Ye,OnlyDiagonal)
-    aAuYu = MatMul2(aAu,Yu,OnlyDiagonal)
+    aAdYd = Matmul(aAd,Yd)
+    aAeYe = Matmul(aAe,Ye)
+    aAuYu = Matmul(aAu,Yu)
 
-    YdaAd = MatMul2(Yd,aAd,OnlyDiagonal)
-    YeaAe = MatMul2(Ye,aAe,OnlyDiagonal)
-    YuaAu = MatMul2(Yu,aAu,OnlyDiagonal)
+    YdaAd = Matmul(Yd,aAd)
+    YeaAe = Matmul(Ye,aAe)
+    YuaAu = Matmul(Yu,aAu)
 
     YdaYuYuaYd = MatMul3(Yd,aYuYu,aYd,OnlyDiagonal)
     AdaYuYuaAd = MatMul3(Ad,aYuYu,aAd,OnlyDiagonal)
@@ -6958,83 +8742,83 @@ Contains
     AuaAdYdaYu = MatMul4(Au,aAd,Yd,aYu,OnlyDiagonal)
     YuaYdAdaAu = MatMul3(Yu,aYdAd,aAu,OnlyDiagonal)
 
-    MdYdaYuYuaYd = MatMul2(Md,YdaYuYuaYd,OnlyDiagonal)
+    MdYdaYuYuaYd = Matmul(Md,YdaYuYuaYd)
     Call Adjungate(MdYdaYuYuaYd, YdaYuYuaYdMd)
     YdMqaYuYuaYd = MatMul3(Yd,MqaYuYu,aYd,OnlyDiagonal)
     Call Adjungate(YdMqaYuYuaYd, YdaYuYuMqaYd)
     YdaYuMuYuaYd = MatMul3(Yd,aYuMuYu,aYd,OnlyDiagonal)
 
-    MuYuaYdYdaYu = MatMul2(Mu,YuaYdYdaYu,OnlyDiagonal)
+    MuYuaYdYdaYu = Matmul(Mu,YuaYdYdaYu)
     Call Adjungate(MuYuaYdYdaYu, YuaYdYdaYuMu)
     YuMqaYdYdaYu = MatMul3(Yu,MqaYdYd,aYu,OnlyDiagonal)
     Call Adjungate(YuMqaYdYdaYu, YuaYdYdMqaYu)
     YuaYdMdYdaYu = MatMul3(Yu,aYdMdYd,aYu,OnlyDiagonal)
 
-    MeYeaYeYeaYe = MatMul2(MeYeaYe,YeaYe,OnlyDiagonal)
+    MeYeaYeYeaYe = Matmul(MeYeaYe,YeaYe)
     Call Adjungate(MeYeaYeYeaYe,YeaYeYeaYeMe)
-    aYeMeYeaYeYe = MatMul2(aYeMeYe,aYeYe,OnlyDiagonal)
+    aYeMeYeaYeYe = Matmul(aYeMeYe,aYeYe)
     Call Adjungate(aYeMeYeaYeYe,aYeYeaYeMeYe)
-    YeaYeMeYeaYe = MatMul2(YeaYeMe,YeaYe,OnlyDiagonal)
+    YeaYeMeYeaYe = Matmul(YeaYeMe,YeaYe)
 
-    MlaYeYeaYeYe = MatMul2(MlaYeYe,aYeYe,OnlyDiagonal)
+    MlaYeYeaYeYe = Matmul(MlaYeYe,aYeYe)
     Call Adjungate(MlaYeYeaYeYe, aYeYeaYeYeMl)
-    YeMlaYeYeaYe = MatMul2(YeMlaYe,YeaYe,OnlyDiagonal)
+    YeMlaYeYeaYe = Matmul(YeMlaYe,YeaYe)
     Call Adjungate(YeMlaYeYeaYe, YeaYeYeMlaYe)
-    aYeYeMlaYeYe = MatMul2(aYeYeMl,aYeYe,OnlyDiagonal)
+    aYeYeMlaYeYe = Matmul(aYeYeMl,aYeYe)
 
-    MdYdaYdYdaYd = MatMul2(MdYdaYd,YdaYd,OnlyDiagonal)
+    MdYdaYdYdaYd = Matmul(MdYdaYd,YdaYd)
     Call Adjungate(MdYdaYdYdaYd, YdaYdYdaYdMd)
-    aYdMdYdaYdYd = MatMul2(aYdMdYd,aYdYd,OnlyDiagonal)
+    aYdMdYdaYdYd = Matmul(aYdMdYd,aYdYd)
     Call Adjungate(aYdMdYdaYdYd, aYdYdaYdMdYd)
-    YdaYdMdYdaYd = MatMul2(YdaYdMd,YdaYd,OnlyDiagonal)
+    YdaYdMdYdaYd = Matmul(YdaYdMd,YdaYd)
 
-    MqaYdYdaYdYd = MatMul2(MqaYdYd,aYdYd,OnlyDiagonal)
+    MqaYdYdaYdYd = Matmul(MqaYdYd,aYdYd)
     Call Adjungate(MqaYdYdaYdYd, aYdYdaYdYdMq)
-    YdMqaYdYdaYd = MatMul2(YdMqaYd,YdaYd,OnlyDiagonal)
+    YdMqaYdYdaYd = Matmul(YdMqaYd,YdaYd)
     Call Adjungate(YdMqaYdYdaYd, YdaYdYdMqaYd)
-    aYdYdMqaYdYd = MatMul2(aYdYdMq,aYdYd,OnlyDiagonal)
+    aYdYdMqaYdYd = Matmul(aYdYdMq,aYdYd)
 
-    MqaYuYuaYuYu = MatMul2(MqaYuYu,aYuYu,OnlyDiagonal)
+    MqaYuYuaYuYu = Matmul(MqaYuYu,aYuYu)
     Call Adjungate(MqaYuYuaYuYu, aYuYuaYuYuMq)
-    YuMqaYuYuaYu = MatMul2(YuMqaYu,YuaYu,OnlyDiagonal)
+    YuMqaYuYuaYu = Matmul(YuMqaYu,YuaYu)
     Call Adjungate(YuMqaYuYuaYu, YuaYuYuMqaYu)
-    aYuYuMqaYuYu = MatMul2(aYuYuMq,aYuYu,OnlyDiagonal)
+    aYuYuMqaYuYu = Matmul(aYuYuMq,aYuYu)
 
-    MuYuaYuYuaYu = MatMul2(MuYuaYu,YuaYu,OnlyDiagonal)
+    MuYuaYuYuaYu = Matmul(MuYuaYu,YuaYu)
     Call Adjungate(MuYuaYuYuaYu, YuaYuYuaYuMu)
-    aYuMuYuaYuYu = MatMul2(aYuMuYu,aYuYu,OnlyDiagonal)
+    aYuMuYuaYuYu = Matmul(aYuMuYu,aYuYu)
     Call Adjungate(aYuMuYuaYuYu, aYuYuaYuMuYu)
-    YuaYuMuYuaYu = MatMul2(YuaYuMu,YuaYu,OnlyDiagonal)
+    YuaYuMuYuaYu = Matmul(YuaYuMu,YuaYu)
 
-    AdaAdYdaYd = MatMul2(AdaAd,YdaYd,OnlyDiagonal)
+    AdaAdYdaYd = Matmul(AdaAd,YdaYd)
     Call Adjungate(AdaAdYdaYd, YdaYdAdaAd)
-    AdaYdYdaAd = MatMul2(AdaYd,YdaAd,OnlyDiagonal)
-    YdaAdAdaYd = MatMul2(YdaAd,AdaYd,OnlyDiagonal)
+    AdaYdYdaAd = Matmul(AdaYd,YdaAd)
+    YdaAdAdaYd = Matmul(YdaAd,AdaYd)
 
-    aAdAdaYdYd = MatMul2(aAdAd,aYdYd,OnlyDiagonal)
+    aAdAdaYdYd = Matmul(aAdAd,aYdYd)
     Call Adjungate(aAdAdaYdYd, aYdYdaAdAd)
-    aAdYdaYdAd = MatMul2(aAdYd,aYdAd,OnlyDiagonal)
-    aYdAdaAdYd = MatMul2(aYdAd,aAdYd,OnlyDiagonal)
+    aAdYdaYdAd = Matmul(aAdYd,aYdAd)
+    aYdAdaAdYd = Matmul(aYdAd,aAdYd)
 
-    AeaAeYeaYe = MatMul2(AeaAe,YeaYe,OnlyDiagonal)
+    AeaAeYeaYe = Matmul(AeaAe,YeaYe)
     Call Adjungate(AeaAeYeaYe, YeaYeAeaAe)
-    AeaYeYeaAe = MatMul2(AeaYe,YeaAe,OnlyDiagonal)
-    YeaAeAeaYe = MatMul2(YeaAe,AeaYe,OnlyDiagonal)
+    AeaYeYeaAe = Matmul(AeaYe,YeaAe)
+    YeaAeAeaYe = Matmul(YeaAe,AeaYe)
 
-    aAeAeaYeYe = MatMul2(aAeAe,aYeYe,OnlyDiagonal)
+    aAeAeaYeYe = Matmul(aAeAe,aYeYe)
     Call Adjungate(aAeAeaYeYe, aYeYeaAeAe)
-    aAeYeaYeAe = MatMul2(aAeYe,aYeAe,OnlyDiagonal)
-    aYeAeaAeYe = MatMul2(aYeAe,aAeYe,OnlyDiagonal)
+    aAeYeaYeAe = Matmul(aAeYe,aYeAe)
+    aYeAeaAeYe = Matmul(aYeAe,aAeYe)
 
-    AuaAuYuaYu = MatMul2(AuaAu,YuaYu,OnlyDiagonal)
+    AuaAuYuaYu = Matmul(AuaAu,YuaYu)
     Call Adjungate(AuaAuYuaYu, YuaYuAuaAu)
-    AuaYuYuaAu = MatMul2(AuaYu,YuaAu,OnlyDiagonal)
-    YuaAuAuaYu = MatMul2(YuaAu,AuaYu,OnlyDiagonal)
+    AuaYuYuaAu = Matmul(AuaYu,YuaAu)
+    YuaAuAuaYu = Matmul(YuaAu,AuaYu)
 
-    aAuAuaYuYu = MatMul2(aAuAu,aYuYu,OnlyDiagonal)
+    aAuAuaYuYu = Matmul(aAuAu,aYuYu)
     Call Adjungate(aAuAuaYuYu, aYuYuaAuAu)
-    aAuYuaYuAu = MatMul2(aAuYu,aYuAu,OnlyDiagonal)
-    aYuAuaAuYu = MatMul2(aYuAu,aAuYu,OnlyDiagonal)
+    aAuYuaYuAu = Matmul(aAuYu,aYuAu)
+    aYuAuaAuYu = Matmul(aYuAu,aAuYu)
 
     S2 = (1.5_dp * gauge2(2) + 0.3_dp * gauge2(1) )            &
      &      * (MH(2) - MH(1) - Real(cTrace(ML),dp) )              &
@@ -7323,11 +9107,9 @@ Contains
       &         + 4.14_dp * gauge2(1)**2
     betaMue2 = mue * TraceMue(2)
 
-    TraceB(1) = cTrace( 3._dp * ( Matmul2(AuaYu,YuaYu,OnlyDiagonal)     &
-              &                 + Matmul2(AdaYd,YdaYd,OnlyDiagonal) )   &
-              &       + MatMul2(AeaYe,YeaYe,OnlyDiagonal)               &
-              &       + Matmul2(aYuAu,aYdYd,OnlyDiagonal)               &
-              &       + MatMul2(aYdAd,aYuYu,OnlyDiagonal) ) 
+    TraceB(1) = cTrace( 3._dp * ( Matmul(AuaYu,YuaYu) + Matmul(AdaYd,YdaYd) ) &
+              &       + Matmul(AeaYe,YeaYe) + Matmul(aYuAu,aYdYd)             &
+              &       + Matmul(aYdAd,aYuYu) ) 
     TraceB(2) = -12._dp * TraceB(1)                                           &
       &   + (32._dp * gauge2(3) + 1.6_dp * gauge2(1) ) * TraceaYA(4)          &
       &   + (32._dp * gauge2(3) - 0.8_dp * gauge2(1) ) * TraceaYA(3)          &
@@ -7346,7 +9128,7 @@ Contains
   !--------------------------------
   sumM1 = aYeYe + aYnuYnu
   diagonal(5,1) = 2._dp * TraceY(2) + 6._dp * TraceY(4)   &
-              & - 2._dp * gauge2(1) - 6._dp * gauge2(2)
+              & - 1.2_dp * gauge2(1) - 6._dp * gauge2(2)
   betaMnu1 = Matmul( Transpose(sumM1), Mnu) + Matmul(Mnu, sumM1)  &
           & + diagonal(5,1) * Mnu
   
@@ -7474,6 +9256,15 @@ Contains
    DMu(i1,i1) = Real(DMu(i1,i1),dp)
    DMq(i1,i1) = Real(DMq(i1,i1),dp)
   End Do
+  Dmd = 0.5_dp * ( Dmd + Transpose(Conjg(Dmd)) )
+  Dme = 0.5_dp * ( Dme + Transpose(Conjg(Dme)) )
+  Dml = 0.5_dp * ( Dml + Transpose(Conjg(Dml)) )
+  Dmq = 0.5_dp * ( Dmq + Transpose(Conjg(Dmq)) )
+  Dmu = 0.5_dp * ( Dmu + Transpose(Conjg(Dmu)) )
+
+  Call Chop(Dmue)
+  Call Chop(DB)
+
 
   Call ParametersToG3(Dgauge, DYe, DYnu, DYd, DYu, DMhlf, DAe, DAnu, DAd, DAu &
                    &, DMe, DMl, DMr, DMd, DMq, DMu, DMh, Dmue, DB, DMnu, f)
@@ -7499,13 +9290,13 @@ Contains
   Real(dp), Intent(out) :: F(len)
 
   Integer :: i1, i2
-  Real(dp) :: gauge(3), gauge2(3), sumI, TraceY(6), Dgauge(3), TraceY2(4)
+  Real(dp) :: gauge(3), gauge2(3), TraceY(6), Dgauge(3), TraceY2(4)
   Complex(dp) :: Ye(3,3), Yd(3,3), Yu(3,3), aYe(3,3), aYd(3,3), aYu(3,3)      &
     & , aYdYd(3,3), aYeYe(3,3), aYuYu(3,3), sumd1(3,3), sume1(3,3)            &
     & , betaYd1(3,3), betaYd2(3,3), betaYe1(3,3), betaYe2(3,3)                &
     & , betaYu1(3,3), betaYu2(3,3), DYe(3,3), DYd(3,3), DYu(3,3)              &
     & , aYdYdaYdYd(3,3), aYeYeaYeYe(3,3), aYuYuaYuYu(3,3)                     &
-    & , aYdYdaYuYu(3,3), aYuYuaYdYd(3,3), diagonal(6,2)           &
+    & , aYdYdaYuYu(3,3), aYuYuaYdYd(3,3), diagonal(6,2), sumI           &
     & , hd(2), sumu1(3,3), sumd2(3,3), sume2(3,3), sumu2(3,3), hc(4)
 
   Complex(dp) :: Mhlf(3),DMhlf(3)
@@ -7609,16 +9400,16 @@ Contains
   Call Adjungate(YZ,aYZ)
   Call Adjungate(YS,aYS)
 
-  aYeYe = Matmul2(aYe,Ye,OnlyDiagonal)
-  aYTYT = Matmul2(aYT,YT,OnlyDiagonal)
-  aYdYd = Matmul2(aYd,Yd,OnlyDiagonal)
-  aYuYu = Matmul2(aYu,Yu,OnlyDiagonal)
-  aYZYZ = Matmul2(aYZ,YZ,OnlyDiagonal)
-  aYSYS = Matmul2(aYS,YS,OnlyDiagonal)
+  aYeYe = Matmul(aYe,Ye)
+  aYTYT = Matmul(aYT,YT)
+  aYdYd = Matmul(aYd,Yd)
+  aYuYu = Matmul(aYu,Yu)
+  aYZYZ = Matmul(aYZ,YZ)
+  aYSYS = Matmul(aYS,YS)
 
-  YdaYd = Matmul2(Yd,aYd,OnlyDiagonal)
-  YZaYZ = Matmul2(YZ,aYZ,OnlyDiagonal)
-  YSaYS = Matmul2(YS,aYS,OnlyDiagonal)
+  YdaYd = Matmul(Yd,aYd)
+  YZaYZ = Matmul(YZ,aYZ)
+  YSaYS = Matmul(YS,aYS)
 
   TraceY(1) = Real( cTrace(aYeYe),dp )
   TraceY(2) = Real( cTrace(aYTYT),dp )
@@ -7634,7 +9425,7 @@ Contains
    sume1(i1,i1) = sume1(i1,i1) + diagonal(1,1)
   End Do
 
-  betaYe1 = Matmul2(Ye,sume1,OnlyDiagonal)
+  betaYe1 = Matmul(Ye,sume1)
 
   diagonal(2,1) = TraceY(2)  + lam12          &
             &   - 1.8_dp * gauge2(1) - 7._dp * gauge2(2)
@@ -7643,8 +9434,8 @@ Contains
    sumT1(i1,i1) = sumT1(i1,i1) + diagonal(2,1)
   End Do
 
-  betaYT1 = Matmul2(YT,sumT1,OnlyDiagonal)                 &
-        & + Matmul2(Transpose(aYeYe+3._dp * aYZYZ),YT,OnlyDiagonal)
+  betaYT1 = Matmul(YT,sumT1)                 &
+        & + Matmul(Transpose(aYeYe+3._dp * aYZYZ),YT)
 
   diagonal(3,1) = 3._dp * (TraceY(3)  + lam12) + TraceY(1)              &
     &  + c1_1(2,1) * gauge2(1) + c1_1(2,2) * gauge2(2) + c1_1(2,3) * gauge2(3)
@@ -7653,8 +9444,8 @@ Contains
    sumd1(i1,i1) = sumd1(i1,i1) + diagonal(3,1)
   End Do
 
-  betaYd1 = Matmul2(Yd,sumd1,OnlyDiagonal)  &
-        & + 2._dp * Matmul2(YZaYZ + 2._dp * YSaYS, Yd,OnlyDiagonal)
+  betaYd1 = Matmul(Yd,sumd1)  &
+        & + 2._dp * Matmul(YZaYZ + 2._dp * YSaYS, Yd)
 
   diagonal(4,1) = 3._dp * (TraceY(4) + lam22)                &
    &  + c1_1(3,1) * gauge2(1) + c1_1(3,2) * gauge2(2) + c1_1(3,3) * gauge2(3)
@@ -7663,7 +9454,7 @@ Contains
    sumu1(i1,i1) = sumu1(i1,i1) + diagonal(4,1)
   End Do
 
-  betaYu1 = Matmul2(Yu,sumu1,OnlyDiagonal)
+  betaYu1 = Matmul(Yu,sumu1)
 
   diagonal(5,1) = TraceY(5) + c1_1(2,1) * gauge2(1) &
             &   + c1_1(2,2) * gauge2(2) + c1_1(2,3) * gauge2(3)
@@ -7672,8 +9463,8 @@ Contains
    sumZ1(i1,i1) = sumZ1(i1,i1) + diagonal(5,1)
   End Do
 
-  betaYZ1 = Matmul2(YZ,sumZ1,OnlyDiagonal)                 &
-        & + 2._dp * Matmul2(YdaYd+2._dp * aYSYS,YZ,OnlyDiagonal)
+  betaYZ1 = Matmul(YZ,sumZ1)                 &
+        & + 2._dp * Matmul(YdaYd+2._dp * aYSYS,YZ)
 
   diagonal(6,1) = TraceY(6) - 0.8_dp * gauge2(1) - 12._dp * gauge2(3)
   sumS1 = 2._dp * Transpose(YdaYd + YZaYZ) + 8._dp * aYSYS
@@ -7681,8 +9472,8 @@ Contains
    sumS1(i1,i1) = sumS1(i1,i1) + diagonal(6,1)
   End Do
 
-  betaYS1 = Matmul2(YS,sumS1,OnlyDiagonal)                 &
-        & + 2._dp * Matmul2(YdaYd + YZaYZ,YS,OnlyDiagonal)
+  betaYS1 = Matmul(YS,sumS1)                 &
+        & + 2._dp * Matmul(YdaYd + YZaYZ,YS)
 
 
   betalam11 = lam1 * (7._dp * lam12 + TraceY(2) + 2._dp * TraceY(1) &
@@ -7693,11 +9484,11 @@ Contains
             &        - 1.8_dp * gauge2(1) - 7._dp * gauge2(2) ) 
 
   If (TwoLoopRGE) Then
-   aYdYdaYdYd = Matmul2(aYdYd,aYdYd,OnlyDiagonal)
-   aYeYeaYeYe = Matmul2(aYeYe,aYeYe,OnlyDiagonal)
-   aYuYuaYuYu = Matmul2(aYuYu,aYuYu,OnlyDiagonal)
-   aYuYuaYdYd = Matmul2(aYuYu,aYdYd,OnlyDiagonal)
-   aYdYdaYuYu = Matmul2(aYdYd,aYuYu,OnlyDiagonal)
+   aYdYdaYdYd = Matmul(aYdYd,aYdYd)
+   aYeYeaYeYe = Matmul(aYeYe,aYeYe)
+   aYuYuaYuYu = Matmul(aYuYu,aYuYu)
+   aYuYuaYdYd = Matmul(aYuYu,aYdYd)
+   aYdYdaYuYu = Matmul(aYdYd,aYuYu)
 
    TraceY2(1) = Real( cTrace(aYeYeaYeYe), dp)
    TraceY2(2) = Real( cTrace(aYdYdaYdYd), dp)
@@ -7715,7 +9506,7 @@ Contains
     sume2(i1,i1) = sume2(i1,i1) + diagonal(1,2)
    End Do
  
-   betaYe2 = Matmul2(Ye,sume2,OnlyDiagonal)
+   betaYe2 = Matmul(Ye,sume2)
     
    diagonal(2,2) = diagonal(1,2)                                        &
       &     + 8._dp * ( ( gauge2(1) - 2._dp * gauge2(3) ) / 9._dp       &
@@ -7731,7 +9522,7 @@ Contains
     sumd2(i1,i1) = sumd2(i1,i1) + diagonal(2,2)
    End Do
  
-   betaYd2 = Matmul2(Yd,sumd2,OnlyDiagonal)
+   betaYd2 = Matmul(Yd,sumd2)
     
    diagonal(3,2) = - 3._dp * (3._dp * TraceY2(3) + TraceY2(4) )            &
      &      + ( 16._dp * gauge2(3) + 0.8_dp * gauge2(1) ) * TraceY(4)      &
@@ -7747,7 +9538,7 @@ Contains
     sumu2(i1,i1) = sumu2(i1,i1) + diagonal(3,2)
    End Do
  
-   betaYu2 = Matmul2(Yu,sumu2,OnlyDiagonal)
+   betaYu2 = Matmul(Yu,sumu2)
     
   End If 
 
@@ -7761,25 +9552,25 @@ Contains
   Call Adjungate(AZ,aAZ)
   Call Adjungate(AS,aAS)
 
-  aAdAd = MatMul2(aAd,Ad,OnlyDiagonal)
-  aATAT = MatMul2(aAT,AT,OnlyDiagonal)
-  aAeAe = MatMul2(aAe,Ae,OnlyDiagonal)
-  aAuAu = MatMul2(aAu,Au,OnlyDiagonal)
-  aAZAZ = MatMul2(aAZ,AZ,OnlyDiagonal)
+  aAdAd = Matmul(aAd,Ad)
+  aATAT = Matmul(aAT,AT)
+  aAeAe = Matmul(aAe,Ae)
+  aAuAu = Matmul(aAu,Au)
+  aAZAZ = Matmul(aAZ,AZ)
 
-  aYdAd = MatMul2(aYd,Ad,OnlyDiagonal)
-  aYTAT = MatMul2(aYT,AT,OnlyDiagonal)
-  aYeAe = MatMul2(aYe,Ae,OnlyDiagonal)
-  aYuAu = MatMul2(aYu,Au,OnlyDiagonal)
-  aYZAZ = MatMul2(aYZ,AZ,OnlyDiagonal)
-  aYSAS = MatMul2(aYS,AS,OnlyDiagonal)
+  aYdAd = Matmul(aYd,Ad)
+  aYTAT = Matmul(aYT,AT)
+  aYeAe = Matmul(aYe,Ae)
+  aYuAu = Matmul(aYu,Au)
+  aYZAZ = Matmul(aYZ,AZ)
+  aYSAS = Matmul(aYS,AS)
 
-  AeaYe = MatMul2(Ad,aYd,OnlyDiagonal)
-  AdaYd = MatMul2(Ad,aYd,OnlyDiagonal)
-  AZaYZ = MatMul2(AZ,aYZ,OnlyDiagonal)
-  ASaYS = MatMul2(AS,aYS,OnlyDiagonal)
+  AeaYe = Matmul(Ad,aYd)
+  AdaYd = Matmul(Ad,aYd)
+  AZaYZ = Matmul(AZ,aYZ)
+  ASaYS = Matmul(AS,aYS)
 
-  ASaAS = MatMul2(AS,aAS,OnlyDiagonal)
+  ASaAS = Matmul(AS,aAS)
 
   TraceA(1) = Real( cTrace(aAeAe),dp )
   TraceA(2) = Real( cTrace(aATAT),dp )
@@ -7801,7 +9592,7 @@ Contains
   ! A_e
   !--------------
   sume1 = sume1 + 2._dp * aYeYe
-  betaAe1 = MatMul2(Ae,sume1,OnlyDiagonal)
+  betaAe1 = Matmul(Ae,sume1)
   
   diagonal(1,1) = 2._dp * ( 3._dp * TraceaYA(3) + TraceaYA(1)  &
                 &         + 3._dp * lam1Alam1                  &
@@ -7810,7 +9601,7 @@ Contains
   Do i1=1,3
    sume1(i1,i1) = sume1(i1,i1) + diagonal(1,1)
   End Do 
-  betaAe1 = betaAe1 + MatMul2(Ye,sume1,OnlyDiagonal)
+  betaAe1 = betaAe1 + Matmul(Ye,sume1)
 
   !--------------
   ! A_T
@@ -7818,25 +9609,25 @@ Contains
   diagonal(2,1) = TraceY(2)  + lam12          &
             &   - 1.8_dp * gauge2(1) - 7._dp * gauge2(2)
   sumT1 = 2._dp * aYeYe + 9._dp * aYTYT + 3._dp * aYZYZ
-  betaAT1 = MatMul2(AT,sumT1,OnlyDiagonal)
+  betaAT1 = Matmul(AT,sumT1)
   betaAT1 = Transpose(betaAT1)
   Do i1=1,3
    sumT1(i1,i1) = sumT1(i1,i1) + diagonal(2,1)
   End Do
 
-  betaAT1 = betaAT1 + MatMul2(AT,sumT1,OnlyDiagonal)
+  betaAT1 = betaAT1 + Matmul(AT,sumT1)
 
   diagonal(2,1) = 2._dp * ( TraceaYA(2) + lam1Alam1    &
       &         + 1.8_dp * g2Mi(1) + 7._dp * g2Mi(2) )
   betaAT1 = betaAT1 + diagonal(2,1) * YT                         &
-        & + 6._dp * ( MatMul2(YT, aYZAZ,OnlyDiagonal)            &
-        &           + MatMul2(Transpose(aYZAZ), YT,OnlyDiagonal) )
+        & + 6._dp * ( Matmul(YT, aYZAZ)            &
+        &           + Matmul(Transpose(aYZAZ), YT) )
 
   !--------------
   ! A_d
   !--------------
   sumd1 = sumd1 + 2._dp * aYdYd
-  betaAd1 = MatMul2(Ad,sumd1,OnlyDiagonal)
+  betaAd1 = Matmul(Ad,sumd1)
   
   diagonal(3,1) = 2._dp * ( 3._dp * TraceaYA(3) + TraceaYA(1) &
                 &         + 3._dp * lam1Alam1                 &
@@ -7847,15 +9638,15 @@ Contains
   Do i1=1,3
    sumd1(i1,i1) = sumd1(i1,i1) + diagonal(3,1)
   End Do
-  betaAd1 = betaAd1 + MatMul2(Yd,sumd1,OnlyDiagonal)            &
-        & + 2._dp * MatMul2(2._dp*YSaYS+YZaYZ, Ad,OnlyDiagonal) &
-        & + 4._dp * MatMul2(2._dp*ASaYS+AZaYZ, Yd,OnlyDiagonal)
+  betaAd1 = betaAd1 + Matmul(Yd,sumd1)            &
+        & + 2._dp * Matmul(2._dp*YSaYS+YZaYZ, Ad) &
+        & + 4._dp * Matmul(2._dp*ASaYS+AZaYZ, Yd)
 
   !--------------
   ! A_u
   !--------------
   sumu1 = sumu1 + 2._dp * aYuYu
-  betaAu1 = MatMul2(Au,sumu1,OnlyDiagonal)
+  betaAu1 = Matmul(Au,sumu1)
   
   diagonal(4,1) = 2._dp * ( 3._dp * TraceaYA(4) + 3._dp * lam2Alam2   &
                 &         - c1_1(3,1) * g2Mi(1) - c1_1(3,2) * g2Mi(2) &
@@ -7864,41 +9655,39 @@ Contains
   Do i1=1,3
    sumu1(i1,i1) = sumu1(i1,i1) + diagonal(4,1)
   End Do
-  betaAu1 = betaAu1 + MatMul2(Yu,sumu1,OnlyDiagonal)
+  betaAu1 = betaAu1 + Matmul(Yu,sumu1)
 
   !--------------
   ! A_Z
   !--------------
   sumZ1 = sumZ1 + 3._dp * aYZYZ
-  betaAZ1 = MatMul2(AZ,sumZ1,OnlyDiagonal)                                   &
-    & + 2._dp * MatMul2(2._dp*YSaYs + YdaYd + 2._dp*YZaYZ, AZ,OnlyDiagonal)  &
-    & + 6._dp * MatMul2(YZ, aYTAT, OnlyDiagonal)
+  betaAZ1 = Matmul(AZ,sumZ1) + 6._dp * Matmul(YZ, aYTAT)      &
+    & + 2._dp * Matmul(2._dp*YSaYs + YdaYd + 2._dp*YZaYZ, AZ)
 
   diagonal(5,1) = - 2._dp * ( c1_1(2,1) * g2Mi(1) + c1_1(2,2) * g2Mi(2) &
                 &           + c1_1(2,3) * g2Mi(3)  ) + 2._dp * TraceaYA(5)
 
   betaAZ1 = betaAZ1 + diagonal(5,1) * YZ                                                &
-        & +  2._dp * MatMul2(YZ, AeaYe,OnlyDiagonal)                              &
-        & + 4._dp * MatMul2(AdaYd + 2._dp * ASaYS, YZ,OnlyDiagonal)
+        & +  2._dp * Matmul(YZ, AeaYe)                              &
+        & + 4._dp * Matmul(AdaYd + 2._dp * ASaYS, YZ)
 
   !--------------
   ! A_S
   !--------------
   diagonal(6,1) = TraceY(6) - 0.8_dp * gauge2(1) - 12._dp * gauge2(3)
   sumS1 = 2._dp * Transpose(YdaYd + YZaYZ) + 12._dp * aYSYS
-  betaAS1 = MatMul2(AS,sumS1,OnlyDiagonal)
+  betaAS1 = Matmul(AS,sumS1)
   betaAS1 = Transpose(betaAS1)
   Do i1=1,3
    sumS1(i1,i1) = sumS1(i1,i1) + diagonal(6,1)
   End Do
 
-  betaAS1 = betaAS1 + MatMul2(AS,sumS1,OnlyDiagonal)
+  betaAS1 = betaAS1 + Matmul(AS,sumS1)
 
   diagonal(6,1) = 2._dp * ( TraceaYA(6) + 0.8_dp * g2Mi(1) + 12._dp * g2Mi(3) )
   sumS1 = 4._dp * (AdaYd + AZaYZ) 
   betaAS1 = betaAS1 + diagonal(6,1) * YS               &
-        & + MatMul2(sumS1, YS,OnlyDiagonal)            &
-        & + MatMul2(YS,Transpose(sumS1), OnlyDiagonal) 
+        & + Matmul(sumS1, YS) + Matmul(YS,Transpose(sumS1)) 
 
   !--------------
   ! A_1
@@ -7919,16 +9708,16 @@ Contains
           &                  + 1.8_dp * g2Mi(1) + 7._dp * g2Mi(2) ) 
 
   If (TwoLoopRGE) Then
-   aYdYdaYdAd = MatMul2(aYdYd,aYdAd,OnlyDiagonal)
-   aYdAdaYdYd = MatMul2(aYdAd,aYdYd,OnlyDiagonal)
-   aYeYeaYeAe = MatMul2(aYeYe,aYeAe,OnlyDiagonal)
-   aYeAeaYeYe = MatMul2(aYeAe,aYeYe,OnlyDiagonal)
-   aYuYuaYuAu = MatMul2(aYuYu,aYuAu,OnlyDiagonal)
-   aYuAuaYuYu = MatMul2(aYuAu,aYuYu,OnlyDiagonal)
-   aYuAuaYdYd = MatMul2(aYuAu,aYdYd,OnlyDiagonal)
-   aYuYuaYdAd = MatMul2(aYuYu,aYdAd,OnlyDiagonal)
-   aYdAdaYuYu = MatMul2(aYdAd,aYuYu,OnlyDiagonal)
-   aYdYdaYuAu = MatMul2(aYdYd,aYuAu,OnlyDiagonal)
+   aYdYdaYdAd = Matmul(aYdYd,aYdAd)
+   aYdAdaYdYd = Matmul(aYdAd,aYdYd)
+   aYeYeaYeAe = Matmul(aYeYe,aYeAe)
+   aYeAeaYeYe = Matmul(aYeAe,aYeYe)
+   aYuYuaYuAu = Matmul(aYuYu,aYuAu)
+   aYuAuaYuYu = Matmul(aYuAu,aYuYu)
+   aYuAuaYdYd = Matmul(aYuAu,aYdYd)
+   aYuYuaYdAd = Matmul(aYuYu,aYdAd)
+   aYdAdaYuYu = Matmul(aYdAd,aYuYu)
+   aYdYdaYuAu = Matmul(aYdYd,aYuAu)
    TraceAY2(1) = cTrace(aYeYeaYeAe)
    TraceAY2(2) = cTrace(aYdYdaYdAd)
    TraceAY2(3) = cTrace(aYuYuaYuAu)
@@ -7941,7 +9730,7 @@ Contains
    hd(1) = 6._dp * TraceY(3) + 2._dp * TraceY(1)   &
        & - 6._dp * gauge2(2) + 1.2_dp * gauge2(1)
    sume2 = sume2 - 2._dp * aYeYeaYeYe - hd(1) * aYeYe
-   betaAe2 = MatMul2(Ae,sume2,OnlyDiagonal)
+   betaAe2 = Matmul(Ae,sume2)
     
    diagonal(1,2) = -6._dp * ( 6._dp * TraceAY2(2) + TraceAY2(4)       &
      &                      + TraceAY2(5) + 2._dp * TraceAY2(1)  )    &
@@ -7962,7 +9751,7 @@ Contains
    Do i1=1,3
     sume2(i1,i1) = sume2(i1,i1) + diagonal(1,2)
    End Do
-   betaAe2 = betaAe2 + MatMul2(Ye,sume2,OnlyDiagonal)
+   betaAe2 = betaAe2 + Matmul(Ye,sume2)
 
   !--------------
   ! A_d
@@ -7970,7 +9759,7 @@ Contains
    hd(1) = 6._dp * TraceY(3) + 2._dp * TraceY(1)    &
        & - 6._dp * gauge2(2) - 0.4_dp * gauge2(1)
    sumd2 = sumd2 - 2._dp * ( aYdYdaYdYd + aYuYuaYdYd ) - hd(1) * aYdYd
-   betaAd2 = MatMul2(Ad,sumd2,OnlyDiagonal)
+   betaAd2 = Matmul(Ad,sumd2)
     
    diagonal(3,2) = diagonal(1,2)                                   &
      &  + 16._dp * ( ( 4._dp * g2Mi(3)                 &
@@ -7992,14 +9781,14 @@ Contains
    Do i1=1,3
     sumd2(i1,i1) = sumd2(i1,i1) + diagonal(3,2)
    End Do
-   betaAd2 = betaAd2 + MatMul2(Yd,sumd2,OnlyDiagonal)
+   betaAd2 = betaAd2 + Matmul(Yd,sumd2)
 
   !--------------
   ! A_u
   !--------------
    hd(1) = 6._dp * ( TraceY(4) - gauge2(2) ) + 0.4_dp * gauge2(1)
    sumu2 = sumu2 - 2._dp * ( aYuYuaYuYu + aYdYdaYuYu ) - hd(1) * aYuYu
-   betaAu2 = MatMul2(Au,sumu2,OnlyDiagonal)
+   betaAu2 = Matmul(Au,sumu2)
     
    diagonal(4,2) =  -6._dp * ( 6._dp * TraceAY2(3) + TraceAY2(4)        &
      &                        + TraceAY2(5)  )                          &
@@ -8025,7 +9814,7 @@ Contains
    Do i1=1,3
     sumu2(i1,i1) = sumu2(i1,i1) + diagonal(4,2)
    End Do
-   betaAu2 = betaAu2 + MatMul2(Yu,sumu2,OnlyDiagonal)
+   betaAu2 = betaAu2 + Matmul(Yu,sumu2)
 
   End If 
 !----------------------------------------------
@@ -8040,33 +9829,33 @@ Contains
 
    S1 = S1 * gauge2(1)
 
-   YdaYd = MatMul2(Yd,aYd,OnlyDiagonal)
-   YeaYe = MatMul2(Ye,aYe,OnlyDiagonal)
-   YuaYu = MatMul2(Yu,aYu,OnlyDiagonal)
+   YdaYd = Matmul(Yd,aYd)
+   YeaYe = Matmul(Ye,aYe)
+   YuaYu = Matmul(Yu,aYu)
 
-   MeYeaYe = MatMul2(Me,YeaYe,OnlyDiagonal)
-   MlaYeYe = MatMul2(Ml,aYeYe,OnlyDiagonal)
-   MlaYTYT = MatMul2(Ml,aYTYT,OnlyDiagonal)
-   MlaYZYZ = MatMul2(Ml,aYZYZ,OnlyDiagonal)
+   MeYeaYe = Matmul(Me,YeaYe)
+   MlaYeYe = Matmul(Ml,aYeYe)
+   MlaYTYT = Matmul(Ml,aYTYT)
+   MlaYZYZ = Matmul(Ml,aYZYZ)
 
-   MdYdaYd = MatMul2(Md,YdaYd,OnlyDiagonal)
-   MqaYdYd = MatMul2(Mq,aYdYd,OnlyDiagonal)
-   MqaYuYu = MatMul2(Mq,aYuYu,OnlyDiagonal)
-   MuYuaYu = MatMul2(Mu,YuaYu,OnlyDiagonal)
-   MdYZaYZ = MatMul2(Md,YZaYZ,OnlyDiagonal)
-   MdYSaYS = MatMul2(Md,YSaYS,OnlyDiagonal)
+   MdYdaYd = Matmul(Md,YdaYd)
+   MqaYdYd = Matmul(Mq,aYdYd)
+   MqaYuYu = Matmul(Mq,aYuYu)
+   MuYuaYu = Matmul(Mu,YuaYu)
+   MdYZaYZ = Matmul(Md,YZaYZ)
+   MdYSaYS = Matmul(Md,YSaYS)
 
-   YeaYeMe = MatMul2(YeaYe,Me,OnlyDiagonal)
-   aYeYeMl = MatMul2(aYeYe,Ml,OnlyDiagonal)
-   aYTYTMl = MatMul2(aYTYT,Ml,OnlyDiagonal)
-   aYZYZMl = MatMul2(aYZYZ,Ml,OnlyDiagonal)
+   YeaYeMe = Matmul(YeaYe,Me)
+   aYeYeMl = Matmul(aYeYe,Ml)
+   aYTYTMl = Matmul(aYTYT,Ml)
+   aYZYZMl = Matmul(aYZYZ,Ml)
 
-   YdaYdMd = MatMul2(YdaYd,Md,OnlyDiagonal)
-   aYdYdMq = MatMul2(aYdYd,Mq,OnlyDiagonal)
-   aYuYuMq = MatMul2(aYuYu,Mq,OnlyDiagonal)
-   YuaYuMu = MatMul2(YuaYu,Mu,OnlyDiagonal)
-   YZaYZMd = MatMul2(YZaYZ,Md,OnlyDiagonal)
-   YSaYSMd = MatMul2(YSaYS,Md,OnlyDiagonal)
+   YdaYdMd = Matmul(YdaYd,Md)
+   aYdYdMq = Matmul(aYdYd,Mq)
+   aYuYuMq = Matmul(aYuYu,Mq)
+   YuaYuMu = Matmul(YuaYu,Mu)
+   YZaYZMd = Matmul(YZaYZ,Md)
+   YSaYSMd = Matmul(YSaYS,Md)
 
    aYeMeYe = MatMul3(aYe,Me,Ye,OnlyDiagonal)
    YeMlaYe = MatMul3(Ye,Ml,aYe,OnlyDiagonal)
@@ -8081,10 +9870,10 @@ Contains
    YuMqaYu = MatMul3(Yu,Mq,aYu,OnlyDiagonal)
    aYZMdYZ = MatMul3(aYZ,Md,YZ,OnlyDiagonal)
 
-   AeaAe = MatMul2(Ae,aAe,OnlyDiagonal)
-   AdaAd = MatMul2(Ad,aAd,OnlyDiagonal)
-   AuaAu = MatMul2(Au,aAu,OnlyDiagonal)
-   AZaAZ = MatMul2(AZ,aAZ,OnlyDiagonal)
+   AeaAe = Matmul(Ae,aAe)
+   AdaAd = Matmul(Ad,aAd)
+   AuaAu = Matmul(Au,aAu)
+   AZaAZ = Matmul(AZ,aAZ)
    Alam12 = Abs(Alam1)**2
    Alam22 = Abs(Alam2)**2
 
@@ -8138,15 +9927,15 @@ Contains
     YeaYeYeaYe = MatSquare(YeaYe,OnlyDiagonal)
     YuaYuYuaYu = MatSquare(YuaYu,OnlyDiagonal)
 
-    AuaYu = MatMul2(Au,aYu,OnlyDiagonal)
+    AuaYu = Matmul(Au,aYu)
 
-    aAdYd = MatMul2(aAd,Yd,OnlyDiagonal)
-    aAeYe = MatMul2(aAe,Ye,OnlyDiagonal)
-    aAuYu = MatMul2(aAu,Yu,OnlyDiagonal)
+    aAdYd = Matmul(aAd,Yd)
+    aAeYe = Matmul(aAe,Ye)
+    aAuYu = Matmul(aAu,Yu)
 
-    YdaAd = MatMul2(Yd,aAd,OnlyDiagonal)
-    YeaAe = MatMul2(Ye,aAe,OnlyDiagonal)
-    YuaAu = MatMul2(Yu,aAu,OnlyDiagonal)
+    YdaAd = Matmul(Yd,aAd)
+    YeaAe = Matmul(Ye,aAe)
+    YuaAu = Matmul(Yu,aAu)
 
     YdaYuYuaYd = MatMul3(Yd,aYuYu,aYd,OnlyDiagonal)
     AdaYuYuaAd = MatMul3(Ad,aYuYu,aAd,OnlyDiagonal)
@@ -8160,83 +9949,83 @@ Contains
     AuaAdYdaYu = MatMul4(Au,aAd,Yd,aYu,OnlyDiagonal)
     YuaYdAdaAu = MatMul3(Yu,aYdAd,aAu,OnlyDiagonal)
 
-    MdYdaYuYuaYd = MatMul2(Md,YdaYuYuaYd,OnlyDiagonal)
+    MdYdaYuYuaYd = Matmul(Md,YdaYuYuaYd)
     Call Adjungate(MdYdaYuYuaYd, YdaYuYuaYdMd)
     YdMqaYuYuaYd = MatMul3(Yd,MqaYuYu,aYd,OnlyDiagonal)
     Call Adjungate(YdMqaYuYuaYd, YdaYuYuMqaYd)
     YdaYuMuYuaYd = MatMul3(Yd,aYuMuYu,aYd,OnlyDiagonal)
 
-    MuYuaYdYdaYu = MatMul2(Mu,YuaYdYdaYu,OnlyDiagonal)
+    MuYuaYdYdaYu = Matmul(Mu,YuaYdYdaYu)
     Call Adjungate(MuYuaYdYdaYu, YuaYdYdaYuMu)
     YuMqaYdYdaYu = MatMul3(Yu,MqaYdYd,aYu,OnlyDiagonal)
     Call Adjungate(YuMqaYdYdaYu, YuaYdYdMqaYu)
     YuaYdMdYdaYu = MatMul3(Yu,aYdMdYd,aYu,OnlyDiagonal)
 
-    MeYeaYeYeaYe = MatMul2(MeYeaYe,YeaYe,OnlyDiagonal)
+    MeYeaYeYeaYe = Matmul(MeYeaYe,YeaYe)
     Call Adjungate(MeYeaYeYeaYe,YeaYeYeaYeMe)
-    aYeMeYeaYeYe = MatMul2(aYeMeYe,aYeYe,OnlyDiagonal)
+    aYeMeYeaYeYe = Matmul(aYeMeYe,aYeYe)
     Call Adjungate(aYeMeYeaYeYe,aYeYeaYeMeYe)
-    YeaYeMeYeaYe = MatMul2(YeaYeMe,YeaYe,OnlyDiagonal)
+    YeaYeMeYeaYe = Matmul(YeaYeMe,YeaYe)
 
-    MlaYeYeaYeYe = MatMul2(MlaYeYe,aYeYe,OnlyDiagonal)
+    MlaYeYeaYeYe = Matmul(MlaYeYe,aYeYe)
     Call Adjungate(MlaYeYeaYeYe, aYeYeaYeYeMl)
-    YeMlaYeYeaYe = MatMul2(YeMlaYe,YeaYe,OnlyDiagonal)
+    YeMlaYeYeaYe = Matmul(YeMlaYe,YeaYe)
     Call Adjungate(YeMlaYeYeaYe, YeaYeYeMlaYe)
-    aYeYeMlaYeYe = MatMul2(aYeYeMl,aYeYe,OnlyDiagonal)
+    aYeYeMlaYeYe = Matmul(aYeYeMl,aYeYe)
 
-    MdYdaYdYdaYd = MatMul2(MdYdaYd,YdaYd,OnlyDiagonal)
+    MdYdaYdYdaYd = Matmul(MdYdaYd,YdaYd)
     Call Adjungate(MdYdaYdYdaYd, YdaYdYdaYdMd)
-    aYdMdYdaYdYd = MatMul2(aYdMdYd,aYdYd,OnlyDiagonal)
+    aYdMdYdaYdYd = Matmul(aYdMdYd,aYdYd)
     Call Adjungate(aYdMdYdaYdYd, aYdYdaYdMdYd)
-    YdaYdMdYdaYd = MatMul2(YdaYdMd,YdaYd,OnlyDiagonal)
+    YdaYdMdYdaYd = Matmul(YdaYdMd,YdaYd)
 
-    MqaYdYdaYdYd = MatMul2(MqaYdYd,aYdYd,OnlyDiagonal)
+    MqaYdYdaYdYd = Matmul(MqaYdYd,aYdYd)
     Call Adjungate(MqaYdYdaYdYd, aYdYdaYdYdMq)
-    YdMqaYdYdaYd = MatMul2(YdMqaYd,YdaYd,OnlyDiagonal)
+    YdMqaYdYdaYd = Matmul(YdMqaYd,YdaYd)
     Call Adjungate(YdMqaYdYdaYd, YdaYdYdMqaYd)
-    aYdYdMqaYdYd = MatMul2(aYdYdMq,aYdYd,OnlyDiagonal)
+    aYdYdMqaYdYd = Matmul(aYdYdMq,aYdYd)
 
-    MqaYuYuaYuYu = MatMul2(MqaYuYu,aYuYu,OnlyDiagonal)
+    MqaYuYuaYuYu = Matmul(MqaYuYu,aYuYu)
     Call Adjungate(MqaYuYuaYuYu, aYuYuaYuYuMq)
-    YuMqaYuYuaYu = MatMul2(YuMqaYu,YuaYu,OnlyDiagonal)
+    YuMqaYuYuaYu = Matmul(YuMqaYu,YuaYu)
     Call Adjungate(YuMqaYuYuaYu, YuaYuYuMqaYu)
-    aYuYuMqaYuYu = MatMul2(aYuYuMq,aYuYu,OnlyDiagonal)
+    aYuYuMqaYuYu = Matmul(aYuYuMq,aYuYu)
 
-    MuYuaYuYuaYu = MatMul2(MuYuaYu,YuaYu,OnlyDiagonal)
+    MuYuaYuYuaYu = Matmul(MuYuaYu,YuaYu)
     Call Adjungate(MuYuaYuYuaYu, YuaYuYuaYuMu)
-    aYuMuYuaYuYu = MatMul2(aYuMuYu,aYuYu,OnlyDiagonal)
+    aYuMuYuaYuYu = Matmul(aYuMuYu,aYuYu)
     Call Adjungate(aYuMuYuaYuYu, aYuYuaYuMuYu)
-    YuaYuMuYuaYu = MatMul2(YuaYuMu,YuaYu,OnlyDiagonal)
+    YuaYuMuYuaYu = Matmul(YuaYuMu,YuaYu)
 
-    AdaAdYdaYd = MatMul2(AdaAd,YdaYd,OnlyDiagonal)
+    AdaAdYdaYd = Matmul(AdaAd,YdaYd)
     Call Adjungate(AdaAdYdaYd, YdaYdAdaAd)
-    AdaYdYdaAd = MatMul2(AdaYd,YdaAd,OnlyDiagonal)
-    YdaAdAdaYd = MatMul2(YdaAd,AdaYd,OnlyDiagonal)
+    AdaYdYdaAd = Matmul(AdaYd,YdaAd)
+    YdaAdAdaYd = Matmul(YdaAd,AdaYd)
 
-    aAdAdaYdYd = MatMul2(aAdAd,aYdYd,OnlyDiagonal)
+    aAdAdaYdYd = Matmul(aAdAd,aYdYd)
     Call Adjungate(aAdAdaYdYd, aYdYdaAdAd)
-    aAdYdaYdAd = MatMul2(aAdYd,aYdAd,OnlyDiagonal)
-    aYdAdaAdYd = MatMul2(aYdAd,aAdYd,OnlyDiagonal)
+    aAdYdaYdAd = Matmul(aAdYd,aYdAd)
+    aYdAdaAdYd = Matmul(aYdAd,aAdYd)
 
-    AeaAeYeaYe = MatMul2(AeaAe,YeaYe,OnlyDiagonal)
+    AeaAeYeaYe = Matmul(AeaAe,YeaYe)
     Call Adjungate(AeaAeYeaYe, YeaYeAeaAe)
-    AeaYeYeaAe = MatMul2(AeaYe,YeaAe,OnlyDiagonal)
-    YeaAeAeaYe = MatMul2(YeaAe,AeaYe,OnlyDiagonal)
+    AeaYeYeaAe = Matmul(AeaYe,YeaAe)
+    YeaAeAeaYe = Matmul(YeaAe,AeaYe)
 
-    aAeAeaYeYe = MatMul2(aAeAe,aYeYe,OnlyDiagonal)
+    aAeAeaYeYe = Matmul(aAeAe,aYeYe)
     Call Adjungate(aAeAeaYeYe, aYeYeaAeAe)
-    aAeYeaYeAe = MatMul2(aAeYe,aYeAe,OnlyDiagonal)
-    aYeAeaAeYe = MatMul2(aYeAe,aAeYe,OnlyDiagonal)
+    aAeYeaYeAe = Matmul(aAeYe,aYeAe)
+    aYeAeaAeYe = Matmul(aYeAe,aAeYe)
 
-    AuaAuYuaYu = MatMul2(AuaAu,YuaYu,OnlyDiagonal)
+    AuaAuYuaYu = Matmul(AuaAu,YuaYu)
     Call Adjungate(AuaAuYuaYu, YuaYuAuaAu)
-    AuaYuYuaAu = MatMul2(AuaYu,YuaAu,OnlyDiagonal)
-    YuaAuAuaYu = MatMul2(YuaAu,AuaYu,OnlyDiagonal)
+    AuaYuYuaAu = Matmul(AuaYu,YuaAu)
+    YuaAuAuaYu = Matmul(YuaAu,AuaYu)
 
-    aAuAuaYuYu = MatMul2(aAuAu,aYuYu,OnlyDiagonal)
+    aAuAuaYuYu = Matmul(aAuAu,aYuYu)
     Call Adjungate(aAuAuaYuYu, aYuYuaAuAu)
-    aAuYuaYuAu = MatMul2(aAuYu,aYuAu,OnlyDiagonal)
-    aYuAuaAuYu = MatMul2(aYuAu,aAuYu,OnlyDiagonal)
+    aAuYuaYuAu = Matmul(aAuYu,aYuAu)
+    aYuAuaAuYu = Matmul(aYuAu,aAuYu)
 
     S2 = (1.5_dp * gauge2(2) + 0.3_dp * gauge2(1) )            &
      &      * (MH(2) - MH(1) - Real(cTrace(ML),dp) )              &
@@ -8558,11 +10347,9 @@ Contains
       &         + 4.14_dp * gauge2(1)**2
     betaMue2 = mue * TraceMue(2)
 
-    TraceB(1) = cTrace( 3._dp * ( Matmul2(AuaYu,YuaYu,OnlyDiagonal)     &
-              &                 + Matmul2(AdaYd,YdaYd,OnlyDiagonal) )   &
-              &       + MatMul2(AeaYe,YeaYe,OnlyDiagonal)               &
-              &       + Matmul2(aYuAu,aYdYd,OnlyDiagonal)               &
-              &       + MatMul2(aYdAd,aYuYu,OnlyDiagonal) ) 
+    TraceB(1) = cTrace( 3._dp * ( Matmul(AuaYu,YuaYu) + Matmul(AdaYd,YdaYd) ) &
+              &       + Matmul(AeaYe,YeaYe) + Matmul(aYuAu,aYdYd)             &
+              &       + Matmul(aYdAd,aYuYu) ) 
     TraceB(2) = -12._dp * TraceB(1)                                           &
       &   + (32._dp * gauge2(3) + 1.6_dp * gauge2(1) ) * TraceaYA(4)          &
       &   + (32._dp * gauge2(3) - 0.8_dp * gauge2(1) ) * TraceaYA(3)          &
@@ -8581,7 +10368,7 @@ Contains
   !--------------------------------
   ! neutrino dim. 5 operator
   !--------------------------------
-  diagonal(5,1) = 6._dp * TraceY(4) - 2._dp * gauge2(1) - 6._dp * gauge2(2)
+  diagonal(5,1) = 6._dp * TraceY(4) - 1.2_dp * gauge2(1) - 6._dp * gauge2(2)
   betaMnu1 = Matmul( Transpose(aYeYe), Mnu) + Matmul(Mnu, aYeYe)  &
           & + diagonal(5,1) * Mnu
   
@@ -8596,15 +10383,15 @@ Contains
  !----------------------
  ! gauge couplings
  !----------------------
-   If (MaxVal(Delta_b_2).eq.0._dp) then
+   If (Maxval(Delta_b_2).Eq.0._dp) Then
     Dgauge = oo16pi2 * gauge * gauge2  &
          & * ( b_1a + oo16pi2 * ( Matmul(b_2a,gauge2) - a_2(:,1) * TraceY(1) &
          &                      - Matmul(a_2(:,2:3),TraceY(3:4))  ))
-   else
+   Else
     Dgauge = oo16pi2 * gauge * gauge2  &
          & * ( b_1a + oo16pi2 * (Matmul(b_2a,gauge2) - Matmul(a_2b(:,1:6),TraceY) )  &
          &                      - a_2b(:,7)*lam12 - a_2b(:,8)*lam22 ) 
-   End if
+   End If
  !--------------------
  ! Yukawa couplings
  !--------------------
@@ -8840,12 +10627,12 @@ Contains
   Call Adjungate(Y_n,aY_n)
   Call Adjungate(Y_u,aY_u)
 
-  aYdYd = Matmul2(aY_d, Y_d,OnlyDiagonal)
-  aYnYn = Matmul2(aY_n, Y_n,OnlyDiagonal)
-  aYuYu = Matmul2(aY_u, Y_u,OnlyDiagonal)
-  YdaYd = Matmul2(Y_d, aY_d,OnlyDiagonal)
-  YnaYn = Matmul2(Y_n, aY_n,OnlyDiagonal)
-  YuaYu = Matmul2(Y_u, aY_u,OnlyDiagonal)
+  aYdYd = Matmul(aY_d, Y_d)
+  aYnYn = Matmul(aY_n, Y_n)
+  aYuYu = Matmul(aY_u, Y_u)
+  YdaYd = Matmul(Y_d, aY_d)
+  YnaYn = Matmul(Y_n, aY_n)
+  YuaYu = Matmul(Y_u, aY_u)
   !------------------------------------------------
   ! these are hermitian matrices, clean up to
   ! avoid numerical problems
@@ -8878,12 +10665,12 @@ Contains
 
   Dg5 = oo16pi2 * b5 * g5 * g52
  
-  DYu1 = Y_u * GammaH + Matmul2(GammaT,Y_u,OnlyDiagonal) &
-       & + MatMul2(Y_u,Transpose(GammaT),OnlyDiagonal)
-  DYd1 = Y_d * GammaHbar + Matmul2(GammaT,Y_d,OnlyDiagonal) &
-       & + MatMul2(Y_d,GammaF,OnlyDiagonal)
-  DYn1 = Y_n * GammaH + Matmul2(GammaT,Y_n,OnlyDiagonal) &
-       & + MatMul2(Y_n,GammaN,OnlyDiagonal)
+  DYu1 = Y_u * GammaH + Matmul(GammaT,Y_u) &
+       & + Matmul(Y_u,Transpose(GammaT))
+  DYd1 = Y_d * GammaHbar + Matmul(GammaT,Y_d) &
+       & + Matmul(Y_d,GammaF)
+  DYn1 = Y_n * GammaH + Matmul(GammaT,Y_n) &
+       & + Matmul(Y_n,GammaN)
 
   DYn1 = oo16pi2 * DYn1 
   DYd1 = oo16pi2 * DYd1 
@@ -8959,11 +10746,11 @@ Contains
   ! beta functions
   !-----------------
 
-  aYdAd = Matmul2(aY_d, A_d,OnlyDiagonal)
-  aYnAn = Matmul2(aY_n, A_n,OnlyDiagonal)
-  aYuAu = Matmul2(aY_u, A_u,OnlyDiagonal)
-  AdaYd = Matmul2(A_d, aY_d,OnlyDiagonal)
-  AuaYu = Matmul2(A_u, aY_u,OnlyDiagonal)
+  aYdAd = Matmul(aY_d, A_d)
+  aYnAn = Matmul(aY_n, A_n)
+  aYuAu = Matmul(aY_u, A_u)
+  AdaYd = Matmul(A_d, aY_d)
+  AuaYu = Matmul(A_u, aY_u)
 
   TraceAY(1) = cTrace(aYnAn)
   TraceAY(2) = cTrace(aYdAd)
@@ -8984,18 +10771,18 @@ Contains
 
   DM5 = oo8pi2 * b5 * gM5
  
-  DAu1 = A_u * GammaH + Matmul2(GammaT,A_u,OnlyDiagonal)               &
-       & + MatMul2(A_u,Transpose(GammaT),OnlyDiagonal)                 &
-       & - 2._dp * ( Y_u * GammaAH + Matmul2(GammaAT,Y_u,OnlyDiagonal) &
-       &           + MatMul2(Y_u,Transpose(GammaAT),OnlyDiagonal) ) 
-  DAd1 = A_d * GammaHbar + Matmul2(GammaT,A_d,OnlyDiagonal)               &
-       & + MatMul2(A_d,GammaF,OnlyDiagonal)                               &
-       & - 2._dp * ( Y_d * GammaAHbar + Matmul2(GammaAT,Y_d,OnlyDiagonal) &
-       &           + MatMul2(Y_d,GammaAF,OnlyDiagonal) )
-  DAn1 = A_n * GammaH + Matmul2(GammaT,A_n,OnlyDiagonal)              &
-       & + MatMul2(A_n,GammaN,OnlyDiagonal)                           &
-       & - 2._dp * (Y_n * GammaAH + Matmul2(GammaAT,Y_n,OnlyDiagonal) &
-       &           + MatMul2(Y_n,GammaAN,OnlyDiagonal) )
+  DAu1 = A_u * GammaH + Matmul(GammaT,A_u)               &
+       & + Matmul(A_u,Transpose(GammaT))                 &
+       & - 2._dp * ( Y_u * GammaAH + Matmul(GammaAT,Y_u) &
+       &           + Matmul(Y_u,Transpose(GammaAT)) ) 
+  DAd1 = A_d * GammaHbar + Matmul(GammaT,A_d)               &
+       & + Matmul(A_d,GammaF)                               &
+       & - 2._dp * ( Y_d * GammaAHbar + Matmul(GammaAT,Y_d) &
+       &           + Matmul(Y_d,GammaAF) )
+  DAn1 = A_n * GammaH + Matmul(GammaT,A_n)              &
+       & + Matmul(A_n,GammaN)                           &
+       & - 2._dp * (Y_n * GammaAH + Matmul(GammaAT,Y_n) &
+       &           + Matmul(Y_n,GammaAN) )
 
   DAn1 = oo16pi2 * DAn1 
   DAd1 = oo16pi2 * DAd1 
@@ -9044,12 +10831,12 @@ Contains
   Call Adjungate(A_n,aA_n)
   Call Adjungate(A_u,aA_u)
 
-  aAdAd = Matmul2(aA_d, A_d,OnlyDiagonal)
-  aAnAn = Matmul2(aA_n, A_n,OnlyDiagonal)
-  aAuAu = Matmul2(aA_u, A_u,OnlyDiagonal)
-  AdaAd = Matmul2(A_d, aA_d,OnlyDiagonal)
-  AnaAn = Matmul2(A_n, aA_n,OnlyDiagonal)
-  AuaAu = Matmul2(A_u, aA_u,OnlyDiagonal)
+  aAdAd = Matmul(aA_d, A_d)
+  aAnAn = Matmul(aA_n, A_n)
+  aAuAu = Matmul(aA_u, A_u)
+  AdaAd = Matmul(A_d, aA_d)
+  AnaAn = Matmul(A_n, aA_n)
+  AuaAu = Matmul(A_u, aA_u)
   
   !------------------------------------------------
   ! these are hermitian matrices, clean up to
@@ -9071,23 +10858,23 @@ Contains
   TraceA(2) = Real( cTrace(aAdAd),dp )
   TraceA(3) = Real( cTrace(aAuAu),dp )
 
-  MT2YuaYu = MatMul2( MT2, YuaYu, OnlyDiagonal )
-  YuaYuMT2 = MatMul2( YuaYu, MT2, OnlyDiagonal )
+  MT2YuaYu = Matmul( MT2, YuaYu )
+  YuaYuMT2 = Matmul( YuaYu, MT2 )
   YuMT2aYu = MatMul3( Y_u, MT2, aY_u, OnlyDiagonal )
-  MT2YdaYd = MatMul2( MT2, YdaYd, OnlyDiagonal )
-  YdaYdMT2 = MatMul2( YdaYd, MT2, OnlyDiagonal )
+  MT2YdaYd = Matmul( MT2, YdaYd )
+  YdaYdMT2 = Matmul( YdaYd, MT2 )
   aYdMT2Yd = MatMul3( aY_d, MT2, Y_d, OnlyDiagonal )
 
   YdMF2aYd = MatMul3( Y_d, MF2, aY_d, OnlyDiagonal )
-  MF2aYdYd = MatMul2( MF2, aYdYd, OnlyDiagonal )
-  aYdYdMF2 = MatMul2( aYdYd, MF2, OnlyDiagonal )
-  MF2aYnYn = MatMul2( MF2, aYnYn, OnlyDiagonal )
-  aYnYnMF2 = MatMul2( aYnYn, MF2, OnlyDiagonal )
+  MF2aYdYd = Matmul( MF2, aYdYd )
+  aYdYdMF2 = Matmul( aYdYd, MF2 )
+  MF2aYnYn = Matmul( MF2, aYnYn )
+  aYnYnMF2 = Matmul( aYnYn, MF2 )
   YnMF2aYn = MatMul3( Y_n, MF2, aY_n, OnlyDiagonal )
   aYnMF2Yn = MatMul3( aY_n, MF2, Y_n, OnlyDiagonal )
 
-  aYnYnMN2 = MatMul2( aYnYn, MN2, OnlyDiagonal )
-  MN2aYnYn = MatMul2( MN2, aYnYn, OnlyDiagonal )
+  aYnYnMN2 = Matmul( aYnYn, MN2 )
+  MN2aYnYn = Matmul( MN2, aYnYn )
   aYnMN2Yn = MatMul3( aY_n, MN2, Y_n, OnlyDiagonal )
 
   DMT2 = 4._dp * AdaAd + 6._dp * AuaAu                      &
@@ -9223,5292 +11010,6 @@ Contains
   Iname = Iname - 1 
  
  End Subroutine ParametersToG111
-
-
- Subroutine GToParameters353(g,g1,g2,g3,Yu,Yd,Ye,Yt,Ys,Yz,L1,L2,MTM,mue,      &
-  & MZM,MSM,AYu,AYd,AYe,AYt,AYs,AYz,AL1,AL2,Amue,AMTM,AMZM,AMSM,mq2,ml2,mHd2, &
-  & mHu2,md2,mu2,me2,mt2,mtb2,ms2,msb2,mz2,mzb2,MassB,MassWB,MassG)
-
- Implicit None 
-  Real(dp), Intent(in) :: g(353) 
-  Real(dp),Intent(out) :: g1,g2,g3,mHd2,mHu2
-
-  Complex(dp),Intent(out) :: Yu(3,3),Yd(3,3),Ye(3,3),Yt(3,3),Ys(3,3),Yz(3,3)       &
-    & ,L1,L2,MTM,mue,MZM,MSM,AYu(3,3),AYd(3,3),AYe(3,3),AYt(3,3),AYs(3,3),AYz(3,3) &
-    & ,AL1,AL2,Amue,AMTM,AMZM,AMSM,mq2(3,3),ml2(3,3),md2(3,3),mu2(3,3),me2(3,3)    &
-    & ,mt2,mtb2,ms2,msb2,mz2,mzb2,MassB,MassWB,MassG
-
-  Integer i1, i2, SumI
- 
-  Iname = Iname +1 
-  NameOfUnit(Iname) = 'GToParameters353' 
- 
-  g1= g(1) 
-  g2= g(2) 
-  g3= g(3) 
-  Do i1 = 1,3
-   Do i2 = 1,3
-    SumI = 2 * ( (i2-1) + (i1-1)*3)
-    Yu(i1,i2) = Cmplx( g(SumI+4), g(SumI+5), dp) 
-    Yd(i1,i2) = Cmplx( g(SumI+22), g(SumI+23), dp) 
-    Ye(i1,i2) = Cmplx( g(SumI+40), g(SumI+41), dp) 
-    Yt(i1,i2) = Cmplx( g(SumI+58), g(SumI+59), dp) 
-    Ys(i1,i2) = Cmplx( g(SumI+76), g(SumI+77), dp) 
-    Yz(i1,i2) = Cmplx( g(SumI+94), g(SumI+95), dp) 
-    AYu(i1,i2) = Cmplx( g(SumI+124), g(SumI+125), dp) 
-    AYd(i1,i2) = Cmplx( g(SumI+142), g(SumI+143), dp) 
-    AYe(i1,i2) = Cmplx( g(SumI+160), g(SumI+161), dp) 
-    AYt(i1,i2) = Cmplx( g(SumI+178), g(SumI+179), dp) 
-    AYs(i1,i2) = Cmplx( g(SumI+196), g(SumI+197), dp) 
-    AYz(i1,i2) = Cmplx( g(SumI+214), g(SumI+215), dp) 
-    mq2(i1,i2) = Cmplx( g(SumI+244), g(SumI+245), dp) 
-    ml2(i1,i2) = Cmplx( g(SumI+262), g(SumI+263), dp) 
-    md2(i1,i2) = Cmplx( g(SumI+282), g(SumI+283), dp) 
-    mu2(i1,i2) = Cmplx( g(SumI+300), g(SumI+301), dp) 
-    me2(i1,i2) = Cmplx( g(SumI+318), g(SumI+319), dp) 
-   End Do
-  End Do
- 
-  L1= Cmplx(g(112),g(113),dp) 
-  L2= Cmplx(g(114),g(115),dp) 
-  MTM= Cmplx(g(116),g(117),dp) 
-  mue= Cmplx(g(118),g(119),dp) 
-  MZM= Cmplx(g(120),g(121),dp) 
-  MSM= Cmplx(g(122),g(123),dp) 
-  AL1= Cmplx(g(232),g(233),dp) 
-  AL2= Cmplx(g(234),g(235),dp) 
-  Amue= Cmplx(g(236),g(237),dp) 
-  AMTM= Cmplx(g(238),g(239),dp) 
-  AMZM= Cmplx(g(240),g(241),dp) 
-  AMSM= Cmplx(g(242),g(243),dp) 
-  mHd2= g(280) 
-  mHu2= g(281)  
-  mt2= Cmplx(g(336),g(337),dp) 
-  mtb2= Cmplx(g(338),g(339),dp) 
-  ms2= Cmplx(g(340),g(341),dp) 
-  msb2= Cmplx(g(342),g(343),dp) 
-  mz2= Cmplx(g(344),g(345),dp) 
-  mzb2= Cmplx(g(346),g(347),dp) 
-  MassB= Cmplx(g(348),g(349),dp) 
-  MassWB= Cmplx(g(350),g(351),dp) 
-  MassG= Cmplx(g(352),g(353),dp) 
-
-  Iname = Iname - 1 
- 
- End Subroutine GToParameters353
-
-
- Subroutine ParametersToG353(g1,g2,g3,Yu,Yd,Ye,Yt,Ys,Yz,L1,L2,MTM,mue,MZM,     & 
-  & MSM,AYu,AYd,AYe,AYt,AYs,AYz,AL1,AL2,Amue,AMTM,AMZM,AMSM,mq2,ml2,mHd2,mHu2, &
-  & md2,mu2,me2,mt2,mtb2,ms2,msb2,mz2,mzb2,MassB,MassWB,MassG,g)
-
- Implicit None 
-  Real(dp), Intent(out) :: g(353) 
-  Real(dp), Intent(in) :: g1,g2,g3,mHd2,mHu2
-
-  Complex(dp), Intent(in) :: Yu(3,3),Yd(3,3),Ye(3,3),Yt(3,3),Ys(3,3),Yz(3,3)       & 
-    & ,L1,L2,MTM,mue,MZM,MSM,AYu(3,3),AYd(3,3),AYe(3,3),AYt(3,3),AYs(3,3),AYz(3,3) &
-    & ,AL1,AL2,Amue,AMTM,AMZM,AMSM,mq2(3,3),ml2(3,3),md2(3,3),mu2(3,3),me2(3,3)    &
-    & ,mt2,mtb2,ms2,msb2,mz2,mzb2,MassB,MassWB,MassG
-
-  Integer i1, i2, SumI 
- 
-  Iname = Iname +1 
-  NameOfUnit(Iname) = 'ParametersToG353' 
- 
-  g(1) = g1  
-  g(2) = g2  
-  g(3) = g3  
-  Do i1 = 1,3
-   Do i2 = 1,3
-    SumI = 2 * ( (i2-1) + (i1-1)*3 )
-    g(SumI+4) = Real(Yu(i1,i2), dp) 
-    g(SumI+5) = Aimag(Yu(i1,i2)) 
-    g(SumI+22) = Real(Yd(i1,i2), dp) 
-    g(SumI+23) = Aimag(Yd(i1,i2)) 
-    g(SumI+40) = Real(Ye(i1,i2), dp) 
-    g(SumI+41) = Aimag(Ye(i1,i2)) 
-    g(SumI+58) = Real(Yt(i1,i2), dp) 
-    g(SumI+59) = Aimag(Yt(i1,i2)) 
-    g(SumI+76) = Real(Ys(i1,i2), dp) 
-    g(SumI+77) = Aimag(Ys(i1,i2)) 
-    g(SumI+94) = Real(Yz(i1,i2), dp) 
-    g(SumI+95) = Aimag(Yz(i1,i2)) 
-    g(SumI+124) = Real(AYu(i1,i2), dp) 
-    g(SumI+125) = Aimag(AYu(i1,i2)) 
-    g(SumI+142) = Real(AYd(i1,i2), dp) 
-    g(SumI+143) = Aimag(AYd(i1,i2)) 
-    g(SumI+160) = Real(AYe(i1,i2), dp) 
-    g(SumI+161) = Aimag(AYe(i1,i2)) 
-    g(SumI+178) = Real(AYt(i1,i2), dp) 
-    g(SumI+179) = Aimag(AYt(i1,i2)) 
-    g(SumI+196) = Real(AYs(i1,i2), dp) 
-    g(SumI+197) = Aimag(AYs(i1,i2)) 
-    g(SumI+214) = Real(AYz(i1,i2), dp) 
-    g(SumI+215) = Aimag(AYz(i1,i2)) 
-    g(SumI+244) = Real(mq2(i1,i2), dp) 
-    g(SumI+245) = Aimag(mq2(i1,i2)) 
-    g(SumI+262) = Real(ml2(i1,i2), dp) 
-    g(SumI+263) = Aimag(ml2(i1,i2)) 
-    g(SumI+282) = Real(md2(i1,i2), dp) 
-    g(SumI+283) = Aimag(md2(i1,i2)) 
-    g(SumI+300) = Real(mu2(i1,i2), dp) 
-    g(SumI+301) = Aimag(mu2(i1,i2)) 
-    g(SumI+318) = Real(me2(i1,i2), dp) 
-    g(SumI+319) = Aimag(me2(i1,i2)) 
-   End Do
-  End Do
-
-  g(112) = Real(L1,dp)  
-  g(113) = Aimag(L1)  
-  g(114) = Real(L2,dp)  
-  g(115) = Aimag(L2)  
-  g(116) = Real(MTM,dp)  
-  g(117) = Aimag(MTM)  
-  g(118) = Real(mue,dp)  
-  g(119) = Aimag(mue)  
-  g(120) = Real(MZM,dp)  
-  g(121) = Aimag(MZM)  
-  g(122) = Real(MSM,dp)  
-  g(123) = Aimag(MSM)
-  g(232) = Real(AL1,dp)  
-  g(233) = Aimag(AL1)  
-  g(234) = Real(AL2,dp)  
-  g(235) = Aimag(AL2)  
-  g(236) = Real(Amue,dp)  
-  g(237) = Aimag(Amue)  
-  g(238) = Real(AMTM,dp)  
-  g(239) = Aimag(AMTM)  
-  g(240) = Real(AMZM,dp)  
-  g(241) = Aimag(AMZM)  
-  g(242) = Real(AMSM,dp)  
-  g(243) = Aimag(AMSM)  
-  g(280) = mHd2
-  g(281) = mHu2
-  g(336) = Real(mt2,dp)  
-  g(337) = Aimag(mt2)  
-  g(338) = Real(mtb2,dp)  
-  g(339) = Aimag(mtb2)  
-  g(340) = Real(ms2,dp)  
-  g(341) = Aimag(ms2)  
-  g(342) = Real(msb2,dp)  
-  g(343) = Aimag(msb2)  
-  g(344) = Real(mz2,dp)  
-  g(345) = Aimag(mz2)  
-  g(346) = Real(mzb2,dp)  
-  g(347) = Aimag(mzb2)  
-  g(348) = Real(MassB,dp)  
-  g(349) = Aimag(MassB)  
-  g(350) = Real(MassWB,dp)  
-  g(351) = Aimag(MassWB)  
-  g(352) = Real(MassG,dp)  
-  g(353) = Aimag(MassG)  
-  Iname = Iname - 1 
- 
- End Subroutine ParametersToG353
-
-
- Subroutine rge117(len, T, GY, F)
- Implicit None
-  Integer, Intent(in) :: len
-  Real(dp), Intent(in) :: T, GY(len)
-  Real(dp), Intent(out) :: F(len)
-
-  Real(dp) :: q
-  Real(dp) :: g1,betag11,betag12,Dg1,g2,betag21,betag22,Dg2,g3,betag31,betag32,Dg3
-  Complex(dp) :: Yu(3,3),betaYu1(3,3),betaYu2(3,3),DYu(3,3),adjYu(3,3),Yd(3,3)          &
-  & ,betaYd1(3,3),betaYd2(3,3),DYd(3,3),adjYd(3,3),Ye(3,3),betaYe1(3,3),betaYe2(3,3)       &
-  & ,DYe(3,3),adjYe(3,3),Yt(3,3),betaYt1(3,3),betaYt2(3,3),DYt(3,3),adjYt(3,3)             &
-  & ,Ys(3,3),betaYs1(3,3),betaYs2(3,3),DYs(3,3),adjYs(3,3),Yz(3,3),betaYz1(3,3)            &
-  & ,betaYz2(3,3),DYz(3,3),adjYz(3,3),L1,betaL11,betaL12,DL1,L2,betaL21,betaL22,           &
-  & DL2,MTM,betaMTM1,betaMTM2,DMTM
-  Complex(dp) :: YdadjYd(3,3),YeadjYe(3,3),YsCYs(3,3),YtCYt(3,3),YuadjYu(3,3)           &
-  & ,YzadjYz(3,3),adjYdYd(3,3),adjYdYs(3,3),adjYdYz(3,3),adjYeYe(3,3),adjYuYu(3,3)         &
-  & ,adjYzYd(3,3),adjYzYs(3,3),adjYzYz(3,3),CYdTYd(3,3),CYeYt(3,3),CYsYd(3,3)              &
-  & ,CYsYs(3,3),CYsYz(3,3),CYtYt(3,3),CYzYt(3,3),CYzTYz(3,3),YdadjYdYd(3,3),               &
-  & YdadjYdYs(3,3),YdadjYdYz(3,3),YdadjYuYu(3,3),YeadjYeYe(3,3),YeadjYzYz(3,3)             &
-  & ,YeCYtYt(3,3),YsCYdTYd(3,3),YsCYsYd(3,3),YsCYsYs(3,3),YsCYsYz(3,3),YsCYzTYz(3,3)       &
-  & ,YtadjYeYe(3,3),YtadjYzYz(3,3),YtCYtYt(3,3),YuadjYdYd(3,3),YuadjYuYu(3,3)              &
-  & ,YzadjYeYe(3,3),YzadjYzYd(3,3),YzadjYzYs(3,3),YzadjYzYz(3,3),YzCYtYt(3,3)              &
-  & ,TYeCYeYt(3,3),TYzCYzYt(3,3)
-
-  Complex(dp), Dimension(3,3) :: YdadjYu, YeadjYz, YeCYt, YtadjYe, YtadjYz     &
-    & , YuadjYd, YzadjYe, YzCYt, CYeTYz, CYtTYz, CYuTYd, YeadjYzYd, YeadjYzYs  &
-    & , YsCYzYt, YtadjYzYd, YtadjYzYs, YtCYtTYz, YuadjYdYs, YuadjYdYz          &
-    & , adjYdYdadjYd, adjYdYdadjYu, adjYdYsCYs, adjYdYzadjYz, adjYeYeadjYe     &
-    & , adjYeYeadjYz, adjYeYeCYt, adjYuYuadjYd, adjYuYuadjYu, adjYzYdadjYd     &
-    & , adjYzYsCYs, adjYzYzadjYe, adjYzYzadjYz, adjYzYzCYt, CYsYdadjYd         &
-    & , CYsYsCYs, CYsYzadjYz, CYtYtadjYe, CYtYtadjYz, CYtYtCYt, TYdCYdTYd      &
-    & , TYdCYsYd, TYdCYsYs, TYdCYsYz, TYdCYzYt, TYeCYeTYz, TYuCYuTYd,TYzCYsYd  &
-    & , TYzCYsYs, TYzCYsYz, TYzCYzTYz, YdadjYdYdadjYd, YdadjYdYsCYs            &
-    & , YdadjYdYzadjYz, YdadjYuYuadjYd, YeadjYeYeadjYe, YeadjYzYzadjYe         &
-    & , YeCYtYtadjYe, YsCYsYdadjYd, YsCYsYsCYs               &
-  & , YsCYsYzadjYz, YtadjYzYzCYt, YtCYtYtCYt, YuadjYdYdadjYu&
-  & , YuadjYuYuadjYu, YzadjYeYeadjYz, YzadjYzYdadjYd         &
-  & , YzadjYzYzadjYz, adjYdYdadjYdYd, adjYdYdadjYdYs         &
-  & , adjYdYdadjYdYz, adjYdYdadjYuYu, adjYdYsCYsYd, adjYdYzadjYzYd         &
-  & , adjYeYeadjYeYe, adjYeYeadjYzYd, adjYeYeadjYzYs, adjYeYeadjYzYz       &
-  & , adjYeYeCYtYt, adjYuYuadjYdYd, adjYuYuadjYdYs, adjYuYuadjYdYz         &
-  & , adjYuYuadjYuYu, adjYzYdadjYdYz, adjYzYsCYsYz, adjYzYzadjYeYe         &
-  & , adjYzYzadjYzYd, adjYzYzadjYzYs, adjYzYzadjYzYz, adjYzYzCYtYt         &
-  & , CYdTYdCYdTYd, CYdTYdCYsYd, CYdTYdCYsYs, CYdTYdCYsYz, CYdTYdCYzYt &
-  & , CYdTYuCYuTYd, CYeTYeCYeYt, CYsYdadjYdYs, CYsYsCYsYd, CYsYsCYsYs  &
-  & , CYsYsCYsYz, CYsYsCYzYt, CYsYzadjYzYs, CYtYtadjYeYe, CYtYtadjYzYd &
-  & , CYtYtadjYzYs, CYtYtadjYzYz, CYtYtCYtYt, CYtTYeCYeYt, CYtTYzCYzYt &
-  & , CYzYtCYtTYz, CYzTYeCYeTYz, CYzTYzCYsYd, CYzTYzCYsYs, CYzTYzCYsYz &
-  & , CYzTYzCYzYt, CYzTYzCYzTYz, YdadjYdYdadjYdYd, YdadjYdYdadjYdYs        &
-  & , YdadjYdYdadjYdYz, YdadjYdYsCYsYd, YdadjYdYzadjYzYd, YdadjYuYuadjYdYd &
-  & , YdadjYuYuadjYdYs, YdadjYuYuadjYdYz, YdadjYuYuadjYuYu, YeadjYeYeadjYeYe&
-  & , YeadjYzYdadjYdYz, YeadjYzYsCYsYz, YeadjYzYzadjYeYe, YeadjYzYzadjYzYz &
-  & , YeCYtYtadjYeYe, YeCYtYtCYtYt, YeCYtTYeCYeYt, YeCYtTYzCYzYt           &
-  & , YsCYdTYdCYdTYd, YsCYdTYdCYsYd, YsCYdTYdCYsYs, YsCYdTYdCYsYz          &
-  & , YsCYdTYuCYuTYd, YsCYsYdadjYdYs, YsCYsYsCYsYd, YsCYsYsCYsYs           &
-  & , YsCYsYsCYsYz, YsCYsYzadjYzYs, YsCYzYtCYtTYz, YsCYzTYeCYeTYz          &
-  & , YsCYzTYzCYsYd, YsCYzTYzCYsYs, YsCYzTYzCYsYz, YsCYzTYzCYzTYz          &
-  & , YtadjYeYeadjYeYe, YtadjYeYeCYtYt, YtadjYzYdadjYdYz, YtadjYzYsCYsYz   &
-  & , YtadjYzYzadjYzYz, YtadjYzYzCYtYt, YtCYtYtCYtYt, YtCYtTYeCYeYt        &
-  & , YtCYtTYzCYzYt, YuadjYdYdadjYdYd, YuadjYdYdadjYuYu, YuadjYdYsCYsYd    &
-  & , YuadjYdYzadjYzYd, YuadjYuYuadjYuYu, YzadjYeYeadjYeYe, YzadjYeYeadjYzYd&
-  & , YzadjYeYeadjYzYs, YzadjYeYeadjYzYz, YzadjYzYdadjYdYz, YzadjYzYsCYsYz &
-  & , YzadjYzYzadjYzYd, YzadjYzYzadjYzYs, YzadjYzYzadjYzYz, YzCYtYtadjYzYd &
-  & , YzCYtYtadjYzYs, YzCYtYtadjYzYz, YzCYtYtCYtYt, YzCYtTYeCYeYt          &
-  & , YzCYtTYzCYzYt, TYeCYeTYeCYeYt, TYzCYdTYdCYzYt, TYzCYsYsCYzYt         &
-  & , TYzCYzTYzCYzYt
-
-  Real(dp) :: TrCYtYt, TrCYsYs, TrYdadjYd, TrYeadjYe, TrYsCYs, TrYtCYt     &
-   & , TrYuadjYu ,TrYzadjYz
-
-  Complex(dp) :: TrYdadjYdYdadjYd,TrYdadjYdYsCYs,TrYdadjYdYzadjYz,TrYdadjYuYuadjYd,     &
-  & TrYeadjYeYeadjYe,TrYeadjYzYzadjYe,TrYeCYtYtadjYe,TrYsCYsYdadjYd,          &
-  & TrYsCYsYzadjYz,TrYtadjYzYzCYt,TrYtCYtYtCYt,TrYuadjYdYdadjYu,            &
-  & TrYuadjYuYuadjYu,TrYzadjYeYeadjYz,TrYzadjYzYdadjYd,TrYzadjYzYzadjYz,    &
-  & TrYzCYtYtadjYz,TrCYsYdadjYdYs,TrCYsYsCYsYs,TrCYsYzadjYzYs,TrCYtYtadjYeYe,              &
-  & TrCYtYtadjYzYz,TrCYtYtCYtYt
-
-  Real(dp) :: g12, g13, g14, g22, g23, g24, g32, g33, g34, AbsL1sq, AbsL2sq
-
-  Iname = Iname +1
-  NameOfUnit(Iname) = 'rge117'
-
-  OnlyDiagonal = .Not.GenerationMixing
-
-  q = t
-
-  Call GToParameters117(gy,g1,g2,g3,Yu,Yd,Ye,Yt,Ys,Yz,L1,L2,MTM)
-
-  g12 = g1**2
-  g13 = g1*g12
-  g14 = g12*g12
-  g22 = g2**2
-  g23 = g2*g22
-  g24 = g22*g22
-  g32 = g3**2
-  g33 = g3*g32
-  g34 = g32*g32
-  AbsL1sq = Abs(L1)**2
-  AbsL2sq = Abs(L2)**2
-
-  Call Adjungate(Yu,adjYu)
-  Call Adjungate(Yd,adjYd)
-  Call Adjungate(Ye,adjYe)
-  adjYt = Conjg(Yt)
-  adjYs = Conjg(Ys)
-  Call Adjungate(Yz,adjYz)
-  YdadjYd = Matmul2(Yd,adjYd,OnlyDiagonal)
-  YeadjYe = Matmul2(Ye,adjYe,OnlyDiagonal)
-  YsCYs = Matmul2(Ys,adjYs,OnlyDiagonal)
-  YtCYt = Matmul2(Yt,adjYt,OnlyDiagonal)
-  YuadjYu = Matmul2(Yu,adjYu,OnlyDiagonal)
-  YzadjYz = Matmul2(Yz,adjYz,OnlyDiagonal)
-  adjYdYd = Matmul2(adjYd,Yd,OnlyDiagonal)
-  adjYdYs = Matmul2(adjYd,Ys,OnlyDiagonal)
-  adjYdYz = Matmul2(adjYd,Yz,OnlyDiagonal)
-  adjYeYe = Matmul2(adjYe,Ye,OnlyDiagonal)
-  adjYuYu = Matmul2(adjYu,Yu,OnlyDiagonal)
-  adjYzYd = Matmul2(adjYz,Yd,OnlyDiagonal)
-  adjYzYs = Matmul2(adjYz,Ys,OnlyDiagonal)
-  adjYzYz = Matmul2(adjYz,Yz,OnlyDiagonal)
-
-  CYdTYd = Matmul2(Conjg(Yd),Transpose(Yd),OnlyDiagonal)
-  CYeYt = Matmul2(Conjg(Ye),Yt,OnlyDiagonal)
-  CYsYd = Matmul2(adjYs,Yd,OnlyDiagonal)
-  CYsYs = Matmul2(adjYs,Ys,OnlyDiagonal)
-  CYsYz = Matmul2(adjYs,Yz,OnlyDiagonal)
-  CYtYt = Matmul2(adjYt,Yt,OnlyDiagonal)
-  CYzYt = Matmul2(Conjg(Yz),Yt,OnlyDiagonal)
-  CYzTYz = Matmul2(Conjg(Yz),Transpose(Yz),OnlyDiagonal)
-
-  YdadjYdYd = Matmul2(Yd,adjYdYd,OnlyDiagonal)
-  YdadjYdYs = Matmul2(Yd,adjYdYs,OnlyDiagonal)
-  YdadjYdYz = Matmul2(Yd,adjYdYz,OnlyDiagonal)
-  YdadjYuYu = Matmul2(Yd,adjYuYu,OnlyDiagonal)
-  YeadjYeYe = Matmul2(Ye,adjYeYe,OnlyDiagonal)
-  YeadjYzYz = Matmul2(Ye,adjYzYz,OnlyDiagonal)
-  YeCYtYt = Matmul2(Ye,CYtYt,OnlyDiagonal)
-  YsCYdTYd = Matmul2(Ys,CYdTYd,OnlyDiagonal)
-  YsCYsYd = Matmul2(Ys,CYsYd,OnlyDiagonal)
-  YsCYsYs = Matmul2(Ys,CYsYs,OnlyDiagonal)
-  YsCYsYz = Matmul2(Ys,CYsYz,OnlyDiagonal)
-  YsCYzTYz = Matmul2(Ys,CYzTYz,OnlyDiagonal)
-  YtadjYeYe = Matmul2(Yt,adjYeYe,OnlyDiagonal)
-  YtadjYzYz = Matmul2(Yt,adjYzYz,OnlyDiagonal)
-  YtCYtYt = Matmul2(Yt,CYtYt,OnlyDiagonal)
-  YuadjYdYd = Matmul2(Yu,adjYdYd,OnlyDiagonal)
-  YuadjYuYu = Matmul2(Yu,adjYuYu,OnlyDiagonal)
-  YzadjYeYe = Matmul2(Yz,adjYeYe,OnlyDiagonal)
-  YzadjYzYd = Matmul2(Yz,adjYzYd,OnlyDiagonal)
-  YzadjYzYs = Matmul2(Yz,adjYzYs,OnlyDiagonal)
-  YzadjYzYz = Matmul2(Yz,adjYzYz,OnlyDiagonal)
-  YzCYtYt = Matmul2(Yz,CYtYt,OnlyDiagonal)
-  TYeCYeYt = Matmul2(Transpose(Ye),CYeYt,OnlyDiagonal)
-  TYzCYzYt = Matmul2(Transpose(Yz),CYzYt,OnlyDiagonal)
-  TrYdadjYd = Real(cTrace(YdadjYd),dp)
-  TrYeadjYe = Real(cTrace(YeadjYe),dp)
-  TrYsCYs = Real(cTrace(YsCYs),dp)
-  TrYtCYt = Real(cTrace(YtCYt),dp)
-  TrYuadjYu = Real(cTrace(YuadjYu),dp)
-  TrYzadjYz = Real(cTrace(YzadjYz),dp)
-  TrCYsYs = TrYsCYs ! Real(cTrace(CYsYs),dp)
-  TrCYtYt = TrYtCYt ! Real(cTrace(CYtYt),dp)
-
-
-  If (TwoLoopRGE) Then
-  YdadjYu = Matmul2(Yd,adjYu,OnlyDiagonal)
-  YeadjYz = Matmul2(Ye,adjYz,OnlyDiagonal)
-  YeCYt = Matmul2(Ye,adjYt,OnlyDiagonal)
-  YtadjYe = Matmul2(Yt,adjYe,OnlyDiagonal)
-  YtadjYz = Matmul2(Yt,adjYz,OnlyDiagonal)
-  YuadjYd = Matmul2(Yu,adjYd,OnlyDiagonal)
-  YzadjYe = Matmul2(Yz,adjYe,OnlyDiagonal)
-  YzCYt = Matmul2(Yz,adjYt,OnlyDiagonal)
-  CYeTYz = Matmul2(Conjg(Ye),Transpose(Yz),OnlyDiagonal)
-  CYtTYz = Matmul2(adjYt,Transpose(Yz),OnlyDiagonal)
-  CYuTYd = Matmul2(Conjg(Yu),Transpose(Yd),OnlyDiagonal)
-  YeadjYzYd = Matmul2(Ye,adjYzYd,OnlyDiagonal)
-  YeadjYzYs = Matmul2(Ye,adjYzYs,OnlyDiagonal)
-  YsCYzYt = Matmul2(Ys,CYzYt,OnlyDiagonal)
-  YtadjYzYd = Matmul2(Yt,adjYzYd,OnlyDiagonal)
-  YtadjYzYs = Matmul2(Yt,adjYzYs,OnlyDiagonal)
-  YtCYtTYz = Matmul2(Yt,CYtTYz,OnlyDiagonal)
-  YuadjYdYs = Matmul2(Yu,adjYdYs,OnlyDiagonal)
-  YuadjYdYz = Matmul2(Yu,adjYdYz,OnlyDiagonal)
-  adjYdYdadjYd = Matmul2(adjYd,YdadjYd,OnlyDiagonal)
-  adjYdYdadjYu = Matmul2(adjYd,YdadjYu,OnlyDiagonal)
-  adjYdYsCYs = Matmul2(adjYd,YsCYs,OnlyDiagonal)
-  adjYdYzadjYz = Matmul2(adjYd,YzadjYz,OnlyDiagonal)
-  adjYeYeadjYe = Matmul2(adjYe,YeadjYe,OnlyDiagonal)
-  adjYeYeadjYz = Matmul2(adjYe,YeadjYz,OnlyDiagonal)
-  adjYeYeCYt = Matmul2(adjYe,YeCYt,OnlyDiagonal)
-  adjYuYuadjYd = Matmul2(adjYu,YuadjYd,OnlyDiagonal)
-  adjYuYuadjYu = Matmul2(adjYu,YuadjYu,OnlyDiagonal)
-  adjYzYdadjYd = Matmul2(adjYz,YdadjYd,OnlyDiagonal)
-  adjYzYsCYs = Matmul2(adjYz,YsCYs,OnlyDiagonal)
-  adjYzYzadjYe = Matmul2(adjYz,YzadjYe,OnlyDiagonal)
-  adjYzYzadjYz = Matmul2(adjYz,YzadjYz,OnlyDiagonal)
-  adjYzYzCYt = Matmul2(adjYz,YzCYt,OnlyDiagonal)
-  CYsYdadjYd = Matmul2(adjYs,YdadjYd,OnlyDiagonal)
-  CYsYsCYs = Matmul2(adjYs,YsCYs,OnlyDiagonal)
-  CYsYzadjYz = Matmul2(adjYs,YzadjYz,OnlyDiagonal)
-  CYtYtadjYe = Matmul2(adjYt,YtadjYe,OnlyDiagonal)
-  CYtYtadjYz = Matmul2(adjYt,YtadjYz,OnlyDiagonal)
-  CYtYtCYt = Matmul2(adjYt,YtCYt,OnlyDiagonal)
-  TYdCYdTYd = Matmul2(Transpose(Yd),CYdTYd,OnlyDiagonal)
-  TYdCYsYd = Matmul2(Transpose(Yd),CYsYd,OnlyDiagonal)
-  TYdCYsYs = Matmul2(Transpose(Yd),CYsYs,OnlyDiagonal)
-  TYdCYsYz = Matmul2(Transpose(Yd),CYsYz,OnlyDiagonal)
-  TYdCYzYt = Matmul2(Transpose(Yd),CYzYt,OnlyDiagonal)
-  TYeCYeTYz = Matmul2(Transpose(Ye),CYeTYz,OnlyDiagonal)
-  TYuCYuTYd = Matmul2(Transpose(Yu),CYuTYd,OnlyDiagonal)
-  TYzCYsYd = Matmul2(Transpose(Yz),CYsYd,OnlyDiagonal)
-  TYzCYsYs = Matmul2(Transpose(Yz),CYsYs,OnlyDiagonal)
-  TYzCYsYz = Matmul2(Transpose(Yz),CYsYz,OnlyDiagonal)
-  TYzCYzTYz = Matmul2(Transpose(Yz),CYzTYz,OnlyDiagonal)
-  YdadjYdYdadjYd = Matmul2(Yd,adjYdYdadjYd,OnlyDiagonal)
-  YdadjYdYsCYs = Matmul2(Yd,adjYdYsCYs,OnlyDiagonal)
-  YdadjYdYzadjYz = Matmul2(Yd,adjYdYzadjYz,OnlyDiagonal)
-  YdadjYuYuadjYd = Matmul2(Yd,adjYuYuadjYd,OnlyDiagonal)
-  YeadjYeYeadjYe = Matmul2(Ye,adjYeYeadjYe,OnlyDiagonal)
-  YeadjYzYzadjYe = Matmul2(Ye,adjYzYzadjYe,OnlyDiagonal)
-  YeCYtYtadjYe = Matmul2(Ye,CYtYtadjYe,OnlyDiagonal)
-  YsCYsYdadjYd = Matmul2(Ys,CYsYdadjYd,OnlyDiagonal)
-  YsCYsYsCYs = Matmul2(Ys,CYsYsCYs,OnlyDiagonal)
-  YsCYsYzadjYz = Matmul2(Ys,CYsYzadjYz,OnlyDiagonal)
-  YtadjYzYzCYt = Matmul2(Yt,adjYzYzCYt,OnlyDiagonal)
-  YtCYtYtCYt = Matmul2(Yt,CYtYtCYt,OnlyDiagonal)
-  YuadjYdYdadjYu = Matmul2(Yu,adjYdYdadjYu,OnlyDiagonal)
-  YuadjYuYuadjYu = Matmul2(Yu,adjYuYuadjYu,OnlyDiagonal)
-  YzadjYeYeadjYz = Matmul2(Yz,adjYeYeadjYz,OnlyDiagonal)
-  YzadjYzYdadjYd = Matmul2(Yz,adjYzYdadjYd,OnlyDiagonal)
-  YzadjYzYzadjYz = Matmul2(Yz,adjYzYzadjYz,OnlyDiagonal)
-  adjYdYdadjYdYd = Matmul2(adjYd,YdadjYdYd,OnlyDiagonal)
-  adjYdYdadjYdYs = Matmul2(adjYd,YdadjYdYs,OnlyDiagonal)
-  adjYdYdadjYdYz = Matmul2(adjYd,YdadjYdYz,OnlyDiagonal)
-  adjYdYdadjYuYu = Matmul2(adjYd,YdadjYuYu,OnlyDiagonal)
-  adjYdYsCYsYd = Matmul2(adjYd,YsCYsYd,OnlyDiagonal)
-  adjYdYzadjYzYd = Matmul2(adjYd,YzadjYzYd,OnlyDiagonal)
-  adjYeYeadjYeYe = Matmul2(adjYe,YeadjYeYe,OnlyDiagonal)
-  adjYeYeadjYzYd = Matmul2(adjYe,YeadjYzYd,OnlyDiagonal)
-  adjYeYeadjYzYs = Matmul2(adjYe,YeadjYzYs,OnlyDiagonal)
-  adjYeYeadjYzYz = Matmul2(adjYe,YeadjYzYz,OnlyDiagonal)
-  adjYeYeCYtYt = Matmul2(adjYe,YeCYtYt,OnlyDiagonal)
-  adjYuYuadjYdYd = Matmul2(adjYu,YuadjYdYd,OnlyDiagonal)
-  adjYuYuadjYdYs = Matmul2(adjYu,YuadjYdYs,OnlyDiagonal)
-  adjYuYuadjYdYz = Matmul2(adjYu,YuadjYdYz,OnlyDiagonal)
-  adjYuYuadjYuYu = Matmul2(adjYu,YuadjYuYu,OnlyDiagonal)
-  adjYzYdadjYdYz = Matmul2(adjYz,YdadjYdYz,OnlyDiagonal)
-  adjYzYsCYsYz = Matmul2(adjYz,YsCYsYz,OnlyDiagonal)
-  adjYzYzadjYeYe = Matmul2(adjYz,YzadjYeYe,OnlyDiagonal)
-  adjYzYzadjYzYd = Matmul2(adjYz,YzadjYzYd,OnlyDiagonal)
-  adjYzYzadjYzYs = Matmul2(adjYz,YzadjYzYs,OnlyDiagonal)
-  adjYzYzadjYzYz = Matmul2(adjYz,YzadjYzYz,OnlyDiagonal)
-  adjYzYzCYtYt = Matmul2(adjYz,YzCYtYt,OnlyDiagonal)
-  CYdTYdCYdTYd = Matmul2(Conjg(Yd),TYdCYdTYd,OnlyDiagonal)
-  CYdTYdCYsYd = Matmul2(Conjg(Yd),TYdCYsYd,OnlyDiagonal)
-  CYdTYdCYsYs = Matmul2(Conjg(Yd),TYdCYsYs,OnlyDiagonal)
-  CYdTYdCYsYz = Matmul2(Conjg(Yd),TYdCYsYz,OnlyDiagonal)
-  CYdTYdCYzYt = Matmul2(Conjg(Yd),TYdCYzYt,OnlyDiagonal)
-  CYdTYuCYuTYd = Matmul2(Conjg(Yd),TYuCYuTYd,OnlyDiagonal)
-  CYeTYeCYeYt = Matmul2(Conjg(Ye),TYeCYeYt,OnlyDiagonal)
-  CYsYdadjYdYs = Matmul2(adjYs,YdadjYdYs,OnlyDiagonal)
-  CYsYsCYsYd = Matmul2(adjYs,YsCYsYd,OnlyDiagonal)
-  CYsYsCYsYs = Matmul2(adjYs,YsCYsYs,OnlyDiagonal)
-  CYsYsCYsYz = Matmul2(adjYs,YsCYsYz,OnlyDiagonal)
-  CYsYsCYzYt = Matmul2(adjYs,YsCYzYt,OnlyDiagonal)
-  CYsYzadjYzYs = Matmul2(adjYs,YzadjYzYs,OnlyDiagonal)
-  CYtYtadjYeYe = Matmul2(adjYt,YtadjYeYe,OnlyDiagonal)
-  CYtYtadjYzYd = Matmul2(adjYt,YtadjYzYd,OnlyDiagonal)
-  CYtYtadjYzYs = Matmul2(adjYt,YtadjYzYs,OnlyDiagonal)
-  CYtYtadjYzYz = Matmul2(adjYt,YtadjYzYz,OnlyDiagonal)
-  CYtYtCYtYt = Matmul2(adjYt,YtCYtYt,OnlyDiagonal)
-  CYtTYeCYeYt = Matmul2(adjYt,TYeCYeYt,OnlyDiagonal)
-  CYtTYzCYzYt = Matmul2(adjYt,TYzCYzYt,OnlyDiagonal)
-  CYzYtCYtTYz = Matmul2(Conjg(Yz),YtCYtTYz,OnlyDiagonal)
-  CYzTYeCYeTYz = Matmul2(Conjg(Yz),TYeCYeTYz,OnlyDiagonal)
-  CYzTYzCYsYd = Matmul2(Conjg(Yz),TYzCYsYd,OnlyDiagonal)
-  CYzTYzCYsYs = Matmul2(Conjg(Yz),TYzCYsYs,OnlyDiagonal)
-  CYzTYzCYsYz = Matmul2(Conjg(Yz),TYzCYsYz,OnlyDiagonal)
-  CYzTYzCYzYt = Matmul2(Conjg(Yz),TYzCYzYt,OnlyDiagonal)
-  CYzTYzCYzTYz = Matmul2(Conjg(Yz),TYzCYzTYz,OnlyDiagonal)
-  YdadjYdYdadjYdYd = Matmul2(Yd,adjYdYdadjYdYd,OnlyDiagonal)
-  YdadjYdYdadjYdYs = Matmul2(Yd,adjYdYdadjYdYs,OnlyDiagonal)
-  YdadjYdYdadjYdYz = Matmul2(Yd,adjYdYdadjYdYz,OnlyDiagonal)
-  YdadjYdYsCYsYd = Matmul2(Yd,adjYdYsCYsYd,OnlyDiagonal)
-  YdadjYdYzadjYzYd = Matmul2(Yd,adjYdYzadjYzYd,OnlyDiagonal)
-  YdadjYuYuadjYdYd = Matmul2(Yd,adjYuYuadjYdYd,OnlyDiagonal)
-  YdadjYuYuadjYdYs = Matmul2(Yd,adjYuYuadjYdYs,OnlyDiagonal)
-  YdadjYuYuadjYdYz = Matmul2(Yd,adjYuYuadjYdYz,OnlyDiagonal)
-  YdadjYuYuadjYuYu = Matmul2(Yd,adjYuYuadjYuYu,OnlyDiagonal)
-  YeadjYeYeadjYeYe = Matmul2(Ye,adjYeYeadjYeYe,OnlyDiagonal)
-  YeadjYzYdadjYdYz = Matmul2(Ye,adjYzYdadjYdYz,OnlyDiagonal)
-  YeadjYzYsCYsYz = Matmul2(Ye,adjYzYsCYsYz,OnlyDiagonal)
-  YeadjYzYzadjYeYe = Matmul2(Ye,adjYzYzadjYeYe,OnlyDiagonal)
-  YeadjYzYzadjYzYz = Matmul2(Ye,adjYzYzadjYzYz,OnlyDiagonal)
-  YeCYtYtadjYeYe = Matmul2(Ye,CYtYtadjYeYe,OnlyDiagonal)
-  YeCYtYtCYtYt = Matmul2(Ye,CYtYtCYtYt,OnlyDiagonal)
-  YeCYtTYeCYeYt = Matmul2(Ye,CYtTYeCYeYt,OnlyDiagonal)
-  YeCYtTYzCYzYt = Matmul2(Ye,CYtTYzCYzYt,OnlyDiagonal)
-  YsCYdTYdCYdTYd = Matmul2(Ys,CYdTYdCYdTYd,OnlyDiagonal)
-  YsCYdTYdCYsYd = Matmul2(Ys,CYdTYdCYsYd,OnlyDiagonal)
-  YsCYdTYdCYsYs = Matmul2(Ys,CYdTYdCYsYs,OnlyDiagonal)
-  YsCYdTYdCYsYz = Matmul2(Ys,CYdTYdCYsYz,OnlyDiagonal)
-  YsCYdTYuCYuTYd = Matmul2(Ys,CYdTYuCYuTYd,OnlyDiagonal)
-  YsCYsYdadjYdYs = Matmul2(Ys,CYsYdadjYdYs,OnlyDiagonal)
-  YsCYsYsCYsYd = Matmul2(Ys,CYsYsCYsYd,OnlyDiagonal)
-  YsCYsYsCYsYs = Matmul2(Ys,CYsYsCYsYs,OnlyDiagonal)
-  YsCYsYsCYsYz = Matmul2(Ys,CYsYsCYsYz,OnlyDiagonal)
-  YsCYsYzadjYzYs = Matmul2(Ys,CYsYzadjYzYs,OnlyDiagonal)
-  YsCYzYtCYtTYz = Matmul2(Ys,CYzYtCYtTYz,OnlyDiagonal)
-  YsCYzTYeCYeTYz = Matmul2(Ys,CYzTYeCYeTYz,OnlyDiagonal)
-  YsCYzTYzCYsYd = Matmul2(Ys,CYzTYzCYsYd,OnlyDiagonal)
-  YsCYzTYzCYsYs = Matmul2(Ys,CYzTYzCYsYs,OnlyDiagonal)
-  YsCYzTYzCYsYz = Matmul2(Ys,CYzTYzCYsYz,OnlyDiagonal)
-  YsCYzTYzCYzTYz = Matmul2(Ys,CYzTYzCYzTYz,OnlyDiagonal)
-  YtadjYeYeadjYeYe = Matmul2(Yt,adjYeYeadjYeYe,OnlyDiagonal)
-  YtadjYeYeCYtYt = Matmul2(Yt,adjYeYeCYtYt,OnlyDiagonal)
-  YtadjYzYdadjYdYz = Matmul2(Yt,adjYzYdadjYdYz,OnlyDiagonal)
-  YtadjYzYsCYsYz = Matmul2(Yt,adjYzYsCYsYz,OnlyDiagonal)
-  YtadjYzYzadjYzYz = Matmul2(Yt,adjYzYzadjYzYz,OnlyDiagonal)
-  YtadjYzYzCYtYt = Matmul2(Yt,adjYzYzCYtYt,OnlyDiagonal)
-  YtCYtYtCYtYt = Matmul2(Yt,CYtYtCYtYt,OnlyDiagonal)
-  YtCYtTYeCYeYt = Matmul2(Yt,CYtTYeCYeYt,OnlyDiagonal)
-  YtCYtTYzCYzYt = Matmul2(Yt,CYtTYzCYzYt,OnlyDiagonal)
-  YuadjYdYdadjYdYd = Matmul2(Yu,adjYdYdadjYdYd,OnlyDiagonal)
-  YuadjYdYdadjYuYu = Matmul2(Yu,adjYdYdadjYuYu,OnlyDiagonal)
-  YuadjYdYsCYsYd = Matmul2(Yu,adjYdYsCYsYd,OnlyDiagonal)
-  YuadjYdYzadjYzYd = Matmul2(Yu,adjYdYzadjYzYd,OnlyDiagonal)
-  YuadjYuYuadjYuYu = Matmul2(Yu,adjYuYuadjYuYu,OnlyDiagonal)
-  YzadjYeYeadjYeYe = Matmul2(Yz,adjYeYeadjYeYe,OnlyDiagonal)
-  YzadjYeYeadjYzYd = Matmul2(Yz,adjYeYeadjYzYd,OnlyDiagonal)
-  YzadjYeYeadjYzYs = Matmul2(Yz,adjYeYeadjYzYs,OnlyDiagonal)
-  YzadjYeYeadjYzYz = Matmul2(Yz,adjYeYeadjYzYz,OnlyDiagonal)
-  YzadjYzYdadjYdYz = Matmul2(Yz,adjYzYdadjYdYz,OnlyDiagonal)
-  YzadjYzYsCYsYz = Matmul2(Yz,adjYzYsCYsYz,OnlyDiagonal)
-  YzadjYzYzadjYzYd = Matmul2(Yz,adjYzYzadjYzYd,OnlyDiagonal)
-  YzadjYzYzadjYzYs = Matmul2(Yz,adjYzYzadjYzYs,OnlyDiagonal)
-  YzadjYzYzadjYzYz = Matmul2(Yz,adjYzYzadjYzYz,OnlyDiagonal)
-  YzCYtYtadjYzYd = Matmul2(Yz,CYtYtadjYzYd,OnlyDiagonal)
-  YzCYtYtadjYzYs = Matmul2(Yz,CYtYtadjYzYs,OnlyDiagonal)
-  YzCYtYtadjYzYz = Matmul2(Yz,CYtYtadjYzYz,OnlyDiagonal)
-  YzCYtYtCYtYt = Matmul2(Yz,CYtYtCYtYt,OnlyDiagonal)
-  YzCYtTYeCYeYt = Matmul2(Yz,CYtTYeCYeYt,OnlyDiagonal)
-  YzCYtTYzCYzYt = Matmul2(Yz,CYtTYzCYzYt,OnlyDiagonal)
-  TYeCYeTYeCYeYt = Matmul2(Transpose(Ye),CYeTYeCYeYt,OnlyDiagonal)
-  TYzCYdTYdCYzYt = Matmul2(Transpose(Yz),CYdTYdCYzYt,OnlyDiagonal)
-  TYzCYsYsCYzYt = Matmul2(Transpose(Yz),CYsYsCYzYt,OnlyDiagonal)
-  TYzCYzTYzCYzYt = Matmul2(Transpose(Yz),CYzTYzCYzYt,OnlyDiagonal)
-
-  TrYdadjYdYdadjYd = cTrace(YdadjYdYdadjYd)
-
-  TrYdadjYdYsCYs = cTrace(YdadjYdYsCYs)
-  TrCYsYdadjYdYs = TrYdadjYdYsCYs
-
-  TrYdadjYdYzadjYz = cTrace(YdadjYdYzadjYz)
-  TrYdadjYuYuadjYd = cTrace(YdadjYuYuadjYd)
-  TrYeadjYeYeadjYe = cTrace(YeadjYeYeadjYe)
-  TrYeadjYzYzadjYe = cTrace(YeadjYzYzadjYe)
-
-  TrYeCYtYtadjYe = cTrace(YeCYtYtadjYe)
-  TrCYtYtadjYeYe = TrYeCYtYtadjYe
-
-  TrYsCYsYdadjYd = cTrace(YsCYsYdadjYd)
-
-  TrYsCYsYzadjYz = cTrace(YsCYsYzadjYz)
-  TrCYsYzadjYzYs = TrYsCYsYzadjYz
-
-  TrYtadjYzYzCYt = cTrace(YtadjYzYzCYt)
-  TrCYtYtadjYzYz = TrYtadjYzYzCYt
-  TrYzCYtYtadjYz = TrYtadjYzYzCYt
-
-  TrYtCYtYtCYt = cTrace(YtCYtYtCYt)
-  TrCYtYtCYtYt = TrYtCYtYtCYt
-
-  TrYuadjYdYdadjYu = cTrace(YuadjYdYdadjYu)
-  TrYuadjYuYuadjYu = cTrace(YuadjYuYuadjYu)
-  TrYzadjYeYeadjYz = cTrace(YzadjYeYeadjYz)
-  TrYzadjYzYdadjYd = cTrace(YzadjYzYdadjYd)
-
-  TrYzadjYzYzadjYz = cTrace(YzadjYzYzadjYz)
-
-  TrCYsYsCYsYs = cTrace(CYsYsCYsYs)
-
-  End If
-
-
-  !--------------------
-  ! g1
-  !--------------------
-
-  betag11 = 13.6_dp
-
-  If (TwoLoopRGE) Then
-   betag12 = ( 1502._dp*g12/75._dp + 34.8_dp * g22 + 184._dp * g32/3._dp  &
-           & - 4.8_dp * TrCYsYs - 5.4_dp * (TrCYtYt + AbsL1sq+AbsL2sq)    &
-           & - 2.8_dp * (TrYdadjYd+TrYzadjYz)  - 3.6_dp * TrYeadjYe       &
-           & - 5.2_dp * TrYuadjYu )
-
-   Dg1 = oo16pi2*g13*( betag11 + oo16pi2 * betag12 )
-
-  Else
-   Dg1 = oo16pi2* betag11*g13
-  End If
-
-  !--------------------
-  ! g2
-  !--------------------
-
-  betag21 = 8._dp
-
-  If (TwoLoopRGE) Then
-   betag22 = ( 11.6_dp * g12 + 94._dp * g22 + 40._dp * g32                     &
-           & - 6._dp * (TrYdadjYd + TrYuadjYu + TrYzadjYz) - 2._dp * TrYeadjYe &
-           & - 7._dp*(TrCYtYt + AbsL1sq + AbsL2sq) )
-
-   Dg2 = oo16pi2*g23*( betag21 + oo16pi2 * betag22 )
-
-  Else
-   Dg2 = oo16pi2*g23* betag21
-  End If
-
-  !--------------------
-  ! g3
-  !--------------------
-
-  betag31 = 4._dp
-
-  If (TwoLoopRGE) Then
-   betag32 = ( 23._dp*g12/3._dp + 15._dp*g22 + 400._dp*g32/3._dp       &
-           & - 9._dp*TrCYsYs - 4._dp*(TrYdadjYd+TrYuadjYu+TrYzadjYz) )
-
-   Dg3 = oo16pi2*g33*( betag31 + oo16pi2 * betag32 )
-
-  Else
-   Dg3 = oo16pi2*g33* betag31
-  End If
-
-  !--------------------
-  ! Yu
-  !--------------------
-
-  betaYu1 = ( -13._dp * g12 / 15._dp - 3._dp * g22 - 16._dp * g32 /3._dp &
-          & + 3._dp * (TrYuadjYu + AbsL2sq ) ) * Yu                      &
-          & + YuadjYdYd + 3._dp * YuadjYuYu
-
-  If (TwoLoopRGE) Then
-   betaYu2 = ( 5473._dp*g14/450._dp + (g12+8._dp*g32)*g22+ 28.5_dp*g24        &
-      & + 136._dp*g12*g32/45._dp + 320._dp*g34/9._dp - 3._dp*TrYuadjYdYdadjYu &
-      & + 0.8_dp*g12*TrYuadjYu + 16._dp*g32*TrYuadjYu- 9._dp*TrYuadjYuYuadjYu &
-      & + (3.6_dp*g12+ 12._dp*g22 - 9._dp*TrYuadjYu - 12._dp*AbsL2sq)*AbsL2sq &
-      & ) * Yu                                                                &
-      & + (0.4_dp*g12 - 3._dp*(TrYdadjYd+AbsL1sq) - TrYeadjYe ) * YuadjYdYd   &
-      & + (0.4_dp*g12 + 6._dp*g22  - 9._dp*(TrYuadjYu+AbsL2sq) ) * YuadjYuYu  &
-      & - 2._dp * (YuadjYdYdadjYdYd + YuadjYdYdadjYuYu + YuadjYdYzadjYzYd )   &
-      & - 4._dp * (YuadjYdYsCYsYd + YuadjYuYuadjYuYu)
-
-   DYu = oo16pi2*( betaYu1 + oo16pi2 * betaYu2 )
-
-  Else
-   DYu = oo16pi2* betaYu1
-  End If
-
-
-  !--------------------
-  ! Yd
-  !--------------------
-
-  betaYd1 = (-7._dp*g12/15._dp - 3._dp*g22 - 16._dp*g32/3._dp   &
-          & + 3._dp*(TrYdadjYd+AbsL1sq) + TrYeadjYe )*Yd        &
-          & + 3._dp*YdadjYdYd + YdadjYuYu + 4._dp*YsCYsYd + 2._dp*YzadjYzYd
-
-  If (TwoLoopRGE) Then
-
-   betaYd2 = ( 581._dp*g14/90._dp + (8._dp*g32+g12)*g22 + 28.5_dp*g24          &
-          & + (8._dp*g12*g32+320._dp*g34)/9._dp - 9._dp*TrYdadjYdYdadjYd       &
-          & + (16._dp*g32 - 0.4_dp*g12 - 9._dp*AbsL1sq ) *TrYdadjYd            &
-          & - 3._dp *(TrYdadjYuYuadjYd+TrYeadjYeYeadjYe) + 1.2_dp*g12*TrYeadjYe&
-          & - 3._dp*(TrYeadjYzYzadjYe+TrYeCYtYtadjYe)  - 12._dp*TrYsCYsYdadjYd &
-          & + (3.6_dp*g12+ 12._dp*g22 - 3._dp*(TrCYtYt+TrYeadjYe)              &
-          &    - 12._dp * AbsL1sq) * AbsL1sq - 6._dp*TrYzadjYzYdadjYd          &
-          & ) * Yd                                                             &
-          & + ( 0.8_dp*g12 + 6._dp*g22 - 3._dp*TrYeadjYe                       &
-          &   - 9._dp*(TrYdadjYd+AbsL1sq)  ) * YdadjYdYd                       &
-          & + ( 0.8_dp*g12  - 3._dp * (TrYuadjYu + AbsL2sq) ) * YdadjYuYu      &
-          & + ( 32._dp*g12/15._dp + 80._dp*g32/3._dp -4._dp*TrCYsYs) * YsCYsYd &
-          & + ( 0.4_dp*g12  + 6._dp*g22 - 2._dp*TrYzadjYz ) * YzadjYzYd        &
-          & - 4._dp * (YdadjYdYdadjYdYd + YdadjYdYsCYsYd)                      &
-          & - 2._dp * (YdadjYdYzadjYzYd + YdadjYuYuadjYdYd + YdadjYuYuadjYuYu  &
-          &           +YzadjYeYeadjYzYd )   - 16._dp*YsCYsYsCYsYd              &
-          & - 8._dp * (YsCYdTYdCYsYd + YsCYzTYzCYsYd)                          &
-          & - 6._dp * (YzadjYzYzadjYzYd + YzCYtYtadjYzYd)
-
-   DYd = oo16pi2*( betaYd1 + oo16pi2 * betaYd2 )
-
-  Else
-   DYd = oo16pi2* betaYd1
-  End If
-
-
-  !--------------------
-  ! Ye
-  !--------------------
-
-  betaYe1 = ( 3._dp*(TrYdadjYd+AbsL1sq) + TrYeadjYe    &
-          & - 1.8_dp*g12 - 3._dp*g22 ) * Ye            &
-          & + 3._dp * (YeadjYeYe + YeadjYzYz + YeCYtYt)
-
-  If (TwoLoopRGE) Then
-   betaYe2 = ( 26.1_dp*g14 + 1.8_dp*g12*g22  + 28.5_dp*g24                   &
-           & + (16._dp*g32 - 0.4_dp*g12) * TrYdadjYd  + 1.2_dp*g12*TrYeadjYe &
-           & - 9._dp*TrYdadjYdYdadjYd - 12._dp*TrYsCYsYdadjYd                &
-           & - 3._dp * (TrYdadjYuYuadjYd+TrYeadjYeYeadjYe+TrYeadjYzYzadjYe   &
-           &           + TrYeCYtYtadjYe ) - 6._dp*TrYzadjYzYdadjYd           &
-           & + (3.6_dp*g12 + 12._dp*g22  - 3._dp*(TrCYtYt+TrYeadjYe)         &
-           &   - 9._dp*TrYdadjYd - 12._dp*AbsL1sq) * AbsL1sq                 &
-           & ) * Ye                                                          &
-           & + ( 6._dp*g22 - 3._dp*TrYeadjYe - 9._dp*(TrYdadjYd+AbsL1sq)     &
-           &   ) * YeadjYeYe                                                 &
-           & + ( 16._dp*g32 - 0.4_dp*g12  - 3._dp*TrYzadjYz ) * YeadjYzYz    &
-           & + ( 3.6_dp*g12 + 12._dp*g22  - 3._dp*(TrYtCYt+AbsL1sq)          &
-           &   ) * YeCYtYt                                                   &
-           & - 4._dp*YeadjYeYeadjYeYe - 12._dp*YeadjYzYsCYsYz                &
-           & - 6._dp * ( YeadjYzYdadjYdYz + YeadjYzYzadjYeYe                 &
-           &           + YeadjYzYzadjYzYz + YeCYtYtadjYeYe )                 &
-           & - 3._dp*YeCYtTYeCYeYt - 9._dp * (YeCYtTYzCYzYt+YeCYtYtCYtYt)
-
-   DYe = oo16pi2*( betaYe1 + oo16pi2 * betaYe2 )
-
-  Else
-   DYe = oo16pi2* betaYe1
-  End If
-
-  !--------------------
-  ! Yt
-  !--------------------
-
-  betaYt1 = (TrCYtYt + AbsL1sq - 1.8_dp*g12  - 7._dp*g22 ) * Yt         &
-        & + TYeCYeYt + 3._dp * (TYzCYzYt+YtadjYzYz)+ YtadjYeYe + 6._dp*YtCYtYt
-
-  If (TwoLoopRGE) Then
-   betaYt2 = ( 26.1_dp*g14 + 11.4_dp*g12*g22 + 76.5_dp *g24  - TrCYtYtadjYeYe &
-         &   - (0.6_dp*g12 + g22)* TrCYtYt - 3._dp * TrCYtYtadjYzYz           &
-         &   - 6._dp*TrCYtYtCYtYt - TrYeCYtYtadjYe - 3._dp*TrYtadjYzYzCYt     &
-         &   - ( 0.6_dp *g12 + g22 + 6._dp * (TrYdadjYd + AbsL1sq)            &
-         &     - 2._dp * TrYeadjYe ) * AbsL1sq                                &
-         &   ) * Yt                                                           &
-         &   + ( 1.2_dp *g12  - TrYeadjYe - 3._dp*(TrYdadjYd+AbsL1sq)         &
-         &     ) * (TYeCYeYt + YtadjYeYe)                                     &
-         &   + (16._dp*g32 -0.4_dp*g12 -3._dp*TrYzadjYz )*(TYzCYzYt+YtadjYzYz)&
-         &   + ( 7.2_dp*g12 + 24._dp*g22 - 6._dp*(TrCYtYt+AbsL1sq) ) *YtCYtYt &
-         &   - 2._dp * (TYeCYeTYeCYeYt + YtadjYeYeadjYeYe)                    &
-         &   - 6._dp * (TYzCYdTYdCYzYt + TYzCYzTYzCYzYt                       &
-         &             +YtadjYzYdadjYdYz + YtadjYzYzadjYzYz)                  &
-         &   - 12._dp *(TYzCYsYsCYzYt + YtadjYzYsCYsYz)                       &
-         &   - 3._dp * (YtadjYeYeCYtYt + YtCYtTYeCYeYt)                       &
-         &   - 9._dp * (YtadjYzYzCYtYt + YtCYtTYzCYzYt) - 18._dp *YtCYtYtCYtYt
-
-   DYt = oo16pi2*( betaYt1 + oo16pi2 * betaYt2 )
-
-  Else
-   DYt = oo16pi2* betaYt1
-  End If
-
-
-  !--------------------
-  ! Ys
-  !--------------------
-
-  betaYs1 = ( TrCYsYs - 0.8_dp *g12 - 12._dp*g32 ) * Ys              &
-          & + 2._dp * ( YdadjYdYs + YsCYdTYd +YsCYzTYz + YzadjYzYs ) &
-          & + 8._dp * YsCYsYs
-
-  If (TwoLoopRGE) Then
-   betaYs2 = ( 11.2_dp*g14 + 128._dp*g12*g32/15._dp + 320._dp*g34/3._dp       &
-         &   - 4._dp * (g12/15._dp + g32/3._dp )* TrCYsYs                     &
-         &   - 4._dp * (TrCYsYdadjYdYs+TrCYsYzadjYzYs) - 8._dp * TrCYsYsCYsYs &
-         &   ) * Ys                                                           &
-         &   + (0.4_dp*g12 + 6._dp*(g22-TrYdadjYd-AbsL1sq) - 2._dp*TrYeadjYe  &
-         &     ) * (YdadjYdYs+YsCYdTYd)                                       &
-         &   + (64._dp*g12/15._dp + 160._dp*g32/3._dp - 8._dp*TrCYsYs)*YsCYsYs&
-         &   + (0.4_dp*g12 +6._dp*g22 -2._dp*TrYzadjYz) *(YsCYzTYz+YzadjYzYs) &
-         &   - 2._dp * (YdadjYdYdadjYdYs + YdadjYuYuadjYdYs + YsCYdTYdCYdTYd  &
-         &             +YsCYdTYuCYuTYd + YsCYzTYeCYeTYz + YzadjYeYeadjYzYs)   &
-         &   - 8._dp * ( YsCYdTYdCYsYs + YsCYsYdadjYdYs                       &
-         &             + YsCYsYzadjYzYs + YsCYzTYzCYsYs )                     &
-         &   - 6._dp * ( YsCYzTYzCYzTYz + YsCYzYtCYtTYz                       &
-         &             + YzadjYzYzadjYzYs + YzCYtYtadjYzYs)                   &
-         &   - 32._dp*YsCYsYsCYsYs
-
-   DYs = oo16pi2*( betaYs1 + oo16pi2 * betaYs2 )
-
-  Else
-   DYs = oo16pi2* betaYs1
-  End If
-
-
-  !--------------------
-  ! Yz
-  !--------------------
-  betaYz1 = (TrYzadjYz -7._dp*g12/15._dp -3._dp*g22 -16._dp*g32/3._dp ) * Yz &
-        & + 2._dp*YdadjYdYz + 4._dp*YsCYsYz + YzadjYeYe + 5._dp*YzadjYzYz    &
-        & + 3._dp*YzCYtYt
-
-
-  If (TwoLoopRGE) Then
-   betaYz2 = ( 581._dp*g14/90._dp + g12*g22 + 28.5_dp*g24  + 320._dp*g34/9._dp &
-         &   + 8._dp*g32*(g12/9._dp + g22) + 0.4_dp*g12*TrYzadjYz              &
-         &   - TrYzadjYeYeadjYz- 2._dp*TrYdadjYdYzadjYz- 4._dp*TrYsCYsYzadjYz  &
-         &   - 5._dp*TrYzadjYzYzadjYz - 3._dp*TrYzCYtYtadjYz                   &
-         &   ) * Yz                                                            &
-         &   + (0.4_dp*g12 + 6._dp*(g22 - TrYdadjYd -AbsL1sq) -2._dp*TrYeadjYe &
-         &      ) * YdadjYdYz                                                  &
-         &   + (32._dp*g12/15._dp + 80._dp*g32/3._dp - 4._dp*TrCYsYs) *YsCYsYz &
-         &   + (1.2_dp*g12 - 3._dp*(TrYdadjYd+AbsL1sq) - TrYeadjYe) *YzadjYeYe &
-         &   + (3.6_dp*g12 + 12._dp*g22 - 3._dp*(TrCYtYt+AbsL1sq) ) * YzCYtYt  &
-         &   + (6._dp*g22 + 16._dp*g32  - 5._dp*TrYzadjYz) * YzadjYzYz         &
-         &   - 2._dp * ( YdadjYdYdadjYdYz + YdadjYuYuadjYdYz                   &
-         &             + YzadjYeYeadjYeYe + YzadjYeYeadjYzYz )                 &
-         &   - 9._dp * ( YzCYtTYzCYzYt + YzCYtYtCYtYt) - 3._dp*YzCYtTYeCYeYt   &
-         &   - 8._dp * ( YsCYdTYdCYsYz +YsCYzTYzCYsYz) - 16._dp*YsCYsYsCYsYz   &
-         &   - 6._dp * ( YzadjYzYdadjYdYz + YzCYtYtadjYzYz)                    &
-         &   - 12._dp * (YzadjYzYsCYsYz + YzadjYzYzadjYzYz)
-
-   DYz = oo16pi2*( betaYz1 + oo16pi2 * betaYz2 )
-
-  Else
-   DYz = oo16pi2* betaYz1
-  End If
-
-
-  !--------------------
-  ! L1
-  !--------------------
-
-  betaL11 = -1.8_dp*g12 - 7._dp * g22 + TrCYtYt + 6._dp * TrYdadjYd &
-          & + 2._dp*TrYeadjYe + 7._dp*AbsL1sq
-
-  If (TwoLoopRGE) Then
-   betaL12 = 26.1_dp*g14 + 11.4_dp*g12*g22 + 76.5_dp*g24                  &
-         &   - (0.6_dp*g12+g22 + 6._dp* AbsL1sq) *TrCYtYt                 &
-         &   + (32._dp*g32 - 0.8_dp*g12 - 24._dp* AbsL1sq) * TrYdadjYd    &
-         &   + (2.4_dp*g12 - 8._dp* AbsL1sq) * TrYeadjYe                  &
-         &   + (6.6_dp*g12 + 23._dp*g22 - 30._dp* AbsL1sq) * AbsL1sq      &
-         &   - 8._dp*TrYeCYtYtadjYe  - 12._dp * TrYzadjYzYdadjYd          &
-         &   - 6._dp * (TrCYtYtCYtYt + TrYdadjYuYuadjYd + TrCYtYtadjYzYz  &
-         &             +TrYeadjYeYeadjYe + TrYeadjYzYzadjYe)              &
-         &   - 18._dp*TrYdadjYdYdadjYd - 24._dp * TrYsCYsYdadjYd
-
-   DL1 = oo16pi2 * L1 * ( betaL11 + oo16pi2 * betaL12 )
-
-  Else
-   DL1 = oo16pi2 * L1 * betaL11
-  End If
-
-
-  !--------------------
-  ! L2
-  !--------------------
-
-  betaL21 = -1.8_dp*g12 - 7._dp * g22 + 6._dp * TrYuadjYu + 7._dp*AbsL2sq
-
-  If (TwoLoopRGE) Then
-   betaL22 = 26.1_dp*g14 + 11.4_dp*g12*g22 + 76.5_dp*g24             &
-         & + (1.6_dp*g12 + 32._dp*g32 - 24._dp*AbsL2sq ) * TrYuadjYu &
-         & + (6.6_dp*g12 + 23._dp*g22 - 30._dp*AbsL2sq ) * AbsL2sq   &
-         & - 6._dp * TrYuadjYdYdadjYu - 18._dp*TrYuadjYuYuadjYu
-
-   DL2 = oo16pi2 * L2 * ( betaL21 + oo16pi2 * betaL22 )
-
-  Else
-   DL2 = oo16pi2 * L2 * betaL21
-  End If
-
-
-  !--------------------
-  ! MTM
-  !--------------------
-
-
-  betaMTM1 = -2.4_dp*g12 - 8._dp*g22 + TrCYtYt + AbsL1sq + AbsL2sq
-
-  If (TwoLoopRGE) Then
-   betaMTM2 = 35.52_dp*g14 + 19.2_dp*g12*g22 + 96._dp*g24           &
-          & - (0.6_dp*g12 + g22) * TrCYtYt - 2._dp * TrCYtYtadjYeYe &
-          & - 6._dp*TrCYtYtadjYzYz - 6._dp*TrCYtYtCYtYt             &
-          & - (0.6_dp*g12 + g22 + 6._dp*(TrYdadjYd+AbsL1sq)         &
-          &   + 2._dp*TrYeadjYe ) * AbsL1sq                         &
-          & - (0.6_dp*g12 + g22 + 6._dp*(TrYuadjYu+AbsL2sq) ) * AbsL2sq
-
-   DMTM = oo16pi2 * MTM * ( betaMTM1 + oo16pi2 * betaMTM2 )
-
-  Else
-   DMTM = oo16pi2 * MTM * betaMTM1
-  End If
-
-  Call ParametersToG117(Dg1,Dg2,Dg3,DYu,DYd,DYe,DYt,DYs,DYz,DL1,DL2,DMTM,f)
-
-  Iname = Iname - 1
-
- End Subroutine rge117
-
- Subroutine rge353(len, T, GY, F)
- Implicit None
-  Integer, Intent(in) :: len
-  Real(dp), Intent(in) :: T, GY(len)
-  Real(dp), Intent(out) :: F(len)
-  Integer :: i1,i2
-  Real(dp) :: q
-  Real(dp) :: g1,betag11,betag12,Dg1,g2,betag21,betag22,Dg2,g3,betag31,betag32,         &
-  & Dg3,mHd2,betamHd21,betamHd22,DmHd2,mHu2,betamHu21,betamHu22,DmHu2
-  Complex(dp) :: Yu(3,3),betaYu1(3,3),betaYu2(3,3),DYu(3,3),adjYu(3,3),Yd(3,3)          &
-  & ,betaYd1(3,3),betaYd2(3,3),DYd(3,3),adjYd(3,3),Ye(3,3),betaYe1(3,3),betaYe2(3,3)       &
-  & ,DYe(3,3),adjYe(3,3),Yt(3,3),betaYt1(3,3),betaYt2(3,3),DYt(3,3),adjYt(3,3)             &
-  & ,Ys(3,3),betaYs1(3,3),betaYs2(3,3),DYs(3,3),adjYs(3,3),Yz(3,3),betaYz1(3,3)            &
-  & ,betaYz2(3,3),DYz(3,3),adjYz(3,3),L1,betaL11,betaL12,DL1,L2,betaL21,betaL22,           &
-  & DL2,MTM,betaMTM1,betaMTM2,DMTM,mue,betamue1,betamue2,Dmue,MZM,betaMZM1,betaMZM2,       &
-  & DMZM,MSM,betaMSM1,betaMSM2,DMSM,AYu(3,3),betaAYu1(3,3),betaAYu2(3,3),DAYu(3,3)         &
-  & ,adjAYu(3,3),AYd(3,3),betaAYd1(3,3),betaAYd2(3,3),DAYd(3,3),adjAYd(3,3),               &
-  & AYe(3,3),betaAYe1(3,3),betaAYe2(3,3),DAYe(3,3),adjAYe(3,3),AYt(3,3),betaAYt1(3,3)      &
-  & ,betaAYt2(3,3),DAYt(3,3),adjAYt(3,3),AYs(3,3),betaAYs1(3,3),betaAYs2(3,3)              &
-  & ,DAYs(3,3),adjAYs(3,3),AYz(3,3),betaAYz1(3,3),betaAYz2(3,3),DAYz(3,3),adjAYz(3,3)      &
-  & ,AL1,betaAL11,betaAL12,DAL1,AL2,betaAL21,betaAL22,DAL2,Amue,betaAmue1,betaAmue2,       &
-  & DAmue,AMTM,betaAMTM1,betaAMTM2,DAMTM,AMZM,betaAMZM1,betaAMZM2,DAMZM,AMSM,              &
-  & betaAMSM1,betaAMSM2,DAMSM,mq2(3,3),betamq21(3,3),betamq22(3,3),Dmq2(3,3)               &
-  & ,adjmq2(3,3),ml2(3,3),betaml21(3,3),betaml22(3,3),Dml2(3,3),adjml2(3,3),               &
-  & md2(3,3),betamd21(3,3),betamd22(3,3),Dmd2(3,3),adjmd2(3,3),mu2(3,3),betamu21(3,3)      &
-  & ,betamu22(3,3),Dmu2(3,3),adjmu2(3,3),me2(3,3),betame21(3,3),betame22(3,3)              &
-  & ,Dme2(3,3),adjme2(3,3),mt2,betamt21,betamt22,Dmt2,mtb2,betamtb21,betamtb22,            &
-  & Dmtb2,ms2,betams21,betams22,Dms2,msb2,betamsb21,betamsb22,Dmsb2,mz2,betamz21,          &
-  & betamz22,Dmz2,mzb2,betamzb21,betamzb22,Dmzb2,MassB,betaMassB1,betaMassB2,              &
-  & DMassB,MassWB,betaMassWB1,betaMassWB2,DMassWB,MassG,betaMassG1,betaMassG2,DMassG
-  Complex(dp) :: Tr1(3),Tr2(3),Tr3(3)
-  Complex(dp) :: md2Ys(3,3),md2CYd(3,3),md2CYs(3,3),md2CYz(3,3),me2CYe(3,3)             &
-  & ,ml2Yt(3,3),ml2adjYe(3,3),ml2adjYz(3,3),ml2CYt(3,3),mq2adjYd(3,3),mq2adjYu(3,3)        &
-  & ,mu2CYu(3,3),YdadjYd(3,3),YeadjYe(3,3),Ysmd2(3,3),YsCYs(3,3),Ytml2(3,3),               &
-  & YtCYt(3,3),YuadjYu(3,3),YzadjYz(3,3),AYdadjYd(3,3),AYdadjAYd(3,3),AYeadjYe(3,3)        &
-  & ,AYeadjAYe(3,3),AYsCAYs(3,3),AYtCAYt(3,3),AYuadjYu(3,3),AYuadjAYu(3,3),AYzadjYz(3,3)   &
-  & ,AYzadjAYz(3,3),adjYdmd2(3,3),adjYdYd(3,3),adjYdYs(3,3),adjYdYz(3,3),adjYdAYd(3,3)     &
-  & ,adjYdAYs(3,3),adjYdAYz(3,3),adjYeme2(3,3),adjYeYe(3,3),adjYeAYe(3,3),adjYumu2(3,3)    &
-  & ,adjYuYu(3,3),adjYuAYu(3,3),adjYzmd2(3,3),adjYzYd(3,3),adjYzYs(3,3),adjYzYz(3,3)       &
-  & ,adjYzAYd(3,3),adjYzAYs(3,3),adjYzAYz(3,3),CYdmq2(3,3),CYdTYd(3,3),CYdTAYd(3,3)        &
-  & ,CYeml2(3,3),CYeYt(3,3),CYeAYt(3,3),CYsmd2(3,3),CYsYd(3,3),CYsYs(3,3),CYsYz(3,3)       &
-  & ,CYsAYd(3,3),CYsAYs(3,3),CYsAYz(3,3),CYtml2(3,3),CYtYt(3,3),CYtAYt(3,3),               &
-  & CYumq2(3,3),CYzml2(3,3),CYzYt(3,3),CYzAYt(3,3),CYzTYz(3,3),CYzTAYz(3,3),               &
-  & CAYsAYs(3,3),CAYtAYt(3,3),TYdCYd(3,3),TYeCYe(3,3),TYuCYu(3,3),TYzCYz(3,3)              &
-  & ,TAYdCAYd(3,3),TAYeCAYe(3,3),TAYuCAYu(3,3),TAYzCAYz(3,3),md2YdadjYd(3,3)               &
-  & ,md2YsCYs(3,3),md2YzadjYz(3,3),me2YeadjYe(3,3),ml2YtCYt(3,3),ml2TYeCYe(3,3)            &
-  & ,ml2TYzCYz(3,3),mq2TYdCYd(3,3),mq2TYuCYu(3,3),mu2YuadjYu(3,3),Ydmq2adjYd(3,3)          &
-  & ,YdadjYdmd2(3,3),YdadjYdYd(3,3),YdadjYdYs(3,3),YdadjYdYz(3,3),YdadjYdAYd(3,3)          &
-  & ,YdadjYdAYs(3,3),YdadjYdAYz(3,3),YdadjYuYu(3,3),YdadjYuAYu(3,3),Yeml2adjYe(3,3)        &
-  & ,YeadjYeme2(3,3),YeadjYeYe(3,3),YeadjYeAYe(3,3),YeadjYzYz(3,3),YeadjYzAYz(3,3)         &
-  & ,YeCYtYt(3,3),YeCYtAYt(3,3),Ysmd2CYs(3,3),YsCYdTYd(3,3),YsCYdTAYd(3,3),YsCYsmd2(3,3)   &
-  & ,YsCYsYd(3,3),YsCYsYs(3,3),YsCYsYz(3,3),YsCYsAYd(3,3),YsCYsAYs(3,3),YsCYsAYz(3,3)      &
-  & ,YsCYzTYz(3,3),YsCYzTAYz(3,3),Ytml2CYt(3,3),YtadjYeYe(3,3),YtadjYeAYe(3,3)             &
-  & ,YtadjYzYz(3,3),YtadjYzAYz(3,3),YtCYtml2(3,3),YtCYtYt(3,3),YtCYtAYt(3,3)               &
-  & ,Yumq2adjYu(3,3),YuadjYdYd(3,3),YuadjYdAYd(3,3),YuadjYumu2(3,3),YuadjYuYu(3,3)         &
-  & ,YuadjYuAYu(3,3),Yzml2adjYz(3,3),YzadjYeYe(3,3),YzadjYeAYe(3,3),YzadjYzmd2(3,3)        &
-  & ,YzadjYzYd(3,3),YzadjYzYs(3,3),YzadjYzYz(3,3),YzadjYzAYd(3,3),YzadjYzAYs(3,3)          &
-  & ,YzadjYzAYz(3,3),YzCYtYt(3,3),YzCYtAYt(3,3),AYdadjYdYd(3,3),AYdadjYdYs(3,3)            &
-  & ,AYdadjYdYz(3,3),AYdadjYuYu(3,3),AYeadjYeYe(3,3),AYeadjYzYz(3,3),AYeCYtYt(3,3)         &
-  & ,AYsCYdTYd(3,3),AYsCYsYd(3,3),AYsCYsYs(3,3),AYsCYsYz(3,3),AYsCYzTYz(3,3)               &
-  & ,AYtadjYeYe(3,3),AYtadjYzYz(3,3),AYtCYtYt(3,3),AYuadjYdYd(3,3),AYuadjYuYu(3,3)         &
-  & ,AYzadjYeYe(3,3),AYzadjYzYd(3,3),AYzadjYzYs(3,3),AYzadjYzYz(3,3),AYzCYtYt(3,3)         &
-  & ,CYsmd2Ys(3,3),CYsYsmd2(3,3),CYtml2Yt(3,3),CYtYtml2(3,3),TYdmd2CYd(3,3),               &
-  & TYdCYdmq2(3,3),TYeme2CYe(3,3),TYeCYeml2(3,3),TYeCYeYt(3,3),TYeCYeAYt(3,3)              &
-  & ,TYumu2CYu(3,3),TYuCYumq2(3,3),TYzmd2CYz(3,3),TYzCYzml2(3,3),TYzCYzYt(3,3)             &
-  & ,TYzCYzAYt(3,3),TAYeCYeYt(3,3),TAYzCYzYt(3,3)
-
-  Complex(dp) :: md2Yz(3,3),me2Ye(3,3),YdadjYu(3,3),YdadjAYd(3,3),YdadjAYu(3,3)         &
-  & ,Yeml2(3,3),YeadjYz(3,3),YeadjAYe(3,3),YeadjAYz(3,3),YeCYt(3,3),YeCAYt(3,3)            &
-  & ,YsCYd(3,3),YsCYz(3,3),YsCAYd(3,3),YsCAYs(3,3),YsCAYz(3,3),YtadjYe(3,3),               &
-  & YtadjYz(3,3),YtadjAYe(3,3),YtadjAYz(3,3),YtCAYt(3,3),YuadjYd(3,3),YuadjAYd(3,3)        &
-  & ,YuadjAYu(3,3),Yzml2(3,3),YzadjYe(3,3),YzadjAYe(3,3),YzadjAYz(3,3),YzCYt(3,3)          &
-  & ,YzCAYt(3,3),AYdadjYu(3,3),AYdadjAYu(3,3),AYeadjYz(3,3),AYeadjAYz(3,3),AYeCYt(3,3)     &
-  & ,AYeCAYt(3,3),AYsCYd(3,3),AYsCYs(3,3),AYsCYz(3,3),AYsCAYd(3,3),AYsCAYz(3,3)            &
-  & ,AYtadjYe(3,3),AYtadjYz(3,3),AYtadjAYe(3,3),AYtadjAYz(3,3),AYtCYt(3,3),AYuadjYd(3,3)   &
-  & ,AYuadjAYd(3,3),AYzadjYe(3,3),AYzadjAYe(3,3),AYzCYt(3,3),AYzCAYt(3,3),adjAYdYs(3,3)    &
-  & ,adjAYdAYs(3,3),adjAYeYe(3,3),adjAYeAYe(3,3),adjAYzYs(3,3),adjAYzYz(3,3)               &
-  & ,adjAYzAYs(3,3),adjAYzAYz(3,3),CYeTYz(3,3),CYeTAYz(3,3),CYtTYz(3,3),CYtTAYz(3,3)       &
-  & ,CYuTYd(3,3),CYuTAYd(3,3),CAYsYs(3,3),CAYtYt(3,3),TYdCYs(3,3),TYdCYz(3,3)              &
-  & ,TYdCAYd(3,3),TYdCAYs(3,3),TYdCAYz(3,3),TYeCAYe(3,3),TYuCAYu(3,3),TYzCYd(3,3)          &
-  & ,TYzCYs(3,3),TYzCAYd(3,3),TYzCAYs(3,3),TYzCAYz(3,3),TAYdCYd(3,3),TAYdCYs(3,3)          &
-  & ,TAYdCYz(3,3),TAYdCAYs(3,3),TAYdCAYz(3,3),TAYeCYe(3,3),TAYuCYu(3,3),TAYzCYd(3,3)       &
-  & ,TAYzCYs(3,3),TAYzCYz(3,3),TAYzCAYd(3,3),TAYzCAYs(3,3),md2YdadjYu(3,3),md2YsCYd(3,3)   &
-  & ,md2YsCYz(3,3),md2YzadjYe(3,3),md2YzCYt(3,3),md2CYsYs(3,3),me2YeadjYz(3,3)             &
-  & ,me2YeCYt(3,3),ml2YtadjYe(3,3),ml2YtadjYz(3,3),ml2adjYeYe(3,3),ml2adjYzYs(3,3)         &
-  & ,ml2adjYzYz(3,3),ml2CYtYt(3,3),ml2TYzCYd(3,3),ml2TYzCYs(3,3),mq2adjYdYs(3,3)           &
-  & ,mq2TYdCYs(3,3),mq2TYdCYz(3,3),mu2YuadjYd(3,3),Ydmq2adjYu(3,3),YdadjYumu2(3,3)         &
-  & ,YdadjAYdAYs(3,3),Yeml2adjYz(3,3),Yeml2CYt(3,3),YeadjYzmd2(3,3),YeadjYzYd(3,3)         &
-  & ,YeadjYzYs(3,3),YeadjYzAYd(3,3),YeadjYzAYs(3,3),YeCYtml2(3,3),Ysmd2CYd(3,3)            &
-  & ,Ysmd2CYz(3,3),YsCYdmq2(3,3),YsCYzml2(3,3),YsCYzYt(3,3),YsCYzAYt(3,3),YsCAYsAYs(3,3)   &
-  & ,Ytml2adjYe(3,3),Ytml2adjYz(3,3),YtadjYeme2(3,3),YtadjYzmd2(3,3),YtadjYzYd(3,3)        &
-  & ,YtadjYzYs(3,3),YtadjYzAYd(3,3),YtadjYzAYs(3,3),YtadjAYeAYe(3,3),YtadjAYzAYz(3,3)      &
-  & ,YtCYtTYz(3,3),YtCYtTAYz(3,3),YtCAYtAYt(3,3),Yumq2adjYd(3,3),YuadjYdmd2(3,3)           &
-  & ,YuadjYdYs(3,3),YuadjYdYz(3,3),YuadjYdAYs(3,3),YuadjYdAYz(3,3),Yzml2adjYe(3,3)         &
-  & ,Yzml2CYt(3,3),YzadjYeme2(3,3),YzadjAYzAYs(3,3),YzCYtml2(3,3),AYdadjAYdYs(3,3)         &
-  & ,AYeadjYzYd(3,3),AYeadjYzYs(3,3),AYsCYzYt(3,3),AYsCAYsYs(3,3),AYtadjYzYd(3,3)          &
-  & ,AYtadjYzYs(3,3),AYtadjAYeYe(3,3),AYtadjAYzYz(3,3),AYtCYtTYz(3,3),AYtCAYtYt(3,3)       &
-  & ,AYuadjYdYs(3,3),AYuadjYdYz(3,3),AYzadjAYzYs(3,3),adjYdmd2Ys(3,3),adjYdYdadjYd(3,3)    &
-  & ,adjYdYdadjYu(3,3),adjYdYdadjAYd(3,3),adjYdYdadjAYu(3,3),adjYdYsmd2(3,3)               &
-  & ,adjYdYsCYs(3,3),adjYdYzadjYz(3,3),adjYdAYdadjYd(3,3),adjYdAYdadjYu(3,3)               &
-  & ,adjYdAYdadjAYd(3,3),adjYdAYdadjAYu(3,3),adjYdAYsCYs(3,3),adjYdAYsCAYs(3,3)            &
-  & ,adjYdAYzadjYz(3,3),adjYdAYzadjAYz(3,3),adjYeme2Ye(3,3),adjYeYeml2(3,3),               &
-  & adjYeYeadjYe(3,3),adjYeYeadjYz(3,3),adjYeYeadjAYe(3,3),adjYeYeadjAYz(3,3)              &
-  & ,adjYeYeCYt(3,3),adjYeYeCAYt(3,3),adjYeAYeadjYe(3,3),adjYeAYeadjYz(3,3),               &
-  & adjYeAYeadjAYe(3,3),adjYeAYeadjAYz(3,3),adjYeAYeCYt(3,3),adjYeAYeCAYt(3,3)             &
-  & ,adjYuYuadjYd(3,3),adjYuYuadjYu(3,3),adjYuYuadjAYd(3,3),adjYuYuadjAYu(3,3)             &
-  & ,adjYuAYuadjYd(3,3),adjYuAYuadjYu(3,3),adjYuAYuadjAYd(3,3),adjYuAYuadjAYu(3,3)         &
-  & ,adjYzmd2Ys(3,3),adjYzmd2Yz(3,3),adjYzYdadjYd(3,3),adjYzYsmd2(3,3),adjYzYsCYs(3,3)     &
-  & ,adjYzYzml2(3,3),adjYzYzadjYe(3,3),adjYzYzadjYz(3,3),adjYzYzadjAYe(3,3),               &
-  & adjYzYzadjAYz(3,3),adjYzYzCYt(3,3),adjYzYzCAYt(3,3),adjYzAYdadjYd(3,3),adjYzAYdadjAYd(3,3)&
-  & ,adjYzAYsCYs(3,3),adjYzAYsCAYs(3,3),adjYzAYzadjYe(3,3),adjYzAYzadjYz(3,3)              &
-  & ,adjYzAYzadjAYe(3,3),adjYzAYzadjAYz(3,3),adjYzAYzCYt(3,3),adjYzAYzCAYt(3,3)            &
-  & ,adjAYdYdadjYd(3,3),adjAYdYdadjYu(3,3),adjAYdAYdadjYd(3,3),adjAYdAYdadjYu(3,3)         &
-  & ,adjAYdAYsCYs(3,3),adjAYdAYzadjYz(3,3),adjAYeYeadjYe(3,3),adjAYeYeadjYz(3,3)           &
-  & ,adjAYeYeCYt(3,3),adjAYeAYeadjYe(3,3),adjAYeAYeadjYz(3,3),adjAYeAYeCYt(3,3)            &
-  & ,adjAYuYuadjYd(3,3),adjAYuYuadjYu(3,3),adjAYuAYuadjYd(3,3),adjAYuAYuadjYu(3,3)         &
-  & ,adjAYzYzadjYe(3,3),adjAYzYzadjYz(3,3),adjAYzYzCYt(3,3),adjAYzAYdadjYd(3,3)            &
-  & ,adjAYzAYsCYs(3,3),adjAYzAYzadjYe(3,3),adjAYzAYzadjYz(3,3),adjAYzAYzCYt(3,3)           &
-  & ,CYdTYdCYd(3,3),CYdTYdCYs(3,3),CYdTYdCYz(3,3),CYdTYdCAYd(3,3),CYdTYdCAYs(3,3)          &
-  & ,CYdTYdCAYz(3,3),CYdTAYdCAYd(3,3),CYdTAYdCAYs(3,3),CYdTAYdCAYz(3,3),CYeTYeCYe(3,3)     &
-  & ,CYeTYeCAYe(3,3),CYeTAYeCAYe(3,3),CYsYdadjYd(3,3),CYsYsCYd(3,3),CYsYsCYs(3,3)          &
-  & ,CYsYsCYz(3,3),CYsYsCAYd(3,3),CYsYsCAYs(3,3),CYsYsCAYz(3,3),CYsYzadjYz(3,3)            &
-  & ,CYsAYdadjYd(3,3),CYsAYdadjAYd(3,3),CYsAYsCYs(3,3),CYsAYsCAYd(3,3),CYsAYsCAYs(3,3)     &
-  & ,CYsAYsCAYz(3,3),CYsAYzadjYz(3,3),CYsAYzadjAYz(3,3),CYtYtadjYe(3,3),CYtYtadjYz(3,3)    &
-  & ,CYtYtadjAYe(3,3),CYtYtadjAYz(3,3),CYtYtCYt(3,3),CYtYtCAYt(3,3),CYtAYtadjYe(3,3)       &
-  & ,CYtAYtadjYz(3,3),CYtAYtadjAYe(3,3),CYtAYtadjAYz(3,3),CYtAYtCYt(3,3),CYtAYtCAYt(3,3)   &
-  & ,CYuTYuCYu(3,3),CYuTYuCAYu(3,3),CYuTAYuCAYu(3,3),CYzTYzCYd(3,3),CYzTYzCYs(3,3)         &
-  & ,CYzTYzCYz(3,3),CYzTYzCAYd(3,3),CYzTYzCAYs(3,3),CYzTYzCAYz(3,3),CYzTAYzCAYd(3,3)       &
-  & ,CYzTAYzCAYs(3,3),CYzTAYzCAYz(3,3),CAYdTYdCYd(3,3),CAYdTYdCYs(3,3),CAYdTYdCYz(3,3)     &
-  & ,CAYdTAYdCYd(3,3),CAYdTAYdCYs(3,3),CAYdTAYdCYz(3,3),CAYeTYeCYe(3,3),CAYeTAYeCYe(3,3)   &
-  & ,CAYsYsCYd(3,3),CAYsYsCYs(3,3),CAYsYsCYz(3,3),CAYsAYdadjYd(3,3),CAYsAYsCYd(3,3)        &
-  & ,CAYsAYsCYs(3,3),CAYsAYsCYz(3,3),CAYsAYzadjYz(3,3),CAYtYtadjYe(3,3),CAYtYtadjYz(3,3)   &
-  & ,CAYtYtCYt(3,3),CAYtAYtadjYe(3,3),CAYtAYtadjYz(3,3),CAYtAYtCYt(3,3),CAYuTYuCYu(3,3)    &
-  & ,CAYuTAYuCYu(3,3),CAYzTYzCYd(3,3),CAYzTYzCYs(3,3),CAYzTYzCYz(3,3),CAYzTAYzCYd(3,3)     &
-  & ,CAYzTAYzCYs(3,3),CAYzTAYzCYz(3,3),TYdmd2CYs(3,3),TYdmd2CYz(3,3),TYdCYdTYd(3,3)        &
-  & ,TYdCYdTAYd(3,3),TYdCYsmd2(3,3),TYdCYsYd(3,3),TYdCYsYs(3,3),TYdCYsYz(3,3)              &
-  & ,TYdCYsAYd(3,3),TYdCYsAYs(3,3),TYdCYsAYz(3,3),TYdCYzml2(3,3),TYdCYzYt(3,3)             &
-  & ,TYdCYzAYt(3,3),TYeCYeTYz(3,3),TYeCYeTAYz(3,3),TYuCYuTYd(3,3),TYuCYuTAYd(3,3)          &
-  & ,TYzmd2CYd(3,3),TYzmd2CYs(3,3),TYzCYdmq2(3,3),TYzCYsmd2(3,3),TYzCYsYd(3,3)             &
-  & ,TYzCYsYs(3,3),TYzCYsYz(3,3),TYzCYsAYd(3,3),TYzCYsAYs(3,3),TYzCYsAYz(3,3)              &
-  & ,TYzCYzTYz(3,3),TYzCYzTAYz(3,3),TAYdCYdTYd(3,3),TAYdCYsYd(3,3),TAYdCYsYs(3,3)          &
-  & ,TAYdCYsYz(3,3),TAYdCYzYt(3,3),TAYeCYeTYz(3,3),TAYuCYuTYd(3,3),TAYzCYsYd(3,3)          &
-  & ,TAYzCYsYs(3,3),TAYzCYsYz(3,3),TAYzCYzTYz(3,3),md2YsCYsYs(3,3),md2CYdTYdCYd(3,3)       &
-  & ,md2CYdTYdCYs(3,3),md2CYdTYdCYz(3,3),md2CYsYdadjYd(3,3),md2CYsYsCYd(3,3)               &
-  & ,md2CYsYsCYs(3,3),md2CYsYsCYz(3,3),md2CYsYzadjYz(3,3),md2CYzTYzCYd(3,3),               &
-  & md2CYzTYzCYs(3,3),md2CYzTYzCYz(3,3),me2CYeTYeCYe(3,3),ml2YtCYtYt(3,3),ml2adjYeYeadjYe(3,3)&
-  & ,ml2adjYeYeadjYz(3,3),ml2adjYeYeCYt(3,3),ml2adjYzYdadjYd(3,3),ml2adjYzYsCYs(3,3)       &
-  & ,ml2adjYzYzadjYe(3,3),ml2adjYzYzadjYz(3,3),ml2adjYzYzCYt(3,3),ml2CYtYtadjYe(3,3)       &
-  & ,ml2CYtYtadjYz(3,3),ml2CYtYtCYt(3,3),mq2adjYdYdadjYd(3,3),mq2adjYdYdadjYu(3,3)         &
-  & ,mq2adjYdYsCYs(3,3),mq2adjYdYzadjYz(3,3),mq2adjYuYuadjYd(3,3),mq2adjYuYuadjYu(3,3)     &
-  & ,mu2CYuTYuCYu(3,3),Ydmq2adjYdYs(3,3),YdadjYdmd2Ys(3,3),YdadjYdYdadjYd(3,3)             &
-  & ,YdadjYdYsmd2(3,3),YdadjYdYsCYs(3,3),YdadjYdYzadjYz(3,3),YdadjYdAYdadjYd(3,3)          &
-  & ,YdadjYdAYdadjAYd(3,3),YdadjYdAYsCYs(3,3),YdadjYdAYsCAYs(3,3),YdadjYdAYzadjYz(3,3)     &
-  & ,YdadjYdAYzadjAYz(3,3),YdadjYuYuadjYd(3,3),YdadjYuAYuadjYd(3,3),YdadjYuAYuadjAYd(3,3)  &
-  & ,YdadjAYdAYdadjYd(3,3),YdadjAYdAYsCYs(3,3),YdadjAYdAYzadjYz(3,3),YdadjAYuAYuadjYd(3,3) &
-  & ,YeadjYeYeadjYe(3,3),YeadjYeAYeadjYe(3,3),YeadjYeAYeadjAYe(3,3),YeadjYzYzadjYe(3,3)    &
-  & ,YeadjYzAYzadjYe(3,3),YeadjYzAYzadjAYe(3,3),YeadjAYeAYeadjYe(3,3),YeadjAYzAYzadjYe(3,3)&
-  & ,YeCYtYtadjYe(3,3),YeCYtAYtadjYe(3,3),YeCYtAYtadjAYe(3,3),YeCAYtAYtadjYe(3,3)          &
-  & ,Ysmd2CYsYs(3,3),YsCYdTYdCYs(3,3),YsCYdTAYdCAYs(3,3),YsCYsmd2Ys(3,3),YsCYsYdadjYd(3,3) &
-  & ,YsCYsYsmd2(3,3),YsCYsYsCYs(3,3),YsCYsYzadjYz(3,3),YsCYsAYdadjYd(3,3),YsCYsAYdadjAYd(3,3)&
-  & ,YsCYsAYsCYs(3,3),YsCYsAYsCAYs(3,3),YsCYsAYzadjYz(3,3),YsCYsAYzadjAYz(3,3)             &
-  & ,YsCYzTYzCYs(3,3),YsCYzTAYzCAYs(3,3),YsCAYdTAYdCYs(3,3),YsCAYsAYdadjYd(3,3)            &
-  & ,YsCAYsAYsCYs(3,3),YsCAYsAYzadjYz(3,3),YsCAYzTAYzCYs(3,3),Ytml2adjYeYe(3,3)            &
-  & ,Ytml2adjYzYz(3,3),Ytml2CYtYt(3,3),YtadjYeme2Ye(3,3),YtadjYeYeml2(3,3),YtadjYeYeCYt(3,3)&
-  & ,YtadjYeAYeCYt(3,3),YtadjYeAYeCAYt(3,3),YtadjYzmd2Yz(3,3),YtadjYzYzml2(3,3)            &
-  & ,YtadjYzYzCYt(3,3),YtadjYzAYzCYt(3,3),YtadjYzAYzCAYt(3,3),YtadjAYeAYeCYt(3,3)          &
-  & ,YtadjAYzAYzCYt(3,3),YtCYtml2Yt(3,3),YtCYtYtml2(3,3),YtCYtYtCYt(3,3),YtCYtAYtCYt(3,3)  &
-  & ,YtCYtAYtCAYt(3,3),YtCAYtAYtCYt(3,3),YuadjYdYdadjYu(3,3),YuadjYdAYdadjYu(3,3)          &
-  & ,YuadjYdAYdadjAYu(3,3),YuadjYuYuadjYu(3,3),YuadjYuAYuadjYu(3,3),YuadjYuAYuadjAYu(3,3)  &
-  & ,YuadjAYdAYdadjYu(3,3),YuadjAYuAYuadjYu(3,3),Yzml2adjYzYs(3,3),YzadjYeYeadjYz(3,3)     &
-  & ,YzadjYeAYeadjYz(3,3),YzadjYeAYeadjAYz(3,3),YzadjYzmd2Ys(3,3),YzadjYzYdadjYd(3,3)      &
-  & ,YzadjYzYsmd2(3,3),YzadjYzYsCYs(3,3),YzadjYzYzadjYz(3,3),YzadjYzAYdadjYd(3,3)          &
-  & ,YzadjYzAYdadjAYd(3,3),YzadjYzAYsCYs(3,3),YzadjYzAYsCAYs(3,3),YzadjYzAYzadjYz(3,3)     &
-  & ,YzadjYzAYzadjAYz(3,3),YzadjAYeAYeadjYz(3,3),YzadjAYzAYdadjYd(3,3),YzadjAYzAYsCYs(3,3) &
-  & ,YzadjAYzAYzadjYz(3,3),YzCYtYtadjYz(3,3),YzCYtAYtadjYz(3,3),YzCYtAYtadjAYz(3,3)        &
-  & ,YzCAYtAYtadjYz(3,3),AYdadjYdYdadjAYd(3,3),AYdadjYuYuadjAYd(3,3),AYdadjAYdYdadjYd(3,3) &
-  & ,AYdadjAYuYuadjYd(3,3),AYeadjYeYeadjAYe(3,3),AYeadjYzYzadjAYe(3,3),AYeadjAYeYeadjYe(3,3)&
-  & ,AYeadjAYzYzadjYe(3,3),AYeCYtYtadjAYe(3,3),AYeCAYtYtadjYe(3,3),AYsCYdTYdCAYs(3,3)      &
-  & ,AYsCYsYsCAYs(3,3),AYsCYzTYzCAYs(3,3),AYsCAYdTYdCYs(3,3),AYsCAYsYsCYs(3,3)             &
-  & ,AYsCAYzTYzCYs(3,3),AYtadjYeYeCAYt(3,3),AYtadjYzYzCAYt(3,3),AYtadjAYeYeCYt(3,3)        &
-  & ,AYtadjAYzYzCYt(3,3),AYtCYtYtCAYt(3,3),AYtCAYtYtCYt(3,3),AYuadjYdYdadjAYu(3,3)         &
-  & ,AYuadjYuYuadjAYu(3,3),AYuadjAYdYdadjYu(3,3),AYuadjAYuYuadjYu(3,3),AYzadjYeYeadjAYz(3,3)&
-  & ,AYzadjYzYzadjAYz(3,3),AYzadjAYeYeadjYz(3,3),AYzadjAYzYzadjYz(3,3),AYzCYtYtadjAYz(3,3) &
-  & ,AYzCAYtYtadjYz(3,3),adjYdmd2YdadjYd(3,3),adjYdmd2YdadjYu(3,3),adjYdmd2YsCYs(3,3)      &
-  & ,adjYdmd2YzadjYz(3,3),adjYdYdmq2adjYd(3,3),adjYdYdmq2adjYu(3,3),adjYdYdadjYdmd2(3,3)   &
-  & ,adjYdYdadjYdYd(3,3),adjYdYdadjYdYs(3,3),adjYdYdadjYdYz(3,3),adjYdYdadjYdAYd(3,3)      &
-  & ,adjYdYdadjYdAYs(3,3),adjYdYdadjYdAYz(3,3),adjYdYdadjYumu2(3,3),adjYdYdadjYuYu(3,3)    &
-  & ,adjYdYdadjYuAYu(3,3),adjYdYsCYsYd(3,3),adjYdYsCYsAYd(3,3),adjYdYzml2adjYz(3,3)        &
-  & ,adjYdYzadjYzYd(3,3),adjYdYzadjYzAYd(3,3),adjYdAYdadjYdYd(3,3),adjYdAYdadjYdYs(3,3)    &
-  & ,adjYdAYdadjYdYz(3,3),adjYdAYdadjYuYu(3,3),adjYdAYsCYsYd(3,3),adjYdAYzadjYzYd(3,3)     &
-  & ,adjYeme2YeadjYe(3,3),adjYeme2YeadjYz(3,3),adjYeme2YeCYt(3,3),adjYeYeml2adjYe(3,3)     &
-  & ,adjYeYeml2adjYz(3,3),adjYeYeml2CYt(3,3),adjYeYeadjYeme2(3,3),adjYeYeadjYeYe(3,3)      &
-  & ,adjYeYeadjYeAYe(3,3),adjYeYeadjYzmd2(3,3),adjYeYeadjYzYd(3,3),adjYeYeadjYzYs(3,3)     &
-  & ,adjYeYeadjYzYz(3,3),adjYeYeadjYzAYd(3,3),adjYeYeadjYzAYs(3,3),adjYeYeadjYzAYz(3,3)    &
-  & ,adjYeYeCYtml2(3,3),adjYeYeCYtYt(3,3),adjYeYeCYtAYt(3,3),adjYeAYeadjYeYe(3,3)          &
-  & ,adjYeAYeadjYzYd(3,3),adjYeAYeadjYzYs(3,3),adjYeAYeadjYzYz(3,3),adjYeAYeCYtYt(3,3)     &
-  & ,adjYumu2YuadjYd(3,3),adjYumu2YuadjYu(3,3),adjYuYumq2adjYd(3,3),adjYuYumq2adjYu(3,3)   &
-  & ,adjYuYuadjYdmd2(3,3),adjYuYuadjYdYd(3,3),adjYuYuadjYdYs(3,3),adjYuYuadjYdYz(3,3)      &
-  & ,adjYuYuadjYdAYd(3,3),adjYuYuadjYdAYs(3,3),adjYuYuadjYdAYz(3,3),adjYuYuadjYumu2(3,3)   &
-  & ,adjYuYuadjYuYu(3,3),adjYuYuadjYuAYu(3,3),adjYuAYuadjYdYd(3,3),adjYuAYuadjYdYs(3,3)    &
-  & ,adjYuAYuadjYdYz(3,3),adjYuAYuadjYuYu(3,3),adjYzmd2YdadjYd(3,3),adjYzmd2YsCYs(3,3)     &
-  & ,adjYzmd2YzadjYe(3,3),adjYzmd2YzadjYz(3,3),adjYzmd2YzCYt(3,3),adjYzYdmq2adjYd(3,3)     &
-  & ,adjYzYdadjYdYz(3,3),adjYzYdadjYdAYz(3,3),adjYzYsCYsYz(3,3),adjYzYsCYsAYz(3,3)         &
-  & ,adjYzYzml2adjYe(3,3),adjYzYzml2adjYz(3,3),adjYzYzml2CYt(3,3),adjYzYzadjYeme2(3,3)     &
-  & ,adjYzYzadjYeYe(3,3),adjYzYzadjYeAYe(3,3),adjYzYzadjYzmd2(3,3),adjYzYzadjYzYd(3,3)     &
-  & ,adjYzYzadjYzYs(3,3),adjYzYzadjYzYz(3,3),adjYzYzadjYzAYd(3,3),adjYzYzadjYzAYs(3,3)     &
-  & ,adjYzYzadjYzAYz(3,3),adjYzYzCYtml2(3,3),adjYzYzCYtYt(3,3),adjYzYzCYtAYt(3,3)          &
-  & ,adjYzAYdadjYdYz(3,3),adjYzAYsCYsYz(3,3),adjYzAYzadjYeYe(3,3),adjYzAYzadjYzYd(3,3)     &
-  & ,adjYzAYzadjYzYs(3,3),adjYzAYzadjYzYz(3,3),adjYzAYzCYtYt(3,3),CYdmq2TYdCYd(3,3)        &
-  & ,CYdmq2TYdCYs(3,3),CYdmq2TYdCYz(3,3),CYdTYdmd2CYd(3,3),CYdTYdmd2CYs(3,3)               &
-  & ,CYdTYdmd2CYz(3,3),CYdTYdCYdmq2(3,3),CYdTYdCYdTYd(3,3),CYdTYdCYdTAYd(3,3)              &
-  & ,CYdTYdCYsmd2(3,3),CYdTYdCYsYd(3,3),CYdTYdCYsYs(3,3),CYdTYdCYsYz(3,3),CYdTYdCYsAYd(3,3)&
-  & ,CYdTYdCYsAYs(3,3),CYdTYdCYsAYz(3,3),CYdTYdCYzml2(3,3),CYdTYdCYzYt(3,3),               &
-  & CYdTYdCYzAYt(3,3),CYdTYuCYuTYd(3,3),CYdTYuCYuTAYd(3,3),CYdTAYdCYdTYd(3,3)              &
-  & ,CYdTAYdCYsYd(3,3),CYdTAYdCYsYs(3,3),CYdTAYdCYsYz(3,3),CYdTAYdCYzYt(3,3)               &
-  & ,CYdTAYuCYuTYd(3,3),CYeml2TYeCYe(3,3),CYeTYeme2CYe(3,3),CYeTYeCYeml2(3,3)              &
-  & ,CYeTYeCYeYt(3,3),CYeTYeCYeAYt(3,3),CYeTAYeCYeYt(3,3),CYsmd2YdadjYd(3,3)               &
-  & ,CYsmd2YsCYd(3,3),CYsmd2YsCYs(3,3),CYsmd2YsCYz(3,3),CYsmd2YzadjYz(3,3),CYsYdmq2adjYd(3,3)&
-  & ,CYsYdadjYdmd2(3,3),CYsYdadjYdYs(3,3),CYsYdadjYdAYs(3,3),CYsYdadjAYdAYs(3,3)           &
-  & ,CYsYsmd2CYd(3,3),CYsYsmd2CYs(3,3),CYsYsmd2CYz(3,3),CYsYsCYdmq2(3,3),CYsYsCYsmd2(3,3)  &
-  & ,CYsYsCYsYd(3,3),CYsYsCYsYs(3,3),CYsYsCYsYz(3,3),CYsYsCYsAYd(3,3),CYsYsCYsAYs(3,3)     &
-  & ,CYsYsCYsAYz(3,3),CYsYsCYzml2(3,3),CYsYsCYzYt(3,3),CYsYsCYzAYt(3,3),CYsYsCAYsAYs(3,3)  &
-  & ,CYsYzml2adjYz(3,3),CYsYzadjYzmd2(3,3),CYsYzadjYzYs(3,3),CYsYzadjYzAYs(3,3)            &
-  & ,CYsYzadjAYzAYs(3,3),CYsAYdadjYdYs(3,3),CYsAYdadjAYdYs(3,3),CYsAYsCYsYd(3,3)           &
-  & ,CYsAYsCYsYs(3,3),CYsAYsCYsYz(3,3),CYsAYsCYzYt(3,3),CYsAYsCAYsYs(3,3),CYsAYzadjYzYs(3,3)&
-  & ,CYsAYzadjAYzYs(3,3),CYtml2YtadjYe(3,3),CYtml2YtadjYz(3,3),CYtml2YtCYt(3,3)            &
-  & ,CYtYtml2adjYe(3,3),CYtYtml2adjYz(3,3),CYtYtml2CYt(3,3),CYtYtadjYeme2(3,3)             &
-  & ,CYtYtadjYeYe(3,3),CYtYtadjYeAYe(3,3),CYtYtadjYzmd2(3,3),CYtYtadjYzYd(3,3)             &
-  & ,CYtYtadjYzYs(3,3),CYtYtadjYzYz(3,3),CYtYtadjYzAYd(3,3),CYtYtadjYzAYs(3,3)             &
-  & ,CYtYtadjYzAYz(3,3),CYtYtadjAYeAYe(3,3),CYtYtadjAYzAYz(3,3),CYtYtCYtml2(3,3)           &
-  & ,CYtYtCYtYt(3,3),CYtYtCYtAYt(3,3),CYtYtCAYtAYt(3,3),CYtAYtadjYeYe(3,3),CYtAYtadjYzYd(3,3)&
-  & ,CYtAYtadjYzYs(3,3),CYtAYtadjYzYz(3,3),CYtAYtadjAYeYe(3,3),CYtAYtadjAYzYz(3,3)         &
-  & ,CYtAYtCYtYt(3,3),CYtAYtCAYtYt(3,3),CYtTYeCYeYt(3,3),CYtTYeCYeAYt(3,3),CYtTYzCYzYt(3,3)&
-  & ,CYtTYzCYzAYt(3,3),CYtTAYeCYeYt(3,3),CYtTAYzCYzYt(3,3),CYumq2TYuCYu(3,3)               &
-  & ,CYuTYumu2CYu(3,3),CYuTYuCYumq2(3,3),CYzml2TYzCYd(3,3),CYzml2TYzCYs(3,3)               &
-  & ,CYzml2TYzCYz(3,3),CYzYtCYtTYz(3,3),CYzYtCYtTAYz(3,3),CYzAYtCYtTYz(3,3),               &
-  & CYzTYeCYeTYz(3,3),CYzTYeCYeTAYz(3,3),CYzTYzmd2CYd(3,3),CYzTYzmd2CYs(3,3)               &
-  & ,CYzTYzmd2CYz(3,3),CYzTYzCYdmq2(3,3),CYzTYzCYsmd2(3,3),CYzTYzCYsYd(3,3),               &
-  & CYzTYzCYsYs(3,3),CYzTYzCYsYz(3,3),CYzTYzCYsAYd(3,3),CYzTYzCYsAYs(3,3),CYzTYzCYsAYz(3,3)&
-  & ,CYzTYzCYzml2(3,3),CYzTYzCYzYt(3,3),CYzTYzCYzAYt(3,3),CYzTYzCYzTYz(3,3),               &
-  & CYzTYzCYzTAYz(3,3),CYzTAYeCYeTYz(3,3),CYzTAYzCYsYd(3,3),CYzTAYzCYsYs(3,3)              &
-  & ,CYzTAYzCYsYz(3,3),CYzTAYzCYzYt(3,3),CYzTAYzCYzTYz(3,3),TYdCYdTYdCYd(3,3)              &
-  & ,TYdCYdTAYdCAYd(3,3),TYdCYsYsCYd(3,3),TYdCYsAYsCAYd(3,3),TYdCYzTYzCYd(3,3)             &
-  & ,TYdCYzTAYzCAYd(3,3),TYdCAYdTAYdCYd(3,3),TYdCAYsAYsCYd(3,3),TYdCAYzTAYzCYd(3,3)        &
-  & ,TYeCYeTYeCYe(3,3),TYeCYeTAYeCAYe(3,3),TYeCAYeTAYeCYe(3,3),TYuCYuTYuCYu(3,3)           &
-  & ,TYuCYuTAYuCAYu(3,3),TYuCAYuTAYuCYu(3,3),TYzCYdTYdCYz(3,3),TYzCYdTAYdCAYz(3,3)         &
-  & ,TYzCYsYsCYz(3,3),TYzCYsAYsCAYz(3,3),TYzCYzTYzCYz(3,3),TYzCYzTAYzCAYz(3,3)
-  Complex(dp) :: TYzCAYdTAYdCYz(3,3),TYzCAYsAYsCYz(3,3),TYzCAYzTAYzCYz(3,3),TAYdCYdTYdCAYd(3,3)        &
-  & ,TAYdCYsYsCAYd(3,3),TAYdCYzTYzCAYd(3,3),TAYdCAYdTYdCYd(3,3),TAYdCAYsYsCYd(3,3)         &
-  & ,TAYdCAYzTYzCYd(3,3),TAYeCYeTYeCAYe(3,3),TAYeCAYeTYeCYe(3,3),TAYuCYuTYuCAYu(3,3)       &
-  & ,TAYuCAYuTYuCYu(3,3),TAYzCYdTYdCAYz(3,3),TAYzCYsYsCAYz(3,3),TAYzCYzTYzCAYz(3,3)        &
-  & ,TAYzCAYdTYdCYz(3,3),TAYzCAYsYsCYz(3,3),TAYzCAYzTYzCYz(3,3),md2YdadjYdYdadjYd(3,3)     &
-  & ,md2YdadjYdYsCYs(3,3),md2YdadjYuYuadjYd(3,3),md2YsCYdTYdCYs(3,3),md2YsCYsYdadjYd(3,3)  &
-  & ,md2YsCYsYsCYs(3,3),md2YsCYsYzadjYz(3,3),md2YsCYzTYzCYs(3,3),md2YzadjYeYeadjYz(3,3)    &
-  & ,md2YzadjYzYsCYs(3,3),md2YzadjYzYzadjYz(3,3),md2YzCYtYtadjYz(3,3),md2CYsYsCYsYs(3,3)   &
-  & ,me2YeadjYeYeadjYe(3,3),me2YeadjYzYzadjYe(3,3),me2YeCYtYtadjYe(3,3),ml2YtadjYeYeCYt(3,3)&
-  & ,ml2YtadjYzYzCYt(3,3),ml2YtCYtYtCYt(3,3),ml2adjYzYsCYsYz(3,3),ml2CYtYtCYtYt(3,3)       &
-  & ,ml2TYeCYeTYeCYe(3,3),ml2TYzCYdTYdCYz(3,3),ml2TYzCYsYsCYz(3,3),ml2TYzCYzTYzCYz(3,3)    &
-  & ,mq2adjYdYsCYsYd(3,3),mq2TYdCYdTYdCYd(3,3),mq2TYdCYsYsCYd(3,3),mq2TYdCYzTYzCYd(3,3)    &
-  & ,mq2TYuCYuTYuCYu(3,3),mu2YuadjYdYdadjYu(3,3),mu2YuadjYuYuadjYu(3,3),Ydmq2adjYdYdadjYd(3,3)&
-  & ,Ydmq2adjYdYsCYs(3,3),Ydmq2adjYdYzadjYz(3,3),Ydmq2adjYuYuadjYd(3,3),YdadjYdmd2YdadjYd(3,3)&
-  & ,YdadjYdmd2YsCYs(3,3),YdadjYdmd2YzadjYz(3,3),YdadjYdYdmq2adjYd(3,3),YdadjYdYdadjYdmd2(3,3)&
-  & ,YdadjYdYdadjYdYd(3,3),YdadjYdYdadjYdYs(3,3),YdadjYdYdadjYdYz(3,3),YdadjYdYdadjYdAYd(3,3)&
-  & ,YdadjYdYdadjYdAYs(3,3),YdadjYdYdadjYdAYz(3,3),YdadjYdYsCYsYd(3,3),YdadjYdYsCYsAYd(3,3)&
-  & ,YdadjYdYzml2adjYz(3,3),YdadjYdYzadjYzYd(3,3),YdadjYdYzadjYzAYd(3,3),YdadjYdAYdadjYdYd(3,3)&
-  & ,YdadjYdAYdadjYdYs(3,3),YdadjYdAYdadjYdYz(3,3),YdadjYdAYsCYsYd(3,3),YdadjYdAYzadjYzYd(3,3)&
-  & ,YdadjYumu2YuadjYd(3,3),YdadjYuYumq2adjYd(3,3),YdadjYuYuadjYdmd2(3,3),YdadjYuYuadjYdYd(3,3)&
-  & ,YdadjYuYuadjYdYs(3,3),YdadjYuYuadjYdYz(3,3),YdadjYuYuadjYdAYd(3,3),YdadjYuYuadjYdAYs(3,3)&
-  & ,YdadjYuYuadjYdAYz(3,3),YdadjYuYuadjYuYu(3,3),YdadjYuYuadjYuAYu(3,3),YdadjYuAYuadjYdYd(3,3)&
-  & ,YdadjYuAYuadjYdYs(3,3),YdadjYuAYuadjYdYz(3,3),YdadjYuAYuadjYuYu(3,3),Yeml2adjYeYeadjYe(3,3)&
-  & ,Yeml2adjYzYzadjYe(3,3),Yeml2CYtYtadjYe(3,3),YeadjYeme2YeadjYe(3,3),YeadjYeYeml2adjYe(3,3)&
-  & ,YeadjYeYeadjYeme2(3,3),YeadjYeYeadjYeYe(3,3),YeadjYeYeadjYeAYe(3,3),YeadjYeAYeadjYeYe(3,3)&
-  & ,YeadjYzmd2YzadjYe(3,3),YeadjYzYdadjYdYz(3,3),YeadjYzYdadjYdAYz(3,3),YeadjYzYsCYsYz(3,3)&
-  & ,YeadjYzYsCYsAYz(3,3),YeadjYzYzml2adjYe(3,3),YeadjYzYzadjYeme2(3,3),YeadjYzYzadjYeYe(3,3)&
-  & ,YeadjYzYzadjYeAYe(3,3),YeadjYzYzadjYzYz(3,3),YeadjYzYzadjYzAYz(3,3),YeadjYzAYdadjYdYz(3,3)&
-  & ,YeadjYzAYsCYsYz(3,3),YeadjYzAYzadjYeYe(3,3),YeadjYzAYzadjYzYz(3,3),YeCYtml2YtadjYe(3,3)&
-  & ,YeCYtYtml2adjYe(3,3),YeCYtYtadjYeme2(3,3),YeCYtYtadjYeYe(3,3),YeCYtYtadjYeAYe(3,3)    &
-  & ,YeCYtYtCYtYt(3,3),YeCYtYtCYtAYt(3,3),YeCYtAYtadjYeYe(3,3),YeCYtAYtCYtYt(3,3)          &
-  & ,YeCYtTYeCYeYt(3,3),YeCYtTYeCYeAYt(3,3),YeCYtTYzCYzYt(3,3),YeCYtTYzCYzAYt(3,3)         &
-  & ,YeCYtTAYeCYeYt(3,3),YeCYtTAYzCYzYt(3,3),Ysmd2CYdTYdCYs(3,3),Ysmd2CYsYdadjYd(3,3)      &
-  & ,Ysmd2CYsYsCYs(3,3),Ysmd2CYsYzadjYz(3,3),Ysmd2CYzTYzCYs(3,3),YsCYdmq2TYdCYs(3,3)       &
-  & ,YsCYdTYdmd2CYs(3,3),YsCYdTYdCYdTYd(3,3),YsCYdTYdCYdTAYd(3,3),YsCYdTYdCYsmd2(3,3)      &
-  & ,YsCYdTYdCYsYd(3,3),YsCYdTYdCYsYs(3,3),YsCYdTYdCYsYz(3,3),YsCYdTYdCYsAYd(3,3)          &
-  & ,YsCYdTYdCYsAYs(3,3),YsCYdTYdCYsAYz(3,3),YsCYdTYuCYuTYd(3,3),YsCYdTYuCYuTAYd(3,3)      &
-  & ,YsCYdTAYdCYdTYd(3,3),YsCYdTAYdCYsYd(3,3),YsCYdTAYdCYsYs(3,3),YsCYdTAYdCYsYz(3,3)      &
-  & ,YsCYdTAYuCYuTYd(3,3),YsCYsmd2YdadjYd(3,3),YsCYsmd2YsCYs(3,3),YsCYsmd2YzadjYz(3,3)     &
-  & ,YsCYsYdmq2adjYd(3,3),YsCYsYdadjYdmd2(3,3),YsCYsYdadjYdYs(3,3),YsCYsYdadjYdAYs(3,3)    &
-  & ,YsCYsYsmd2CYs(3,3),YsCYsYsCYsmd2(3,3),YsCYsYsCYsYd(3,3),YsCYsYsCYsYs(3,3)             &
-  & ,YsCYsYsCYsYz(3,3),YsCYsYsCYsAYd(3,3),YsCYsYsCYsAYs(3,3),YsCYsYsCYsAYz(3,3)            &
-  & ,YsCYsYzml2adjYz(3,3),YsCYsYzadjYzmd2(3,3),YsCYsYzadjYzYs(3,3),YsCYsYzadjYzAYs(3,3)    &
-  & ,YsCYsAYdadjYdYs(3,3),YsCYsAYsCYsYd(3,3),YsCYsAYsCYsYs(3,3),YsCYsAYsCYsYz(3,3)         &
-  & ,YsCYsAYzadjYzYs(3,3),YsCYzml2TYzCYs(3,3),YsCYzYtCYtTYz(3,3),YsCYzYtCYtTAYz(3,3)       &
-  & ,YsCYzAYtCYtTYz(3,3),YsCYzTYeCYeTYz(3,3),YsCYzTYeCYeTAYz(3,3),YsCYzTYzmd2CYs(3,3)      &
-  & ,YsCYzTYzCYsmd2(3,3),YsCYzTYzCYsYd(3,3),YsCYzTYzCYsYs(3,3),YsCYzTYzCYsYz(3,3)          &
-  & ,YsCYzTYzCYsAYd(3,3),YsCYzTYzCYsAYs(3,3),YsCYzTYzCYsAYz(3,3),YsCYzTYzCYzTYz(3,3)       &
-  & ,YsCYzTYzCYzTAYz(3,3),YsCYzTAYeCYeTYz(3,3),YsCYzTAYzCYsYd(3,3),YsCYzTAYzCYsYs(3,3)     &
-  & ,YsCYzTAYzCYsYz(3,3),YsCYzTAYzCYzTYz(3,3),Ytml2adjYeYeCYt(3,3),Ytml2adjYzYzCYt(3,3)    &
-  & ,Ytml2CYtYtCYt(3,3),YtadjYeme2YeCYt(3,3),YtadjYeYeml2CYt(3,3),YtadjYeYeadjYeYe(3,3)    &
-  & ,YtadjYeYeadjYeAYe(3,3),YtadjYeYeCYtml2(3,3),YtadjYeYeCYtYt(3,3),YtadjYeYeCYtAYt(3,3)  &
-  & ,YtadjYeAYeadjYeYe(3,3),YtadjYeAYeCYtYt(3,3),YtadjYzmd2YzCYt(3,3),YtadjYzYdadjYdYz(3,3)&
-  & ,YtadjYzYdadjYdAYz(3,3),YtadjYzYsCYsYz(3,3),YtadjYzYsCYsAYz(3,3),YtadjYzYzml2CYt(3,3)  &
-  & ,YtadjYzYzadjYzYz(3,3),YtadjYzYzadjYzAYz(3,3),YtadjYzYzCYtml2(3,3),YtadjYzYzCYtYt(3,3) &
-  & ,YtadjYzYzCYtAYt(3,3),YtadjYzAYdadjYdYz(3,3),YtadjYzAYsCYsYz(3,3),YtadjYzAYzadjYzYz(3,3)&
-  & ,YtadjYzAYzCYtYt(3,3),YtCYtml2YtCYt(3,3),YtCYtYtml2CYt(3,3),YtCYtYtCYtml2(3,3)         &
-  & ,YtCYtYtCYtYt(3,3),YtCYtYtCYtAYt(3,3),YtCYtAYtCYtYt(3,3),YtCYtTYeCYeYt(3,3)            &
-  & ,YtCYtTYeCYeAYt(3,3),YtCYtTYzCYzYt(3,3),YtCYtTYzCYzAYt(3,3),YtCYtTAYeCYeYt(3,3)        &
-  & ,YtCYtTAYzCYzYt(3,3),Yumq2adjYdYdadjYu(3,3),Yumq2adjYuYuadjYu(3,3),YuadjYdmd2YdadjYu(3,3)&
-  & ,YuadjYdYdmq2adjYu(3,3),YuadjYdYdadjYdYd(3,3),YuadjYdYdadjYdAYd(3,3),YuadjYdYdadjYumu2(3,3)&
-  & ,YuadjYdYdadjYuYu(3,3),YuadjYdYdadjYuAYu(3,3),YuadjYdYsCYsYd(3,3),YuadjYdYsCYsAYd(3,3) &
-  & ,YuadjYdYzadjYzYd(3,3),YuadjYdYzadjYzAYd(3,3),YuadjYdAYdadjYdYd(3,3),YuadjYdAYdadjYuYu(3,3)&
-  & ,YuadjYdAYsCYsYd(3,3),YuadjYdAYzadjYzYd(3,3),YuadjYumu2YuadjYu(3,3),YuadjYuYumq2adjYu(3,3)&
-  & ,YuadjYuYuadjYumu2(3,3),YuadjYuYuadjYuYu(3,3),YuadjYuYuadjYuAYu(3,3),YuadjYuAYuadjYuYu(3,3)&
-  & ,Yzml2adjYeYeadjYz(3,3),Yzml2adjYzYdadjYd(3,3),Yzml2adjYzYsCYs(3,3),Yzml2adjYzYzadjYz(3,3)&
-  & ,Yzml2CYtYtadjYz(3,3),YzadjYeme2YeadjYz(3,3),YzadjYeYeml2adjYz(3,3),YzadjYeYeadjYeYe(3,3)&
-  & ,YzadjYeYeadjYeAYe(3,3),YzadjYeYeadjYzmd2(3,3),YzadjYeYeadjYzYd(3,3),YzadjYeYeadjYzYs(3,3)&
-  & ,YzadjYeYeadjYzYz(3,3),YzadjYeYeadjYzAYd(3,3),YzadjYeYeadjYzAYs(3,3),YzadjYeYeadjYzAYz(3,3)&
-  & ,YzadjYeAYeadjYeYe(3,3),YzadjYeAYeadjYzYd(3,3),YzadjYeAYeadjYzYs(3,3),YzadjYeAYeadjYzYz(3,3)&
-  & ,YzadjYzmd2YdadjYd(3,3),YzadjYzmd2YsCYs(3,3),YzadjYzmd2YzadjYz(3,3),YzadjYzYdmq2adjYd(3,3)&
-  & ,YzadjYzYdadjYdYz(3,3),YzadjYzYdadjYdAYz(3,3),YzadjYzYsCYsYz(3,3),YzadjYzYsCYsAYz(3,3) &
-  & ,YzadjYzYzml2adjYz(3,3),YzadjYzYzadjYzmd2(3,3),YzadjYzYzadjYzYd(3,3),YzadjYzYzadjYzYs(3,3)&
-  & ,YzadjYzYzadjYzYz(3,3),YzadjYzYzadjYzAYd(3,3),YzadjYzYzadjYzAYs(3,3),YzadjYzYzadjYzAYz(3,3)&
-  & ,YzadjYzAYdadjYdYz(3,3),YzadjYzAYsCYsYz(3,3),YzadjYzAYzadjYzYd(3,3),YzadjYzAYzadjYzYs(3,3)&
-  & ,YzadjYzAYzadjYzYz(3,3),YzCYtml2YtadjYz(3,3),YzCYtYtml2adjYz(3,3),YzCYtYtadjYzmd2(3,3) &
-  & ,YzCYtYtadjYzYd(3,3),YzCYtYtadjYzYs(3,3),YzCYtYtadjYzYz(3,3),YzCYtYtadjYzAYd(3,3)      &
-  & ,YzCYtYtadjYzAYs(3,3),YzCYtYtadjYzAYz(3,3),YzCYtYtCYtYt(3,3),YzCYtYtCYtAYt(3,3)        &
-  & ,YzCYtAYtadjYzYd(3,3),YzCYtAYtadjYzYs(3,3),YzCYtAYtadjYzYz(3,3),YzCYtAYtCYtYt(3,3)     &
-  & ,YzCYtTYeCYeYt(3,3),YzCYtTYeCYeAYt(3,3),YzCYtTYzCYzYt(3,3),YzCYtTYzCYzAYt(3,3)         &
-  & ,YzCYtTAYeCYeYt(3,3),YzCYtTAYzCYzYt(3,3),AYdadjYdYdadjYdYd(3,3),AYdadjYdYdadjYdYs(3,3) &
-  & ,AYdadjYdYdadjYdYz(3,3),AYdadjYdYsCYsYd(3,3),AYdadjYdYzadjYzYd(3,3),AYdadjYuYuadjYdYd(3,3)&
-  & ,AYdadjYuYuadjYdYs(3,3),AYdadjYuYuadjYdYz(3,3),AYdadjYuYuadjYuYu(3,3),AYeadjYeYeadjYeYe(3,3)&
-  & ,AYeadjYzYdadjYdYz(3,3),AYeadjYzYsCYsYz(3,3),AYeadjYzYzadjYeYe(3,3),AYeadjYzYzadjYzYz(3,3)&
-  & ,AYeCYtYtadjYeYe(3,3),AYeCYtYtCYtYt(3,3),AYeCYtTYeCYeYt(3,3),AYeCYtTYzCYzYt(3,3)       &
-  & ,AYsCYdTYdCYdTYd(3,3),AYsCYdTYdCYsYd(3,3),AYsCYdTYdCYsYs(3,3),AYsCYdTYdCYsYz(3,3)      &
-  & ,AYsCYdTYuCYuTYd(3,3),AYsCYsYdadjYdYs(3,3),AYsCYsYsCYsYd(3,3),AYsCYsYsCYsYs(3,3)       &
-  & ,AYsCYsYsCYsYz(3,3),AYsCYsYzadjYzYs(3,3),AYsCYzYtCYtTYz(3,3),AYsCYzTYeCYeTYz(3,3)      &
-  & ,AYsCYzTYzCYsYd(3,3),AYsCYzTYzCYsYs(3,3),AYsCYzTYzCYsYz(3,3),AYsCYzTYzCYzTYz(3,3)      &
-  & ,AYtadjYeYeadjYeYe(3,3),AYtadjYeYeCYtYt(3,3),AYtadjYzYdadjYdYz(3,3),AYtadjYzYsCYsYz(3,3)&
-  & ,AYtadjYzYzadjYzYz(3,3),AYtadjYzYzCYtYt(3,3),AYtCYtYtCYtYt(3,3),AYtCYtTYeCYeYt(3,3)    &
-  & ,AYtCYtTYzCYzYt(3,3),AYuadjYdYdadjYdYd(3,3),AYuadjYdYdadjYuYu(3,3),AYuadjYdYsCYsYd(3,3)&
-  & ,AYuadjYdYzadjYzYd(3,3),AYuadjYuYuadjYuYu(3,3),AYzadjYeYeadjYeYe(3,3),AYzadjYeYeadjYzYd(3,3)&
-  & ,AYzadjYeYeadjYzYs(3,3),AYzadjYeYeadjYzYz(3,3),AYzadjYzYdadjYdYz(3,3),AYzadjYzYsCYsYz(3,3)&
-  & ,AYzadjYzYzadjYzYd(3,3),AYzadjYzYzadjYzYs(3,3),AYzadjYzYzadjYzYz(3,3),AYzCYtYtadjYzYd(3,3)&
-  & ,AYzCYtYtadjYzYs(3,3),AYzCYtYtadjYzYz(3,3),AYzCYtYtCYtYt(3,3),AYzCYtTYeCYeYt(3,3)      &
-  & ,AYzCYtTYzCYzYt(3,3),CYsmd2YsCYsYs(3,3),CYsYdmq2adjYdYs(3,3),CYsYdadjYdmd2Ys(3,3)      &
-  & ,CYsYdadjYdYsmd2(3,3),CYsYsmd2CYsYs(3,3),CYsYsCYsmd2Ys(3,3),CYsYsCYsYsmd2(3,3)         &
-  & ,CYsYzml2adjYzYs(3,3),CYsYzadjYzmd2Ys(3,3),CYsYzadjYzYsmd2(3,3),CYtml2YtCYtYt(3,3)     &
-  & ,CYtYtml2adjYeYe(3,3),CYtYtml2adjYzYz(3,3),CYtYtml2CYtYt(3,3),CYtYtadjYeme2Ye(3,3)     &
-  & ,CYtYtadjYeYeml2(3,3),CYtYtadjYzmd2Yz(3,3),CYtYtadjYzYzml2(3,3),CYtYtCYtml2Yt(3,3)     &
-  & ,CYtYtCYtYtml2(3,3),TYdmd2CYdTYdCYd(3,3),TYdmd2CYsYsCYd(3,3),TYdmd2CYzTYzCYd(3,3)      &
-  & ,TYdCYdmq2TYdCYd(3,3),TYdCYdTYdmd2CYd(3,3),TYdCYdTYdCYdmq2(3,3),TYdCYsmd2YsCYd(3,3)    &
-  & ,TYdCYsYsmd2CYd(3,3),TYdCYsYsCYdmq2(3,3),TYdCYzml2TYzCYd(3,3),TYdCYzTYzmd2CYd(3,3)     &
-  & ,TYdCYzTYzCYdmq2(3,3),TYeme2CYeTYeCYe(3,3),TYeCYeml2TYeCYe(3,3),TYeCYeTYeme2CYe(3,3)   &
-  & ,TYeCYeTYeCYeml2(3,3),TYeCYeTYeCYeYt(3,3),TYeCYeTYeCYeAYt(3,3),TYeCYeTAYeCYeYt(3,3)    &
-  & ,TYumu2CYuTYuCYu(3,3),TYuCYumq2TYuCYu(3,3),TYuCYuTYumu2CYu(3,3),TYuCYuTYuCYumq2(3,3)   &
-  & ,TYzmd2CYdTYdCYz(3,3),TYzmd2CYsYsCYz(3,3),TYzmd2CYzTYzCYz(3,3),TYzCYdmq2TYdCYz(3,3)    &
-  & ,TYzCYdTYdmd2CYz(3,3),TYzCYdTYdCYzml2(3,3),TYzCYdTYdCYzYt(3,3),TYzCYdTYdCYzAYt(3,3)    &
-  & ,TYzCYdTAYdCYzYt(3,3),TYzCYsmd2YsCYz(3,3),TYzCYsYsmd2CYz(3,3),TYzCYsYsCYzml2(3,3)      &
-  & ,TYzCYsYsCYzYt(3,3),TYzCYsYsCYzAYt(3,3),TYzCYsAYsCYzYt(3,3),TYzCYzml2TYzCYz(3,3)       &
-  & ,TYzCYzTYzmd2CYz(3,3),TYzCYzTYzCYzml2(3,3),TYzCYzTYzCYzYt(3,3),TYzCYzTYzCYzAYt(3,3)    &
-  & ,TYzCYzTAYzCYzYt(3,3),TAYeCYeTYeCYeYt(3,3),TAYzCYdTYdCYzYt(3,3),TAYzCYsYsCYzYt(3,3)    &
-  & ,TAYzCYzTYzCYzYt(3,3)
-
-  Complex(dp) :: Trmd2,Trme2,Trml2,Trmq2,Trmu2,TrYdadjYd,TrYeadjYe,TrYsCYs,             &
-  & TrYtCYt,TrYuadjYu,TrYzadjYz,TrAYdadjYd,TrAYdadjAYd,TrAYeadjYe,TrAYeadjAYe,             &
-  & TrAYsCAYs,TrAYtCAYt,TrAYuadjYu,TrAYuadjAYu,TrAYzadjYz,TrAYzadjAYz,TrCYsYs,             &
-  & TrCYsAYs,TrCYtYt,TrCYtAYt,TrCAYsAYs,TrCAYtAYt,Trmd2YdadjYd,Trmd2YzadjYz,               &
-  & Trme2YeadjYe,Trmu2YuadjYu,TrYdmq2adjYd,TrYeml2adjYe,TrYsCYsmd2,TrYtCYtml2,             &
-  & TrYumq2adjYu,TrYzml2adjYz,TrCYsmd2Ys,TrCYsYsmd2,TrCYtml2Yt,TrCYtYtml2
-
-  Complex(dp) :: TrYdadjAYd,TrYeadjAYe,TrYsCAYs,TrYtCAYt,TrYuadjAYu,TrYzadjAYz,         &
-  & Trmd2YsCYs,Trml2YtCYt,TrYdadjYdYdadjYd,TrYdadjYdYsCYs,TrYdadjYdYzadjYz,TrYdadjYdAYdadjYd,&
-  & TrYdadjYdAYdadjAYd,TrYdadjYdAYsCYs,TrYdadjYdAYsCAYs,TrYdadjYdAYzadjYz,TrYdadjYdAYzadjAYz,&
-  & TrYdadjYuYuadjYd,TrYdadjYuAYuadjYd,TrYdadjYuAYuadjAYd,TrYdadjAYdAYdadjYd,              &
-  & TrYdadjAYdAYsCYs,TrYdadjAYdAYzadjYz,TrYdadjAYuAYuadjYd,TrYeadjYeYeadjYe,               &
-  & TrYeadjYeAYeadjYe,TrYeadjYeAYeadjAYe,TrYeadjYzYzadjYe,TrYeadjYzAYzadjYe,               &
-  & TrYeadjYzAYzadjAYe,TrYeadjAYeAYeadjYe,TrYeadjAYzAYzadjYe,TrYeCYtYtadjYe,               &
-  & TrYeCYtAYtadjYe,TrYeCYtAYtadjAYe,TrYeCAYtAYtadjYe,TrYsCYsYdadjYd,TrYsCYsYsCYs,         &
-  & TrYsCYsYzadjYz,TrYsCYsAYdadjYd,TrYsCYsAYdadjAYd,TrYsCYsAYsCYs,TrYsCYsAYsCAYs,          &
-  & TrYsCYsAYzadjYz,TrYsCYsAYzadjAYz,TrYsCAYsAYdadjYd,TrYsCAYsAYsCYs,TrYsCAYsAYzadjYz,     &
-  & TrYtadjYeYeCYt,TrYtadjYeAYeCYt,TrYtadjYeAYeCAYt,TrYtadjYzYzCYt,TrYtadjYzAYzCYt,        &
-  & TrYtadjYzAYzCAYt,TrYtadjAYeAYeCYt,TrYtadjAYzAYzCYt,TrYtCYtYtCYt,TrYtCYtAYtCYt,         &
-  & TrYtCYtAYtCAYt,TrYtCAYtAYtCYt,TrYuadjYdYdadjYu,TrYuadjYdAYdadjYu,TrYuadjYdAYdadjAYu,   &
-  & TrYuadjYuYuadjYu,TrYuadjYuAYuadjYu,TrYuadjYuAYuadjAYu,TrYuadjAYdAYdadjYu,              &
-  & TrYuadjAYuAYuadjYu,TrYzadjYeYeadjYz,TrYzadjYeAYeadjYz,TrYzadjYeAYeadjAYz,              &
-  & TrYzadjYzYdadjYd,TrYzadjYzYsCYs,TrYzadjYzYzadjYz,TrYzadjYzAYdadjYd,TrYzadjYzAYdadjAYd, &
-  & TrYzadjYzAYsCYs,TrYzadjYzAYsCAYs,TrYzadjYzAYzadjYz,TrYzadjYzAYzadjAYz,TrYzadjAYeAYeadjYz,&
-  & TrYzadjAYzAYdadjYd,TrYzadjAYzAYsCYs,TrYzadjAYzAYzadjYz,TrYzCYtYtadjYz,TrYzCYtAYtadjYz, &
-  & TrYzCYtAYtadjAYz,TrYzCAYtAYtadjYz,TrCYsYdadjYdYs,TrCYsYdadjYdAYs,TrCYsYdadjAYdAYs,     &
-  & TrCYsYsCYsYs,TrCYsYsCYsAYs,TrCYsYsCAYsAYs,TrCYsYzadjYzYs,TrCYsYzadjYzAYs,              &
-  & TrCYsYzadjAYzAYs,TrCYsAYdadjYdYs,TrCYsAYdadjAYdYs,TrCYsAYsCYsYs,TrCYsAYsCAYsYs,        &
-  & TrCYsAYzadjYzYs,TrCYsAYzadjAYzYs,TrCYtYtadjYeYe,TrCYtYtadjYeAYe,TrCYtYtadjYzYz,        &
-  & TrCYtYtadjYzAYz,TrCYtYtadjAYeAYe,TrCYtYtadjAYzAYz,TrCYtYtCYtYt,TrCYtYtCYtAYt,          &
-  & TrCYtYtCAYtAYt,TrCYtAYtadjYeYe,TrCYtAYtadjYzYz,TrCYtAYtadjAYeYe,TrCYtAYtadjAYzYz,      &
-  & TrCYtAYtCYtYt,TrCYtAYtCAYtYt,Trmd2YdadjYdYsCYs,Trmd2YsCYsYdadjYd,Trmd2YsCYsYsCYs,      &
-  & Trmd2YsCYsYzadjYz,Trmd2YzadjYzYsCYs,Trmd2YzCYtYtadjYz,Trmd2CYsYsCYsYs,Trme2YeCYtYtadjYe,&
-  & Trml2YtCYtYtCYt,Trml2adjYzYsCYsYz,Trml2CYtYtCYtYt,Trmq2adjYdYsCYsYd,TrYdmq2adjYdYdadjYd,&
-  & TrYdmq2adjYdYsCYs,TrYdmq2adjYdYzadjYz,TrYdmq2adjYuYuadjYd,TrYdadjYdmd2YdadjYd,         &
-  & TrYdadjYdmd2YsCYs,TrYdadjYdmd2YzadjYz,TrYdadjYdYdmq2adjYd,TrYdadjYdYzml2adjYz,         &
-  & TrYdadjYumu2YuadjYd,TrYdadjYuYumq2adjYd,TrYeml2adjYeYeadjYe,TrYeml2adjYzYzadjYe,       &
-  & TrYeml2CYtYtadjYe,TrYeadjYeme2YeadjYe,TrYeadjYeYeml2adjYe,TrYeadjYzmd2YzadjYe,         &
-  & TrYeadjYzYzml2adjYe,TrYeCYtml2YtadjYe,TrYeCYtYtml2adjYe,TrYsmd2CYsYdadjYd,             &
-  & TrYsmd2CYsYsCYs,TrYsmd2CYsYzadjYz,TrYsCYsmd2YdadjYd,TrYsCYsmd2YsCYs,TrYsCYsmd2YzadjYz, &
-  & TrYsCYsYdmq2adjYd,TrYsCYsYdadjYdmd2,TrYsCYsYsmd2CYs,TrYsCYsYsCYsmd2,TrYsCYsYzml2adjYz, &
-  & TrYsCYsYzadjYzmd2,TrYtml2adjYeYeCYt,TrYtml2adjYzYzCYt,TrYtml2CYtYtCYt,TrYtadjYeme2YeCYt,&
-  & TrYtadjYeYeml2CYt,TrYtadjYeYeCYtml2,TrYtadjYzmd2YzCYt,TrYtadjYzYzml2CYt,               &
-  & TrYtadjYzYzCYtml2,TrYtCYtml2YtCYt,TrYtCYtYtml2CYt,TrYtCYtYtCYtml2,TrYumq2adjYdYdadjYu, &
-  & TrYumq2adjYuYuadjYu,TrYuadjYdmd2YdadjYu,TrYuadjYdYdmq2adjYu,TrYuadjYumu2YuadjYu,       &
-  & TrYuadjYuYumq2adjYu,TrYzml2adjYeYeadjYz,TrYzml2adjYzYdadjYd,TrYzml2adjYzYsCYs,         &
-  & TrYzml2adjYzYzadjYz,TrYzml2CYtYtadjYz,TrYzadjYeme2YeadjYz,TrYzadjYeYeml2adjYz,         &
-  & TrYzadjYzmd2YdadjYd,TrYzadjYzmd2YsCYs,TrYzadjYzmd2YzadjYz,TrYzadjYzYdmq2adjYd,         &
-  & TrYzadjYzYzml2adjYz,TrYzCYtml2YtadjYz,TrYzCYtYtml2adjYz,TrCYsmd2YsCYsYs,               &
-  & TrCYsYdmq2adjYdYs,TrCYsYdadjYdmd2Ys,TrCYsYdadjYdYsmd2,TrCYsYsmd2CYsYs,TrCYsYsCYsmd2Ys, &
-  & TrCYsYsCYsYsmd2,TrCYsYzml2adjYzYs,TrCYsYzadjYzmd2Ys,TrCYsYzadjYzYsmd2,TrCYtml2YtCYtYt, &
-  & TrCYtYtml2adjYeYe,TrCYtYtml2adjYzYz,TrCYtYtml2CYtYt,TrCYtYtadjYeme2Ye,TrCYtYtadjYeYeml2,&
-  & TrCYtYtadjYzmd2Yz,TrCYtYtadjYzYzml2,TrCYtYtCYtml2Yt,TrCYtYtCYtYtml2
-
-  Real(dp) :: g12, g13, g14, g22, g23, g24, g32, g33, g34, AbsL1sq, AbsL2sq
-
-  Iname = Iname +1
-  NameOfUnit(Iname) = 'rge353'
-
-  OnlyDiagonal = .Not.GenerationMixing
-  q = t
-
-  Call GToParameters353(gy,g1,g2,g3,Yu,Yd,Ye,Yt,Ys,Yz,L1,L2,MTM,mue,MZM,MSM,      &
-     & AYu,AYd,AYe,AYt,AYs,AYz,AL1,AL2,Amue,AMTM,AMZM,AMSM,mq2,ml2,mHd2,mHu2,md2,   &
-     & mu2,me2,mt2,mtb2,ms2,msb2,mz2,mzb2,MassB,MassWB,MassG)
-
-  g12 = g1**2
-  g13 = g1*g12
-  g14 = g12*g12
-  g22 = g2**2
-  g23 = g2*g22
-  g24 = g22*g22
-  g32 = g3**2
-  g33 = g3*g32
-  g34 = g32*g32
-  AbsL1sq = Abs(L1)**2
-  AbsL2sq = Abs(L2)**2
-
-    Call Adjungate(Yu,adjYu)
-    Call Adjungate(Yd,adjYd)
-    Call Adjungate(Ye,adjYe)
-    Call Adjungate(Yt,adjYt)
-    Call Adjungate(Ys,adjYs)
-    Call Adjungate(Yz,adjYz)
-    Call Adjungate(AYu,adjAYu)
-    Call Adjungate(AYd,adjAYd)
-    Call Adjungate(AYe,adjAYe)
-    Call Adjungate(AYt,adjAYt)
-    Call Adjungate(AYs,adjAYs)
-    Call Adjungate(AYz,adjAYz)
-    Call Adjungate(mq2,adjmq2)
-    Call Adjungate(ml2,adjml2)
-    Call Adjungate(md2,adjmd2)
-    Call Adjungate(mu2,adjmu2)
-    Call Adjungate(me2,adjme2)
-   md2Ys = Matmul(md2,Ys)
-   md2CYd = Matmul(md2,Conjg(Yd))
-   md2CYs = Matmul(md2,adjYs)
-   md2CYz = Matmul(md2,Conjg(Yz))
-   me2CYe = Matmul(me2,Conjg(Ye))
-   ml2Yt = Matmul(ml2,Yt)
-   ml2adjYe = Matmul(ml2,adjYe)
-   ml2adjYz = Matmul(ml2,adjYz)
-   ml2CYt = Matmul(ml2,adjYt)
-   mq2adjYd = Matmul(mq2,adjYd)
-   mq2adjYu = Matmul(mq2,adjYu)
-   mu2CYu = Matmul(mu2,Conjg(Yu))
-   YdadjYd = Matmul(Yd,adjYd)
-   YeadjYe = Matmul(Ye,adjYe)
-   Ysmd2 = Matmul(Ys,md2)
-   YsCYs = Matmul(Ys,adjYs)
-   Ytml2 = Matmul(Yt,ml2)
-   YtCYt = Matmul(Yt,adjYt)
-   YuadjYu = Matmul(Yu,adjYu)
-   YzadjYz = Matmul(Yz,adjYz)
-   AYdadjYd = Matmul(AYd,adjYd)
-   AYdadjAYd = Matmul(AYd,adjAYd)
-   AYeadjYe = Matmul(AYe,adjYe)
-   AYeadjAYe = Matmul(AYe,adjAYe)
-   AYsCAYs = Matmul(AYs,adjAYs)
-   AYtCAYt = Matmul(AYt,adjAYt)
-   AYuadjYu = Matmul(AYu,adjYu)
-   AYuadjAYu = Matmul(AYu,adjAYu)
-   AYzadjYz = Matmul(AYz,adjYz)
-   AYzadjAYz = Matmul(AYz,adjAYz)
-   adjYdmd2 = Matmul(adjYd,md2)
-   adjYdYd = Matmul(adjYd,Yd)
-   adjYdYs = Matmul(adjYd,Ys)
-   adjYdYz = Matmul(adjYd,Yz)
-   adjYdAYd = Matmul(adjYd,AYd)
-   adjYdAYs = Matmul(adjYd,AYs)
-   adjYdAYz = Matmul(adjYd,AYz)
-   adjYeme2 = Matmul(adjYe,me2)
-   adjYeYe = Matmul(adjYe,Ye)
-   adjYeAYe = Matmul(adjYe,AYe)
-   adjYumu2 = Matmul(adjYu,mu2)
-   adjYuYu = Matmul(adjYu,Yu)
-   adjYuAYu = Matmul(adjYu,AYu)
-   adjYzmd2 = Matmul(adjYz,md2)
-   adjYzYd = Matmul(adjYz,Yd)
-   adjYzYs = Matmul(adjYz,Ys)
-   adjYzYz = Matmul(adjYz,Yz)
-   adjYzAYd = Matmul(adjYz,AYd)
-   adjYzAYs = Matmul(adjYz,AYs)
-   adjYzAYz = Matmul(adjYz,AYz)
-   CYdmq2 = Matmul(Conjg(Yd),mq2)
-   CYdTYd = Matmul(Conjg(Yd),Transpose(Yd))
-   CYdTAYd = Matmul(Conjg(Yd),Transpose(AYd))
-   CYeml2 = Matmul(Conjg(Ye),ml2)
-   CYeYt = Matmul(Conjg(Ye),Yt)
-   CYeAYt = Matmul(Conjg(Ye),AYt)
-   CYsmd2 = Matmul(adjYs,md2)
-   CYsYd = Matmul(adjYs,Yd)
-   CYsYs = Matmul(adjYs,Ys)
-   CYsYz = Matmul(adjYs,Yz)
-   CYsAYd = Matmul(adjYs,AYd)
-   CYsAYs = Matmul(adjYs,AYs)
-   CYsAYz = Matmul(adjYs,AYz)
-   CYtml2 = Matmul(adjYt,ml2)
-   CYtYt = Matmul(adjYt,Yt)
-   CYtAYt = Matmul(adjYt,AYt)
-   CYumq2 = Matmul(Conjg(Yu),mq2)
-   CYzml2 = Matmul(Conjg(Yz),ml2)
-   CYzYt = Matmul(Conjg(Yz),Yt)
-   CYzAYt = Matmul(Conjg(Yz),AYt)
-   CYzTYz = Matmul(Conjg(Yz),Transpose(Yz))
-   CYzTAYz = Matmul(Conjg(Yz),Transpose(AYz))
-   CAYsAYs = Matmul(adjAYs,AYs)
-   CAYtAYt = Matmul(adjAYt,AYt)
-   TYdCYd = Matmul(Transpose(Yd),Conjg(Yd))
-   TYeCYe = Matmul(Transpose(Ye),Conjg(Ye))
-   TYuCYu = Matmul(Transpose(Yu),Conjg(Yu))
-   TYzCYz = Matmul(Transpose(Yz),Conjg(Yz))
-   TAYdCAYd = Matmul(Transpose(AYd),Conjg(AYd))
-   TAYeCAYe = Matmul(Transpose(AYe),Conjg(AYe))
-   TAYuCAYu = Matmul(Transpose(AYu),Conjg(AYu))
-   TAYzCAYz = Matmul(Transpose(AYz),Conjg(AYz))
-   md2YdadjYd = Matmul(md2,YdadjYd)
-   md2YsCYs = Matmul(md2,YsCYs)
-   md2YzadjYz = Matmul(md2,YzadjYz)
-   me2YeadjYe = Matmul(me2,YeadjYe)
-   ml2YtCYt = Matmul(ml2,YtCYt)
-   ml2TYeCYe = Matmul(ml2,TYeCYe)
-   ml2TYzCYz = Matmul(ml2,TYzCYz)
-   mq2TYdCYd = Matmul(mq2,TYdCYd)
-   mq2TYuCYu = Matmul(mq2,TYuCYu)
-   mu2YuadjYu = Matmul(mu2,YuadjYu)
-   Ydmq2adjYd = Matmul(Yd,mq2adjYd)
-   YdadjYdmd2 = Matmul(Yd,adjYdmd2)
-   YdadjYdYd = Matmul(Yd,adjYdYd)
-   YdadjYdYs = Matmul(Yd,adjYdYs)
-   YdadjYdYz = Matmul(Yd,adjYdYz)
-   YdadjYdAYd = Matmul(Yd,adjYdAYd)
-   YdadjYdAYs = Matmul(Yd,adjYdAYs)
-   YdadjYdAYz = Matmul(Yd,adjYdAYz)
-   YdadjYuYu = Matmul(Yd,adjYuYu)
-   YdadjYuAYu = Matmul(Yd,adjYuAYu)
-   Yeml2adjYe = Matmul(Ye,ml2adjYe)
-   YeadjYeme2 = Matmul(Ye,adjYeme2)
-   YeadjYeYe = Matmul(Ye,adjYeYe)
-   YeadjYeAYe = Matmul(Ye,adjYeAYe)
-   YeadjYzYz = Matmul(Ye,adjYzYz)
-   YeadjYzAYz = Matmul(Ye,adjYzAYz)
-   YeCYtYt = Matmul(Ye,CYtYt)
-   YeCYtAYt = Matmul(Ye,CYtAYt)
-   Ysmd2CYs = Matmul(Ys,md2CYs)
-   YsCYdTYd = Matmul(Ys,CYdTYd)
-   YsCYdTAYd = Matmul(Ys,CYdTAYd)
-   YsCYsmd2 = Matmul(Ys,CYsmd2)
-   YsCYsYd = Matmul(Ys,CYsYd)
-   YsCYsYs = Matmul(Ys,CYsYs)
-   YsCYsYz = Matmul(Ys,CYsYz)
-   YsCYsAYd = Matmul(Ys,CYsAYd)
-   YsCYsAYs = Matmul(Ys,CYsAYs)
-   YsCYsAYz = Matmul(Ys,CYsAYz)
-   YsCYzTYz = Matmul(Ys,CYzTYz)
-   YsCYzTAYz = Matmul(Ys,CYzTAYz)
-   Ytml2CYt = Matmul(Yt,ml2CYt)
-   YtadjYeYe = Matmul(Yt,adjYeYe)
-   YtadjYeAYe = Matmul(Yt,adjYeAYe)
-   YtadjYzYz = Matmul(Yt,adjYzYz)
-   YtadjYzAYz = Matmul(Yt,adjYzAYz)
-   YtCYtml2 = Matmul(Yt,CYtml2)
-   YtCYtYt = Matmul(Yt,CYtYt)
-   YtCYtAYt = Matmul(Yt,CYtAYt)
-   Yumq2adjYu = Matmul(Yu,mq2adjYu)
-   YuadjYdYd = Matmul(Yu,adjYdYd)
-   YuadjYdAYd = Matmul(Yu,adjYdAYd)
-   YuadjYumu2 = Matmul(Yu,adjYumu2)
-   YuadjYuYu = Matmul(Yu,adjYuYu)
-   YuadjYuAYu = Matmul(Yu,adjYuAYu)
-   Yzml2adjYz = Matmul(Yz,ml2adjYz)
-   YzadjYeYe = Matmul(Yz,adjYeYe)
-   YzadjYeAYe = Matmul(Yz,adjYeAYe)
-   YzadjYzmd2 = Matmul(Yz,adjYzmd2)
-   YzadjYzYd = Matmul(Yz,adjYzYd)
-   YzadjYzYs = Matmul(Yz,adjYzYs)
-   YzadjYzYz = Matmul(Yz,adjYzYz)
-   YzadjYzAYd = Matmul(Yz,adjYzAYd)
-   YzadjYzAYs = Matmul(Yz,adjYzAYs)
-   YzadjYzAYz = Matmul(Yz,adjYzAYz)
-   YzCYtYt = Matmul(Yz,CYtYt)
-   YzCYtAYt = Matmul(Yz,CYtAYt)
-   AYdadjYdYd = Matmul(AYd,adjYdYd)
-   AYdadjYdYs = Matmul(AYd,adjYdYs)
-   AYdadjYdYz = Matmul(AYd,adjYdYz)
-   AYdadjYuYu = Matmul(AYd,adjYuYu)
-   AYeadjYeYe = Matmul(AYe,adjYeYe)
-   AYeadjYzYz = Matmul(AYe,adjYzYz)
-   AYeCYtYt = Matmul(AYe,CYtYt)
-   AYsCYdTYd = Matmul(AYs,CYdTYd)
-   AYsCYsYd = Matmul(AYs,CYsYd)
-   AYsCYsYs = Matmul(AYs,CYsYs)
-   AYsCYsYz = Matmul(AYs,CYsYz)
-   AYsCYzTYz = Matmul(AYs,CYzTYz)
-   AYtadjYeYe = Matmul(AYt,adjYeYe)
-   AYtadjYzYz = Matmul(AYt,adjYzYz)
-   AYtCYtYt = Matmul(AYt,CYtYt)
-   AYuadjYdYd = Matmul(AYu,adjYdYd)
-   AYuadjYuYu = Matmul(AYu,adjYuYu)
-   AYzadjYeYe = Matmul(AYz,adjYeYe)
-   AYzadjYzYd = Matmul(AYz,adjYzYd)
-   AYzadjYzYs = Matmul(AYz,adjYzYs)
-   AYzadjYzYz = Matmul(AYz,adjYzYz)
-   AYzCYtYt = Matmul(AYz,CYtYt)
-   CYsmd2Ys = Matmul(adjYs,md2Ys)
-   CYsYsmd2 = Matmul(adjYs,Ysmd2)
-   CYtml2Yt = Matmul(adjYt,ml2Yt)
-   CYtYtml2 = Matmul(adjYt,Ytml2)
-   TYdmd2CYd = Matmul(Transpose(Yd),md2CYd)
-   TYdCYdmq2 = Matmul(Transpose(Yd),CYdmq2)
-   TYeme2CYe = Matmul(Transpose(Ye),me2CYe)
-   TYeCYeml2 = Matmul(Transpose(Ye),CYeml2)
-   TYeCYeYt = Matmul(Transpose(Ye),CYeYt)
-   TYeCYeAYt = Matmul(Transpose(Ye),CYeAYt)
-   TYumu2CYu = Matmul(Transpose(Yu),mu2CYu)
-   TYuCYumq2 = Matmul(Transpose(Yu),CYumq2)
-   TYzmd2CYz = Matmul(Transpose(Yz),md2CYz)
-   TYzCYzml2 = Matmul(Transpose(Yz),CYzml2)
-   TYzCYzYt = Matmul(Transpose(Yz),CYzYt)
-   TYzCYzAYt = Matmul(Transpose(Yz),CYzAYt)
-   TAYeCYeYt = Matmul(Transpose(AYe),CYeYt)
-   TAYzCYzYt = Matmul(Transpose(AYz),CYzYt)
-   Trmd2 = Real(cTrace(md2),dp)
-   Trme2 = Real(cTrace(me2),dp)
-   Trml2 = Real(cTrace(ml2),dp)
-   Trmq2 = Real(cTrace(mq2),dp)
-   Trmu2 = Real(cTrace(mu2),dp)
-   TrYdadjYd = Real(cTrace(YdadjYd),dp)
-   TrYeadjYe = Real(cTrace(YeadjYe),dp)
-   TrYsCYs = Real(cTrace(YsCYs),dp)
-   TrYtCYt = Real(cTrace(YtCYt),dp)
-   TrYuadjYu = Real(cTrace(YuadjYu),dp)
-   TrYzadjYz = Real(cTrace(YzadjYz),dp)
-   TrAYdadjYd = Real(cTrace(AYdadjYd),dp)
-   TrAYdadjAYd = Real(cTrace(AYdadjAYd),dp)
-   TrAYeadjYe = Real(cTrace(AYeadjYe),dp)
-   TrAYeadjAYe = Real(cTrace(AYeadjAYe),dp)
-   TrAYsCAYs = Real(cTrace(AYsCAYs),dp)
-   TrAYtCAYt = Real(cTrace(AYtCAYt),dp)
-   TrAYuadjYu = Real(cTrace(AYuadjYu),dp)
-   TrAYuadjAYu = Real(cTrace(AYuadjAYu),dp)
-   TrAYzadjYz = Real(cTrace(AYzadjYz),dp)
-   TrAYzadjAYz = Real(cTrace(AYzadjAYz),dp)
-   TrCYsYs = Real(cTrace(CYsYs),dp)
-   TrCYsAYs = Real(cTrace(CYsAYs),dp)
-   TrCYtYt = Real(cTrace(CYtYt),dp)
-   TrCYtAYt = Real(cTrace(CYtAYt),dp)
-   TrCAYsAYs = Real(cTrace(CAYsAYs),dp)
-   TrCAYtAYt = Real(cTrace(CAYtAYt),dp)
-   Trmd2YdadjYd = Real(cTrace(md2YdadjYd),dp)
-   Trmd2YzadjYz = Real(cTrace(md2YzadjYz),dp)
-   Trme2YeadjYe = Real(cTrace(me2YeadjYe),dp)
-   Trmu2YuadjYu = Real(cTrace(mu2YuadjYu),dp)
-   TrYdmq2adjYd = Real(cTrace(Ydmq2adjYd),dp)
-   TrYeml2adjYe = Real(cTrace(Yeml2adjYe),dp)
-   TrYsCYsmd2 = Real(cTrace(YsCYsmd2),dp)
-   TrYtCYtml2 = Real(cTrace(YtCYtml2),dp)
-   TrYumq2adjYu = Real(cTrace(Yumq2adjYu),dp)
-   TrYzml2adjYz = Real(cTrace(Yzml2adjYz),dp)
-   TrCYsmd2Ys = Real(cTrace(CYsmd2Ys),dp)
-   TrCYsYsmd2 = Real(cTrace(CYsYsmd2),dp)
-   TrCYtml2Yt = Real(cTrace(CYtml2Yt),dp)
-   TrCYtYtml2 = Real(cTrace(CYtYtml2),dp)
-
-
-  If (TwoLoopRGE) Then
-   md2Yz = Matmul(md2,Yz)
-   me2Ye = Matmul(me2,Ye)
-   YdadjYu = Matmul(Yd,adjYu)
-   YdadjAYd = Matmul(Yd,adjAYd)
-   YdadjAYu = Matmul(Yd,adjAYu)
-   Yeml2 = Matmul(Ye,ml2)
-   YeadjYz = Matmul(Ye,adjYz)
-   YeadjAYe = Matmul(Ye,adjAYe)
-   YeadjAYz = Matmul(Ye,adjAYz)
-   YeCYt = Matmul(Ye,adjYt)
-   YeCAYt = Matmul(Ye,adjAYt)
-   YsCYd = Matmul(Ys,Conjg(Yd))
-   YsCYz = Matmul(Ys,Conjg(Yz))
-   YsCAYd = Matmul(Ys,Conjg(AYd))
-   YsCAYs = Matmul(Ys,adjAYs)
-   YsCAYz = Matmul(Ys,Conjg(AYz))
-   YtadjYe = Matmul(Yt,adjYe)
-   YtadjYz = Matmul(Yt,adjYz)
-   YtadjAYe = Matmul(Yt,adjAYe)
-   YtadjAYz = Matmul(Yt,adjAYz)
-   YtCAYt = Matmul(Yt,adjAYt)
-   YuadjYd = Matmul(Yu,adjYd)
-   YuadjAYd = Matmul(Yu,adjAYd)
-   YuadjAYu = Matmul(Yu,adjAYu)
-   Yzml2 = Matmul(Yz,ml2)
-   YzadjYe = Matmul(Yz,adjYe)
-   YzadjAYe = Matmul(Yz,adjAYe)
-   YzadjAYz = Matmul(Yz,adjAYz)
-   YzCYt = Matmul(Yz,adjYt)
-   YzCAYt = Matmul(Yz,adjAYt)
-   AYdadjYu = Matmul(AYd,adjYu)
-   AYdadjAYu = Matmul(AYd,adjAYu)
-   AYeadjYz = Matmul(AYe,adjYz)
-   AYeadjAYz = Matmul(AYe,adjAYz)
-   AYeCYt = Matmul(AYe,adjYt)
-   AYeCAYt = Matmul(AYe,adjAYt)
-   AYsCYd = Matmul(AYs,Conjg(Yd))
-   AYsCYs = Matmul(AYs,adjYs)
-   AYsCYz = Matmul(AYs,Conjg(Yz))
-   AYsCAYd = Matmul(AYs,Conjg(AYd))
-   AYsCAYz = Matmul(AYs,Conjg(AYz))
-   AYtadjYe = Matmul(AYt,adjYe)
-   AYtadjYz = Matmul(AYt,adjYz)
-   AYtadjAYe = Matmul(AYt,adjAYe)
-   AYtadjAYz = Matmul(AYt,adjAYz)
-   AYtCYt = Matmul(AYt,adjYt)
-   AYuadjYd = Matmul(AYu,adjYd)
-   AYuadjAYd = Matmul(AYu,adjAYd)
-   AYzadjYe = Matmul(AYz,adjYe)
-   AYzadjAYe = Matmul(AYz,adjAYe)
-   AYzCYt = Matmul(AYz,adjYt)
-   AYzCAYt = Matmul(AYz,adjAYt)
-   adjAYdYs = Matmul(adjAYd,Ys)
-   adjAYdAYs = Matmul(adjAYd,AYs)
-   adjAYeYe = Matmul(adjAYe,Ye)
-   adjAYeAYe = Matmul(adjAYe,AYe)
-   adjAYzYs = Matmul(adjAYz,Ys)
-   adjAYzYz = Matmul(adjAYz,Yz)
-   adjAYzAYs = Matmul(adjAYz,AYs)
-   adjAYzAYz = Matmul(adjAYz,AYz)
-   CYeTYz = Matmul(Conjg(Ye),Transpose(Yz))
-   CYeTAYz = Matmul(Conjg(Ye),Transpose(AYz))
-   CYtTYz = Matmul(adjYt,Transpose(Yz))
-   CYtTAYz = Matmul(adjYt,Transpose(AYz))
-   CYuTYd = Matmul(Conjg(Yu),Transpose(Yd))
-   CYuTAYd = Matmul(Conjg(Yu),Transpose(AYd))
-   CAYsYs = Matmul(adjAYs,Ys)
-   CAYtYt = Matmul(adjAYt,Yt)
-   TYdCYs = Matmul(Transpose(Yd),adjYs)
-   TYdCYz = Matmul(Transpose(Yd),Conjg(Yz))
-   TYdCAYd = Matmul(Transpose(Yd),Conjg(AYd))
-   TYdCAYs = Matmul(Transpose(Yd),adjAYs)
-   TYdCAYz = Matmul(Transpose(Yd),Conjg(AYz))
-   TYeCAYe = Matmul(Transpose(Ye),Conjg(AYe))
-   TYuCAYu = Matmul(Transpose(Yu),Conjg(AYu))
-   TYzCYd = Matmul(Transpose(Yz),Conjg(Yd))
-   TYzCYs = Matmul(Transpose(Yz),adjYs)
-   TYzCAYd = Matmul(Transpose(Yz),Conjg(AYd))
-   TYzCAYs = Matmul(Transpose(Yz),adjAYs)
-   TYzCAYz = Matmul(Transpose(Yz),Conjg(AYz))
-   TAYdCYd = Matmul(Transpose(AYd),Conjg(Yd))
-   TAYdCYs = Matmul(Transpose(AYd),adjYs)
-   TAYdCYz = Matmul(Transpose(AYd),Conjg(Yz))
-   TAYdCAYs = Matmul(Transpose(AYd),adjAYs)
-   TAYdCAYz = Matmul(Transpose(AYd),Conjg(AYz))
-   TAYeCYe = Matmul(Transpose(AYe),Conjg(Ye))
-   TAYuCYu = Matmul(Transpose(AYu),Conjg(Yu))
-   TAYzCYd = Matmul(Transpose(AYz),Conjg(Yd))
-   TAYzCYs = Matmul(Transpose(AYz),adjYs)
-   TAYzCYz = Matmul(Transpose(AYz),Conjg(Yz))
-   TAYzCAYd = Matmul(Transpose(AYz),Conjg(AYd))
-   TAYzCAYs = Matmul(Transpose(AYz),adjAYs)
-   md2YdadjYu = Matmul(md2,YdadjYu)
-   md2YsCYd = Matmul(md2,YsCYd)
-   md2YsCYz = Matmul(md2,YsCYz)
-   md2YzadjYe = Matmul(md2,YzadjYe)
-   md2YzCYt = Matmul(md2,YzCYt)
-   md2CYsYs = Matmul(md2,CYsYs)
-   me2YeadjYz = Matmul(me2,YeadjYz)
-   me2YeCYt = Matmul(me2,YeCYt)
-   ml2YtadjYe = Matmul(ml2,YtadjYe)
-   ml2YtadjYz = Matmul(ml2,YtadjYz)
-   ml2adjYeYe = Matmul(ml2,adjYeYe)
-   ml2adjYzYs = Matmul(ml2,adjYzYs)
-   ml2adjYzYz = Matmul(ml2,adjYzYz)
-   ml2CYtYt = Matmul(ml2,CYtYt)
-   ml2TYzCYd = Matmul(ml2,TYzCYd)
-   ml2TYzCYs = Matmul(ml2,TYzCYs)
-   mq2adjYdYs = Matmul(mq2,adjYdYs)
-   mq2TYdCYs = Matmul(mq2,TYdCYs)
-   mq2TYdCYz = Matmul(mq2,TYdCYz)
-   mu2YuadjYd = Matmul(mu2,YuadjYd)
-   Ydmq2adjYu = Matmul(Yd,mq2adjYu)
-   YdadjYumu2 = Matmul(Yd,adjYumu2)
-   YdadjAYdAYs = Matmul(Yd,adjAYdAYs)
-   Yeml2adjYz = Matmul(Ye,ml2adjYz)
-   Yeml2CYt = Matmul(Ye,ml2CYt)
-   YeadjYzmd2 = Matmul(Ye,adjYzmd2)
-   YeadjYzYd = Matmul(Ye,adjYzYd)
-   YeadjYzYs = Matmul(Ye,adjYzYs)
-   YeadjYzAYd = Matmul(Ye,adjYzAYd)
-   YeadjYzAYs = Matmul(Ye,adjYzAYs)
-   YeCYtml2 = Matmul(Ye,CYtml2)
-   Ysmd2CYd = Matmul(Ys,md2CYd)
-   Ysmd2CYz = Matmul(Ys,md2CYz)
-   YsCYdmq2 = Matmul(Ys,CYdmq2)
-   YsCYzml2 = Matmul(Ys,CYzml2)
-   YsCYzYt = Matmul(Ys,CYzYt)
-   YsCYzAYt = Matmul(Ys,CYzAYt)
-   YsCAYsAYs = Matmul(Ys,CAYsAYs)
-   Ytml2adjYe = Matmul(Yt,ml2adjYe)
-   Ytml2adjYz = Matmul(Yt,ml2adjYz)
-   YtadjYeme2 = Matmul(Yt,adjYeme2)
-   YtadjYzmd2 = Matmul(Yt,adjYzmd2)
-   YtadjYzYd = Matmul(Yt,adjYzYd)
-   YtadjYzYs = Matmul(Yt,adjYzYs)
-   YtadjYzAYd = Matmul(Yt,adjYzAYd)
-   YtadjYzAYs = Matmul(Yt,adjYzAYs)
-   YtadjAYeAYe = Matmul(Yt,adjAYeAYe)
-   YtadjAYzAYz = Matmul(Yt,adjAYzAYz)
-   YtCYtTYz = Matmul(Yt,CYtTYz)
-   YtCYtTAYz = Matmul(Yt,CYtTAYz)
-   YtCAYtAYt = Matmul(Yt,CAYtAYt)
-   Yumq2adjYd = Matmul(Yu,mq2adjYd)
-   YuadjYdmd2 = Matmul(Yu,adjYdmd2)
-   YuadjYdYs = Matmul(Yu,adjYdYs)
-   YuadjYdYz = Matmul(Yu,adjYdYz)
-   YuadjYdAYs = Matmul(Yu,adjYdAYs)
-   YuadjYdAYz = Matmul(Yu,adjYdAYz)
-   Yzml2adjYe = Matmul(Yz,ml2adjYe)
-   Yzml2CYt = Matmul(Yz,ml2CYt)
-   YzadjYeme2 = Matmul(Yz,adjYeme2)
-   YzadjAYzAYs = Matmul(Yz,adjAYzAYs)
-   YzCYtml2 = Matmul(Yz,CYtml2)
-   AYdadjAYdYs = Matmul(AYd,adjAYdYs)
-   AYeadjYzYd = Matmul(AYe,adjYzYd)
-   AYeadjYzYs = Matmul(AYe,adjYzYs)
-   AYsCYzYt = Matmul(AYs,CYzYt)
-   AYsCAYsYs = Matmul(AYs,CAYsYs)
-   AYtadjYzYd = Matmul(AYt,adjYzYd)
-   AYtadjYzYs = Matmul(AYt,adjYzYs)
-   AYtadjAYeYe = Matmul(AYt,adjAYeYe)
-   AYtadjAYzYz = Matmul(AYt,adjAYzYz)
-   AYtCYtTYz = Matmul(AYt,CYtTYz)
-   AYtCAYtYt = Matmul(AYt,CAYtYt)
-   AYuadjYdYs = Matmul(AYu,adjYdYs)
-   AYuadjYdYz = Matmul(AYu,adjYdYz)
-   AYzadjAYzYs = Matmul(AYz,adjAYzYs)
-   adjYdmd2Ys = Matmul(adjYd,md2Ys)
-   adjYdYdadjYd = Matmul(adjYd,YdadjYd)
-   adjYdYdadjYu = Matmul(adjYd,YdadjYu)
-   adjYdYdadjAYd = Matmul(adjYd,YdadjAYd)
-   adjYdYdadjAYu = Matmul(adjYd,YdadjAYu)
-   adjYdYsmd2 = Matmul(adjYd,Ysmd2)
-   adjYdYsCYs = Matmul(adjYd,YsCYs)
-   adjYdYzadjYz = Matmul(adjYd,YzadjYz)
-   adjYdAYdadjYd = Matmul(adjYd,AYdadjYd)
-   adjYdAYdadjYu = Matmul(adjYd,AYdadjYu)
-   adjYdAYdadjAYd = Matmul(adjYd,AYdadjAYd)
-   adjYdAYdadjAYu = Matmul(adjYd,AYdadjAYu)
-   adjYdAYsCYs = Matmul(adjYd,AYsCYs)
-   adjYdAYsCAYs = Matmul(adjYd,AYsCAYs)
-   adjYdAYzadjYz = Matmul(adjYd,AYzadjYz)
-   adjYdAYzadjAYz = Matmul(adjYd,AYzadjAYz)
-   adjYeme2Ye = Matmul(adjYe,me2Ye)
-   adjYeYeml2 = Matmul(adjYe,Yeml2)
-   adjYeYeadjYe = Matmul(adjYe,YeadjYe)
-   adjYeYeadjYz = Matmul(adjYe,YeadjYz)
-   adjYeYeadjAYe = Matmul(adjYe,YeadjAYe)
-   adjYeYeadjAYz = Matmul(adjYe,YeadjAYz)
-   adjYeYeCYt = Matmul(adjYe,YeCYt)
-   adjYeYeCAYt = Matmul(adjYe,YeCAYt)
-   adjYeAYeadjYe = Matmul(adjYe,AYeadjYe)
-   adjYeAYeadjYz = Matmul(adjYe,AYeadjYz)
-   adjYeAYeadjAYe = Matmul(adjYe,AYeadjAYe)
-   adjYeAYeadjAYz = Matmul(adjYe,AYeadjAYz)
-   adjYeAYeCYt = Matmul(adjYe,AYeCYt)
-   adjYeAYeCAYt = Matmul(adjYe,AYeCAYt)
-   adjYuYuadjYd = Matmul(adjYu,YuadjYd)
-   adjYuYuadjYu = Matmul(adjYu,YuadjYu)
-   adjYuYuadjAYd = Matmul(adjYu,YuadjAYd)
-   adjYuYuadjAYu = Matmul(adjYu,YuadjAYu)
-   adjYuAYuadjYd = Matmul(adjYu,AYuadjYd)
-   adjYuAYuadjYu = Matmul(adjYu,AYuadjYu)
-   adjYuAYuadjAYd = Matmul(adjYu,AYuadjAYd)
-   adjYuAYuadjAYu = Matmul(adjYu,AYuadjAYu)
-   adjYzmd2Ys = Matmul(adjYz,md2Ys)
-   adjYzmd2Yz = Matmul(adjYz,md2Yz)
-   adjYzYdadjYd = Matmul(adjYz,YdadjYd)
-   adjYzYsmd2 = Matmul(adjYz,Ysmd2)
-   adjYzYsCYs = Matmul(adjYz,YsCYs)
-   adjYzYzml2 = Matmul(adjYz,Yzml2)
-   adjYzYzadjYe = Matmul(adjYz,YzadjYe)
-   adjYzYzadjYz = Matmul(adjYz,YzadjYz)
-   adjYzYzadjAYe = Matmul(adjYz,YzadjAYe)
-   adjYzYzadjAYz = Matmul(adjYz,YzadjAYz)
-   adjYzYzCYt = Matmul(adjYz,YzCYt)
-   adjYzYzCAYt = Matmul(adjYz,YzCAYt)
-   adjYzAYdadjYd = Matmul(adjYz,AYdadjYd)
-   adjYzAYdadjAYd = Matmul(adjYz,AYdadjAYd)
-   adjYzAYsCYs = Matmul(adjYz,AYsCYs)
-   adjYzAYsCAYs = Matmul(adjYz,AYsCAYs)
-   adjYzAYzadjYe = Matmul(adjYz,AYzadjYe)
-   adjYzAYzadjYz = Matmul(adjYz,AYzadjYz)
-   adjYzAYzadjAYe = Matmul(adjYz,AYzadjAYe)
-   adjYzAYzadjAYz = Matmul(adjYz,AYzadjAYz)
-   adjYzAYzCYt = Matmul(adjYz,AYzCYt)
-   adjYzAYzCAYt = Matmul(adjYz,AYzCAYt)
-   adjAYdYdadjYd = Matmul(adjAYd,YdadjYd)
-   adjAYdYdadjYu = Matmul(adjAYd,YdadjYu)
-   adjAYdAYdadjYd = Matmul(adjAYd,AYdadjYd)
-   adjAYdAYdadjYu = Matmul(adjAYd,AYdadjYu)
-   adjAYdAYsCYs = Matmul(adjAYd,AYsCYs)
-   adjAYdAYzadjYz = Matmul(adjAYd,AYzadjYz)
-   adjAYeYeadjYe = Matmul(adjAYe,YeadjYe)
-   adjAYeYeadjYz = Matmul(adjAYe,YeadjYz)
-   adjAYeYeCYt = Matmul(adjAYe,YeCYt)
-   adjAYeAYeadjYe = Matmul(adjAYe,AYeadjYe)
-   adjAYeAYeadjYz = Matmul(adjAYe,AYeadjYz)
-   adjAYeAYeCYt = Matmul(adjAYe,AYeCYt)
-   adjAYuYuadjYd = Matmul(adjAYu,YuadjYd)
-   adjAYuYuadjYu = Matmul(adjAYu,YuadjYu)
-   adjAYuAYuadjYd = Matmul(adjAYu,AYuadjYd)
-   adjAYuAYuadjYu = Matmul(adjAYu,AYuadjYu)
-   adjAYzYzadjYe = Matmul(adjAYz,YzadjYe)
-   adjAYzYzadjYz = Matmul(adjAYz,YzadjYz)
-   adjAYzYzCYt = Matmul(adjAYz,YzCYt)
-   adjAYzAYdadjYd = Matmul(adjAYz,AYdadjYd)
-   adjAYzAYsCYs = Matmul(adjAYz,AYsCYs)
-   adjAYzAYzadjYe = Matmul(adjAYz,AYzadjYe)
-   adjAYzAYzadjYz = Matmul(adjAYz,AYzadjYz)
-   adjAYzAYzCYt = Matmul(adjAYz,AYzCYt)
-   CYdTYdCYd = Matmul(Conjg(Yd),TYdCYd)
-   CYdTYdCYs = Matmul(Conjg(Yd),TYdCYs)
-   CYdTYdCYz = Matmul(Conjg(Yd),TYdCYz)
-   CYdTYdCAYd = Matmul(Conjg(Yd),TYdCAYd)
-   CYdTYdCAYs = Matmul(Conjg(Yd),TYdCAYs)
-   CYdTYdCAYz = Matmul(Conjg(Yd),TYdCAYz)
-   CYdTAYdCAYd = Matmul(Conjg(Yd),TAYdCAYd)
-   CYdTAYdCAYs = Matmul(Conjg(Yd),TAYdCAYs)
-   CYdTAYdCAYz = Matmul(Conjg(Yd),TAYdCAYz)
-   CYeTYeCYe = Matmul(Conjg(Ye),TYeCYe)
-   CYeTYeCAYe = Matmul(Conjg(Ye),TYeCAYe)
-   CYeTAYeCAYe = Matmul(Conjg(Ye),TAYeCAYe)
-   CYsYdadjYd = Matmul(adjYs,YdadjYd)
-   CYsYsCYd = Matmul(adjYs,YsCYd)
-   CYsYsCYs = Matmul(adjYs,YsCYs)
-   CYsYsCYz = Matmul(adjYs,YsCYz)
-   CYsYsCAYd = Matmul(adjYs,YsCAYd)
-   CYsYsCAYs = Matmul(adjYs,YsCAYs)
-   CYsYsCAYz = Matmul(adjYs,YsCAYz)
-   CYsYzadjYz = Matmul(adjYs,YzadjYz)
-   CYsAYdadjYd = Matmul(adjYs,AYdadjYd)
-   CYsAYdadjAYd = Matmul(adjYs,AYdadjAYd)
-   CYsAYsCYs = Matmul(adjYs,AYsCYs)
-   CYsAYsCAYd = Matmul(adjYs,AYsCAYd)
-   CYsAYsCAYs = Matmul(adjYs,AYsCAYs)
-   CYsAYsCAYz = Matmul(adjYs,AYsCAYz)
-   CYsAYzadjYz = Matmul(adjYs,AYzadjYz)
-   CYsAYzadjAYz = Matmul(adjYs,AYzadjAYz)
-   CYtYtadjYe = Matmul(adjYt,YtadjYe)
-   CYtYtadjYz = Matmul(adjYt,YtadjYz)
-   CYtYtadjAYe = Matmul(adjYt,YtadjAYe)
-   CYtYtadjAYz = Matmul(adjYt,YtadjAYz)
-   CYtYtCYt = Matmul(adjYt,YtCYt)
-   CYtYtCAYt = Matmul(adjYt,YtCAYt)
-   CYtAYtadjYe = Matmul(adjYt,AYtadjYe)
-   CYtAYtadjYz = Matmul(adjYt,AYtadjYz)
-   CYtAYtadjAYe = Matmul(adjYt,AYtadjAYe)
-   CYtAYtadjAYz = Matmul(adjYt,AYtadjAYz)
-   CYtAYtCYt = Matmul(adjYt,AYtCYt)
-   CYtAYtCAYt = Matmul(adjYt,AYtCAYt)
-   CYuTYuCYu = Matmul(Conjg(Yu),TYuCYu)
-   CYuTYuCAYu = Matmul(Conjg(Yu),TYuCAYu)
-   CYuTAYuCAYu = Matmul(Conjg(Yu),TAYuCAYu)
-   CYzTYzCYd = Matmul(Conjg(Yz),TYzCYd)
-   CYzTYzCYs = Matmul(Conjg(Yz),TYzCYs)
-   CYzTYzCYz = Matmul(Conjg(Yz),TYzCYz)
-   CYzTYzCAYd = Matmul(Conjg(Yz),TYzCAYd)
-   CYzTYzCAYs = Matmul(Conjg(Yz),TYzCAYs)
-   CYzTYzCAYz = Matmul(Conjg(Yz),TYzCAYz)
-   CYzTAYzCAYd = Matmul(Conjg(Yz),TAYzCAYd)
-   CYzTAYzCAYs = Matmul(Conjg(Yz),TAYzCAYs)
-   CYzTAYzCAYz = Matmul(Conjg(Yz),TAYzCAYz)
-   CAYdTYdCYd = Matmul(Conjg(AYd),TYdCYd)
-   CAYdTYdCYs = Matmul(Conjg(AYd),TYdCYs)
-   CAYdTYdCYz = Matmul(Conjg(AYd),TYdCYz)
-   CAYdTAYdCYd = Matmul(Conjg(AYd),TAYdCYd)
-   CAYdTAYdCYs = Matmul(Conjg(AYd),TAYdCYs)
-   CAYdTAYdCYz = Matmul(Conjg(AYd),TAYdCYz)
-   CAYeTYeCYe = Matmul(Conjg(AYe),TYeCYe)
-   CAYeTAYeCYe = Matmul(Conjg(AYe),TAYeCYe)
-   CAYsYsCYd = Matmul(adjAYs,YsCYd)
-   CAYsYsCYs = Matmul(adjAYs,YsCYs)
-   CAYsYsCYz = Matmul(adjAYs,YsCYz)
-   CAYsAYdadjYd = Matmul(adjAYs,AYdadjYd)
-   CAYsAYsCYd = Matmul(adjAYs,AYsCYd)
-   CAYsAYsCYs = Matmul(adjAYs,AYsCYs)
-   CAYsAYsCYz = Matmul(adjAYs,AYsCYz)
-   CAYsAYzadjYz = Matmul(adjAYs,AYzadjYz)
-   CAYtYtadjYe = Matmul(adjAYt,YtadjYe)
-   CAYtYtadjYz = Matmul(adjAYt,YtadjYz)
-   CAYtYtCYt = Matmul(adjAYt,YtCYt)
-   CAYtAYtadjYe = Matmul(adjAYt,AYtadjYe)
-   CAYtAYtadjYz = Matmul(adjAYt,AYtadjYz)
-   CAYtAYtCYt = Matmul(adjAYt,AYtCYt)
-   CAYuTYuCYu = Matmul(Conjg(AYu),TYuCYu)
-   CAYuTAYuCYu = Matmul(Conjg(AYu),TAYuCYu)
-   CAYzTYzCYd = Matmul(Conjg(AYz),TYzCYd)
-   CAYzTYzCYs = Matmul(Conjg(AYz),TYzCYs)
-   CAYzTYzCYz = Matmul(Conjg(AYz),TYzCYz)
-   CAYzTAYzCYd = Matmul(Conjg(AYz),TAYzCYd)
-   CAYzTAYzCYs = Matmul(Conjg(AYz),TAYzCYs)
-   CAYzTAYzCYz = Matmul(Conjg(AYz),TAYzCYz)
-   TYdmd2CYs = Matmul(Transpose(Yd),md2CYs)
-   TYdmd2CYz = Matmul(Transpose(Yd),md2CYz)
-   TYdCYdTYd = Matmul(Transpose(Yd),CYdTYd)
-   TYdCYdTAYd = Matmul(Transpose(Yd),CYdTAYd)
-   TYdCYsmd2 = Matmul(Transpose(Yd),CYsmd2)
-   TYdCYsYd = Matmul(Transpose(Yd),CYsYd)
-   TYdCYsYs = Matmul(Transpose(Yd),CYsYs)
-   TYdCYsYz = Matmul(Transpose(Yd),CYsYz)
-   TYdCYsAYd = Matmul(Transpose(Yd),CYsAYd)
-   TYdCYsAYs = Matmul(Transpose(Yd),CYsAYs)
-   TYdCYsAYz = Matmul(Transpose(Yd),CYsAYz)
-   TYdCYzml2 = Matmul(Transpose(Yd),CYzml2)
-   TYdCYzYt = Matmul(Transpose(Yd),CYzYt)
-   TYdCYzAYt = Matmul(Transpose(Yd),CYzAYt)
-   TYeCYeTYz = Matmul(Transpose(Ye),CYeTYz)
-   TYeCYeTAYz = Matmul(Transpose(Ye),CYeTAYz)
-   TYuCYuTYd = Matmul(Transpose(Yu),CYuTYd)
-   TYuCYuTAYd = Matmul(Transpose(Yu),CYuTAYd)
-   TYzmd2CYd = Matmul(Transpose(Yz),md2CYd)
-   TYzmd2CYs = Matmul(Transpose(Yz),md2CYs)
-   TYzCYdmq2 = Matmul(Transpose(Yz),CYdmq2)
-   TYzCYsmd2 = Matmul(Transpose(Yz),CYsmd2)
-   TYzCYsYd = Matmul(Transpose(Yz),CYsYd)
-   TYzCYsYs = Matmul(Transpose(Yz),CYsYs)
-   TYzCYsYz = Matmul(Transpose(Yz),CYsYz)
-   TYzCYsAYd = Matmul(Transpose(Yz),CYsAYd)
-   TYzCYsAYs = Matmul(Transpose(Yz),CYsAYs)
-   TYzCYsAYz = Matmul(Transpose(Yz),CYsAYz)
-   TYzCYzTYz = Matmul(Transpose(Yz),CYzTYz)
-   TYzCYzTAYz = Matmul(Transpose(Yz),CYzTAYz)
-   TAYdCYdTYd = Matmul(Transpose(AYd),CYdTYd)
-   TAYdCYsYd = Matmul(Transpose(AYd),CYsYd)
-   TAYdCYsYs = Matmul(Transpose(AYd),CYsYs)
-   TAYdCYsYz = Matmul(Transpose(AYd),CYsYz)
-   TAYdCYzYt = Matmul(Transpose(AYd),CYzYt)
-   TAYeCYeTYz = Matmul(Transpose(AYe),CYeTYz)
-   TAYuCYuTYd = Matmul(Transpose(AYu),CYuTYd)
-   TAYzCYsYd = Matmul(Transpose(AYz),CYsYd)
-   TAYzCYsYs = Matmul(Transpose(AYz),CYsYs)
-   TAYzCYsYz = Matmul(Transpose(AYz),CYsYz)
-   TAYzCYzTYz = Matmul(Transpose(AYz),CYzTYz)
-   md2YsCYsYs = Matmul(md2,YsCYsYs)
-   md2CYdTYdCYd = Matmul(md2,CYdTYdCYd)
-   md2CYdTYdCYs = Matmul(md2,CYdTYdCYs)
-   md2CYdTYdCYz = Matmul(md2,CYdTYdCYz)
-   md2CYsYdadjYd = Matmul(md2,CYsYdadjYd)
-   md2CYsYsCYd = Matmul(md2,CYsYsCYd)
-   md2CYsYsCYs = Matmul(md2,CYsYsCYs)
-   md2CYsYsCYz = Matmul(md2,CYsYsCYz)
-   md2CYsYzadjYz = Matmul(md2,CYsYzadjYz)
-   md2CYzTYzCYd = Matmul(md2,CYzTYzCYd)
-   md2CYzTYzCYs = Matmul(md2,CYzTYzCYs)
-   md2CYzTYzCYz = Matmul(md2,CYzTYzCYz)
-   me2CYeTYeCYe = Matmul(me2,CYeTYeCYe)
-   ml2YtCYtYt = Matmul(ml2,YtCYtYt)
-   ml2adjYeYeadjYe = Matmul(ml2,adjYeYeadjYe)
-   ml2adjYeYeadjYz = Matmul(ml2,adjYeYeadjYz)
-   ml2adjYeYeCYt = Matmul(ml2,adjYeYeCYt)
-   ml2adjYzYdadjYd = Matmul(ml2,adjYzYdadjYd)
-   ml2adjYzYsCYs = Matmul(ml2,adjYzYsCYs)
-   ml2adjYzYzadjYe = Matmul(ml2,adjYzYzadjYe)
-   ml2adjYzYzadjYz = Matmul(ml2,adjYzYzadjYz)
-   ml2adjYzYzCYt = Matmul(ml2,adjYzYzCYt)
-   ml2CYtYtadjYe = Matmul(ml2,CYtYtadjYe)
-   ml2CYtYtadjYz = Matmul(ml2,CYtYtadjYz)
-   ml2CYtYtCYt = Matmul(ml2,CYtYtCYt)
-   mq2adjYdYdadjYd = Matmul(mq2,adjYdYdadjYd)
-   mq2adjYdYdadjYu = Matmul(mq2,adjYdYdadjYu)
-   mq2adjYdYsCYs = Matmul(mq2,adjYdYsCYs)
-   mq2adjYdYzadjYz = Matmul(mq2,adjYdYzadjYz)
-   mq2adjYuYuadjYd = Matmul(mq2,adjYuYuadjYd)
-   mq2adjYuYuadjYu = Matmul(mq2,adjYuYuadjYu)
-   mu2CYuTYuCYu = Matmul(mu2,CYuTYuCYu)
-   Ydmq2adjYdYs = Matmul(Yd,mq2adjYdYs)
-   YdadjYdmd2Ys = Matmul(Yd,adjYdmd2Ys)
-   YdadjYdYdadjYd = Matmul(Yd,adjYdYdadjYd)
-   YdadjYdYsmd2 = Matmul(Yd,adjYdYsmd2)
-   YdadjYdYsCYs = Matmul(Yd,adjYdYsCYs)
-   YdadjYdYzadjYz = Matmul(Yd,adjYdYzadjYz)
-   YdadjYdAYdadjYd = Matmul(Yd,adjYdAYdadjYd)
-   YdadjYdAYdadjAYd = Matmul(Yd,adjYdAYdadjAYd)
-   YdadjYdAYsCYs = Matmul(Yd,adjYdAYsCYs)
-   YdadjYdAYsCAYs = Matmul(Yd,adjYdAYsCAYs)
-   YdadjYdAYzadjYz = Matmul(Yd,adjYdAYzadjYz)
-   YdadjYdAYzadjAYz = Matmul(Yd,adjYdAYzadjAYz)
-   YdadjYuYuadjYd = Matmul(Yd,adjYuYuadjYd)
-   YdadjYuAYuadjYd = Matmul(Yd,adjYuAYuadjYd)
-   YdadjYuAYuadjAYd = Matmul(Yd,adjYuAYuadjAYd)
-   YdadjAYdAYdadjYd = Matmul(Yd,adjAYdAYdadjYd)
-   YdadjAYdAYsCYs = Matmul(Yd,adjAYdAYsCYs)
-   YdadjAYdAYzadjYz = Matmul(Yd,adjAYdAYzadjYz)
-   YdadjAYuAYuadjYd = Matmul(Yd,adjAYuAYuadjYd)
-   YeadjYeYeadjYe = Matmul(Ye,adjYeYeadjYe)
-   YeadjYeAYeadjYe = Matmul(Ye,adjYeAYeadjYe)
-   YeadjYeAYeadjAYe = Matmul(Ye,adjYeAYeadjAYe)
-   YeadjYzYzadjYe = Matmul(Ye,adjYzYzadjYe)
-   YeadjYzAYzadjYe = Matmul(Ye,adjYzAYzadjYe)
-   YeadjYzAYzadjAYe = Matmul(Ye,adjYzAYzadjAYe)
-   YeadjAYeAYeadjYe = Matmul(Ye,adjAYeAYeadjYe)
-   YeadjAYzAYzadjYe = Matmul(Ye,adjAYzAYzadjYe)
-   YeCYtYtadjYe = Matmul(Ye,CYtYtadjYe)
-   YeCYtAYtadjYe = Matmul(Ye,CYtAYtadjYe)
-   YeCYtAYtadjAYe = Matmul(Ye,CYtAYtadjAYe)
-   YeCAYtAYtadjYe = Matmul(Ye,CAYtAYtadjYe)
-   Ysmd2CYsYs = Matmul(Ys,md2CYsYs)
-   YsCYdTYdCYs = Matmul(Ys,CYdTYdCYs)
-   YsCYdTAYdCAYs = Matmul(Ys,CYdTAYdCAYs)
-   YsCYsmd2Ys = Matmul(Ys,CYsmd2Ys)
-   YsCYsYdadjYd = Matmul(Ys,CYsYdadjYd)
-   YsCYsYsmd2 = Matmul(Ys,CYsYsmd2)
-   YsCYsYsCYs = Matmul(Ys,CYsYsCYs)
-   YsCYsYzadjYz = Matmul(Ys,CYsYzadjYz)
-   YsCYsAYdadjYd = Matmul(Ys,CYsAYdadjYd)
-   YsCYsAYdadjAYd = Matmul(Ys,CYsAYdadjAYd)
-   YsCYsAYsCYs = Matmul(Ys,CYsAYsCYs)
-   YsCYsAYsCAYs = Matmul(Ys,CYsAYsCAYs)
-   YsCYsAYzadjYz = Matmul(Ys,CYsAYzadjYz)
-   YsCYsAYzadjAYz = Matmul(Ys,CYsAYzadjAYz)
-   YsCYzTYzCYs = Matmul(Ys,CYzTYzCYs)
-   YsCYzTAYzCAYs = Matmul(Ys,CYzTAYzCAYs)
-   YsCAYdTAYdCYs = Matmul(Ys,CAYdTAYdCYs)
-   YsCAYsAYdadjYd = Matmul(Ys,CAYsAYdadjYd)
-   YsCAYsAYsCYs = Matmul(Ys,CAYsAYsCYs)
-   YsCAYsAYzadjYz = Matmul(Ys,CAYsAYzadjYz)
-   YsCAYzTAYzCYs = Matmul(Ys,CAYzTAYzCYs)
-   Ytml2adjYeYe = Matmul(Yt,ml2adjYeYe)
-   Ytml2adjYzYz = Matmul(Yt,ml2adjYzYz)
-   Ytml2CYtYt = Matmul(Yt,ml2CYtYt)
-   YtadjYeme2Ye = Matmul(Yt,adjYeme2Ye)
-   YtadjYeYeml2 = Matmul(Yt,adjYeYeml2)
-   YtadjYeYeCYt = Matmul(Yt,adjYeYeCYt)
-   YtadjYeAYeCYt = Matmul(Yt,adjYeAYeCYt)
-   YtadjYeAYeCAYt = Matmul(Yt,adjYeAYeCAYt)
-   YtadjYzmd2Yz = Matmul(Yt,adjYzmd2Yz)
-   YtadjYzYzml2 = Matmul(Yt,adjYzYzml2)
-   YtadjYzYzCYt = Matmul(Yt,adjYzYzCYt)
-   YtadjYzAYzCYt = Matmul(Yt,adjYzAYzCYt)
-   YtadjYzAYzCAYt = Matmul(Yt,adjYzAYzCAYt)
-   YtadjAYeAYeCYt = Matmul(Yt,adjAYeAYeCYt)
-   YtadjAYzAYzCYt = Matmul(Yt,adjAYzAYzCYt)
-   YtCYtml2Yt = Matmul(Yt,CYtml2Yt)
-   YtCYtYtml2 = Matmul(Yt,CYtYtml2)
-   YtCYtYtCYt = Matmul(Yt,CYtYtCYt)
-   YtCYtAYtCYt = Matmul(Yt,CYtAYtCYt)
-   YtCYtAYtCAYt = Matmul(Yt,CYtAYtCAYt)
-   YtCAYtAYtCYt = Matmul(Yt,CAYtAYtCYt)
-   YuadjYdYdadjYu = Matmul(Yu,adjYdYdadjYu)
-   YuadjYdAYdadjYu = Matmul(Yu,adjYdAYdadjYu)
-   YuadjYdAYdadjAYu = Matmul(Yu,adjYdAYdadjAYu)
-   YuadjYuYuadjYu = Matmul(Yu,adjYuYuadjYu)
-   YuadjYuAYuadjYu = Matmul(Yu,adjYuAYuadjYu)
-   YuadjYuAYuadjAYu = Matmul(Yu,adjYuAYuadjAYu)
-   YuadjAYdAYdadjYu = Matmul(Yu,adjAYdAYdadjYu)
-   YuadjAYuAYuadjYu = Matmul(Yu,adjAYuAYuadjYu)
-   Yzml2adjYzYs = Matmul(Yz,ml2adjYzYs)
-   YzadjYeYeadjYz = Matmul(Yz,adjYeYeadjYz)
-   YzadjYeAYeadjYz = Matmul(Yz,adjYeAYeadjYz)
-   YzadjYeAYeadjAYz = Matmul(Yz,adjYeAYeadjAYz)
-   YzadjYzmd2Ys = Matmul(Yz,adjYzmd2Ys)
-   YzadjYzYdadjYd = Matmul(Yz,adjYzYdadjYd)
-   YzadjYzYsmd2 = Matmul(Yz,adjYzYsmd2)
-   YzadjYzYsCYs = Matmul(Yz,adjYzYsCYs)
-   YzadjYzYzadjYz = Matmul(Yz,adjYzYzadjYz)
-   YzadjYzAYdadjYd = Matmul(Yz,adjYzAYdadjYd)
-   YzadjYzAYdadjAYd = Matmul(Yz,adjYzAYdadjAYd)
-   YzadjYzAYsCYs = Matmul(Yz,adjYzAYsCYs)
-   YzadjYzAYsCAYs = Matmul(Yz,adjYzAYsCAYs)
-   YzadjYzAYzadjYz = Matmul(Yz,adjYzAYzadjYz)
-   YzadjYzAYzadjAYz = Matmul(Yz,adjYzAYzadjAYz)
-   YzadjAYeAYeadjYz = Matmul(Yz,adjAYeAYeadjYz)
-   YzadjAYzAYdadjYd = Matmul(Yz,adjAYzAYdadjYd)
-   YzadjAYzAYsCYs = Matmul(Yz,adjAYzAYsCYs)
-   YzadjAYzAYzadjYz = Matmul(Yz,adjAYzAYzadjYz)
-   YzCYtYtadjYz = Matmul(Yz,CYtYtadjYz)
-   YzCYtAYtadjYz = Matmul(Yz,CYtAYtadjYz)
-   YzCYtAYtadjAYz = Matmul(Yz,CYtAYtadjAYz)
-   YzCAYtAYtadjYz = Matmul(Yz,CAYtAYtadjYz)
-   AYdadjYdYdadjAYd = Matmul(AYd,adjYdYdadjAYd)
-   AYdadjYuYuadjAYd = Matmul(AYd,adjYuYuadjAYd)
-   AYdadjAYdYdadjYd = Matmul(AYd,adjAYdYdadjYd)
-   AYdadjAYuYuadjYd = Matmul(AYd,adjAYuYuadjYd)
-   AYeadjYeYeadjAYe = Matmul(AYe,adjYeYeadjAYe)
-   AYeadjYzYzadjAYe = Matmul(AYe,adjYzYzadjAYe)
-   AYeadjAYeYeadjYe = Matmul(AYe,adjAYeYeadjYe)
-   AYeadjAYzYzadjYe = Matmul(AYe,adjAYzYzadjYe)
-   AYeCYtYtadjAYe = Matmul(AYe,CYtYtadjAYe)
-   AYeCAYtYtadjYe = Matmul(AYe,CAYtYtadjYe)
-   AYsCYdTYdCAYs = Matmul(AYs,CYdTYdCAYs)
-   AYsCYsYsCAYs = Matmul(AYs,CYsYsCAYs)
-   AYsCYzTYzCAYs = Matmul(AYs,CYzTYzCAYs)
-   AYsCAYdTYdCYs = Matmul(AYs,CAYdTYdCYs)
-   AYsCAYsYsCYs = Matmul(AYs,CAYsYsCYs)
-   AYsCAYzTYzCYs = Matmul(AYs,CAYzTYzCYs)
-   AYtadjYeYeCAYt = Matmul(AYt,adjYeYeCAYt)
-   AYtadjYzYzCAYt = Matmul(AYt,adjYzYzCAYt)
-   AYtadjAYeYeCYt = Matmul(AYt,adjAYeYeCYt)
-   AYtadjAYzYzCYt = Matmul(AYt,adjAYzYzCYt)
-   AYtCYtYtCAYt = Matmul(AYt,CYtYtCAYt)
-   AYtCAYtYtCYt = Matmul(AYt,CAYtYtCYt)
-   AYuadjYdYdadjAYu = Matmul(AYu,adjYdYdadjAYu)
-   AYuadjYuYuadjAYu = Matmul(AYu,adjYuYuadjAYu)
-   AYuadjAYdYdadjYu = Matmul(AYu,adjAYdYdadjYu)
-   AYuadjAYuYuadjYu = Matmul(AYu,adjAYuYuadjYu)
-   AYzadjYeYeadjAYz = Matmul(AYz,adjYeYeadjAYz)
-   AYzadjYzYzadjAYz = Matmul(AYz,adjYzYzadjAYz)
-   AYzadjAYeYeadjYz = Matmul(AYz,adjAYeYeadjYz)
-   AYzadjAYzYzadjYz = Matmul(AYz,adjAYzYzadjYz)
-   AYzCYtYtadjAYz = Matmul(AYz,CYtYtadjAYz)
-   AYzCAYtYtadjYz = Matmul(AYz,CAYtYtadjYz)
-   adjYdmd2YdadjYd = Matmul(adjYd,md2YdadjYd)
-   adjYdmd2YdadjYu = Matmul(adjYd,md2YdadjYu)
-   adjYdmd2YsCYs = Matmul(adjYd,md2YsCYs)
-   adjYdmd2YzadjYz = Matmul(adjYd,md2YzadjYz)
-   adjYdYdmq2adjYd = Matmul(adjYd,Ydmq2adjYd)
-   adjYdYdmq2adjYu = Matmul(adjYd,Ydmq2adjYu)
-   adjYdYdadjYdmd2 = Matmul(adjYd,YdadjYdmd2)
-   adjYdYdadjYdYd = Matmul(adjYd,YdadjYdYd)
-   adjYdYdadjYdYs = Matmul(adjYd,YdadjYdYs)
-   adjYdYdadjYdYz = Matmul(adjYd,YdadjYdYz)
-   adjYdYdadjYdAYd = Matmul(adjYd,YdadjYdAYd)
-   adjYdYdadjYdAYs = Matmul(adjYd,YdadjYdAYs)
-   adjYdYdadjYdAYz = Matmul(adjYd,YdadjYdAYz)
-   adjYdYdadjYumu2 = Matmul(adjYd,YdadjYumu2)
-   adjYdYdadjYuYu = Matmul(adjYd,YdadjYuYu)
-   adjYdYdadjYuAYu = Matmul(adjYd,YdadjYuAYu)
-   adjYdYsCYsYd = Matmul(adjYd,YsCYsYd)
-   adjYdYsCYsAYd = Matmul(adjYd,YsCYsAYd)
-   adjYdYzml2adjYz = Matmul(adjYd,Yzml2adjYz)
-   adjYdYzadjYzYd = Matmul(adjYd,YzadjYzYd)
-   adjYdYzadjYzAYd = Matmul(adjYd,YzadjYzAYd)
-   adjYdAYdadjYdYd = Matmul(adjYd,AYdadjYdYd)
-   adjYdAYdadjYdYs = Matmul(adjYd,AYdadjYdYs)
-   adjYdAYdadjYdYz = Matmul(adjYd,AYdadjYdYz)
-   adjYdAYdadjYuYu = Matmul(adjYd,AYdadjYuYu)
-   adjYdAYsCYsYd = Matmul(adjYd,AYsCYsYd)
-   adjYdAYzadjYzYd = Matmul(adjYd,AYzadjYzYd)
-   adjYeme2YeadjYe = Matmul(adjYe,me2YeadjYe)
-   adjYeme2YeadjYz = Matmul(adjYe,me2YeadjYz)
-   adjYeme2YeCYt = Matmul(adjYe,me2YeCYt)
-   adjYeYeml2adjYe = Matmul(adjYe,Yeml2adjYe)
-   adjYeYeml2adjYz = Matmul(adjYe,Yeml2adjYz)
-   adjYeYeml2CYt = Matmul(adjYe,Yeml2CYt)
-   adjYeYeadjYeme2 = Matmul(adjYe,YeadjYeme2)
-   adjYeYeadjYeYe = Matmul(adjYe,YeadjYeYe)
-   adjYeYeadjYeAYe = Matmul(adjYe,YeadjYeAYe)
-   adjYeYeadjYzmd2 = Matmul(adjYe,YeadjYzmd2)
-   adjYeYeadjYzYd = Matmul(adjYe,YeadjYzYd)
-   adjYeYeadjYzYs = Matmul(adjYe,YeadjYzYs)
-   adjYeYeadjYzYz = Matmul(adjYe,YeadjYzYz)
-   adjYeYeadjYzAYd = Matmul(adjYe,YeadjYzAYd)
-   adjYeYeadjYzAYs = Matmul(adjYe,YeadjYzAYs)
-   adjYeYeadjYzAYz = Matmul(adjYe,YeadjYzAYz)
-   adjYeYeCYtml2 = Matmul(adjYe,YeCYtml2)
-   adjYeYeCYtYt = Matmul(adjYe,YeCYtYt)
-   adjYeYeCYtAYt = Matmul(adjYe,YeCYtAYt)
-   adjYeAYeadjYeYe = Matmul(adjYe,AYeadjYeYe)
-   adjYeAYeadjYzYd = Matmul(adjYe,AYeadjYzYd)
-   adjYeAYeadjYzYs = Matmul(adjYe,AYeadjYzYs)
-   adjYeAYeadjYzYz = Matmul(adjYe,AYeadjYzYz)
-   adjYeAYeCYtYt = Matmul(adjYe,AYeCYtYt)
-   adjYumu2YuadjYd = Matmul(adjYu,mu2YuadjYd)
-   adjYumu2YuadjYu = Matmul(adjYu,mu2YuadjYu)
-   adjYuYumq2adjYd = Matmul(adjYu,Yumq2adjYd)
-   adjYuYumq2adjYu = Matmul(adjYu,Yumq2adjYu)
-   adjYuYuadjYdmd2 = Matmul(adjYu,YuadjYdmd2)
-   adjYuYuadjYdYd = Matmul(adjYu,YuadjYdYd)
-   adjYuYuadjYdYs = Matmul(adjYu,YuadjYdYs)
-   adjYuYuadjYdYz = Matmul(adjYu,YuadjYdYz)
-   adjYuYuadjYdAYd = Matmul(adjYu,YuadjYdAYd)
-   adjYuYuadjYdAYs = Matmul(adjYu,YuadjYdAYs)
-   adjYuYuadjYdAYz = Matmul(adjYu,YuadjYdAYz)
-   adjYuYuadjYumu2 = Matmul(adjYu,YuadjYumu2)
-   adjYuYuadjYuYu = Matmul(adjYu,YuadjYuYu)
-   adjYuYuadjYuAYu = Matmul(adjYu,YuadjYuAYu)
-   adjYuAYuadjYdYd = Matmul(adjYu,AYuadjYdYd)
-   adjYuAYuadjYdYs = Matmul(adjYu,AYuadjYdYs)
-   adjYuAYuadjYdYz = Matmul(adjYu,AYuadjYdYz)
-   adjYuAYuadjYuYu = Matmul(adjYu,AYuadjYuYu)
-   adjYzmd2YdadjYd = Matmul(adjYz,md2YdadjYd)
-   adjYzmd2YsCYs = Matmul(adjYz,md2YsCYs)
-   adjYzmd2YzadjYe = Matmul(adjYz,md2YzadjYe)
-   adjYzmd2YzadjYz = Matmul(adjYz,md2YzadjYz)
-   adjYzmd2YzCYt = Matmul(adjYz,md2YzCYt)
-   adjYzYdmq2adjYd = Matmul(adjYz,Ydmq2adjYd)
-   adjYzYdadjYdYz = Matmul(adjYz,YdadjYdYz)
-   adjYzYdadjYdAYz = Matmul(adjYz,YdadjYdAYz)
-   adjYzYsCYsYz = Matmul(adjYz,YsCYsYz)
-   adjYzYsCYsAYz = Matmul(adjYz,YsCYsAYz)
-   adjYzYzml2adjYe = Matmul(adjYz,Yzml2adjYe)
-   adjYzYzml2adjYz = Matmul(adjYz,Yzml2adjYz)
-   adjYzYzml2CYt = Matmul(adjYz,Yzml2CYt)
-   adjYzYzadjYeme2 = Matmul(adjYz,YzadjYeme2)
-   adjYzYzadjYeYe = Matmul(adjYz,YzadjYeYe)
-   adjYzYzadjYeAYe = Matmul(adjYz,YzadjYeAYe)
-   adjYzYzadjYzmd2 = Matmul(adjYz,YzadjYzmd2)
-   adjYzYzadjYzYd = Matmul(adjYz,YzadjYzYd)
-   adjYzYzadjYzYs = Matmul(adjYz,YzadjYzYs)
-   adjYzYzadjYzYz = Matmul(adjYz,YzadjYzYz)
-   adjYzYzadjYzAYd = Matmul(adjYz,YzadjYzAYd)
-   adjYzYzadjYzAYs = Matmul(adjYz,YzadjYzAYs)
-   adjYzYzadjYzAYz = Matmul(adjYz,YzadjYzAYz)
-   adjYzYzCYtml2 = Matmul(adjYz,YzCYtml2)
-   adjYzYzCYtYt = Matmul(adjYz,YzCYtYt)
-   adjYzYzCYtAYt = Matmul(adjYz,YzCYtAYt)
-   adjYzAYdadjYdYz = Matmul(adjYz,AYdadjYdYz)
-   adjYzAYsCYsYz = Matmul(adjYz,AYsCYsYz)
-   adjYzAYzadjYeYe = Matmul(adjYz,AYzadjYeYe)
-   adjYzAYzadjYzYd = Matmul(adjYz,AYzadjYzYd)
-   adjYzAYzadjYzYs = Matmul(adjYz,AYzadjYzYs)
-   adjYzAYzadjYzYz = Matmul(adjYz,AYzadjYzYz)
-   adjYzAYzCYtYt = Matmul(adjYz,AYzCYtYt)
-   CYdmq2TYdCYd = Matmul(Conjg(Yd),mq2TYdCYd)
-   CYdmq2TYdCYs = Matmul(Conjg(Yd),mq2TYdCYs)
-   CYdmq2TYdCYz = Matmul(Conjg(Yd),mq2TYdCYz)
-   CYdTYdmd2CYd = Matmul(Conjg(Yd),TYdmd2CYd)
-   CYdTYdmd2CYs = Matmul(Conjg(Yd),TYdmd2CYs)
-   CYdTYdmd2CYz = Matmul(Conjg(Yd),TYdmd2CYz)
-   CYdTYdCYdmq2 = Matmul(Conjg(Yd),TYdCYdmq2)
-   CYdTYdCYdTYd = Matmul(Conjg(Yd),TYdCYdTYd)
-   CYdTYdCYdTAYd = Matmul(Conjg(Yd),TYdCYdTAYd)
-   CYdTYdCYsmd2 = Matmul(Conjg(Yd),TYdCYsmd2)
-   CYdTYdCYsYd = Matmul(Conjg(Yd),TYdCYsYd)
-   CYdTYdCYsYs = Matmul(Conjg(Yd),TYdCYsYs)
-   CYdTYdCYsYz = Matmul(Conjg(Yd),TYdCYsYz)
-   CYdTYdCYsAYd = Matmul(Conjg(Yd),TYdCYsAYd)
-   CYdTYdCYsAYs = Matmul(Conjg(Yd),TYdCYsAYs)
-   CYdTYdCYsAYz = Matmul(Conjg(Yd),TYdCYsAYz)
-   CYdTYdCYzml2 = Matmul(Conjg(Yd),TYdCYzml2)
-   CYdTYdCYzYt = Matmul(Conjg(Yd),TYdCYzYt)
-   CYdTYdCYzAYt = Matmul(Conjg(Yd),TYdCYzAYt)
-   CYdTYuCYuTYd = Matmul(Conjg(Yd),TYuCYuTYd)
-   CYdTYuCYuTAYd = Matmul(Conjg(Yd),TYuCYuTAYd)
-   CYdTAYdCYdTYd = Matmul(Conjg(Yd),TAYdCYdTYd)
-   CYdTAYdCYsYd = Matmul(Conjg(Yd),TAYdCYsYd)
-   CYdTAYdCYsYs = Matmul(Conjg(Yd),TAYdCYsYs)
-   CYdTAYdCYsYz = Matmul(Conjg(Yd),TAYdCYsYz)
-   CYdTAYdCYzYt = Matmul(Conjg(Yd),TAYdCYzYt)
-   CYdTAYuCYuTYd = Matmul(Conjg(Yd),TAYuCYuTYd)
-   CYeml2TYeCYe = Matmul(Conjg(Ye),ml2TYeCYe)
-   CYeTYeme2CYe = Matmul(Conjg(Ye),TYeme2CYe)
-   CYeTYeCYeml2 = Matmul(Conjg(Ye),TYeCYeml2)
-   CYeTYeCYeYt = Matmul(Conjg(Ye),TYeCYeYt)
-   CYeTYeCYeAYt = Matmul(Conjg(Ye),TYeCYeAYt)
-   CYeTAYeCYeYt = Matmul(Conjg(Ye),TAYeCYeYt)
-   CYsmd2YdadjYd = Matmul(adjYs,md2YdadjYd)
-   CYsmd2YsCYd = Matmul(adjYs,md2YsCYd)
-   CYsmd2YsCYs = Matmul(adjYs,md2YsCYs)
-   CYsmd2YsCYz = Matmul(adjYs,md2YsCYz)
-   CYsmd2YzadjYz = Matmul(adjYs,md2YzadjYz)
-   CYsYdmq2adjYd = Matmul(adjYs,Ydmq2adjYd)
-   CYsYdadjYdmd2 = Matmul(adjYs,YdadjYdmd2)
-   CYsYdadjYdYs = Matmul(adjYs,YdadjYdYs)
-   CYsYdadjYdAYs = Matmul(adjYs,YdadjYdAYs)
-   CYsYdadjAYdAYs = Matmul(adjYs,YdadjAYdAYs)
-   CYsYsmd2CYd = Matmul(adjYs,Ysmd2CYd)
-   CYsYsmd2CYs = Matmul(adjYs,Ysmd2CYs)
-   CYsYsmd2CYz = Matmul(adjYs,Ysmd2CYz)
-   CYsYsCYdmq2 = Matmul(adjYs,YsCYdmq2)
-   CYsYsCYsmd2 = Matmul(adjYs,YsCYsmd2)
-   CYsYsCYsYd = Matmul(adjYs,YsCYsYd)
-   CYsYsCYsYs = Matmul(adjYs,YsCYsYs)
-   CYsYsCYsYz = Matmul(adjYs,YsCYsYz)
-   CYsYsCYsAYd = Matmul(adjYs,YsCYsAYd)
-   CYsYsCYsAYs = Matmul(adjYs,YsCYsAYs)
-   CYsYsCYsAYz = Matmul(adjYs,YsCYsAYz)
-   CYsYsCYzml2 = Matmul(adjYs,YsCYzml2)
-   CYsYsCYzYt = Matmul(adjYs,YsCYzYt)
-   CYsYsCYzAYt = Matmul(adjYs,YsCYzAYt)
-   CYsYsCAYsAYs = Matmul(adjYs,YsCAYsAYs)
-   CYsYzml2adjYz = Matmul(adjYs,Yzml2adjYz)
-   CYsYzadjYzmd2 = Matmul(adjYs,YzadjYzmd2)
-   CYsYzadjYzYs = Matmul(adjYs,YzadjYzYs)
-   CYsYzadjYzAYs = Matmul(adjYs,YzadjYzAYs)
-   CYsYzadjAYzAYs = Matmul(adjYs,YzadjAYzAYs)
-   CYsAYdadjYdYs = Matmul(adjYs,AYdadjYdYs)
-   CYsAYdadjAYdYs = Matmul(adjYs,AYdadjAYdYs)
-   CYsAYsCYsYd = Matmul(adjYs,AYsCYsYd)
-   CYsAYsCYsYs = Matmul(adjYs,AYsCYsYs)
-   CYsAYsCYsYz = Matmul(adjYs,AYsCYsYz)
-   CYsAYsCYzYt = Matmul(adjYs,AYsCYzYt)
-   CYsAYsCAYsYs = Matmul(adjYs,AYsCAYsYs)
-   CYsAYzadjYzYs = Matmul(adjYs,AYzadjYzYs)
-   CYsAYzadjAYzYs = Matmul(adjYs,AYzadjAYzYs)
-   CYtml2YtadjYe = Matmul(adjYt,ml2YtadjYe)
-   CYtml2YtadjYz = Matmul(adjYt,ml2YtadjYz)
-   CYtml2YtCYt = Matmul(adjYt,ml2YtCYt)
-   CYtYtml2adjYe = Matmul(adjYt,Ytml2adjYe)
-   CYtYtml2adjYz = Matmul(adjYt,Ytml2adjYz)
-   CYtYtml2CYt = Matmul(adjYt,Ytml2CYt)
-   CYtYtadjYeme2 = Matmul(adjYt,YtadjYeme2)
-   CYtYtadjYeYe = Matmul(adjYt,YtadjYeYe)
-   CYtYtadjYeAYe = Matmul(adjYt,YtadjYeAYe)
-   CYtYtadjYzmd2 = Matmul(adjYt,YtadjYzmd2)
-   CYtYtadjYzYd = Matmul(adjYt,YtadjYzYd)
-   CYtYtadjYzYs = Matmul(adjYt,YtadjYzYs)
-   CYtYtadjYzYz = Matmul(adjYt,YtadjYzYz)
-   CYtYtadjYzAYd = Matmul(adjYt,YtadjYzAYd)
-   CYtYtadjYzAYs = Matmul(adjYt,YtadjYzAYs)
-   CYtYtadjYzAYz = Matmul(adjYt,YtadjYzAYz)
-   CYtYtadjAYeAYe = Matmul(adjYt,YtadjAYeAYe)
-   CYtYtadjAYzAYz = Matmul(adjYt,YtadjAYzAYz)
-   CYtYtCYtml2 = Matmul(adjYt,YtCYtml2)
-   CYtYtCYtYt = Matmul(adjYt,YtCYtYt)
-   CYtYtCYtAYt = Matmul(adjYt,YtCYtAYt)
-   CYtYtCAYtAYt = Matmul(adjYt,YtCAYtAYt)
-   CYtAYtadjYeYe = Matmul(adjYt,AYtadjYeYe)
-   CYtAYtadjYzYd = Matmul(adjYt,AYtadjYzYd)
-   CYtAYtadjYzYs = Matmul(adjYt,AYtadjYzYs)
-   CYtAYtadjYzYz = Matmul(adjYt,AYtadjYzYz)
-   CYtAYtadjAYeYe = Matmul(adjYt,AYtadjAYeYe)
-   CYtAYtadjAYzYz = Matmul(adjYt,AYtadjAYzYz)
-   CYtAYtCYtYt = Matmul(adjYt,AYtCYtYt)
-   CYtAYtCAYtYt = Matmul(adjYt,AYtCAYtYt)
-   CYtTYeCYeYt = Matmul(adjYt,TYeCYeYt)
-   CYtTYeCYeAYt = Matmul(adjYt,TYeCYeAYt)
-   CYtTYzCYzYt = Matmul(adjYt,TYzCYzYt)
-   CYtTYzCYzAYt = Matmul(adjYt,TYzCYzAYt)
-   CYtTAYeCYeYt = Matmul(adjYt,TAYeCYeYt)
-   CYtTAYzCYzYt = Matmul(adjYt,TAYzCYzYt)
-   CYumq2TYuCYu = Matmul(Conjg(Yu),mq2TYuCYu)
-   CYuTYumu2CYu = Matmul(Conjg(Yu),TYumu2CYu)
-   CYuTYuCYumq2 = Matmul(Conjg(Yu),TYuCYumq2)
-   CYzml2TYzCYd = Matmul(Conjg(Yz),ml2TYzCYd)
-   CYzml2TYzCYs = Matmul(Conjg(Yz),ml2TYzCYs)
-   CYzml2TYzCYz = Matmul(Conjg(Yz),ml2TYzCYz)
-   CYzYtCYtTYz = Matmul(Conjg(Yz),YtCYtTYz)
-   CYzYtCYtTAYz = Matmul(Conjg(Yz),YtCYtTAYz)
-   CYzAYtCYtTYz = Matmul(Conjg(Yz),AYtCYtTYz)
-   CYzTYeCYeTYz = Matmul(Conjg(Yz),TYeCYeTYz)
-   CYzTYeCYeTAYz = Matmul(Conjg(Yz),TYeCYeTAYz)
-   CYzTYzmd2CYd = Matmul(Conjg(Yz),TYzmd2CYd)
-   CYzTYzmd2CYs = Matmul(Conjg(Yz),TYzmd2CYs)
-   CYzTYzmd2CYz = Matmul(Conjg(Yz),TYzmd2CYz)
-   CYzTYzCYdmq2 = Matmul(Conjg(Yz),TYzCYdmq2)
-   CYzTYzCYsmd2 = Matmul(Conjg(Yz),TYzCYsmd2)
-   CYzTYzCYsYd = Matmul(Conjg(Yz),TYzCYsYd)
-   CYzTYzCYsYs = Matmul(Conjg(Yz),TYzCYsYs)
-   CYzTYzCYsYz = Matmul(Conjg(Yz),TYzCYsYz)
-   CYzTYzCYsAYd = Matmul(Conjg(Yz),TYzCYsAYd)
-   CYzTYzCYsAYs = Matmul(Conjg(Yz),TYzCYsAYs)
-   CYzTYzCYsAYz = Matmul(Conjg(Yz),TYzCYsAYz)
-   CYzTYzCYzml2 = Matmul(Conjg(Yz),TYzCYzml2)
-   CYzTYzCYzYt = Matmul(Conjg(Yz),TYzCYzYt)
-   CYzTYzCYzAYt = Matmul(Conjg(Yz),TYzCYzAYt)
-   CYzTYzCYzTYz = Matmul(Conjg(Yz),TYzCYzTYz)
-   CYzTYzCYzTAYz = Matmul(Conjg(Yz),TYzCYzTAYz)
-   CYzTAYeCYeTYz = Matmul(Conjg(Yz),TAYeCYeTYz)
-   CYzTAYzCYsYd = Matmul(Conjg(Yz),TAYzCYsYd)
-   CYzTAYzCYsYs = Matmul(Conjg(Yz),TAYzCYsYs)
-   CYzTAYzCYsYz = Matmul(Conjg(Yz),TAYzCYsYz)
-   CYzTAYzCYzYt = Matmul(Conjg(Yz),TAYzCYzYt)
-   CYzTAYzCYzTYz = Matmul(Conjg(Yz),TAYzCYzTYz)
-   TYdCYdTYdCYd = Matmul(Transpose(Yd),CYdTYdCYd)
-   TYdCYdTAYdCAYd = Matmul(Transpose(Yd),CYdTAYdCAYd)
-   TYdCYsYsCYd = Matmul(Transpose(Yd),CYsYsCYd)
-   TYdCYsAYsCAYd = Matmul(Transpose(Yd),CYsAYsCAYd)
-   TYdCYzTYzCYd = Matmul(Transpose(Yd),CYzTYzCYd)
-   TYdCYzTAYzCAYd = Matmul(Transpose(Yd),CYzTAYzCAYd)
-   TYdCAYdTAYdCYd = Matmul(Transpose(Yd),CAYdTAYdCYd)
-   TYdCAYsAYsCYd = Matmul(Transpose(Yd),CAYsAYsCYd)
-   TYdCAYzTAYzCYd = Matmul(Transpose(Yd),CAYzTAYzCYd)
-   TYeCYeTYeCYe = Matmul(Transpose(Ye),CYeTYeCYe)
-   TYeCYeTAYeCAYe = Matmul(Transpose(Ye),CYeTAYeCAYe)
-   TYeCAYeTAYeCYe = Matmul(Transpose(Ye),CAYeTAYeCYe)
-   TYuCYuTYuCYu = Matmul(Transpose(Yu),CYuTYuCYu)
-   TYuCYuTAYuCAYu = Matmul(Transpose(Yu),CYuTAYuCAYu)
-   TYuCAYuTAYuCYu = Matmul(Transpose(Yu),CAYuTAYuCYu)
-   TYzCYdTYdCYz = Matmul(Transpose(Yz),CYdTYdCYz)
-   TYzCYdTAYdCAYz = Matmul(Transpose(Yz),CYdTAYdCAYz)
-   TYzCYsYsCYz = Matmul(Transpose(Yz),CYsYsCYz)
-   TYzCYsAYsCAYz = Matmul(Transpose(Yz),CYsAYsCAYz)
-   TYzCYzTYzCYz = Matmul(Transpose(Yz),CYzTYzCYz)
-   TYzCYzTAYzCAYz = Matmul(Transpose(Yz),CYzTAYzCAYz)
-   TYzCAYdTAYdCYz = Matmul(Transpose(Yz),CAYdTAYdCYz)
-   TYzCAYsAYsCYz = Matmul(Transpose(Yz),CAYsAYsCYz)
-   TYzCAYzTAYzCYz = Matmul(Transpose(Yz),CAYzTAYzCYz)
-   TAYdCYdTYdCAYd = Matmul(Transpose(AYd),CYdTYdCAYd)
-   TAYdCYsYsCAYd = Matmul(Transpose(AYd),CYsYsCAYd)
-   TAYdCYzTYzCAYd = Matmul(Transpose(AYd),CYzTYzCAYd)
-   TAYdCAYdTYdCYd = Matmul(Transpose(AYd),CAYdTYdCYd)
-   TAYdCAYsYsCYd = Matmul(Transpose(AYd),CAYsYsCYd)
-   TAYdCAYzTYzCYd = Matmul(Transpose(AYd),CAYzTYzCYd)
-   TAYeCYeTYeCAYe = Matmul(Transpose(AYe),CYeTYeCAYe)
-   TAYeCAYeTYeCYe = Matmul(Transpose(AYe),CAYeTYeCYe)
-   TAYuCYuTYuCAYu = Matmul(Transpose(AYu),CYuTYuCAYu)
-   TAYuCAYuTYuCYu = Matmul(Transpose(AYu),CAYuTYuCYu)
-   TAYzCYdTYdCAYz = Matmul(Transpose(AYz),CYdTYdCAYz)
-   TAYzCYsYsCAYz = Matmul(Transpose(AYz),CYsYsCAYz)
-   TAYzCYzTYzCAYz = Matmul(Transpose(AYz),CYzTYzCAYz)
-   TAYzCAYdTYdCYz = Matmul(Transpose(AYz),CAYdTYdCYz)
-   TAYzCAYsYsCYz = Matmul(Transpose(AYz),CAYsYsCYz)
-   TAYzCAYzTYzCYz = Matmul(Transpose(AYz),CAYzTYzCYz)
-   md2YdadjYdYdadjYd = Matmul(md2,YdadjYdYdadjYd)
-   md2YdadjYdYsCYs = Matmul(md2,YdadjYdYsCYs)
-   md2YdadjYuYuadjYd = Matmul(md2,YdadjYuYuadjYd)
-   md2YsCYdTYdCYs = Matmul(md2,YsCYdTYdCYs)
-   md2YsCYsYdadjYd = Matmul(md2,YsCYsYdadjYd)
-   md2YsCYsYsCYs = Matmul(md2,YsCYsYsCYs)
-   md2YsCYsYzadjYz = Matmul(md2,YsCYsYzadjYz)
-   md2YsCYzTYzCYs = Matmul(md2,YsCYzTYzCYs)
-   md2YzadjYeYeadjYz = Matmul(md2,YzadjYeYeadjYz)
-   md2YzadjYzYsCYs = Matmul(md2,YzadjYzYsCYs)
-   md2YzadjYzYzadjYz = Matmul(md2,YzadjYzYzadjYz)
-   md2YzCYtYtadjYz = Matmul(md2,YzCYtYtadjYz)
-   md2CYsYsCYsYs = Matmul(md2,CYsYsCYsYs)
-   me2YeadjYeYeadjYe = Matmul(me2,YeadjYeYeadjYe)
-   me2YeadjYzYzadjYe = Matmul(me2,YeadjYzYzadjYe)
-   me2YeCYtYtadjYe = Matmul(me2,YeCYtYtadjYe)
-   ml2YtadjYeYeCYt = Matmul(ml2,YtadjYeYeCYt)
-   ml2YtadjYzYzCYt = Matmul(ml2,YtadjYzYzCYt)
-   ml2YtCYtYtCYt = Matmul(ml2,YtCYtYtCYt)
-   ml2adjYzYsCYsYz = Matmul(ml2,adjYzYsCYsYz)
-   ml2CYtYtCYtYt = Matmul(ml2,CYtYtCYtYt)
-   ml2TYeCYeTYeCYe = Matmul(ml2,TYeCYeTYeCYe)
-   ml2TYzCYdTYdCYz = Matmul(ml2,TYzCYdTYdCYz)
-   ml2TYzCYsYsCYz = Matmul(ml2,TYzCYsYsCYz)
-   ml2TYzCYzTYzCYz = Matmul(ml2,TYzCYzTYzCYz)
-   mq2adjYdYsCYsYd = Matmul(mq2,adjYdYsCYsYd)
-   mq2TYdCYdTYdCYd = Matmul(mq2,TYdCYdTYdCYd)
-   mq2TYdCYsYsCYd = Matmul(mq2,TYdCYsYsCYd)
-   mq2TYdCYzTYzCYd = Matmul(mq2,TYdCYzTYzCYd)
-   mq2TYuCYuTYuCYu = Matmul(mq2,TYuCYuTYuCYu)
-   mu2YuadjYdYdadjYu = Matmul(mu2,YuadjYdYdadjYu)
-   mu2YuadjYuYuadjYu = Matmul(mu2,YuadjYuYuadjYu)
-   Ydmq2adjYdYdadjYd = Matmul(Yd,mq2adjYdYdadjYd)
-   Ydmq2adjYdYsCYs = Matmul(Yd,mq2adjYdYsCYs)
-   Ydmq2adjYdYzadjYz = Matmul(Yd,mq2adjYdYzadjYz)
-   Ydmq2adjYuYuadjYd = Matmul(Yd,mq2adjYuYuadjYd)
-   YdadjYdmd2YdadjYd = Matmul(Yd,adjYdmd2YdadjYd)
-   YdadjYdmd2YsCYs = Matmul(Yd,adjYdmd2YsCYs)
-   YdadjYdmd2YzadjYz = Matmul(Yd,adjYdmd2YzadjYz)
-   YdadjYdYdmq2adjYd = Matmul(Yd,adjYdYdmq2adjYd)
-   YdadjYdYdadjYdmd2 = Matmul(Yd,adjYdYdadjYdmd2)
-   YdadjYdYdadjYdYd = Matmul(Yd,adjYdYdadjYdYd)
-   YdadjYdYdadjYdYs = Matmul(Yd,adjYdYdadjYdYs)
-   YdadjYdYdadjYdYz = Matmul(Yd,adjYdYdadjYdYz)
-   YdadjYdYdadjYdAYd = Matmul(Yd,adjYdYdadjYdAYd)
-   YdadjYdYdadjYdAYs = Matmul(Yd,adjYdYdadjYdAYs)
-   YdadjYdYdadjYdAYz = Matmul(Yd,adjYdYdadjYdAYz)
-   YdadjYdYsCYsYd = Matmul(Yd,adjYdYsCYsYd)
-   YdadjYdYsCYsAYd = Matmul(Yd,adjYdYsCYsAYd)
-   YdadjYdYzml2adjYz = Matmul(Yd,adjYdYzml2adjYz)
-   YdadjYdYzadjYzYd = Matmul(Yd,adjYdYzadjYzYd)
-   YdadjYdYzadjYzAYd = Matmul(Yd,adjYdYzadjYzAYd)
-   YdadjYdAYdadjYdYd = Matmul(Yd,adjYdAYdadjYdYd)
-   YdadjYdAYdadjYdYs = Matmul(Yd,adjYdAYdadjYdYs)
-   YdadjYdAYdadjYdYz = Matmul(Yd,adjYdAYdadjYdYz)
-   YdadjYdAYsCYsYd = Matmul(Yd,adjYdAYsCYsYd)
-   YdadjYdAYzadjYzYd = Matmul(Yd,adjYdAYzadjYzYd)
-   YdadjYumu2YuadjYd = Matmul(Yd,adjYumu2YuadjYd)
-   YdadjYuYumq2adjYd = Matmul(Yd,adjYuYumq2adjYd)
-   YdadjYuYuadjYdmd2 = Matmul(Yd,adjYuYuadjYdmd2)
-   YdadjYuYuadjYdYd = Matmul(Yd,adjYuYuadjYdYd)
-   YdadjYuYuadjYdYs = Matmul(Yd,adjYuYuadjYdYs)
-   YdadjYuYuadjYdYz = Matmul(Yd,adjYuYuadjYdYz)
-   YdadjYuYuadjYdAYd = Matmul(Yd,adjYuYuadjYdAYd)
-   YdadjYuYuadjYdAYs = Matmul(Yd,adjYuYuadjYdAYs)
-   YdadjYuYuadjYdAYz = Matmul(Yd,adjYuYuadjYdAYz)
-   YdadjYuYuadjYuYu = Matmul(Yd,adjYuYuadjYuYu)
-   YdadjYuYuadjYuAYu = Matmul(Yd,adjYuYuadjYuAYu)
-   YdadjYuAYuadjYdYd = Matmul(Yd,adjYuAYuadjYdYd)
-   YdadjYuAYuadjYdYs = Matmul(Yd,adjYuAYuadjYdYs)
-   YdadjYuAYuadjYdYz = Matmul(Yd,adjYuAYuadjYdYz)
-   YdadjYuAYuadjYuYu = Matmul(Yd,adjYuAYuadjYuYu)
-   Yeml2adjYeYeadjYe = Matmul(Ye,ml2adjYeYeadjYe)
-   Yeml2adjYzYzadjYe = Matmul(Ye,ml2adjYzYzadjYe)
-   Yeml2CYtYtadjYe = Matmul(Ye,ml2CYtYtadjYe)
-   YeadjYeme2YeadjYe = Matmul(Ye,adjYeme2YeadjYe)
-   YeadjYeYeml2adjYe = Matmul(Ye,adjYeYeml2adjYe)
-   YeadjYeYeadjYeme2 = Matmul(Ye,adjYeYeadjYeme2)
-   YeadjYeYeadjYeYe = Matmul(Ye,adjYeYeadjYeYe)
-   YeadjYeYeadjYeAYe = Matmul(Ye,adjYeYeadjYeAYe)
-   YeadjYeAYeadjYeYe = Matmul(Ye,adjYeAYeadjYeYe)
-   YeadjYzmd2YzadjYe = Matmul(Ye,adjYzmd2YzadjYe)
-   YeadjYzYdadjYdYz = Matmul(Ye,adjYzYdadjYdYz)
-   YeadjYzYdadjYdAYz = Matmul(Ye,adjYzYdadjYdAYz)
-   YeadjYzYsCYsYz = Matmul(Ye,adjYzYsCYsYz)
-   YeadjYzYsCYsAYz = Matmul(Ye,adjYzYsCYsAYz)
-   YeadjYzYzml2adjYe = Matmul(Ye,adjYzYzml2adjYe)
-   YeadjYzYzadjYeme2 = Matmul(Ye,adjYzYzadjYeme2)
-   YeadjYzYzadjYeYe = Matmul(Ye,adjYzYzadjYeYe)
-   YeadjYzYzadjYeAYe = Matmul(Ye,adjYzYzadjYeAYe)
-   YeadjYzYzadjYzYz = Matmul(Ye,adjYzYzadjYzYz)
-   YeadjYzYzadjYzAYz = Matmul(Ye,adjYzYzadjYzAYz)
-   YeadjYzAYdadjYdYz = Matmul(Ye,adjYzAYdadjYdYz)
-   YeadjYzAYsCYsYz = Matmul(Ye,adjYzAYsCYsYz)
-   YeadjYzAYzadjYeYe = Matmul(Ye,adjYzAYzadjYeYe)
-   YeadjYzAYzadjYzYz = Matmul(Ye,adjYzAYzadjYzYz)
-   YeCYtml2YtadjYe = Matmul(Ye,CYtml2YtadjYe)
-   YeCYtYtml2adjYe = Matmul(Ye,CYtYtml2adjYe)
-   YeCYtYtadjYeme2 = Matmul(Ye,CYtYtadjYeme2)
-   YeCYtYtadjYeYe = Matmul(Ye,CYtYtadjYeYe)
-   YeCYtYtadjYeAYe = Matmul(Ye,CYtYtadjYeAYe)
-   YeCYtYtCYtYt = Matmul(Ye,CYtYtCYtYt)
-   YeCYtYtCYtAYt = Matmul(Ye,CYtYtCYtAYt)
-   YeCYtAYtadjYeYe = Matmul(Ye,CYtAYtadjYeYe)
-   YeCYtAYtCYtYt = Matmul(Ye,CYtAYtCYtYt)
-   YeCYtTYeCYeYt = Matmul(Ye,CYtTYeCYeYt)
-   YeCYtTYeCYeAYt = Matmul(Ye,CYtTYeCYeAYt)
-   YeCYtTYzCYzYt = Matmul(Ye,CYtTYzCYzYt)
-   YeCYtTYzCYzAYt = Matmul(Ye,CYtTYzCYzAYt)
-   YeCYtTAYeCYeYt = Matmul(Ye,CYtTAYeCYeYt)
-   YeCYtTAYzCYzYt = Matmul(Ye,CYtTAYzCYzYt)
-   Ysmd2CYdTYdCYs = Matmul(Ys,md2CYdTYdCYs)
-   Ysmd2CYsYdadjYd = Matmul(Ys,md2CYsYdadjYd)
-   Ysmd2CYsYsCYs = Matmul(Ys,md2CYsYsCYs)
-   Ysmd2CYsYzadjYz = Matmul(Ys,md2CYsYzadjYz)
-   Ysmd2CYzTYzCYs = Matmul(Ys,md2CYzTYzCYs)
-   YsCYdmq2TYdCYs = Matmul(Ys,CYdmq2TYdCYs)
-   YsCYdTYdmd2CYs = Matmul(Ys,CYdTYdmd2CYs)
-   YsCYdTYdCYdTYd = Matmul(Ys,CYdTYdCYdTYd)
-   YsCYdTYdCYdTAYd = Matmul(Ys,CYdTYdCYdTAYd)
-   YsCYdTYdCYsmd2 = Matmul(Ys,CYdTYdCYsmd2)
-   YsCYdTYdCYsYd = Matmul(Ys,CYdTYdCYsYd)
-   YsCYdTYdCYsYs = Matmul(Ys,CYdTYdCYsYs)
-   YsCYdTYdCYsYz = Matmul(Ys,CYdTYdCYsYz)
-   YsCYdTYdCYsAYd = Matmul(Ys,CYdTYdCYsAYd)
-   YsCYdTYdCYsAYs = Matmul(Ys,CYdTYdCYsAYs)
-   YsCYdTYdCYsAYz = Matmul(Ys,CYdTYdCYsAYz)
-   YsCYdTYuCYuTYd = Matmul(Ys,CYdTYuCYuTYd)
-   YsCYdTYuCYuTAYd = Matmul(Ys,CYdTYuCYuTAYd)
-   YsCYdTAYdCYdTYd = Matmul(Ys,CYdTAYdCYdTYd)
-   YsCYdTAYdCYsYd = Matmul(Ys,CYdTAYdCYsYd)
-   YsCYdTAYdCYsYs = Matmul(Ys,CYdTAYdCYsYs)
-   YsCYdTAYdCYsYz = Matmul(Ys,CYdTAYdCYsYz)
-   YsCYdTAYuCYuTYd = Matmul(Ys,CYdTAYuCYuTYd)
-   YsCYsmd2YdadjYd = Matmul(Ys,CYsmd2YdadjYd)
-   YsCYsmd2YsCYs = Matmul(Ys,CYsmd2YsCYs)
-   YsCYsmd2YzadjYz = Matmul(Ys,CYsmd2YzadjYz)
-   YsCYsYdmq2adjYd = Matmul(Ys,CYsYdmq2adjYd)
-   YsCYsYdadjYdmd2 = Matmul(Ys,CYsYdadjYdmd2)
-   YsCYsYdadjYdYs = Matmul(Ys,CYsYdadjYdYs)
-   YsCYsYdadjYdAYs = Matmul(Ys,CYsYdadjYdAYs)
-   YsCYsYsmd2CYs = Matmul(Ys,CYsYsmd2CYs)
-   YsCYsYsCYsmd2 = Matmul(Ys,CYsYsCYsmd2)
-   YsCYsYsCYsYd = Matmul(Ys,CYsYsCYsYd)
-   YsCYsYsCYsYs = Matmul(Ys,CYsYsCYsYs)
-   YsCYsYsCYsYz = Matmul(Ys,CYsYsCYsYz)
-   YsCYsYsCYsAYd = Matmul(Ys,CYsYsCYsAYd)
-   YsCYsYsCYsAYs = Matmul(Ys,CYsYsCYsAYs)
-   YsCYsYsCYsAYz = Matmul(Ys,CYsYsCYsAYz)
-   YsCYsYzml2adjYz = Matmul(Ys,CYsYzml2adjYz)
-   YsCYsYzadjYzmd2 = Matmul(Ys,CYsYzadjYzmd2)
-   YsCYsYzadjYzYs = Matmul(Ys,CYsYzadjYzYs)
-   YsCYsYzadjYzAYs = Matmul(Ys,CYsYzadjYzAYs)
-   YsCYsAYdadjYdYs = Matmul(Ys,CYsAYdadjYdYs)
-   YsCYsAYsCYsYd = Matmul(Ys,CYsAYsCYsYd)
-   YsCYsAYsCYsYs = Matmul(Ys,CYsAYsCYsYs)
-   YsCYsAYsCYsYz = Matmul(Ys,CYsAYsCYsYz)
-   YsCYsAYzadjYzYs = Matmul(Ys,CYsAYzadjYzYs)
-   YsCYzml2TYzCYs = Matmul(Ys,CYzml2TYzCYs)
-   YsCYzYtCYtTYz = Matmul(Ys,CYzYtCYtTYz)
-   YsCYzYtCYtTAYz = Matmul(Ys,CYzYtCYtTAYz)
-   YsCYzAYtCYtTYz = Matmul(Ys,CYzAYtCYtTYz)
-   YsCYzTYeCYeTYz = Matmul(Ys,CYzTYeCYeTYz)
-   YsCYzTYeCYeTAYz = Matmul(Ys,CYzTYeCYeTAYz)
-   YsCYzTYzmd2CYs = Matmul(Ys,CYzTYzmd2CYs)
-   YsCYzTYzCYsmd2 = Matmul(Ys,CYzTYzCYsmd2)
-   YsCYzTYzCYsYd = Matmul(Ys,CYzTYzCYsYd)
-   YsCYzTYzCYsYs = Matmul(Ys,CYzTYzCYsYs)
-   YsCYzTYzCYsYz = Matmul(Ys,CYzTYzCYsYz)
-   YsCYzTYzCYsAYd = Matmul(Ys,CYzTYzCYsAYd)
-   YsCYzTYzCYsAYs = Matmul(Ys,CYzTYzCYsAYs)
-   YsCYzTYzCYsAYz = Matmul(Ys,CYzTYzCYsAYz)
-   YsCYzTYzCYzTYz = Matmul(Ys,CYzTYzCYzTYz)
-   YsCYzTYzCYzTAYz = Matmul(Ys,CYzTYzCYzTAYz)
-   YsCYzTAYeCYeTYz = Matmul(Ys,CYzTAYeCYeTYz)
-   YsCYzTAYzCYsYd = Matmul(Ys,CYzTAYzCYsYd)
-   YsCYzTAYzCYsYs = Matmul(Ys,CYzTAYzCYsYs)
-   YsCYzTAYzCYsYz = Matmul(Ys,CYzTAYzCYsYz)
-   YsCYzTAYzCYzTYz = Matmul(Ys,CYzTAYzCYzTYz)
-   Ytml2adjYeYeCYt = Matmul(Yt,ml2adjYeYeCYt)
-   Ytml2adjYzYzCYt = Matmul(Yt,ml2adjYzYzCYt)
-   Ytml2CYtYtCYt = Matmul(Yt,ml2CYtYtCYt)
-   YtadjYeme2YeCYt = Matmul(Yt,adjYeme2YeCYt)
-   YtadjYeYeml2CYt = Matmul(Yt,adjYeYeml2CYt)
-   YtadjYeYeadjYeYe = Matmul(Yt,adjYeYeadjYeYe)
-   YtadjYeYeadjYeAYe = Matmul(Yt,adjYeYeadjYeAYe)
-   YtadjYeYeCYtml2 = Matmul(Yt,adjYeYeCYtml2)
-   YtadjYeYeCYtYt = Matmul(Yt,adjYeYeCYtYt)
-   YtadjYeYeCYtAYt = Matmul(Yt,adjYeYeCYtAYt)
-   YtadjYeAYeadjYeYe = Matmul(Yt,adjYeAYeadjYeYe)
-   YtadjYeAYeCYtYt = Matmul(Yt,adjYeAYeCYtYt)
-   YtadjYzmd2YzCYt = Matmul(Yt,adjYzmd2YzCYt)
-   YtadjYzYdadjYdYz = Matmul(Yt,adjYzYdadjYdYz)
-   YtadjYzYdadjYdAYz = Matmul(Yt,adjYzYdadjYdAYz)
-   YtadjYzYsCYsYz = Matmul(Yt,adjYzYsCYsYz)
-   YtadjYzYsCYsAYz = Matmul(Yt,adjYzYsCYsAYz)
-   YtadjYzYzml2CYt = Matmul(Yt,adjYzYzml2CYt)
-   YtadjYzYzadjYzYz = Matmul(Yt,adjYzYzadjYzYz)
-   YtadjYzYzadjYzAYz = Matmul(Yt,adjYzYzadjYzAYz)
-   YtadjYzYzCYtml2 = Matmul(Yt,adjYzYzCYtml2)
-   YtadjYzYzCYtYt = Matmul(Yt,adjYzYzCYtYt)
-   YtadjYzYzCYtAYt = Matmul(Yt,adjYzYzCYtAYt)
-   YtadjYzAYdadjYdYz = Matmul(Yt,adjYzAYdadjYdYz)
-   YtadjYzAYsCYsYz = Matmul(Yt,adjYzAYsCYsYz)
-   YtadjYzAYzadjYzYz = Matmul(Yt,adjYzAYzadjYzYz)
-   YtadjYzAYzCYtYt = Matmul(Yt,adjYzAYzCYtYt)
-   YtCYtml2YtCYt = Matmul(Yt,CYtml2YtCYt)
-   YtCYtYtml2CYt = Matmul(Yt,CYtYtml2CYt)
-   YtCYtYtCYtml2 = Matmul(Yt,CYtYtCYtml2)
-   YtCYtYtCYtYt = Matmul(Yt,CYtYtCYtYt)
-   YtCYtYtCYtAYt = Matmul(Yt,CYtYtCYtAYt)
-   YtCYtAYtCYtYt = Matmul(Yt,CYtAYtCYtYt)
-   YtCYtTYeCYeYt = Matmul(Yt,CYtTYeCYeYt)
-   YtCYtTYeCYeAYt = Matmul(Yt,CYtTYeCYeAYt)
-   YtCYtTYzCYzYt = Matmul(Yt,CYtTYzCYzYt)
-   YtCYtTYzCYzAYt = Matmul(Yt,CYtTYzCYzAYt)
-   YtCYtTAYeCYeYt = Matmul(Yt,CYtTAYeCYeYt)
-   YtCYtTAYzCYzYt = Matmul(Yt,CYtTAYzCYzYt)
-   Yumq2adjYdYdadjYu = Matmul(Yu,mq2adjYdYdadjYu)
-   Yumq2adjYuYuadjYu = Matmul(Yu,mq2adjYuYuadjYu)
-   YuadjYdmd2YdadjYu = Matmul(Yu,adjYdmd2YdadjYu)
-   YuadjYdYdmq2adjYu = Matmul(Yu,adjYdYdmq2adjYu)
-   YuadjYdYdadjYdYd = Matmul(Yu,adjYdYdadjYdYd)
-   YuadjYdYdadjYdAYd = Matmul(Yu,adjYdYdadjYdAYd)
-   YuadjYdYdadjYumu2 = Matmul(Yu,adjYdYdadjYumu2)
-   YuadjYdYdadjYuYu = Matmul(Yu,adjYdYdadjYuYu)
-   YuadjYdYdadjYuAYu = Matmul(Yu,adjYdYdadjYuAYu)
-   YuadjYdYsCYsYd = Matmul(Yu,adjYdYsCYsYd)
-   YuadjYdYsCYsAYd = Matmul(Yu,adjYdYsCYsAYd)
-   YuadjYdYzadjYzYd = Matmul(Yu,adjYdYzadjYzYd)
-   YuadjYdYzadjYzAYd = Matmul(Yu,adjYdYzadjYzAYd)
-   YuadjYdAYdadjYdYd = Matmul(Yu,adjYdAYdadjYdYd)
-   YuadjYdAYdadjYuYu = Matmul(Yu,adjYdAYdadjYuYu)
-   YuadjYdAYsCYsYd = Matmul(Yu,adjYdAYsCYsYd)
-   YuadjYdAYzadjYzYd = Matmul(Yu,adjYdAYzadjYzYd)
-   YuadjYumu2YuadjYu = Matmul(Yu,adjYumu2YuadjYu)
-   YuadjYuYumq2adjYu = Matmul(Yu,adjYuYumq2adjYu)
-   YuadjYuYuadjYumu2 = Matmul(Yu,adjYuYuadjYumu2)
-   YuadjYuYuadjYuYu = Matmul(Yu,adjYuYuadjYuYu)
-   YuadjYuYuadjYuAYu = Matmul(Yu,adjYuYuadjYuAYu)
-   YuadjYuAYuadjYuYu = Matmul(Yu,adjYuAYuadjYuYu)
-   Yzml2adjYeYeadjYz = Matmul(Yz,ml2adjYeYeadjYz)
-   Yzml2adjYzYdadjYd = Matmul(Yz,ml2adjYzYdadjYd)
-   Yzml2adjYzYsCYs = Matmul(Yz,ml2adjYzYsCYs)
-   Yzml2adjYzYzadjYz = Matmul(Yz,ml2adjYzYzadjYz)
-   Yzml2CYtYtadjYz = Matmul(Yz,ml2CYtYtadjYz)
-   YzadjYeme2YeadjYz = Matmul(Yz,adjYeme2YeadjYz)
-   YzadjYeYeml2adjYz = Matmul(Yz,adjYeYeml2adjYz)
-   YzadjYeYeadjYeYe = Matmul(Yz,adjYeYeadjYeYe)
-   YzadjYeYeadjYeAYe = Matmul(Yz,adjYeYeadjYeAYe)
-   YzadjYeYeadjYzmd2 = Matmul(Yz,adjYeYeadjYzmd2)
-   YzadjYeYeadjYzYd = Matmul(Yz,adjYeYeadjYzYd)
-   YzadjYeYeadjYzYs = Matmul(Yz,adjYeYeadjYzYs)
-   YzadjYeYeadjYzYz = Matmul(Yz,adjYeYeadjYzYz)
-   YzadjYeYeadjYzAYd = Matmul(Yz,adjYeYeadjYzAYd)
-   YzadjYeYeadjYzAYs = Matmul(Yz,adjYeYeadjYzAYs)
-   YzadjYeYeadjYzAYz = Matmul(Yz,adjYeYeadjYzAYz)
-   YzadjYeAYeadjYeYe = Matmul(Yz,adjYeAYeadjYeYe)
-   YzadjYeAYeadjYzYd = Matmul(Yz,adjYeAYeadjYzYd)
-   YzadjYeAYeadjYzYs = Matmul(Yz,adjYeAYeadjYzYs)
-   YzadjYeAYeadjYzYz = Matmul(Yz,adjYeAYeadjYzYz)
-   YzadjYzmd2YdadjYd = Matmul(Yz,adjYzmd2YdadjYd)
-   YzadjYzmd2YsCYs = Matmul(Yz,adjYzmd2YsCYs)
-   YzadjYzmd2YzadjYz = Matmul(Yz,adjYzmd2YzadjYz)
-   YzadjYzYdmq2adjYd = Matmul(Yz,adjYzYdmq2adjYd)
-   YzadjYzYdadjYdYz = Matmul(Yz,adjYzYdadjYdYz)
-   YzadjYzYdadjYdAYz = Matmul(Yz,adjYzYdadjYdAYz)
-   YzadjYzYsCYsYz = Matmul(Yz,adjYzYsCYsYz)
-   YzadjYzYsCYsAYz = Matmul(Yz,adjYzYsCYsAYz)
-   YzadjYzYzml2adjYz = Matmul(Yz,adjYzYzml2adjYz)
-   YzadjYzYzadjYzmd2 = Matmul(Yz,adjYzYzadjYzmd2)
-   YzadjYzYzadjYzYd = Matmul(Yz,adjYzYzadjYzYd)
-   YzadjYzYzadjYzYs = Matmul(Yz,adjYzYzadjYzYs)
-   YzadjYzYzadjYzYz = Matmul(Yz,adjYzYzadjYzYz)
-   YzadjYzYzadjYzAYd = Matmul(Yz,adjYzYzadjYzAYd)
-   YzadjYzYzadjYzAYs = Matmul(Yz,adjYzYzadjYzAYs)
-   YzadjYzYzadjYzAYz = Matmul(Yz,adjYzYzadjYzAYz)
-   YzadjYzAYdadjYdYz = Matmul(Yz,adjYzAYdadjYdYz)
-   YzadjYzAYsCYsYz = Matmul(Yz,adjYzAYsCYsYz)
-   YzadjYzAYzadjYzYd = Matmul(Yz,adjYzAYzadjYzYd)
-   YzadjYzAYzadjYzYs = Matmul(Yz,adjYzAYzadjYzYs)
-   YzadjYzAYzadjYzYz = Matmul(Yz,adjYzAYzadjYzYz)
-   YzCYtml2YtadjYz = Matmul(Yz,CYtml2YtadjYz)
-   YzCYtYtml2adjYz = Matmul(Yz,CYtYtml2adjYz)
-   YzCYtYtadjYzmd2 = Matmul(Yz,CYtYtadjYzmd2)
-   YzCYtYtadjYzYd = Matmul(Yz,CYtYtadjYzYd)
-   YzCYtYtadjYzYs = Matmul(Yz,CYtYtadjYzYs)
-   YzCYtYtadjYzYz = Matmul(Yz,CYtYtadjYzYz)
-   YzCYtYtadjYzAYd = Matmul(Yz,CYtYtadjYzAYd)
-   YzCYtYtadjYzAYs = Matmul(Yz,CYtYtadjYzAYs)
-   YzCYtYtadjYzAYz = Matmul(Yz,CYtYtadjYzAYz)
-   YzCYtYtCYtYt = Matmul(Yz,CYtYtCYtYt)
-   YzCYtYtCYtAYt = Matmul(Yz,CYtYtCYtAYt)
-   YzCYtAYtadjYzYd = Matmul(Yz,CYtAYtadjYzYd)
-   YzCYtAYtadjYzYs = Matmul(Yz,CYtAYtadjYzYs)
-   YzCYtAYtadjYzYz = Matmul(Yz,CYtAYtadjYzYz)
-   YzCYtAYtCYtYt = Matmul(Yz,CYtAYtCYtYt)
-   YzCYtTYeCYeYt = Matmul(Yz,CYtTYeCYeYt)
-   YzCYtTYeCYeAYt = Matmul(Yz,CYtTYeCYeAYt)
-   YzCYtTYzCYzYt = Matmul(Yz,CYtTYzCYzYt)
-   YzCYtTYzCYzAYt = Matmul(Yz,CYtTYzCYzAYt)
-   YzCYtTAYeCYeYt = Matmul(Yz,CYtTAYeCYeYt)
-   YzCYtTAYzCYzYt = Matmul(Yz,CYtTAYzCYzYt)
-   AYdadjYdYdadjYdYd = Matmul(AYd,adjYdYdadjYdYd)
-   AYdadjYdYdadjYdYs = Matmul(AYd,adjYdYdadjYdYs)
-   AYdadjYdYdadjYdYz = Matmul(AYd,adjYdYdadjYdYz)
-   AYdadjYdYsCYsYd = Matmul(AYd,adjYdYsCYsYd)
-   AYdadjYdYzadjYzYd = Matmul(AYd,adjYdYzadjYzYd)
-   AYdadjYuYuadjYdYd = Matmul(AYd,adjYuYuadjYdYd)
-   AYdadjYuYuadjYdYs = Matmul(AYd,adjYuYuadjYdYs)
-   AYdadjYuYuadjYdYz = Matmul(AYd,adjYuYuadjYdYz)
-   AYdadjYuYuadjYuYu = Matmul(AYd,adjYuYuadjYuYu)
-   AYeadjYeYeadjYeYe = Matmul(AYe,adjYeYeadjYeYe)
-   AYeadjYzYdadjYdYz = Matmul(AYe,adjYzYdadjYdYz)
-   AYeadjYzYsCYsYz = Matmul(AYe,adjYzYsCYsYz)
-   AYeadjYzYzadjYeYe = Matmul(AYe,adjYzYzadjYeYe)
-   AYeadjYzYzadjYzYz = Matmul(AYe,adjYzYzadjYzYz)
-   AYeCYtYtadjYeYe = Matmul(AYe,CYtYtadjYeYe)
-   AYeCYtYtCYtYt = Matmul(AYe,CYtYtCYtYt)
-   AYeCYtTYeCYeYt = Matmul(AYe,CYtTYeCYeYt)
-   AYeCYtTYzCYzYt = Matmul(AYe,CYtTYzCYzYt)
-   AYsCYdTYdCYdTYd = Matmul(AYs,CYdTYdCYdTYd)
-   AYsCYdTYdCYsYd = Matmul(AYs,CYdTYdCYsYd)
-   AYsCYdTYdCYsYs = Matmul(AYs,CYdTYdCYsYs)
-   AYsCYdTYdCYsYz = Matmul(AYs,CYdTYdCYsYz)
-   AYsCYdTYuCYuTYd = Matmul(AYs,CYdTYuCYuTYd)
-   AYsCYsYdadjYdYs = Matmul(AYs,CYsYdadjYdYs)
-   AYsCYsYsCYsYd = Matmul(AYs,CYsYsCYsYd)
-   AYsCYsYsCYsYs = Matmul(AYs,CYsYsCYsYs)
-   AYsCYsYsCYsYz = Matmul(AYs,CYsYsCYsYz)
-   AYsCYsYzadjYzYs = Matmul(AYs,CYsYzadjYzYs)
-   AYsCYzYtCYtTYz = Matmul(AYs,CYzYtCYtTYz)
-   AYsCYzTYeCYeTYz = Matmul(AYs,CYzTYeCYeTYz)
-   AYsCYzTYzCYsYd = Matmul(AYs,CYzTYzCYsYd)
-   AYsCYzTYzCYsYs = Matmul(AYs,CYzTYzCYsYs)
-   AYsCYzTYzCYsYz = Matmul(AYs,CYzTYzCYsYz)
-   AYsCYzTYzCYzTYz = Matmul(AYs,CYzTYzCYzTYz)
-   AYtadjYeYeadjYeYe = Matmul(AYt,adjYeYeadjYeYe)
-   AYtadjYeYeCYtYt = Matmul(AYt,adjYeYeCYtYt)
-   AYtadjYzYdadjYdYz = Matmul(AYt,adjYzYdadjYdYz)
-   AYtadjYzYsCYsYz = Matmul(AYt,adjYzYsCYsYz)
-   AYtadjYzYzadjYzYz = Matmul(AYt,adjYzYzadjYzYz)
-   AYtadjYzYzCYtYt = Matmul(AYt,adjYzYzCYtYt)
-   AYtCYtYtCYtYt = Matmul(AYt,CYtYtCYtYt)
-   AYtCYtTYeCYeYt = Matmul(AYt,CYtTYeCYeYt)
-   AYtCYtTYzCYzYt = Matmul(AYt,CYtTYzCYzYt)
-   AYuadjYdYdadjYdYd = Matmul(AYu,adjYdYdadjYdYd)
-   AYuadjYdYdadjYuYu = Matmul(AYu,adjYdYdadjYuYu)
-   AYuadjYdYsCYsYd = Matmul(AYu,adjYdYsCYsYd)
-   AYuadjYdYzadjYzYd = Matmul(AYu,adjYdYzadjYzYd)
-   AYuadjYuYuadjYuYu = Matmul(AYu,adjYuYuadjYuYu)
-   AYzadjYeYeadjYeYe = Matmul(AYz,adjYeYeadjYeYe)
-   AYzadjYeYeadjYzYd = Matmul(AYz,adjYeYeadjYzYd)
-   AYzadjYeYeadjYzYs = Matmul(AYz,adjYeYeadjYzYs)
-   AYzadjYeYeadjYzYz = Matmul(AYz,adjYeYeadjYzYz)
-   AYzadjYzYdadjYdYz = Matmul(AYz,adjYzYdadjYdYz)
-   AYzadjYzYsCYsYz = Matmul(AYz,adjYzYsCYsYz)
-   AYzadjYzYzadjYzYd = Matmul(AYz,adjYzYzadjYzYd)
-   AYzadjYzYzadjYzYs = Matmul(AYz,adjYzYzadjYzYs)
-   AYzadjYzYzadjYzYz = Matmul(AYz,adjYzYzadjYzYz)
-   AYzCYtYtadjYzYd = Matmul(AYz,CYtYtadjYzYd)
-   AYzCYtYtadjYzYs = Matmul(AYz,CYtYtadjYzYs)
-   AYzCYtYtadjYzYz = Matmul(AYz,CYtYtadjYzYz)
-   AYzCYtYtCYtYt = Matmul(AYz,CYtYtCYtYt)
-   AYzCYtTYeCYeYt = Matmul(AYz,CYtTYeCYeYt)
-   AYzCYtTYzCYzYt = Matmul(AYz,CYtTYzCYzYt)
-   CYsmd2YsCYsYs = Matmul(adjYs,md2YsCYsYs)
-   CYsYdmq2adjYdYs = Matmul(adjYs,Ydmq2adjYdYs)
-   CYsYdadjYdmd2Ys = Matmul(adjYs,YdadjYdmd2Ys)
-   CYsYdadjYdYsmd2 = Matmul(adjYs,YdadjYdYsmd2)
-   CYsYsmd2CYsYs = Matmul(adjYs,Ysmd2CYsYs)
-   CYsYsCYsmd2Ys = Matmul(adjYs,YsCYsmd2Ys)
-   CYsYsCYsYsmd2 = Matmul(adjYs,YsCYsYsmd2)
-   CYsYzml2adjYzYs = Matmul(adjYs,Yzml2adjYzYs)
-   CYsYzadjYzmd2Ys = Matmul(adjYs,YzadjYzmd2Ys)
-   CYsYzadjYzYsmd2 = Matmul(adjYs,YzadjYzYsmd2)
-   CYtml2YtCYtYt = Matmul(adjYt,ml2YtCYtYt)
-   CYtYtml2adjYeYe = Matmul(adjYt,Ytml2adjYeYe)
-   CYtYtml2adjYzYz = Matmul(adjYt,Ytml2adjYzYz)
-   CYtYtml2CYtYt = Matmul(adjYt,Ytml2CYtYt)
-   CYtYtadjYeme2Ye = Matmul(adjYt,YtadjYeme2Ye)
-   CYtYtadjYeYeml2 = Matmul(adjYt,YtadjYeYeml2)
-   CYtYtadjYzmd2Yz = Matmul(adjYt,YtadjYzmd2Yz)
-   CYtYtadjYzYzml2 = Matmul(adjYt,YtadjYzYzml2)
-   CYtYtCYtml2Yt = Matmul(adjYt,YtCYtml2Yt)
-   CYtYtCYtYtml2 = Matmul(adjYt,YtCYtYtml2)
-   TYdmd2CYdTYdCYd = Matmul(Transpose(Yd),md2CYdTYdCYd)
-   TYdmd2CYsYsCYd = Matmul(Transpose(Yd),md2CYsYsCYd)
-   TYdmd2CYzTYzCYd = Matmul(Transpose(Yd),md2CYzTYzCYd)
-   TYdCYdmq2TYdCYd = Matmul(Transpose(Yd),CYdmq2TYdCYd)
-   TYdCYdTYdmd2CYd = Matmul(Transpose(Yd),CYdTYdmd2CYd)
-   TYdCYdTYdCYdmq2 = Matmul(Transpose(Yd),CYdTYdCYdmq2)
-   TYdCYsmd2YsCYd = Matmul(Transpose(Yd),CYsmd2YsCYd)
-   TYdCYsYsmd2CYd = Matmul(Transpose(Yd),CYsYsmd2CYd)
-   TYdCYsYsCYdmq2 = Matmul(Transpose(Yd),CYsYsCYdmq2)
-   TYdCYzml2TYzCYd = Matmul(Transpose(Yd),CYzml2TYzCYd)
-   TYdCYzTYzmd2CYd = Matmul(Transpose(Yd),CYzTYzmd2CYd)
-   TYdCYzTYzCYdmq2 = Matmul(Transpose(Yd),CYzTYzCYdmq2)
-   TYeme2CYeTYeCYe = Matmul(Transpose(Ye),me2CYeTYeCYe)
-   TYeCYeml2TYeCYe = Matmul(Transpose(Ye),CYeml2TYeCYe)
-   TYeCYeTYeme2CYe = Matmul(Transpose(Ye),CYeTYeme2CYe)
-   TYeCYeTYeCYeml2 = Matmul(Transpose(Ye),CYeTYeCYeml2)
-   TYeCYeTYeCYeYt = Matmul(Transpose(Ye),CYeTYeCYeYt)
-   TYeCYeTYeCYeAYt = Matmul(Transpose(Ye),CYeTYeCYeAYt)
-   TYeCYeTAYeCYeYt = Matmul(Transpose(Ye),CYeTAYeCYeYt)
-   TYumu2CYuTYuCYu = Matmul(Transpose(Yu),mu2CYuTYuCYu)
-   TYuCYumq2TYuCYu = Matmul(Transpose(Yu),CYumq2TYuCYu)
-   TYuCYuTYumu2CYu = Matmul(Transpose(Yu),CYuTYumu2CYu)
-   TYuCYuTYuCYumq2 = Matmul(Transpose(Yu),CYuTYuCYumq2)
-   TYzmd2CYdTYdCYz = Matmul(Transpose(Yz),md2CYdTYdCYz)
-   TYzmd2CYsYsCYz = Matmul(Transpose(Yz),md2CYsYsCYz)
-   TYzmd2CYzTYzCYz = Matmul(Transpose(Yz),md2CYzTYzCYz)
-   TYzCYdmq2TYdCYz = Matmul(Transpose(Yz),CYdmq2TYdCYz)
-   TYzCYdTYdmd2CYz = Matmul(Transpose(Yz),CYdTYdmd2CYz)
-   TYzCYdTYdCYzml2 = Matmul(Transpose(Yz),CYdTYdCYzml2)
-   TYzCYdTYdCYzYt = Matmul(Transpose(Yz),CYdTYdCYzYt)
-   TYzCYdTYdCYzAYt = Matmul(Transpose(Yz),CYdTYdCYzAYt)
-   TYzCYdTAYdCYzYt = Matmul(Transpose(Yz),CYdTAYdCYzYt)
-   TYzCYsmd2YsCYz = Matmul(Transpose(Yz),CYsmd2YsCYz)
-   TYzCYsYsmd2CYz = Matmul(Transpose(Yz),CYsYsmd2CYz)
-   TYzCYsYsCYzml2 = Matmul(Transpose(Yz),CYsYsCYzml2)
-   TYzCYsYsCYzYt = Matmul(Transpose(Yz),CYsYsCYzYt)
-   TYzCYsYsCYzAYt = Matmul(Transpose(Yz),CYsYsCYzAYt)
-   TYzCYsAYsCYzYt = Matmul(Transpose(Yz),CYsAYsCYzYt)
-   TYzCYzml2TYzCYz = Matmul(Transpose(Yz),CYzml2TYzCYz)
-   TYzCYzTYzmd2CYz = Matmul(Transpose(Yz),CYzTYzmd2CYz)
-   TYzCYzTYzCYzml2 = Matmul(Transpose(Yz),CYzTYzCYzml2)
-   TYzCYzTYzCYzYt = Matmul(Transpose(Yz),CYzTYzCYzYt)
-   TYzCYzTYzCYzAYt = Matmul(Transpose(Yz),CYzTYzCYzAYt)
-   TYzCYzTAYzCYzYt = Matmul(Transpose(Yz),CYzTAYzCYzYt)
-   TAYeCYeTYeCYeYt = Matmul(Transpose(AYe),CYeTYeCYeYt)
-   TAYzCYdTYdCYzYt = Matmul(Transpose(AYz),CYdTYdCYzYt)
-   TAYzCYsYsCYzYt = Matmul(Transpose(AYz),CYsYsCYzYt)
-   TAYzCYzTYzCYzYt = Matmul(Transpose(AYz),CYzTYzCYzYt)
-   TrYdadjAYd = cTrace(YdadjAYd)
-   TrYeadjAYe = cTrace(YeadjAYe)
-   TrYsCAYs = cTrace(YsCAYs)
-   TrYtCAYt = cTrace(YtCAYt)
-   TrYuadjAYu = cTrace(YuadjAYu)
-   TrYzadjAYz = cTrace(YzadjAYz)
-   Trmd2YsCYs = cTrace(md2YsCYs)
-   Trml2YtCYt = cTrace(ml2YtCYt)
-   TrYdadjYdYdadjYd = cTrace(YdadjYdYdadjYd)
-   TrYdadjYdYsCYs = cTrace(YdadjYdYsCYs)
-   TrYdadjYdYzadjYz = cTrace(YdadjYdYzadjYz)
-   TrYdadjYdAYdadjYd = cTrace(YdadjYdAYdadjYd)
-   TrYdadjYdAYdadjAYd = cTrace(YdadjYdAYdadjAYd)
-   TrYdadjYdAYsCYs = cTrace(YdadjYdAYsCYs)
-   TrYdadjYdAYsCAYs = cTrace(YdadjYdAYsCAYs)
-   TrYdadjYdAYzadjYz = cTrace(YdadjYdAYzadjYz)
-   TrYdadjYdAYzadjAYz = cTrace(YdadjYdAYzadjAYz)
-   TrYdadjYuYuadjYd = cTrace(YdadjYuYuadjYd)
-   TrYdadjYuAYuadjYd = cTrace(YdadjYuAYuadjYd)
-   TrYdadjYuAYuadjAYd = cTrace(YdadjYuAYuadjAYd)
-   TrYdadjAYdAYdadjYd = cTrace(YdadjAYdAYdadjYd)
-   TrYdadjAYdAYsCYs = cTrace(YdadjAYdAYsCYs)
-   TrYdadjAYdAYzadjYz = cTrace(YdadjAYdAYzadjYz)
-   TrYdadjAYuAYuadjYd = cTrace(YdadjAYuAYuadjYd)
-   TrYeadjYeYeadjYe = cTrace(YeadjYeYeadjYe)
-   TrYeadjYeAYeadjYe = cTrace(YeadjYeAYeadjYe)
-   TrYeadjYeAYeadjAYe = cTrace(YeadjYeAYeadjAYe)
-   TrYeadjYzYzadjYe = cTrace(YeadjYzYzadjYe)
-   TrYeadjYzAYzadjYe = cTrace(YeadjYzAYzadjYe)
-   TrYeadjYzAYzadjAYe = cTrace(YeadjYzAYzadjAYe)
-   TrYeadjAYeAYeadjYe = cTrace(YeadjAYeAYeadjYe)
-   TrYeadjAYzAYzadjYe = cTrace(YeadjAYzAYzadjYe)
-   TrYeCYtYtadjYe = cTrace(YeCYtYtadjYe)
-   TrYeCYtAYtadjYe = cTrace(YeCYtAYtadjYe)
-   TrYeCYtAYtadjAYe = cTrace(YeCYtAYtadjAYe)
-   TrYeCAYtAYtadjYe = cTrace(YeCAYtAYtadjYe)
-   TrYsCYsYdadjYd = cTrace(YsCYsYdadjYd)
-   TrYsCYsYsCYs = cTrace(YsCYsYsCYs)
-   TrYsCYsYzadjYz = cTrace(YsCYsYzadjYz)
-   TrYsCYsAYdadjYd = cTrace(YsCYsAYdadjYd)
-   TrYsCYsAYdadjAYd = cTrace(YsCYsAYdadjAYd)
-   TrYsCYsAYsCYs = cTrace(YsCYsAYsCYs)
-   TrYsCYsAYsCAYs = cTrace(YsCYsAYsCAYs)
-   TrYsCYsAYzadjYz = cTrace(YsCYsAYzadjYz)
-   TrYsCYsAYzadjAYz = cTrace(YsCYsAYzadjAYz)
-   TrYsCAYsAYdadjYd = cTrace(YsCAYsAYdadjYd)
-   TrYsCAYsAYsCYs = cTrace(YsCAYsAYsCYs)
-   TrYsCAYsAYzadjYz = cTrace(YsCAYsAYzadjYz)
-   TrYtadjYeYeCYt = cTrace(YtadjYeYeCYt)
-   TrYtadjYeAYeCYt = cTrace(YtadjYeAYeCYt)
-   TrYtadjYeAYeCAYt = cTrace(YtadjYeAYeCAYt)
-   TrYtadjYzYzCYt = cTrace(YtadjYzYzCYt)
-   TrYtadjYzAYzCYt = cTrace(YtadjYzAYzCYt)
-   TrYtadjYzAYzCAYt = cTrace(YtadjYzAYzCAYt)
-   TrYtadjAYeAYeCYt = cTrace(YtadjAYeAYeCYt)
-   TrYtadjAYzAYzCYt = cTrace(YtadjAYzAYzCYt)
-   TrYtCYtYtCYt = cTrace(YtCYtYtCYt)
-   TrYtCYtAYtCYt = cTrace(YtCYtAYtCYt)
-   TrYtCYtAYtCAYt = cTrace(YtCYtAYtCAYt)
-   TrYtCAYtAYtCYt = cTrace(YtCAYtAYtCYt)
-   TrYuadjYdYdadjYu = cTrace(YuadjYdYdadjYu)
-   TrYuadjYdAYdadjYu = cTrace(YuadjYdAYdadjYu)
-   TrYuadjYdAYdadjAYu = cTrace(YuadjYdAYdadjAYu)
-   TrYuadjYuYuadjYu = cTrace(YuadjYuYuadjYu)
-   TrYuadjYuAYuadjYu = cTrace(YuadjYuAYuadjYu)
-   TrYuadjYuAYuadjAYu = cTrace(YuadjYuAYuadjAYu)
-   TrYuadjAYdAYdadjYu = cTrace(YuadjAYdAYdadjYu)
-   TrYuadjAYuAYuadjYu = cTrace(YuadjAYuAYuadjYu)
-   TrYzadjYeYeadjYz = cTrace(YzadjYeYeadjYz)
-   TrYzadjYeAYeadjYz = cTrace(YzadjYeAYeadjYz)
-   TrYzadjYeAYeadjAYz = cTrace(YzadjYeAYeadjAYz)
-   TrYzadjYzYdadjYd = cTrace(YzadjYzYdadjYd)
-   TrYzadjYzYsCYs = cTrace(YzadjYzYsCYs)
-   TrYzadjYzYzadjYz = cTrace(YzadjYzYzadjYz)
-   TrYzadjYzAYdadjYd = cTrace(YzadjYzAYdadjYd)
-   TrYzadjYzAYdadjAYd = cTrace(YzadjYzAYdadjAYd)
-   TrYzadjYzAYsCYs = cTrace(YzadjYzAYsCYs)
-   TrYzadjYzAYsCAYs = cTrace(YzadjYzAYsCAYs)
-   TrYzadjYzAYzadjYz = cTrace(YzadjYzAYzadjYz)
-   TrYzadjYzAYzadjAYz = cTrace(YzadjYzAYzadjAYz)
-   TrYzadjAYeAYeadjYz = cTrace(YzadjAYeAYeadjYz)
-   TrYzadjAYzAYdadjYd = cTrace(YzadjAYzAYdadjYd)
-   TrYzadjAYzAYsCYs = cTrace(YzadjAYzAYsCYs)
-   TrYzadjAYzAYzadjYz = cTrace(YzadjAYzAYzadjYz)
-   TrYzCYtYtadjYz = cTrace(YzCYtYtadjYz)
-   TrYzCYtAYtadjYz = cTrace(YzCYtAYtadjYz)
-   TrYzCYtAYtadjAYz = cTrace(YzCYtAYtadjAYz)
-   TrYzCAYtAYtadjYz = cTrace(YzCAYtAYtadjYz)
-   TrCYsYdadjYdYs = cTrace(CYsYdadjYdYs)
-   TrCYsYdadjYdAYs = cTrace(CYsYdadjYdAYs)
-   TrCYsYdadjAYdAYs = cTrace(CYsYdadjAYdAYs)
-   TrCYsYsCYsYs = cTrace(CYsYsCYsYs)
-   TrCYsYsCYsAYs = cTrace(CYsYsCYsAYs)
-   TrCYsYsCAYsAYs = cTrace(CYsYsCAYsAYs)
-   TrCYsYzadjYzYs = cTrace(CYsYzadjYzYs)
-   TrCYsYzadjYzAYs = cTrace(CYsYzadjYzAYs)
-   TrCYsYzadjAYzAYs = cTrace(CYsYzadjAYzAYs)
-   TrCYsAYdadjYdYs = cTrace(CYsAYdadjYdYs)
-   TrCYsAYdadjAYdYs = cTrace(CYsAYdadjAYdYs)
-   TrCYsAYsCYsYs = cTrace(CYsAYsCYsYs)
-   TrCYsAYsCAYsYs = cTrace(CYsAYsCAYsYs)
-   TrCYsAYzadjYzYs = cTrace(CYsAYzadjYzYs)
-   TrCYsAYzadjAYzYs = cTrace(CYsAYzadjAYzYs)
-   TrCYtYtadjYeYe = cTrace(CYtYtadjYeYe)
-   TrCYtYtadjYeAYe = cTrace(CYtYtadjYeAYe)
-   TrCYtYtadjYzYz = cTrace(CYtYtadjYzYz)
-   TrCYtYtadjYzAYz = cTrace(CYtYtadjYzAYz)
-   TrCYtYtadjAYeAYe = cTrace(CYtYtadjAYeAYe)
-   TrCYtYtadjAYzAYz = cTrace(CYtYtadjAYzAYz)
-   TrCYtYtCYtYt = cTrace(CYtYtCYtYt)
-   TrCYtYtCYtAYt = cTrace(CYtYtCYtAYt)
-   TrCYtYtCAYtAYt = cTrace(CYtYtCAYtAYt)
-   TrCYtAYtadjYeYe = cTrace(CYtAYtadjYeYe)
-   TrCYtAYtadjYzYz = cTrace(CYtAYtadjYzYz)
-   TrCYtAYtadjAYeYe = cTrace(CYtAYtadjAYeYe)
-   TrCYtAYtadjAYzYz = cTrace(CYtAYtadjAYzYz)
-   TrCYtAYtCYtYt = cTrace(CYtAYtCYtYt)
-   TrCYtAYtCAYtYt = cTrace(CYtAYtCAYtYt)
-   Trmd2YdadjYdYsCYs = cTrace(md2YdadjYdYsCYs)
-   Trmd2YsCYsYdadjYd = cTrace(md2YsCYsYdadjYd)
-   Trmd2YsCYsYsCYs = cTrace(md2YsCYsYsCYs)
-   Trmd2YsCYsYzadjYz = cTrace(md2YsCYsYzadjYz)
-   Trmd2YzadjYzYsCYs = cTrace(md2YzadjYzYsCYs)
-   Trmd2YzCYtYtadjYz = cTrace(md2YzCYtYtadjYz)
-   Trmd2CYsYsCYsYs = cTrace(md2CYsYsCYsYs)
-   Trme2YeCYtYtadjYe = cTrace(me2YeCYtYtadjYe)
-   Trml2YtCYtYtCYt = cTrace(ml2YtCYtYtCYt)
-   Trml2adjYzYsCYsYz = cTrace(ml2adjYzYsCYsYz)
-   Trml2CYtYtCYtYt = cTrace(ml2CYtYtCYtYt)
-   Trmq2adjYdYsCYsYd = cTrace(mq2adjYdYsCYsYd)
-   TrYdmq2adjYdYdadjYd = cTrace(Ydmq2adjYdYdadjYd)
-   TrYdmq2adjYdYsCYs = cTrace(Ydmq2adjYdYsCYs)
-   TrYdmq2adjYdYzadjYz = cTrace(Ydmq2adjYdYzadjYz)
-   TrYdmq2adjYuYuadjYd = cTrace(Ydmq2adjYuYuadjYd)
-   TrYdadjYdmd2YdadjYd = cTrace(YdadjYdmd2YdadjYd)
-   TrYdadjYdmd2YsCYs = cTrace(YdadjYdmd2YsCYs)
-   TrYdadjYdmd2YzadjYz = cTrace(YdadjYdmd2YzadjYz)
-   TrYdadjYdYdmq2adjYd = cTrace(YdadjYdYdmq2adjYd)
-   TrYdadjYdYzml2adjYz = cTrace(YdadjYdYzml2adjYz)
-   TrYdadjYumu2YuadjYd = cTrace(YdadjYumu2YuadjYd)
-   TrYdadjYuYumq2adjYd = cTrace(YdadjYuYumq2adjYd)
-   TrYeml2adjYeYeadjYe = cTrace(Yeml2adjYeYeadjYe)
-   TrYeml2adjYzYzadjYe = cTrace(Yeml2adjYzYzadjYe)
-   TrYeml2CYtYtadjYe = cTrace(Yeml2CYtYtadjYe)
-   TrYeadjYeme2YeadjYe = cTrace(YeadjYeme2YeadjYe)
-   TrYeadjYeYeml2adjYe = cTrace(YeadjYeYeml2adjYe)
-   TrYeadjYzmd2YzadjYe = cTrace(YeadjYzmd2YzadjYe)
-   TrYeadjYzYzml2adjYe = cTrace(YeadjYzYzml2adjYe)
-   TrYeCYtml2YtadjYe = cTrace(YeCYtml2YtadjYe)
-   TrYeCYtYtml2adjYe = cTrace(YeCYtYtml2adjYe)
-   TrYsmd2CYsYdadjYd = cTrace(Ysmd2CYsYdadjYd)
-   TrYsmd2CYsYsCYs = cTrace(Ysmd2CYsYsCYs)
-   TrYsmd2CYsYzadjYz = cTrace(Ysmd2CYsYzadjYz)
-   TrYsCYsmd2YdadjYd = cTrace(YsCYsmd2YdadjYd)
-   TrYsCYsmd2YsCYs = cTrace(YsCYsmd2YsCYs)
-   TrYsCYsmd2YzadjYz = cTrace(YsCYsmd2YzadjYz)
-   TrYsCYsYdmq2adjYd = cTrace(YsCYsYdmq2adjYd)
-   TrYsCYsYdadjYdmd2 = cTrace(YsCYsYdadjYdmd2)
-   TrYsCYsYsmd2CYs = cTrace(YsCYsYsmd2CYs)
-   TrYsCYsYsCYsmd2 = cTrace(YsCYsYsCYsmd2)
-   TrYsCYsYzml2adjYz = cTrace(YsCYsYzml2adjYz)
-   TrYsCYsYzadjYzmd2 = cTrace(YsCYsYzadjYzmd2)
-   TrYtml2adjYeYeCYt = cTrace(Ytml2adjYeYeCYt)
-   TrYtml2adjYzYzCYt = cTrace(Ytml2adjYzYzCYt)
-   TrYtml2CYtYtCYt = cTrace(Ytml2CYtYtCYt)
-   TrYtadjYeme2YeCYt = cTrace(YtadjYeme2YeCYt)
-   TrYtadjYeYeml2CYt = cTrace(YtadjYeYeml2CYt)
-   TrYtadjYeYeCYtml2 = cTrace(YtadjYeYeCYtml2)
-   TrYtadjYzmd2YzCYt = cTrace(YtadjYzmd2YzCYt)
-   TrYtadjYzYzml2CYt = cTrace(YtadjYzYzml2CYt)
-   TrYtadjYzYzCYtml2 = cTrace(YtadjYzYzCYtml2)
-   TrYtCYtml2YtCYt = cTrace(YtCYtml2YtCYt)
-   TrYtCYtYtml2CYt = cTrace(YtCYtYtml2CYt)
-   TrYtCYtYtCYtml2 = cTrace(YtCYtYtCYtml2)
-   TrYumq2adjYdYdadjYu = cTrace(Yumq2adjYdYdadjYu)
-   TrYumq2adjYuYuadjYu = cTrace(Yumq2adjYuYuadjYu)
-   TrYuadjYdmd2YdadjYu = cTrace(YuadjYdmd2YdadjYu)
-   TrYuadjYdYdmq2adjYu = cTrace(YuadjYdYdmq2adjYu)
-   TrYuadjYumu2YuadjYu = cTrace(YuadjYumu2YuadjYu)
-   TrYuadjYuYumq2adjYu = cTrace(YuadjYuYumq2adjYu)
-   TrYzml2adjYeYeadjYz = cTrace(Yzml2adjYeYeadjYz)
-   TrYzml2adjYzYdadjYd = cTrace(Yzml2adjYzYdadjYd)
-   TrYzml2adjYzYsCYs = cTrace(Yzml2adjYzYsCYs)
-   TrYzml2adjYzYzadjYz = cTrace(Yzml2adjYzYzadjYz)
-   TrYzml2CYtYtadjYz = cTrace(Yzml2CYtYtadjYz)
-   TrYzadjYeme2YeadjYz = cTrace(YzadjYeme2YeadjYz)
-   TrYzadjYeYeml2adjYz = cTrace(YzadjYeYeml2adjYz)
-   TrYzadjYzmd2YdadjYd = cTrace(YzadjYzmd2YdadjYd)
-   TrYzadjYzmd2YsCYs = cTrace(YzadjYzmd2YsCYs)
-   TrYzadjYzmd2YzadjYz = cTrace(YzadjYzmd2YzadjYz)
-   TrYzadjYzYdmq2adjYd = cTrace(YzadjYzYdmq2adjYd)
-   TrYzadjYzYzml2adjYz = cTrace(YzadjYzYzml2adjYz)
-   TrYzCYtml2YtadjYz = cTrace(YzCYtml2YtadjYz)
-   TrYzCYtYtml2adjYz = cTrace(YzCYtYtml2adjYz)
-   TrCYsmd2YsCYsYs = cTrace(CYsmd2YsCYsYs)
-   TrCYsYdmq2adjYdYs = cTrace(CYsYdmq2adjYdYs)
-   TrCYsYdadjYdmd2Ys = cTrace(CYsYdadjYdmd2Ys)
-   TrCYsYdadjYdYsmd2 = cTrace(CYsYdadjYdYsmd2)
-   TrCYsYsmd2CYsYs = cTrace(CYsYsmd2CYsYs)
-   TrCYsYsCYsmd2Ys = cTrace(CYsYsCYsmd2Ys)
-   TrCYsYsCYsYsmd2 = cTrace(CYsYsCYsYsmd2)
-   TrCYsYzml2adjYzYs = cTrace(CYsYzml2adjYzYs)
-   TrCYsYzadjYzmd2Ys = cTrace(CYsYzadjYzmd2Ys)
-   TrCYsYzadjYzYsmd2 = cTrace(CYsYzadjYzYsmd2)
-   TrCYtml2YtCYtYt = cTrace(CYtml2YtCYtYt)
-   TrCYtYtml2adjYeYe = cTrace(CYtYtml2adjYeYe)
-   TrCYtYtml2adjYzYz = cTrace(CYtYtml2adjYzYz)
-   TrCYtYtml2CYtYt = cTrace(CYtYtml2CYtYt)
-   TrCYtYtadjYeme2Ye = cTrace(CYtYtadjYeme2Ye)
-   TrCYtYtadjYeYeml2 = cTrace(CYtYtadjYeYeml2)
-   TrCYtYtadjYzmd2Yz = cTrace(CYtYtadjYzmd2Yz)
-   TrCYtYtadjYzYzml2 = cTrace(CYtYtadjYzYzml2)
-   TrCYtYtCYtml2Yt = cTrace(CYtYtCYtml2Yt)
-   TrCYtYtCYtYtml2 = cTrace(CYtYtCYtYtml2)
-  End If
-
-
-
-  Tr1(1) = -3._dp*mHd2/5._dp + 3._dp*mHu2/5._dp - 12._dp*ms2/5._dp + 12._dp*msb2/5._dp +&
-  &  9._dp*mt2/5._dp - 9._dp*mtb2/5._dp + 3._dp*mz2/5._dp - 3._dp*mzb2/5._dp +           &
-  &  3._dp*Trmd2/5._dp + 3._dp*Trme2/5._dp - 3._dp*Trml2/5._dp + 3._dp*Trmq2/5._dp -       &
-  &  6._dp*Trmu2/5._dp
-
-
-  If (TwoLoopRGE) Then
-  Tr2(1) = 3._dp*mHd2/10._dp + 3._dp*mHu2/10._dp + 12._dp*ms2/5._dp + 12._dp*msb2/5._dp +&
-  &  12._dp*mt2/5._dp + 12._dp*mtb2/5._dp + mz2/10._dp + mzb2/10._dp + Trmd2        &
-  & /5._dp + 3._dp*Trme2/5._dp + 3._dp*Trml2/10._dp + Trmq2           &
-  & /10._dp + 4._dp*Trmu2/5._dp
-
-  Tr3(1) = -9._dp*g12*mHd2/100._dp - 9._dp*g22*mHd2/20._dp + 9._dp*g12*mHu2/100._dp +&
-  &  9._dp*g22*mHu2/20._dp - 24._dp*g12*ms2/25._dp - 12._dp*g32*ms2 + 24._dp*g12*msb2/25._dp +&
-  &  12._dp*g32*msb2 + 36._dp*g12*mt2/25._dp + 24._dp*g22*mt2/5._dp - 36._dp*g12*mtb2/25._dp -&
-  &  24._dp*g22*mtb2/5._dp + (g12*mz2)/100._dp + 9._dp*g22*mz2/20._dp +              &
-  &  4._dp*g32*mz2/5._dp - (g12*mzb2)/100._dp - 9._dp*g22*mzb2/20._dp -              &
-  &  4._dp*g32*mzb2/5._dp + 9._dp*ms2*TrCYsYs/20._dp - 3._dp*TrCYsYsmd2/5._dp -          &
-  &  3._dp*mt2*TrCYtYt/10._dp + 9._dp*TrCYtYtml2/20._dp - 3._dp*Trmd2YdadjYd/5._dp -       &
-  &  3._dp*Trmd2YsCYs/5._dp - 3._dp*Trmd2YzadjYz/5._dp - 3._dp*Trme2YeadjYe/5._dp +        &
-  &  9._dp*Trml2YtCYt/20._dp + 6._dp*Trmu2YuadjYu/5._dp + 9._dp*mHd2*TrYdadjYd/10._dp -    &
-  &  3._dp*TrYdmq2adjYd/10._dp + 3._dp*mHd2*TrYeadjYe/10._dp + 3._dp*TrYeml2adjYe/10._dp + &
-  &  27._dp*ms2*TrYsCYs/20._dp - 9._dp*mt2*TrYtCYt/10._dp - 9._dp*mHu2*TrYuadjYu/10._dp -  &
-  &  3._dp*TrYumq2adjYu/10._dp - 3._dp*mz2*TrYzadjYz/10._dp + 9._dp*TrYzml2adjYz/10._dp +  &
-  &  9._dp*L1*mHd2*Conjg(L1)/10._dp - 6._dp*L1*mt2*Conjg(L1)/5._dp - 9._dp*L2*mHu2*Conjg(L2)&
-  & /10._dp + 6._dp*L2*mtb2*Conjg(L2)/5._dp + (g12*Trmd2)/25._dp + 4._dp*g32*Trmd2&
-  & /5._dp + 9._dp*g12*Trme2/25._dp - 9._dp*g12*Trml2/100._dp -          &
-  &  9._dp*g22*Trml2/20._dp + (g12*Trmq2)/100._dp + 9._dp*g22*Trmq2&
-  & /20._dp + 4._dp*g32*Trmq2/5._dp - 8._dp*g12*Trmu2/25._dp -           &
-  &  8._dp*g32*Trmu2/5._dp
-
-  Tr2(2) = mHd2/2._dp + mHu2/2._dp + 4._dp*mt2 + 4._dp*mtb2 + 3._dp*mz2/2._dp +         &
-  &  3._dp*mzb2/2._dp + Trml2/2._dp + 3._dp*Trmq2/2._dp
-
-  Tr2(3) = 15._dp*ms2/2._dp + 15._dp*msb2/2._dp + mz2 + mzb2 + Trmd2             &
-  & /2._dp + Trmq2 + Trmu2/2._dp
-
-  Tr3(3) = -3._dp*ms2*TrCYsYs/4._dp - 3._dp*ms2*TrYsCYs/4._dp
-
-  End If
-
-
-  !--------------------
-  ! g1
-  !--------------------
-
-  betag11 = 13.6_dp
-
-  If (TwoLoopRGE) Then
-   betag12 = ( 1502._dp*g12/75._dp + 34.8_dp * g22 + 184._dp * g32/3._dp  &
-           & - 4.8_dp * TrCYsYs - 5.4_dp * (TrCYtYt + AbsL1sq+AbsL2sq)    &
-           & - 2.8_dp * (TrYdadjYd+TrYzadjYz)  - 3.6_dp * TrYeadjYe       &
-           & - 5.2_dp * TrYuadjYu )
-
-   Dg1 = oo16pi2*g13*( betag11 + oo16pi2 * betag12 )
-
-  Else
-   Dg1 = oo16pi2* betag11*g13
-  End If
-
-  !--------------------
-  ! g2
-  !--------------------
-
-  betag21 = 8._dp
-
-  If (TwoLoopRGE) Then
-   betag22 = ( 11.6_dp * g12 + 94._dp * g22 + 40._dp * g32                     &
-           & - 6._dp * (TrYdadjYd + TrYuadjYu + TrYzadjYz) - 2._dp * TrYeadjYe &
-           & - 7._dp*(TrCYtYt + AbsL1sq + AbsL2sq) )
-
-   Dg2 = oo16pi2*g23*( betag21 + oo16pi2 * betag22 )
-
-  Else
-   Dg2 = oo16pi2*g23* betag21
-  End If
-
-  !--------------------
-  ! g3
-  !--------------------
-
-  betag31 = 4._dp
-
-  If (TwoLoopRGE) Then
-   betag32 = ( 23._dp*g12/3._dp + 15._dp*g22 + 400._dp*g32/3._dp       &
-           & - 9._dp*TrCYsYs - 4._dp*(TrYdadjYd+TrYuadjYu+TrYzadjYz) )
-
-   Dg3 = oo16pi2*g33*( betag31 + oo16pi2 * betag32 )
-
-  Else
-   Dg3 = oo16pi2*g33* betag31
-  End If
-
-  !--------------------
-  ! Yu
-  !--------------------
-
-  betaYu1 = ( -13._dp * g12 / 15._dp - 3._dp * g22 - 16._dp * g32 /3._dp &
-          & + 3._dp * (TrYuadjYu + AbsL2sq ) ) * Yu                      &
-          & + YuadjYdYd + 3._dp * YuadjYuYu
-
-  If (TwoLoopRGE) Then
-   betaYu2 = ( 5473._dp*g14/450._dp + (g12+8._dp*g32)*g22+ 28.5_dp*g24        &
-      & + 136._dp*g12*g32/45._dp + 320._dp*g34/9._dp - 3._dp*TrYuadjYdYdadjYu &
-      & + 0.8_dp*g12*TrYuadjYu + 16._dp*g32*TrYuadjYu- 9._dp*TrYuadjYuYuadjYu &
-      & + (3.6_dp*g12+ 12._dp*g22 - 9._dp*TrYuadjYu - 12._dp*AbsL2sq)*AbsL2sq &
-      & ) * Yu                                                                &
-      & + (0.4_dp*g12 - 3._dp*(TrYdadjYd+AbsL1sq) - TrYeadjYe ) * YuadjYdYd   &
-      & + (0.4_dp*g12 + 6._dp*g22  - 9._dp*(TrYuadjYu+AbsL2sq) ) * YuadjYuYu  &
-      & - 2._dp * (YuadjYdYdadjYdYd + YuadjYdYdadjYuYu + YuadjYdYzadjYzYd )   &
-      & - 4._dp * (YuadjYdYsCYsYd + YuadjYuYuadjYuYu)
-
-   DYu = oo16pi2*( betaYu1 + oo16pi2 * betaYu2 )
-
-  Else
-   DYu = oo16pi2* betaYu1
-  End If
-
-
-  !--------------------
-  ! Yd
-  !--------------------
-
-  betaYd1 = (-7._dp*g12/15._dp - 3._dp*g22 - 16._dp*g32/3._dp   &
-          & + 3._dp*(TrYdadjYd+AbsL1sq) + TrYeadjYe )*Yd        &
-          & + 3._dp*YdadjYdYd + YdadjYuYu + 4._dp*YsCYsYd + 2._dp*YzadjYzYd
-
-  If (TwoLoopRGE) Then
-
-   betaYd2 = ( 581._dp*g14/90._dp + (8._dp*g32+g12)*g22 + 28.5_dp*g24          &
-          & + (8._dp*g12*g32+320._dp*g34)/9._dp - 9._dp*TrYdadjYdYdadjYd       &
-          & + (16._dp*g32 - 0.4_dp*g12 - 9._dp*AbsL1sq ) *TrYdadjYd            &
-          & - 3._dp *(TrYdadjYuYuadjYd+TrYeadjYeYeadjYe) + 1.2_dp*g12*TrYeadjYe&
-          & - 3._dp*(TrYeadjYzYzadjYe+TrYeCYtYtadjYe)  - 12._dp*TrYsCYsYdadjYd &
-          & + (3.6_dp*g12+ 12._dp*g22 - 3._dp*(TrCYtYt+TrYeadjYe)              &
-          &    - 12._dp * AbsL1sq) * AbsL1sq - 6._dp*TrYzadjYzYdadjYd          &
-          & ) * Yd                                                             &
-          & + ( 0.8_dp*g12 + 6._dp*g22 - 3._dp*TrYeadjYe                       &
-          &   - 9._dp*(TrYdadjYd+AbsL1sq)  ) * YdadjYdYd                       &
-          & + ( 0.8_dp*g12  - 3._dp * (TrYuadjYu + AbsL2sq) ) * YdadjYuYu      &
-          & + ( 32._dp*g12/15._dp + 80._dp*g32/3._dp -4._dp*TrCYsYs) * YsCYsYd &
-          & + ( 0.4_dp*g12  + 6._dp*g22 - 2._dp*TrYzadjYz ) * YzadjYzYd        &
-          & - 4._dp * (YdadjYdYdadjYdYd + YdadjYdYsCYsYd)                      &
-          & - 2._dp * (YdadjYdYzadjYzYd + YdadjYuYuadjYdYd + YdadjYuYuadjYuYu  &
-          &           +YzadjYeYeadjYzYd )   - 16._dp*YsCYsYsCYsYd              &
-          & - 8._dp * (YsCYdTYdCYsYd + YsCYzTYzCYsYd)                          &
-          & - 6._dp * (YzadjYzYzadjYzYd + YzCYtYtadjYzYd)
-
-   DYd = oo16pi2*( betaYd1 + oo16pi2 * betaYd2 )
-
-  Else
-   DYd = oo16pi2* betaYd1
-  End If
-
-
-  !--------------------
-  ! Ye
-  !--------------------
-
-  betaYe1 = ( 3._dp*(TrYdadjYd+AbsL1sq) + TrYeadjYe    &
-          & - 1.8_dp*g12 - 3._dp*g22 ) * Ye            &
-          & + 3._dp * (YeadjYeYe + YeadjYzYz + YeCYtYt)
-
-  If (TwoLoopRGE) Then
-   betaYe2 = ( 26.1_dp*g14 + 1.8_dp*g12*g22  + 28.5_dp*g24                   &
-           & + (16._dp*g32 - 0.4_dp*g12) * TrYdadjYd  + 1.2_dp*g12*TrYeadjYe &
-           & - 9._dp*TrYdadjYdYdadjYd - 12._dp*TrYsCYsYdadjYd                &
-           & - 3._dp * (TrYdadjYuYuadjYd+TrYeadjYeYeadjYe+TrYeadjYzYzadjYe   &
-           &           + TrYeCYtYtadjYe ) - 6._dp*TrYzadjYzYdadjYd           &
-           & + (3.6_dp*g12 + 12._dp*g22  - 3._dp*(TrCYtYt+TrYeadjYe)         &
-           &   - 9._dp*TrYdadjYd - 12._dp*AbsL1sq) * AbsL1sq                 &
-           & ) * Ye                                                          &
-           & + ( 6._dp*g22 - 3._dp*TrYeadjYe - 9._dp*(TrYdadjYd+AbsL1sq)     &
-           &   ) * YeadjYeYe                                                 &
-           & + ( 16._dp*g32 - 0.4_dp*g12  - 3._dp*TrYzadjYz ) * YeadjYzYz    &
-           & + ( 3.6_dp*g12 + 12._dp*g22  - 3._dp*(TrYtCYt+AbsL1sq)          &
-           &   ) * YeCYtYt                                                   &
-           & - 4._dp*YeadjYeYeadjYeYe - 12._dp*YeadjYzYsCYsYz                &
-           & - 6._dp * ( YeadjYzYdadjYdYz + YeadjYzYzadjYeYe                 &
-           &           + YeadjYzYzadjYzYz + YeCYtYtadjYeYe )                 &
-           & - 3._dp*YeCYtTYeCYeYt - 9._dp * (YeCYtTYzCYzYt+YeCYtYtCYtYt)
-
-   DYe = oo16pi2*( betaYe1 + oo16pi2 * betaYe2 )
-
-  Else
-   DYe = oo16pi2* betaYe1
-  End If
-
-  !--------------------
-  ! Yt
-  !--------------------
-
-  betaYt1 = (TrCYtYt + AbsL1sq - 1.8_dp*g12  - 7._dp*g22 ) * Yt         &
-        & + TYeCYeYt + 3._dp * (TYzCYzYt+YtadjYzYz)+ YtadjYeYe + 6._dp*YtCYtYt
-
-  If (TwoLoopRGE) Then
-   betaYt2 = ( 26.1_dp*g14 + 11.4_dp*g12*g22 + 76.5_dp *g24  - TrCYtYtadjYeYe &
-         &   - (0.6_dp*g12 + g22)* TrCYtYt - 3._dp * TrCYtYtadjYzYz           &
-         &   - 6._dp*TrCYtYtCYtYt - TrYeCYtYtadjYe - 3._dp*TrYtadjYzYzCYt     &
-         &   - ( 0.6_dp *g12 + g22 + 6._dp * (TrYdadjYd + AbsL1sq)            &
-         &     - 2._dp * TrYeadjYe ) * AbsL1sq                                &
-         &   ) * Yt                                                           &
-         &   + ( 1.2_dp *g12  - TrYeadjYe - 3._dp*(TrYdadjYd+AbsL1sq)         &
-         &     ) * (TYeCYeYt + YtadjYeYe)                                     &
-         &   + (16._dp*g32 -0.4_dp*g12 -3._dp*TrYzadjYz )*(TYzCYzYt+YtadjYzYz)&
-         &   + ( 7.2_dp*g12 + 24._dp*g22 - 6._dp*(TrCYtYt+AbsL1sq) ) *YtCYtYt &
-         &   - 2._dp * (TYeCYeTYeCYeYt + YtadjYeYeadjYeYe)                    &
-         &   - 6._dp * (TYzCYdTYdCYzYt + TYzCYzTYzCYzYt                       &
-         &             +YtadjYzYdadjYdYz + YtadjYzYzadjYzYz)                  &
-         &   - 12._dp *(TYzCYsYsCYzYt + YtadjYzYsCYsYz)                       &
-         &   - 3._dp * (YtadjYeYeCYtYt + YtCYtTYeCYeYt)                       &
-         &   - 9._dp * (YtadjYzYzCYtYt + YtCYtTYzCYzYt) - 18._dp *YtCYtYtCYtYt
-
-   DYt = oo16pi2*( betaYt1 + oo16pi2 * betaYt2 )
-
-  Else
-   DYt = oo16pi2* betaYt1
-  End If
-
-
-  !--------------------
-  ! Ys
-  !--------------------
-
-  betaYs1 = ( TrCYsYs - 0.8_dp *g12 - 12._dp*g32 ) * Ys              &
-          & + 2._dp * ( YdadjYdYs + YsCYdTYd +YsCYzTYz + YzadjYzYs ) &
-          & + 8._dp * YsCYsYs
-
-  If (TwoLoopRGE) Then
-   betaYs2 = ( 11.2_dp*g14 + 128._dp*g12*g32/15._dp + 320._dp*g34/3._dp       &
-         &   - 4._dp * (g12/15._dp + g32/3._dp )* TrCYsYs                     &
-         &   - 4._dp * (TrCYsYdadjYdYs+TrCYsYzadjYzYs) - 8._dp * TrCYsYsCYsYs &
-         &   ) * Ys                                                           &
-         &   + (0.4_dp*g12 + 6._dp*(g22-TrYdadjYd-AbsL1sq) - 2._dp*TrYeadjYe  &
-         &     ) * (YdadjYdYs+YsCYdTYd)                                       &
-         &   + (64._dp*g12/15._dp + 160._dp*g32/3._dp - 8._dp*TrCYsYs)*YsCYsYs&
-         &   + (0.4_dp*g12 +6._dp*g22 -2._dp*TrYzadjYz) *(YsCYzTYz+YzadjYzYs) &
-         &   - 2._dp * (YdadjYdYdadjYdYs + YdadjYuYuadjYdYs + YsCYdTYdCYdTYd  &
-         &             +YsCYdTYuCYuTYd + YsCYzTYeCYeTYz + YzadjYeYeadjYzYs)   &
-         &   - 8._dp * ( YsCYdTYdCYsYs + YsCYsYdadjYdYs                       &
-         &             + YsCYsYzadjYzYs + YsCYzTYzCYsYs )                     &
-         &   - 6._dp * ( YsCYzTYzCYzTYz + YsCYzYtCYtTYz                       &
-         &             + YzadjYzYzadjYzYs + YzCYtYtadjYzYs)                   &
-         &   - 32._dp*YsCYsYsCYsYs
-
-   DYs = oo16pi2*( betaYs1 + oo16pi2 * betaYs2 )
-
-  Else
-   DYs = oo16pi2* betaYs1
-  End If
-
-
-  !--------------------
-  ! Yz
-  !--------------------
-  betaYz1 = (TrYzadjYz -7._dp*g12/15._dp -3._dp*g22 -16._dp*g32/3._dp ) * Yz &
-        & + 2._dp*YdadjYdYz + 4._dp*YsCYsYz + YzadjYeYe + 5._dp*YzadjYzYz    &
-        & + 3._dp*YzCYtYt
-
-
-  If (TwoLoopRGE) Then
-   betaYz2 = ( 581._dp*g14/90._dp + g12*g22 + 28.5_dp*g24  + 320._dp*g34/9._dp &
-         &   + 8._dp*g32*(g12/9._dp + g22) + 0.4_dp*g12*TrYzadjYz              &
-         &   - TrYzadjYeYeadjYz- 2._dp*TrYdadjYdYzadjYz- 4._dp*TrYsCYsYzadjYz  &
-         &   - 5._dp*TrYzadjYzYzadjYz - 3._dp*TrYzCYtYtadjYz                   &
-         &   ) * Yz                                                            &
-         &   + (0.4_dp*g12 + 6._dp*(g22 - TrYdadjYd -AbsL1sq) -2._dp*TrYeadjYe &
-         &      ) * YdadjYdYz                                                  &
-         &   + (32._dp*g12/15._dp + 80._dp*g32/3._dp - 4._dp*TrCYsYs) *YsCYsYz &
-         &   + (1.2_dp*g12 - 3._dp*(TrYdadjYd+AbsL1sq) - TrYeadjYe) *YzadjYeYe &
-         &   + (3.6_dp*g12 + 12._dp*g22 - 3._dp*(TrCYtYt+AbsL1sq) ) * YzCYtYt  &
-         &   + (6._dp*g22 + 16._dp*g32  - 5._dp*TrYzadjYz) * YzadjYzYz         &
-         &   - 2._dp * ( YdadjYdYdadjYdYz + YdadjYuYuadjYdYz                   &
-         &             + YzadjYeYeadjYeYe + YzadjYeYeadjYzYz )                 &
-         &   - 9._dp * ( YzCYtTYzCYzYt + YzCYtYtCYtYt) - 3._dp*YzCYtTYeCYeYt   &
-         &   - 8._dp * ( YsCYdTYdCYsYz +YsCYzTYzCYsYz) - 16._dp*YsCYsYsCYsYz   &
-         &   - 6._dp * ( YzadjYzYdadjYdYz + YzCYtYtadjYzYz)                    &
-         &   - 12._dp * (YzadjYzYsCYsYz + YzadjYzYzadjYzYz)
-
-   DYz = oo16pi2*( betaYz1 + oo16pi2 * betaYz2 )
-
-  Else
-   DYz = oo16pi2* betaYz1
-  End If
-
-
-  !--------------------
-  ! L1
-  !--------------------
-
-  betaL11 = -1.8_dp*g12 - 7._dp * g22 + TrCYtYt + 6._dp * TrYdadjYd &
-          & + 2._dp*TrYeadjYe + 7._dp*AbsL1sq
-
-  If (TwoLoopRGE) Then
-   betaL12 = 26.1_dp*g14 + 11.4_dp*g12*g22 + 76.5_dp*g24                  &
-         &   - (0.6_dp*g12+g22 + 6._dp* AbsL1sq) *TrCYtYt                 &
-         &   + (32._dp*g32 - 0.8_dp*g12 - 24._dp* AbsL1sq) * TrYdadjYd    &
-         &   + (2.4_dp*g12 - 8._dp* AbsL1sq) * TrYeadjYe                  &
-         &   + (6.6_dp*g12 + 23._dp*g22 - 30._dp* AbsL1sq) * AbsL1sq      &
-         &   - 8._dp*TrYeCYtYtadjYe  - 12._dp * TrYzadjYzYdadjYd          &
-         &   - 6._dp * (TrCYtYtCYtYt + TrYdadjYuYuadjYd + TrCYtYtadjYzYz  &
-         &             +TrYeadjYeYeadjYe + TrYeadjYzYzadjYe)              &
-         &   - 18._dp*TrYdadjYdYdadjYd - 24._dp * TrYsCYsYdadjYd
-
-   DL1 = oo16pi2 * L1 * ( betaL11 + oo16pi2 * betaL12 )
-
-  Else
-   DL1 = oo16pi2 * L1 * betaL11
-  End If
-
-
-  !--------------------
-  ! L2
-  !--------------------
-
-  betaL21 = -1.8_dp*g12 - 7._dp * g22 + 6._dp * TrYuadjYu + 7._dp*AbsL2sq
-
-  If (TwoLoopRGE) Then
-   betaL22 = 26.1_dp*g14 + 11.4_dp*g12*g22 + 76.5_dp*g24             &
-         & + (1.6_dp*g12 + 32._dp*g32 - 24._dp*AbsL2sq ) * TrYuadjYu &
-         & + (6.6_dp*g12 + 23._dp*g22 - 30._dp*AbsL2sq ) * AbsL2sq   &
-         & - 6._dp * TrYuadjYdYdadjYu - 18._dp*TrYuadjYuYuadjYu
-
-   DL2 = oo16pi2 * L2 * ( betaL21 + oo16pi2 * betaL22 )
-
-  Else
-   DL2 = oo16pi2 * L2 * betaL21
-  End If
-
-
-  !--------------------
-  ! MTM
-  !--------------------
-
-  betaMTM1 = -2.4_dp*g12 - 8._dp*g22 + TrCYtYt + AbsL1sq + AbsL2sq
-
-  If (TwoLoopRGE) Then
-   betaMTM2 = 35.52_dp*g14 + 19.2_dp*g12*g22 + 96._dp*g24           &
-          & - (0.6_dp*g12 + g22) * TrCYtYt - 2._dp * TrCYtYtadjYeYe &
-          & - 6._dp*TrCYtYtadjYzYz - 6._dp*TrCYtYtCYtYt             &
-          & - (0.6_dp*g12 + g22 + 6._dp*(TrYdadjYd+AbsL1sq)         &
-          &   + 2._dp*TrYeadjYe ) * AbsL1sq                         &
-          & - (0.6_dp*g12 + g22 + 6._dp*(TrYuadjYu+AbsL2sq) ) * AbsL2sq
-
-   DMTM = oo16pi2 * MTM * ( betaMTM1 + oo16pi2 * betaMTM2 )
-
-  Else
-   DMTM = oo16pi2 * MTM * betaMTM1
-  End If
-
-  !--------------------
-  ! mue
-  !--------------------
-
-  betamue1 = -0.6_dp*g12 + TrYeadjYe &
-         & + 3._dp * ( TrYdadjYd + TrYuadjYu + AbsL1sq + AbsL2sq - g22)
-
-  If (TwoLoopRGE) Then
-   betamue2 = 8.34_dp*g14 + 1.8_dp*g12*g22 + 28.5_dp*g24 &
-          & + ( 16._dp*g32 - 0.4_dp*g12 - 9._dp*AbsL1sq) * TrYdadjYd &
-          & + ( 16._dp*g32 + 0.8_dp*g12 - 9._dp*AbsL2sq) * TrYuadjYu &
-          & + ( 1.2_dp*g12 - 3._dp*AbsL1sq) * TrYeadjYe &
-          & + ( 3.6_dp*g12 + 12._dp*g22 - 3._dp*TrCYtYt - 12._dp*AbsL1sq) * AbsL1sq &
-          & + ( 3.6_dp*g12 + 12._dp*g22 - 12._dp*AbsL2sq) * AbsL2sq &
-          & - 9._dp * ( TrYdadjYdYdadjYd + TrYuadjYuYuadjYu ) &
-          & - 3._dp * ( TrYdadjYuYuadjYd + TrYeadjYeYeadjYe + TrYuadjYdYdadjYu  &
-          &           + TrYeadjYzYzadjYe + TrYeCYtYtadjYe )   &
-          & - 12._dp*TrYsCYsYdadjYd - 6._dp*TrYzadjYzYdadjYd
-
-   Dmue = oo16pi2*mue*( betamue1 + oo16pi2 * betamue2 )
-
-  Else
-   Dmue = oo16pi2*mue* betamue1
-  End If
-
-
-  !--------------------
-  ! MZM
-  !--------------------
-
-  betaMZM1 = -g12/15._dp - 3._dp*g22 - 16._dp*g32/3._dp +  TrYzadjYz
-
-  If (TwoLoopRGE) Then
-   betaMZM2 = 409._dp*g14/450._dp + (g12*g22)/5._dp + 28.5_dp*g24 &
-        &  + 16._dp*g32*(g12/45._dp + g22) + 320._dp*g34/9._dp    &
-        &  - 2._dp*TrYdadjYdYzadjYz - 4._dp*TrYsCYsYzadjYz - TrYzadjYeYeadjYz  &
-        &  + 0.4_dp*g12*TrYzadjYz - 5._dp*TrYzadjYzYzadjYz - 3._dp*TrYzCYtYtadjYz
-
-   DMZM = oo16pi2*MZM*( betaMZM1 + oo16pi2 * betaMZM2 )
-
-  Else
-   DMZM = oo16pi2*MZM* betaMZM1
-  End If
-
-
-  !--------------------
-  ! MSM
-  !--------------------
-
-  betaMSM1 = -16._dp*g12/15._dp - 40._dp*g32/3._dp + 0.75_dp*TrCYsYs &
-         & + 0.25_dp * TrYsCYs
-
-  If (TwoLoopRGE) Then
-   betaMSM2 = 3392._dp*g14/225._dp +128._dp*g12*g32/9._dp +1280._dp*g34/9._dp &
-          & - 4._dp * (g12/15._dp + g32/3._dp) * TrCYsYs                      &
-          & - 8._dp*TrCYsYsCYsYs - 4._dp*(TrCYsYzadjYzYs + TrCYsYdadjYdYs)
-
-   DMSM = oo16pi2*MSM*( betaMSM1 + oo16pi2 * betaMSM2 )
-
-  Else
-   DMSM = oo16pi2*MSM* betaMSM1
-  End If
-
-
-  !--------------------
-  ! AYu
-  !--------------------
-
-  Do i1 = 1,3
-  Do i2 = 1,3
-  betaAYu1(i1,i2) = AYuadjYdYd(i1,i2) + 5._dp*AYuadjYuYu(i1,i2) + 26._dp*g12*MassB*Yu(i1,i2)&
-  & /15._dp + 32._dp*g32*MassG*Yu(i1,i2)/3._dp + 6._dp*g22*MassWB*Yu(i1,i2)            &
-  &  + 6._dp*TrAYuadjYu*Yu(i1,i2) + 6._dp*AL2*Conjg(L2)*Yu(i1,i2) + 2._dp*YuadjYdAYd(i1,i2)&
-  &  + 4._dp*YuadjYuAYu(i1,i2) - 13._dp*g12*AYu(i1,i2)/15._dp - 3._dp*g22*AYu(i1,i2)   &
-  &  - 16._dp*g32*AYu(i1,i2)/3._dp + 3._dp*TrYuadjYu*AYu(i1,i2) + 3._dp*AbsL2sq     &
-  & *AYu(i1,i2)
-   End Do
-  End Do
-
-
-  If (TwoLoopRGE) Then
-  Do i1 = 1,3
-  Do i2 = 1,3
-  betaAYu2(i1,i2) = 2._dp*g12*AYuadjYdYd(i1,i2)/5._dp - 3._dp*TrYdadjYd*AYuadjYdYd(i1,i2)&
-  &  - TrYeadjYe*AYuadjYdYd(i1,i2) - 2._dp*AYuadjYdYdadjYdYd(i1,i2) - 4._dp*AYuadjYdYdadjYuYu(i1,i2)&
-  &  - 4._dp*AYuadjYdYsCYsYd(i1,i2) - 2._dp*AYuadjYdYzadjYzYd(i1,i2) + 12._dp*g22*AYuadjYuYu(i1,i2)&
-  &  - 15._dp*TrYuadjYu*AYuadjYuYu(i1,i2) - 6._dp*AYuadjYuYuadjYuYu(i1,i2) -               &
-  &  3._dp*L1*AYuadjYdYd(i1,i2)*Conjg(L1) - 15._dp*L2*AYuadjYuYu(i1,i2)*Conjg(L2)          &
-  &  - 10946._dp*g14*MassB*Yu(i1,i2)/225._dp - 2._dp*g12*g22*MassB*Yu(i1,i2)         &
-  &  - 272._dp*g12*g32*MassB*Yu(i1,i2)/45._dp - 272._dp*g12*g32*MassG*Yu(i1,i2)    &
-  & /45._dp - 16._dp*g22*g32*MassG*Yu(i1,i2) - 1280._dp*g34*MassG*Yu(i1,i2)          &
-  & /9._dp - 2._dp*g12*g22*MassWB*Yu(i1,i2) - 114._dp*g24*MassWB*Yu(i1,i2)           &
-  &  - 16._dp*g22*g32*MassWB*Yu(i1,i2) + 8._dp*g12*TrAYuadjYu*Yu(i1,i2)              &
-  & /5._dp + 32._dp*g32*TrAYuadjYu*Yu(i1,i2) - 6._dp*TrYdadjYuAYuadjYd*Yu(i1,i2)         &
-  &  - 6._dp*TrYuadjYdAYdadjYu*Yu(i1,i2) - 8._dp*g12*MassB*TrYuadjYu*Yu(i1,i2)           &
-  & /5._dp - 32._dp*g32*MassG*TrYuadjYu*Yu(i1,i2) - 36._dp*TrYuadjYuAYuadjYu*Yu(i1,i2)   &
-  &  - 36._dp*g12*L2*MassB*Conjg(L2)*Yu(i1,i2)/5._dp - 24._dp*g22*L2*MassWB*Conjg(L2)  &
-  & *Yu(i1,i2) - 18._dp*L2*TrAYuadjYu*Conjg(L2)*Yu(i1,i2) + 36._dp*g12*AL2*Conjg(L2)     &
-  & *Yu(i1,i2)/5._dp + 24._dp*g22*AL2*Conjg(L2)*Yu(i1,i2) - 18._dp*TrYuadjYu*AL2*Conjg(L2)&
-  & *Yu(i1,i2) - 48._dp*L2*AL2*Conjg(L2)**2*Yu(i1,i2) + 4._dp*g12*YuadjYdAYd(i1,i2)      &
-  & /5._dp - 6._dp*TrYdadjYd*YuadjYdAYd(i1,i2) - 2._dp*TrYeadjYe*YuadjYdAYd(i1,i2)         &
-  &  - 6._dp*AbsL1sq*YuadjYdAYd(i1,i2) - 4._dp*YuadjYdAYdadjYdYd(i1,i2)               &
-  &  - 4._dp*YuadjYdAYdadjYuYu(i1,i2) - 8._dp*YuadjYdAYsCYsYd(i1,i2) - 4._dp*YuadjYdAYzadjYzYd(i1,i2)&
-  &  - 4._dp*g12*MassB*YuadjYdYd(i1,i2)/5._dp - 6._dp*TrAYdadjYd*YuadjYdYd(i1,i2)        &
-  &  - 2._dp*TrAYeadjYe*YuadjYdYd(i1,i2) - 6._dp*AL1*Conjg(L1)*YuadjYdYd(i1,i2)            &
-  &  - 4._dp*YuadjYdYdadjYdAYd(i1,i2) - 2._dp*YuadjYdYdadjYuAYu(i1,i2) - 8._dp*YuadjYdYsCYsAYd(i1,i2)&
-  &  - 4._dp*YuadjYdYzadjYzAYd(i1,i2) + 6._dp*g12*YuadjYuAYu(i1,i2)/5._dp +              &
-  &  6._dp*g22*YuadjYuAYu(i1,i2) - 12._dp*TrYuadjYu*YuadjYuAYu(i1,i2) - 12._dp*AbsL2sq&
-  & *YuadjYuAYu(i1,i2) - 8._dp*YuadjYuAYuadjYuYu(i1,i2) - 4._dp*g12*MassB*YuadjYuYu(i1,i2)&
-  & /5._dp - 12._dp*g22*MassWB*YuadjYuYu(i1,i2) - 18._dp*TrAYuadjYu*YuadjYuYu(i1,i2)     &
-  &  - 18._dp*AL2*Conjg(L2)*YuadjYuYu(i1,i2) - 6._dp*YuadjYuYuadjYuAYu(i1,i2)              &
-  &  + 5473._dp*g14*AYu(i1,i2)/450._dp + g12*g22*AYu(i1,i2) + 57._dp*g24*AYu(i1,i2)&
-  & /2._dp + 136._dp*g12*g32*AYu(i1,i2)/45._dp + 8._dp*g22*g32*AYu(i1,i2)          &
-  &  + 320._dp*g34*AYu(i1,i2)/9._dp - 3._dp*TrYdadjYuYuadjYd*AYu(i1,i2) + 4._dp*g12*TrYuadjYu*AYu(i1,i2)&
-  & /5._dp + 16._dp*g32*TrYuadjYu*AYu(i1,i2) - 9._dp*TrYuadjYuYuadjYu*AYu(i1,i2)         &
-  &  + 18._dp*g12*AbsL2sq*AYu(i1,i2)/5._dp + 12._dp*g22*AbsL2sq              &
-  & *AYu(i1,i2) - 9._dp*L2*TrYuadjYu*Conjg(L2)*AYu(i1,i2) - 12._dp*L2**2*Conjg(L2)         &
-  & **2*AYu(i1,i2)
-   End Do
-  End Do
-
-
-  DAYu = oo16pi2*( betaAYu1 + oo16pi2 * betaAYu2 )
-
-
-  Else
-  DAYu = oo16pi2* betaAYu1
-  End If
-
-
-  !--------------------
-  ! AYd
-  !--------------------
-
-  Do i1 = 1,3
-  Do i2 = 1,3
-  betaAYd1(i1,i2) = 5._dp*AYdadjYdYd(i1,i2) + AYdadjYuYu(i1,i2) + 8._dp*AYsCYsYd(i1,i2) &
-  &  + 4._dp*AYzadjYzYd(i1,i2) + 14._dp*g12*MassB*Yd(i1,i2)/15._dp + 32._dp*g32*MassG*Yd(i1,i2)&
-  & /3._dp + 6._dp*g22*MassWB*Yd(i1,i2) + 6._dp*TrAYdadjYd*Yd(i1,i2) + 2._dp*TrAYeadjYe*Yd(i1,i2)&
-  &  + 6._dp*AL1*Conjg(L1)*Yd(i1,i2) + 4._dp*YdadjYdAYd(i1,i2) + 2._dp*YdadjYuAYu(i1,i2)   &
-  &  + 4._dp*YsCYsAYd(i1,i2) + 2._dp*YzadjYzAYd(i1,i2) - 7._dp*g12*AYd(i1,i2)            &
-  & /15._dp - 3._dp*g22*AYd(i1,i2) - 16._dp*g32*AYd(i1,i2)/3._dp + 3._dp*TrYdadjYd*AYd(i1,i2)&
-  &  + TrYeadjYe*AYd(i1,i2) + 3._dp*AbsL1sq*AYd(i1,i2)
-   End Do
-  End Do
-
-
-  If (TwoLoopRGE) Then
-  Do i1 = 1,3
-  Do i2 = 1,3
-  betaAYd2(i1,i2) = 6._dp*g12*AYdadjYdYd(i1,i2)/5._dp + 12._dp*g22*AYdadjYdYd(i1,i2)&
-  &  - 15._dp*TrYdadjYd*AYdadjYdYd(i1,i2) - 5._dp*TrYeadjYe*AYdadjYdYd(i1,i2)              &
-  &  - 6._dp*AYdadjYdYdadjYdYd(i1,i2) - 4._dp*AYdadjYdYsCYsYd(i1,i2) - 2._dp*AYdadjYdYzadjYzYd(i1,i2)&
-  &  + 4._dp*g12*AYdadjYuYu(i1,i2)/5._dp - 3._dp*TrYuadjYu*AYdadjYuYu(i1,i2)             &
-  &  - 4._dp*AYdadjYuYuadjYdYd(i1,i2) - 2._dp*AYdadjYuYuadjYuYu(i1,i2) - 16._dp*AYsCYdTYdCYsYd(i1,i2)&
-  &  + 64._dp*g12*AYsCYsYd(i1,i2)/15._dp + 160._dp*g32*AYsCYsYd(i1,i2)/3._dp -         &
-  &  6._dp*TrCYsYs*AYsCYsYd(i1,i2) - 2._dp*TrYsCYs*AYsCYsYd(i1,i2) - 32._dp*AYsCYsYsCYsYd(i1,i2)&
-  &  - 16._dp*AYsCYzTYzCYsYd(i1,i2) - 4._dp*AYzadjYeYeadjYzYd(i1,i2) + 4._dp*g12*AYzadjYzYd(i1,i2)&
-  & /5._dp + 12._dp*g22*AYzadjYzYd(i1,i2) - 4._dp*TrYzadjYz*AYzadjYzYd(i1,i2)            &
-  &  - 12._dp*AYzadjYzYzadjYzYd(i1,i2) - 12._dp*AYzCYtYtadjYzYd(i1,i2) - 15._dp*L1*AYdadjYdYd(i1,i2)&
-  & *Conjg(L1) - 3._dp*L2*AYdadjYuYu(i1,i2)*Conjg(L2) - 1162._dp*g14*MassB*Yd(i1,i2)     &
-  & /45._dp - 2._dp*g12*g22*MassB*Yd(i1,i2) - 16._dp*g12*g32*MassB*Yd(i1,i2)       &
-  & /9._dp - 16._dp*g12*g32*MassG*Yd(i1,i2)/9._dp - 16._dp*g22*g32*MassG*Yd(i1,i2) &
-  &  - 1280._dp*g34*MassG*Yd(i1,i2)/9._dp - 2._dp*g12*g22*MassWB*Yd(i1,i2)           &
-  &  - 114._dp*g24*MassWB*Yd(i1,i2) - 16._dp*g22*g32*MassWB*Yd(i1,i2) -              &
-  &  4._dp*g12*TrAYdadjYd*Yd(i1,i2)/5._dp + 32._dp*g32*TrAYdadjYd*Yd(i1,i2)            &
-  &  + 12._dp*g12*TrAYeadjYe*Yd(i1,i2)/5._dp - 12._dp*TrCYsAYdadjYdYs*Yd(i1,i2)          &
-  &  - 15._dp*TrCYsYdadjYdAYs*Yd(i1,i2) - 3._dp*TrCYtAYtadjYeYe*Yd(i1,i2) - 4._dp*TrCYtYtadjYeAYe*Yd(i1,i2)&
-  &  + 4._dp*g12*MassB*TrYdadjYd*Yd(i1,i2)/5._dp - 32._dp*g32*MassG*TrYdadjYd*Yd(i1,i2)&
-  &  - 36._dp*TrYdadjYdAYdadjYd*Yd(i1,i2) - 9._dp*TrYdadjYdAYsCYs*Yd(i1,i2) -              &
-  &  12._dp*TrYdadjYdAYzadjYz*Yd(i1,i2) - 6._dp*TrYdadjYuAYuadjYd*Yd(i1,i2) -              &
-  &  12._dp*g12*MassB*TrYeadjYe*Yd(i1,i2)/5._dp - 12._dp*TrYeadjYeAYeadjYe*Yd(i1,i2)     &
-  &  - 6._dp*TrYeadjYzAYzadjYe*Yd(i1,i2) - 3._dp*TrYeCYtAYtadjYe*Yd(i1,i2) -               &
-  &  12._dp*TrYsCYsAYdadjYd*Yd(i1,i2) - 2._dp*TrYtadjYeAYeCYt*Yd(i1,i2) - 6._dp*TrYuadjYdAYdadjYu*Yd(i1,i2)&
-  &  - 6._dp*TrYzadjYeAYeadjYz*Yd(i1,i2) - 12._dp*TrYzadjYzAYdadjYd*Yd(i1,i2)              &
-  &  - 36._dp*g12*L1*MassB*Conjg(L1)*Yd(i1,i2)/5._dp - 24._dp*g22*L1*MassWB*Conjg(L1)  &
-  & *Yd(i1,i2) - 18._dp*L1*TrAYdadjYd*Conjg(L1)*Yd(i1,i2) - 6._dp*L1*TrAYeadjYe*Conjg(L1)  &
-  & *Yd(i1,i2) - 6._dp*L1*TrCYtAYt*Conjg(L1)*Yd(i1,i2) + 36._dp*g12*AL1*Conjg(L1)        &
-  & *Yd(i1,i2)/5._dp + 24._dp*g22*AL1*Conjg(L1)*Yd(i1,i2) - 9._dp*TrCYtYt*AL1*Conjg(L1)  &
-  & *Yd(i1,i2)/2._dp - 18._dp*TrYdadjYd*AL1*Conjg(L1)*Yd(i1,i2) - 6._dp*TrYeadjYe*AL1*Conjg(L1)&
-  & *Yd(i1,i2) - 3._dp*TrYtCYt*AL1*Conjg(L1)*Yd(i1,i2)/2._dp - 48._dp*L1*AL1*Conjg(L1)     &
-  & **2*Yd(i1,i2) + 6._dp*g12*YdadjYdAYd(i1,i2)/5._dp + 6._dp*g22*YdadjYdAYd(i1,i2)    &
-  &  - 12._dp*TrYdadjYd*YdadjYdAYd(i1,i2) - 4._dp*TrYeadjYe*YdadjYdAYd(i1,i2)              &
-  &  - 12._dp*AbsL1sq*YdadjYdAYd(i1,i2) - 8._dp*YdadjYdAYdadjYdYd(i1,i2)              &
-  &  - 8._dp*YdadjYdAYsCYsYd(i1,i2) - 4._dp*YdadjYdAYzadjYzYd(i1,i2) - 8._dp*g12*MassB*YdadjYdYd(i1,i2)&
-  & /5._dp - 12._dp*g22*MassWB*YdadjYdYd(i1,i2) - 18._dp*TrAYdadjYd*YdadjYdYd(i1,i2)     &
-  &  - 6._dp*TrAYeadjYe*YdadjYdYd(i1,i2) - 18._dp*AL1*Conjg(L1)*YdadjYdYd(i1,i2)           &
-  &  - 6._dp*YdadjYdYdadjYdAYd(i1,i2) - 8._dp*YdadjYdYsCYsAYd(i1,i2) - 4._dp*YdadjYdYzadjYzAYd(i1,i2)&
-  &  + 8._dp*g12*YdadjYuAYu(i1,i2)/5._dp - 6._dp*TrYuadjYu*YdadjYuAYu(i1,i2)             &
-  &  - 6._dp*AbsL2sq*YdadjYuAYu(i1,i2) - 4._dp*YdadjYuAYuadjYdYd(i1,i2)               &
-  &  - 4._dp*YdadjYuAYuadjYuYu(i1,i2) - 8._dp*g12*MassB*YdadjYuYu(i1,i2)/5._dp -         &
-  &  6._dp*TrAYuadjYu*YdadjYuYu(i1,i2) - 6._dp*AL2*Conjg(L2)*YdadjYuYu(i1,i2)              &
-  &  - 2._dp*YdadjYuYuadjYdAYd(i1,i2) - 4._dp*YdadjYuYuadjYuAYu(i1,i2) - 16._dp*YsCYdTAYdCYsYd(i1,i2)&
-  &  - 8._dp*YsCYdTYdCYsAYd(i1,i2) + 32._dp*g12*YsCYsAYd(i1,i2)/15._dp + 80._dp*g32*YsCYsAYd(i1,i2)&
-  & /3._dp - 3._dp*TrCYsYs*YsCYsAYd(i1,i2) - TrYsCYs*YsCYsAYd(i1,i2) - 32._dp*YsCYsAYsCYsYd(i1,i2)&
-  &  - 64._dp*g12*MassB*YsCYsYd(i1,i2)/15._dp - 160._dp*g32*MassG*YsCYsYd(i1,i2)       &
-  & /3._dp - 8._dp*TrCYsAYs*YsCYsYd(i1,i2) - 16._dp*YsCYsYsCYsAYd(i1,i2) - 16._dp*YsCYzTAYzCYsYd(i1,i2)&
-  &  - 8._dp*YsCYzTYzCYsAYd(i1,i2) - 4._dp*YzadjYeAYeadjYzYd(i1,i2) - 2._dp*YzadjYeYeadjYzAYd(i1,i2)&
-  &  + 2._dp*g12*YzadjYzAYd(i1,i2)/5._dp + 6._dp*g22*YzadjYzAYd(i1,i2) -               &
-  &  2._dp*TrYzadjYz*YzadjYzAYd(i1,i2) - 12._dp*YzadjYzAYzadjYzYd(i1,i2) - 4._dp*g12*MassB*YzadjYzYd(i1,i2)&
-  & /5._dp - 12._dp*g22*MassWB*YzadjYzYd(i1,i2) - 4._dp*TrAYzadjYz*YzadjYzYd(i1,i2)      &
-  &  - 6._dp*YzadjYzYzadjYzAYd(i1,i2) - 12._dp*YzCYtAYtadjYzYd(i1,i2) - 6._dp*YzCYtYtadjYzAYd(i1,i2)&
-  &  + 581._dp*g14*AYd(i1,i2)/90._dp + g12*g22*AYd(i1,i2) + 57._dp*g24*AYd(i1,i2)  &
-  & /2._dp + 8._dp*g12*g32*AYd(i1,i2)/9._dp + 8._dp*g22*g32*AYd(i1,i2)             &
-  &  + 320._dp*g34*AYd(i1,i2)/9._dp - 6._dp*TrCYsYdadjYdYs*AYd(i1,i2) - 3._dp*TrCYtYtadjYeYe*AYd(i1,i2)&
-  & /2._dp - 2._dp*g12*TrYdadjYd*AYd(i1,i2)/5._dp + 16._dp*g32*TrYdadjYd*AYd(i1,i2)    &
-  &  - 9._dp*TrYdadjYdYdadjYd*AYd(i1,i2) - 9._dp*TrYdadjYdYsCYs*AYd(i1,i2)/2._dp -         &
-  &  6._dp*TrYdadjYdYzadjYz*AYd(i1,i2) + 6._dp*g12*TrYeadjYe*AYd(i1,i2)/5._dp -          &
-  &  3._dp*TrYeadjYeYeadjYe*AYd(i1,i2) - (TrYeCYtYtadjYe*AYd(i1,i2))/2._dp -               &
-  &  3._dp*TrYsCYsYdadjYd*AYd(i1,i2)/2._dp - TrYtadjYeYeCYt*AYd(i1,i2) - 3._dp*TrYuadjYdYdadjYu*AYd(i1,i2)&
-  &  - 3._dp*TrYzadjYeYeadjYz*AYd(i1,i2) + 18._dp*g12*AbsL1sq*AYd(i1,i2)            &
-  & /5._dp + 12._dp*g22*AbsL1sq*AYd(i1,i2) - 9._dp*L1*TrCYtYt*Conjg(L1)             &
-  & *AYd(i1,i2)/4._dp - 9._dp*L1*TrYdadjYd*Conjg(L1)*AYd(i1,i2) - 3._dp*L1*TrYeadjYe*Conjg(L1)&
-  & *AYd(i1,i2) - 3._dp*L1*TrYtCYt*Conjg(L1)*AYd(i1,i2)/4._dp - 12._dp*L1**2*Conjg(L1)     &
-  & **2*AYd(i1,i2)
-   End Do
-  End Do
-
-
-  DAYd = oo16pi2*( betaAYd1 + oo16pi2 * betaAYd2 )
-
-
-  Else
-  DAYd = oo16pi2* betaAYd1
-  End If
-
-
-  !--------------------
-  ! AYe
-  !--------------------
-
-  Do i1 = 1,3
-  Do i2 = 1,3
-  betaAYe1(i1,i2) = 5._dp*AYeadjYeYe(i1,i2) + 3._dp*AYeadjYzYz(i1,i2) + 3._dp*AYeCYtYt(i1,i2)&
-  &  + 18._dp*g12*MassB*Ye(i1,i2)/5._dp + 6._dp*g22*MassWB*Ye(i1,i2) + 6._dp*TrAYdadjYd*Ye(i1,i2)&
-  &  + 2._dp*TrAYeadjYe*Ye(i1,i2) + 6._dp*AL1*Conjg(L1)*Ye(i1,i2) + 4._dp*YeadjYeAYe(i1,i2)&
-  &  + 6._dp*YeadjYzAYz(i1,i2) + 6._dp*YeCYtAYt(i1,i2) - 9._dp*g12*AYe(i1,i2)            &
-  & /5._dp - 3._dp*g22*AYe(i1,i2) + 3._dp*TrYdadjYd*AYe(i1,i2) + TrYeadjYe*AYe(i1,i2)    &
-  &  + 3._dp*AbsL1sq*AYe(i1,i2)
-   End Do
-  End Do
-
-
-  If (TwoLoopRGE) Then
-  Do i1 = 1,3
-  Do i2 = 1,3
-  betaAYe2(i1,i2) = -6._dp*g12*AYeadjYeYe(i1,i2)/5._dp + 12._dp*g22*AYeadjYeYe(i1,i2)&
-  &  - 15._dp*TrYdadjYd*AYeadjYeYe(i1,i2) - 5._dp*TrYeadjYe*AYeadjYeYe(i1,i2)              &
-  &  - 6._dp*AYeadjYeYeadjYeYe(i1,i2) - 6._dp*AYeadjYzYdadjYdYz(i1,i2) - 12._dp*AYeadjYzYsCYsYz(i1,i2)&
-  &  - 2._dp*g12*AYeadjYzYz(i1,i2)/5._dp + 16._dp*g32*AYeadjYzYz(i1,i2) -              &
-  &  3._dp*TrYzadjYz*AYeadjYzYz(i1,i2) - 12._dp*AYeadjYzYzadjYeYe(i1,i2) - 6._dp*AYeadjYzYzadjYzYz(i1,i2)&
-  &  - 3._dp*AYeCYtTYeCYeYt(i1,i2) - 9._dp*AYeCYtTYzCYzYt(i1,i2) + 18._dp*g12*AYeCYtYt(i1,i2)&
-  & /5._dp + 12._dp*g22*AYeCYtYt(i1,i2) - 9._dp*TrCYtYt*AYeCYtYt(i1,i2)/4._dp -          &
-  &  3._dp*TrYtCYt*AYeCYtYt(i1,i2)/4._dp - 12._dp*AYeCYtYtadjYeYe(i1,i2) - 9._dp*AYeCYtYtCYtYt(i1,i2)&
-  &  - 15._dp*L1*AYeadjYeYe(i1,i2)*Conjg(L1) - 3._dp*L1*AYeCYtYt(i1,i2)*Conjg(L1)          &
-  &  - 522._dp*g14*MassB*Ye(i1,i2)/5._dp - 18._dp*g12*g22*MassB*Ye(i1,i2)            &
-  & /5._dp - 18._dp*g12*g22*MassWB*Ye(i1,i2)/5._dp - 114._dp*g24*MassWB*Ye(i1,i2)    &
-  &  - 4._dp*g12*TrAYdadjYd*Ye(i1,i2)/5._dp + 32._dp*g32*TrAYdadjYd*Ye(i1,i2)          &
-  &  + 12._dp*g12*TrAYeadjYe*Ye(i1,i2)/5._dp - 12._dp*TrCYsAYdadjYdYs*Ye(i1,i2)          &
-  &  - 15._dp*TrCYsYdadjYdAYs*Ye(i1,i2) - 3._dp*TrCYtAYtadjYeYe*Ye(i1,i2) - 4._dp*TrCYtYtadjYeAYe*Ye(i1,i2)&
-  &  + 4._dp*g12*MassB*TrYdadjYd*Ye(i1,i2)/5._dp - 32._dp*g32*MassG*TrYdadjYd*Ye(i1,i2)&
-  &  - 36._dp*TrYdadjYdAYdadjYd*Ye(i1,i2) - 9._dp*TrYdadjYdAYsCYs*Ye(i1,i2) -              &
-  &  12._dp*TrYdadjYdAYzadjYz*Ye(i1,i2) - 6._dp*TrYdadjYuAYuadjYd*Ye(i1,i2) -              &
-  &  12._dp*g12*MassB*TrYeadjYe*Ye(i1,i2)/5._dp - 12._dp*TrYeadjYeAYeadjYe*Ye(i1,i2)     &
-  &  - 6._dp*TrYeadjYzAYzadjYe*Ye(i1,i2) - 3._dp*TrYeCYtAYtadjYe*Ye(i1,i2) -               &
-  &  12._dp*TrYsCYsAYdadjYd*Ye(i1,i2) - 2._dp*TrYtadjYeAYeCYt*Ye(i1,i2) - 6._dp*TrYuadjYdAYdadjYu*Ye(i1,i2)&
-  &  - 6._dp*TrYzadjYeAYeadjYz*Ye(i1,i2) - 12._dp*TrYzadjYzAYdadjYd*Ye(i1,i2)              &
-  &  - 36._dp*g12*L1*MassB*Conjg(L1)*Ye(i1,i2)/5._dp - 24._dp*g22*L1*MassWB*Conjg(L1)  &
-  & *Ye(i1,i2) - 18._dp*L1*TrAYdadjYd*Conjg(L1)*Ye(i1,i2) - 6._dp*L1*TrAYeadjYe*Conjg(L1)  &
-  & *Ye(i1,i2) - 6._dp*L1*TrCYtAYt*Conjg(L1)*Ye(i1,i2) + 36._dp*g12*AL1*Conjg(L1)        &
-  & *Ye(i1,i2)/5._dp + 24._dp*g22*AL1*Conjg(L1)*Ye(i1,i2) - 9._dp*TrCYtYt*AL1*Conjg(L1)  &
-  & *Ye(i1,i2)/2._dp - 18._dp*TrYdadjYd*AL1*Conjg(L1)*Ye(i1,i2) - 6._dp*TrYeadjYe*AL1*Conjg(L1)&
-  & *Ye(i1,i2) - 3._dp*TrYtCYt*AL1*Conjg(L1)*Ye(i1,i2)/2._dp - 48._dp*L1*AL1*Conjg(L1)     &
-  & **2*Ye(i1,i2) + 6._dp*g12*YeadjYeAYe(i1,i2)/5._dp + 6._dp*g22*YeadjYeAYe(i1,i2)    &
-  &  - 12._dp*TrYdadjYd*YeadjYeAYe(i1,i2) - 4._dp*TrYeadjYe*YeadjYeAYe(i1,i2)              &
-  &  - 12._dp*AbsL1sq*YeadjYeAYe(i1,i2) - 8._dp*YeadjYeAYeadjYeYe(i1,i2)              &
-  &  - 12._dp*g22*MassWB*YeadjYeYe(i1,i2) - 18._dp*TrAYdadjYd*YeadjYeYe(i1,i2)           &
-  &  - 6._dp*TrAYeadjYe*YeadjYeYe(i1,i2) - 18._dp*AL1*Conjg(L1)*YeadjYeYe(i1,i2)           &
-  &  - 6._dp*YeadjYeYeadjYeAYe(i1,i2) - 12._dp*YeadjYzAYdadjYdYz(i1,i2) - 24._dp*YeadjYzAYsCYsYz(i1,i2)&
-  &  - 4._dp*g12*YeadjYzAYz(i1,i2)/5._dp + 32._dp*g32*YeadjYzAYz(i1,i2) -              &
-  &  6._dp*TrYzadjYz*YeadjYzAYz(i1,i2) - 12._dp*YeadjYzAYzadjYeYe(i1,i2) - 12._dp*YeadjYzAYzadjYzYz(i1,i2)&
-  &  - 12._dp*YeadjYzYdadjYdAYz(i1,i2) - 24._dp*YeadjYzYsCYsAYz(i1,i2) + 4._dp*g12*MassB*YeadjYzYz(i1,i2)&
-  & /5._dp - 32._dp*g32*MassG*YeadjYzYz(i1,i2) - 6._dp*TrAYzadjYz*YeadjYzYz(i1,i2)       &
-  &  - 6._dp*YeadjYzYzadjYeAYe(i1,i2) - 12._dp*YeadjYzYzadjYzAYz(i1,i2) + 36._dp*g12*YeCYtAYt(i1,i2)&
-  & /5._dp + 24._dp*g22*YeCYtAYt(i1,i2) - 9._dp*TrCYtYt*YeCYtAYt(i1,i2)/2._dp -          &
-  &  3._dp*TrYtCYt*YeCYtAYt(i1,i2)/2._dp - 6._dp*AbsL1sq*YeCYtAYt(i1,i2)              &
-  &  - 12._dp*YeCYtAYtadjYeYe(i1,i2) - 18._dp*YeCYtAYtCYtYt(i1,i2) - 6._dp*YeCYtTAYeCYeYt(i1,i2)&
-  &  - 18._dp*YeCYtTAYzCYzYt(i1,i2) - 6._dp*YeCYtTYeCYeAYt(i1,i2) - 18._dp*YeCYtTYzCYzAYt(i1,i2)&
-  &  - 36._dp*g12*MassB*YeCYtYt(i1,i2)/5._dp - 24._dp*g22*MassWB*YeCYtYt(i1,i2)        &
-  &  - 6._dp*TrCYtAYt*YeCYtYt(i1,i2) - 6._dp*AL1*Conjg(L1)*YeCYtYt(i1,i2) - 6._dp*YeCYtYtadjYeAYe(i1,i2)&
-  &  - 18._dp*YeCYtYtCYtAYt(i1,i2) + 261._dp*g14*AYe(i1,i2)/10._dp + 9._dp*g12*g22*AYe(i1,i2)&
-  & /5._dp + 57._dp*g24*AYe(i1,i2)/2._dp - 6._dp*TrCYsYdadjYdYs*AYe(i1,i2)               &
-  &  - 3._dp*TrCYtYtadjYeYe*AYe(i1,i2)/2._dp - 2._dp*g12*TrYdadjYd*AYe(i1,i2)            &
-  & /5._dp + 16._dp*g32*TrYdadjYd*AYe(i1,i2) - 9._dp*TrYdadjYdYdadjYd*AYe(i1,i2)         &
-  &  - 9._dp*TrYdadjYdYsCYs*AYe(i1,i2)/2._dp - 6._dp*TrYdadjYdYzadjYz*AYe(i1,i2)           &
-  &  + 6._dp*g12*TrYeadjYe*AYe(i1,i2)/5._dp - 3._dp*TrYeadjYeYeadjYe*AYe(i1,i2)          &
-  &  - (TrYeCYtYtadjYe*AYe(i1,i2))/2._dp - 3._dp*TrYsCYsYdadjYd*AYe(i1,i2)/2._dp -         &
-  &  TrYtadjYeYeCYt*AYe(i1,i2) - 3._dp*TrYuadjYdYdadjYu*AYe(i1,i2) - 3._dp*TrYzadjYeYeadjYz*AYe(i1,i2)&
-  &  + 18._dp*g12*AbsL1sq*AYe(i1,i2)/5._dp + 12._dp*g22*AbsL1sq              &
-  & *AYe(i1,i2) - 9._dp*L1*TrCYtYt*Conjg(L1)*AYe(i1,i2)/4._dp - 9._dp*L1*TrYdadjYd*Conjg(L1)&
-  & *AYe(i1,i2) - 3._dp*L1*TrYeadjYe*Conjg(L1)*AYe(i1,i2) - 3._dp*L1*TrYtCYt*Conjg(L1)     &
-  & *AYe(i1,i2)/4._dp - 12._dp*L1**2*Conjg(L1)**2*AYe(i1,i2)
-   End Do
-  End Do
-
-
-  DAYe = oo16pi2*( betaAYe1 + oo16pi2 * betaAYe2 )
-
-
-  Else
-  DAYe = oo16pi2* betaAYe1
-  End If
-
-
-  !--------------------
-  ! AYt
-  !--------------------
-
-  Do i1 = 1,3
-  Do i2 = 1,3
-  betaAYt1(i1,i2) = (sqrt2*AYtadjYeYe(i1,i2) + 3._dp*sqrt2*AYtadjYzYz(i1,i2)&
-  &  + 9._dp*sqrt2*AYtCYtYt(i1,i2) + 2._dp*sqrt2*TAYeCYeYt(i1,i2)              &
-  &  + 6._dp*sqrt2*TAYzCYzYt(i1,i2) + sqrt2*TYeCYeAYt(i1,i2) + 3._dp*sqrt2&
-  & *TYzCYzAYt(i1,i2) + 18._dp*sqrt2*g12*MassB*Yt(i1,i2)/5._dp + 14._dp*sqrt2&
-  & *g22*MassWB*Yt(i1,i2) + 2._dp*sqrt2*TrCYtAYt*Yt(i1,i2) + 2._dp*sqrt2     &
-  & *AL1*Conjg(L1)*Yt(i1,i2) + 2._dp*sqrt2*YtadjYeAYe(i1,i2) + 6._dp*sqrt2     &
-  & *YtadjYzAYz(i1,i2) + 9._dp*sqrt2*YtCYtAYt(i1,i2) - 9._dp*sqrt2             &
-  & *g12*AYt(i1,i2)/5._dp - 7._dp*sqrt2*g22*AYt(i1,i2) + 3._dp*TrCYtYt*AYt(i1,i2)&
-  & /(2._dp*sqrt2) + (TrYtCYt*AYt(i1,i2))/(2._dp*sqrt2) + sqrt2          &
-  & *AbsL1sq*AYt(i1,i2))/sqrt2
-   End Do
-  End Do
-
-
-  If (TwoLoopRGE) Then
-  Do i1 = 1,3
-  Do i2 = 1,3
-  betaAYt2(i1,i2) = (6._dp*sqrt2*g12*AYtadjYeYe(i1,i2)/5._dp - 3._dp*sqrt2&
-  & *TrYdadjYd*AYtadjYeYe(i1,i2) - sqrt2*TrYeadjYe*AYtadjYeYe(i1,i2) -               &
-  &  2._dp*sqrt2*AYtadjYeYeadjYeYe(i1,i2) - 6._dp*sqrt2*AYtadjYeYeCYtYt(i1,i2) &
-  &  - 6._dp*sqrt2*AYtadjYzYdadjYdYz(i1,i2) - 12._dp*sqrt2*AYtadjYzYsCYsYz(i1,i2)&
-  &  - 2._dp*sqrt2*g12*AYtadjYzYz(i1,i2)/5._dp + 16._dp*sqrt2*g32*AYtadjYzYz(i1,i2)&
-  &  - 3._dp*sqrt2*TrYzadjYz*AYtadjYzYz(i1,i2) - 6._dp*sqrt2*AYtadjYzYzadjYzYz(i1,i2)&
-  &  - 18._dp*sqrt2*AYtadjYzYzCYtYt(i1,i2) - 3._dp*sqrt2*AYtCYtTYeCYeYt(i1,i2) &
-  &  - 9._dp*sqrt2*AYtCYtTYzCYzYt(i1,i2) + 54._dp*sqrt2*g12*AYtCYtYt(i1,i2)  &
-  & /5._dp + 36._dp*sqrt2*g22*AYtCYtYt(i1,i2) - 7._dp*TrCYtYt*AYtCYtYt(i1,i2)      &
-  & /(2._dp*sqrt2) - 5._dp*sqrt2*TrCYtYt*AYtCYtYt(i1,i2) - 9._dp*TrYtCYt*AYtCYtYt(i1,i2)&
-  & /(2._dp*sqrt2) - 27._dp*sqrt2*AYtCYtYtCYtYt(i1,i2) - 3._dp*sqrt2     &
-  & *L1*AYtadjYeYe(i1,i2)*Conjg(L1) - 9._dp*sqrt2*L1*AYtCYtYt(i1,i2)*Conjg(L1)       &
-  &  - 4._dp*sqrt2*TAYeCYeTYeCYeYt(i1,i2) + 12._dp*sqrt2*g12*TAYeCYeYt(i1,i2)&
-  & /5._dp - 6._dp*sqrt2*TrYdadjYd*TAYeCYeYt(i1,i2) - 2._dp*sqrt2              &
-  & *TrYeadjYe*TAYeCYeYt(i1,i2) - 6._dp*sqrt2*AbsL1sq*TAYeCYeYt(i1,i2)          &
-  &  - 12._dp*sqrt2*TAYzCYdTYdCYzYt(i1,i2) - 24._dp*sqrt2*TAYzCYsYsCYzYt(i1,i2)&
-  &  - 12._dp*sqrt2*TAYzCYzTYzCYzYt(i1,i2) - 4._dp*sqrt2*g12*TAYzCYzYt(i1,i2)&
-  & /5._dp + 32._dp*sqrt2*g32*TAYzCYzYt(i1,i2) - 6._dp*sqrt2*TrYzadjYz*TAYzCYzYt(i1,i2)&
-  &  + 6._dp*sqrt2*g12*TYeCYeAYt(i1,i2)/5._dp - 3._dp*sqrt2*TrYdadjYd*TYeCYeAYt(i1,i2)&
-  &  - sqrt2*TrYeadjYe*TYeCYeAYt(i1,i2) - 3._dp*sqrt2*AbsL1sq             &
-  & *TYeCYeAYt(i1,i2) - 4._dp*sqrt2*TYeCYeTAYeCYeYt(i1,i2) - 2._dp*sqrt2       &
-  & *TYeCYeTYeCYeAYt(i1,i2) - 12._dp*sqrt2*g12*MassB*TYeCYeYt(i1,i2)               &
-  & /5._dp - 6._dp*sqrt2*TrAYdadjYd*TYeCYeYt(i1,i2) - 2._dp*sqrt2              &
-  & *TrAYeadjYe*TYeCYeYt(i1,i2) - 6._dp*sqrt2*AL1*Conjg(L1)*TYeCYeYt(i1,i2)          &
-  &  - 12._dp*sqrt2*TYzCYdTAYdCYzYt(i1,i2) - 6._dp*sqrt2*TYzCYdTYdCYzAYt(i1,i2)&
-  &  - 24._dp*sqrt2*TYzCYsAYsCYzYt(i1,i2) - 12._dp*sqrt2*TYzCYsYsCYzAYt(i1,i2) &
-  &  - 2._dp*sqrt2*g12*TYzCYzAYt(i1,i2)/5._dp + 16._dp*sqrt2*g32*TYzCYzAYt(i1,i2)&
-  &  - 3._dp*sqrt2*TrYzadjYz*TYzCYzAYt(i1,i2) - 12._dp*sqrt2*TYzCYzTAYzCYzYt(i1,i2)&
-  &  - 6._dp*sqrt2*TYzCYzTYzCYzAYt(i1,i2) + 4._dp*sqrt2*g12*MassB*TYzCYzYt(i1,i2)&
-  & /5._dp - 32._dp*sqrt2*g32*MassG*TYzCYzYt(i1,i2) - 6._dp*sqrt2            &
-  & *TrAYzadjYz*TYzCYzYt(i1,i2) - 522._dp*sqrt2*g14*MassB*Yt(i1,i2)/5._dp -        &
-  &  114._dp*sqrt2*g12*g22*MassB*Yt(i1,i2)/5._dp - 114._dp*sqrt2           &
-  & *g12*g22*MassWB*Yt(i1,i2)/5._dp - 306._dp*sqrt2*g24*MassWB*Yt(i1,i2)       &
-  &  - 6._dp*sqrt2*g12*TrCYtAYt*Yt(i1,i2)/5._dp - 2._dp*sqrt2*g22*TrCYtAYt*Yt(i1,i2)&
-  &  - 9._dp*sqrt2*TrCYtAYtCYtYt*Yt(i1,i2) + 9._dp*g12*MassB*TrCYtYt*Yt(i1,i2)     &
-  & /(5._dp*sqrt2) + 3._dp*(g22*MassWB*TrCYtYt*Yt(i1,i2))/sqrt2              &
-  &  - 4._dp*sqrt2*TrCYtYtadjYeAYe*Yt(i1,i2) - 12._dp*sqrt2*TrCYtYtadjYzAYz*Yt(i1,i2)&
-  &  - 12._dp*sqrt2*TrCYtYtCYtAYt*Yt(i1,i2) - 4._dp*sqrt2*TrYeCYtAYtadjYe*Yt(i1,i2)&
-  &  + 3._dp*g12*MassB*TrYtCYt*Yt(i1,i2)/(5._dp*sqrt2) + (g22*MassWB*TrYtCYt*Yt(i1,i2))&
-  & /sqrt2 - 3._dp*sqrt2*TrYtCYtAYtCYt*Yt(i1,i2) - 12._dp*sqrt2          &
-  & *TrYzCYtAYtadjYz*Yt(i1,i2) + 6._dp*sqrt2*g12*L1*MassB*Conjg(L1)*Yt(i1,i2)      &
-  & /5._dp + 2._dp*sqrt2*g22*L1*MassWB*Conjg(L1)*Yt(i1,i2) - 12._dp*sqrt2    &
-  & *L1*TrAYdadjYd*Conjg(L1)*Yt(i1,i2) - 4._dp*sqrt2*L1*TrAYeadjYe*Conjg(L1)         &
-  & *Yt(i1,i2) - 6._dp*sqrt2*g12*AL1*Conjg(L1)*Yt(i1,i2)/5._dp - 2._dp*sqrt2 &
-  & *g22*AL1*Conjg(L1)*Yt(i1,i2) - 12._dp*sqrt2*TrYdadjYd*AL1*Conjg(L1)            &
-  & *Yt(i1,i2) - 4._dp*sqrt2*TrYeadjYe*AL1*Conjg(L1)*Yt(i1,i2) - 24._dp*sqrt2  &
-  & *L1*AL1*Conjg(L1)**2*Yt(i1,i2) + 12._dp*sqrt2*g12*YtadjYeAYe(i1,i2)            &
-  & /5._dp - 6._dp*sqrt2*TrYdadjYd*YtadjYeAYe(i1,i2) - 2._dp*sqrt2             &
-  & *TrYeadjYe*YtadjYeAYe(i1,i2) - 6._dp*sqrt2*AbsL1sq*YtadjYeAYe(i1,i2)        &
-  &  - 4._dp*sqrt2*YtadjYeAYeadjYeYe(i1,i2) - 6._dp*sqrt2*YtadjYeAYeCYtYt(i1,i2)&
-  &  - 12._dp*sqrt2*g12*MassB*YtadjYeYe(i1,i2)/5._dp - 6._dp*sqrt2           &
-  & *TrAYdadjYd*YtadjYeYe(i1,i2) - 2._dp*sqrt2*TrAYeadjYe*YtadjYeYe(i1,i2)           &
-  &  - 6._dp*sqrt2*AL1*Conjg(L1)*YtadjYeYe(i1,i2) - 4._dp*sqrt2*YtadjYeYeadjYeAYe(i1,i2)&
-  &  - 3._dp*sqrt2*YtadjYeYeCYtAYt(i1,i2) - 12._dp*sqrt2*YtadjYzAYdadjYdYz(i1,i2)&
-  &  - 24._dp*sqrt2*YtadjYzAYsCYsYz(i1,i2) - 4._dp*sqrt2*g12*YtadjYzAYz(i1,i2)&
-  & /5._dp + 32._dp*sqrt2*g32*YtadjYzAYz(i1,i2) - 6._dp*sqrt2*TrYzadjYz*YtadjYzAYz(i1,i2)&
-  &  - 12._dp*sqrt2*YtadjYzAYzadjYzYz(i1,i2) - 18._dp*sqrt2*YtadjYzAYzCYtYt(i1,i2)&
-  &  - 12._dp*sqrt2*YtadjYzYdadjYdAYz(i1,i2) - 24._dp*sqrt2*YtadjYzYsCYsAYz(i1,i2)&
-  &  + 4._dp*sqrt2*g12*MassB*YtadjYzYz(i1,i2)/5._dp - 32._dp*sqrt2           &
-  & *g32*MassG*YtadjYzYz(i1,i2) - 6._dp*sqrt2*TrAYzadjYz*YtadjYzYz(i1,i2)          &
-  &  - 12._dp*sqrt2*YtadjYzYzadjYzAYz(i1,i2) - 9._dp*sqrt2*YtadjYzYzCYtAYt(i1,i2)&
-  &  + 54._dp*sqrt2*g12*YtCYtAYt(i1,i2)/5._dp + 36._dp*sqrt2*g22*YtCYtAYt(i1,i2)&
-  &  - 27._dp*TrCYtYt*YtCYtAYt(i1,i2)/(2._dp*sqrt2) - 9._dp*TrYtCYt*YtCYtAYt(i1,i2)  &
-  & /(2._dp*sqrt2) - 9._dp*sqrt2*AbsL1sq*YtCYtAYt(i1,i2) - 36._dp*sqrt2&
-  & *YtCYtAYtCYtYt(i1,i2) - 6._dp*sqrt2*YtCYtTAYeCYeYt(i1,i2) - 18._dp*sqrt2   &
-  & *YtCYtTAYzCYzYt(i1,i2) - 6._dp*sqrt2*YtCYtTYeCYeAYt(i1,i2) - 18._dp*sqrt2  &
-  & *YtCYtTYzCYzAYt(i1,i2) - 72._dp*sqrt2*g12*MassB*YtCYtYt(i1,i2)/5._dp -         &
-  &  48._dp*sqrt2*g22*MassWB*YtCYtYt(i1,i2) - 12._dp*sqrt2*TrCYtAYt*YtCYtYt(i1,i2)&
-  &  - 12._dp*sqrt2*AL1*Conjg(L1)*YtCYtYt(i1,i2) - 27._dp*sqrt2*YtCYtYtCYtAYt(i1,i2)&
-  &  + 261._dp*g14*AYt(i1,i2)/(5._dp*sqrt2) + 57._dp*sqrt2*g12*g22*AYt(i1,i2)&
-  & /5._dp + 153._dp*(g24*AYt(i1,i2))/sqrt2 - 9._dp*g12*TrCYtYt*AYt(i1,i2)       &
-  & /(10._dp*sqrt2) - 3._dp*g22*TrCYtYt*AYt(i1,i2)/(2._dp*sqrt2)             &
-  &  - 9._dp*(TrCYtYtCYtYt*AYt(i1,i2))/sqrt2 - 2._dp*sqrt2*TrYeCYtYtadjYe*AYt(i1,i2)&
-  &  - 3._dp*g12*TrYtCYt*AYt(i1,i2)/(10._dp*sqrt2) - (g22*TrYtCYt*AYt(i1,i2))    &
-  & /(2._dp*sqrt2) - 3._dp*(TrYtCYtYtCYt*AYt(i1,i2))/sqrt2 - 6._dp*sqrt2 &
-  & *TrYzCYtYtadjYz*AYt(i1,i2) - 3._dp*sqrt2*g12*AbsL1sq*AYt(i1,i2)           &
-  & /5._dp - sqrt2*g22*AbsL1sq*AYt(i1,i2) - 6._dp*sqrt2*L1*TrYdadjYd*Conjg(L1)&
-  & *AYt(i1,i2) - 2._dp*sqrt2*L1*TrYeadjYe*Conjg(L1)*AYt(i1,i2) - 6._dp*sqrt2  &
-  & *L1**2*Conjg(L1)**2*AYt(i1,i2))/sqrt2
-   End Do
-  End Do
-
-
-  DAYt = oo16pi2*( betaAYt1 + oo16pi2 * betaAYt2 )
-
-
-  Else
-  DAYt = oo16pi2* betaAYt1
-  End If
-
-
-  !--------------------
-  ! AYs
-  !--------------------
-
-  Do i1 = 1,3
-  Do i2 = 1,3
-  betaAYs1(i1,i2) = (4._dp*sqrt2*AYdadjYdYs(i1,i2) + 2._dp*sqrt2            &
-  & *AYsCYdTYd(i1,i2) + 12._dp*sqrt2*AYsCYsYs(i1,i2) + 2._dp*sqrt2             &
-  & *AYsCYzTYz(i1,i2) + 4._dp*sqrt2*AYzadjYzYs(i1,i2) + 2._dp*sqrt2            &
-  & *YdadjYdAYs(i1,i2) + 8._dp*sqrt2*g12*MassB*Ys(i1,i2)/5._dp + 24._dp*sqrt2&
-  & *g32*MassG*Ys(i1,i2) + 2._dp*sqrt2*TrCYsAYs*Ys(i1,i2) + 4._dp*sqrt2      &
-  & *YsCYdTAYd(i1,i2) + 12._dp*sqrt2*YsCYsAYs(i1,i2) + 4._dp*sqrt2             &
-  & *YsCYzTAYz(i1,i2) + 2._dp*sqrt2*YzadjYzAYs(i1,i2) - 4._dp*sqrt2            &
-  & *g12*AYs(i1,i2)/5._dp - 12._dp*sqrt2*g32*AYs(i1,i2) + 3._dp*TrCYsYs*AYs(i1,i2)&
-  & /(2._dp*sqrt2) + (TrYsCYs*AYs(i1,i2))/(2._dp*sqrt2))/sqrt2
-   End Do
-  End Do
-
-
-  If (TwoLoopRGE) Then
-  Do i1 = 1,3
-  Do i2 = 1,3
-  betaAYs2(i1,i2) = (-4._dp*sqrt2*AYdadjYdYdadjYdYs(i1,i2) + 4._dp*sqrt2    &
-  & *g12*AYdadjYdYs(i1,i2)/5._dp + 12._dp*sqrt2*g22*AYdadjYdYs(i1,i2)            &
-  &  - 12._dp*sqrt2*TrYdadjYd*AYdadjYdYs(i1,i2) - 4._dp*sqrt2*TrYeadjYe*AYdadjYdYs(i1,i2)&
-  &  - 4._dp*sqrt2*AYdadjYuYuadjYdYs(i1,i2) + 2._dp*sqrt2*g12*AYsCYdTYd(i1,i2)&
-  & /5._dp + 6._dp*sqrt2*g22*AYsCYdTYd(i1,i2) - 6._dp*sqrt2*TrYdadjYd*AYsCYdTYd(i1,i2)&
-  &  - 2._dp*sqrt2*TrYeadjYe*AYsCYdTYd(i1,i2) - 2._dp*sqrt2*AYsCYdTYdCYdTYd(i1,i2)&
-  &  - 16._dp*sqrt2*AYsCYdTYdCYsYs(i1,i2) - 2._dp*sqrt2*AYsCYdTYuCYuTYd(i1,i2) &
-  &  - 8._dp*sqrt2*AYsCYsYdadjYdYs(i1,i2) + 32._dp*sqrt2*g12*AYsCYsYs(i1,i2) &
-  & /5._dp + 80._dp*sqrt2*g32*AYsCYsYs(i1,i2) - 9._dp*sqrt2*TrCYsYs*AYsCYsYs(i1,i2)&
-  &  - 3._dp*sqrt2*TrYsCYs*AYsCYsYs(i1,i2) - 48._dp*sqrt2*AYsCYsYsCYsYs(i1,i2) &
-  &  - 8._dp*sqrt2*AYsCYsYzadjYzYs(i1,i2) - 2._dp*sqrt2*AYsCYzTYeCYeTYz(i1,i2) &
-  &  + 2._dp*sqrt2*g12*AYsCYzTYz(i1,i2)/5._dp + 6._dp*sqrt2*g22*AYsCYzTYz(i1,i2)&
-  &  - 2._dp*sqrt2*TrYzadjYz*AYsCYzTYz(i1,i2) - 16._dp*sqrt2*AYsCYzTYzCYsYs(i1,i2)&
-  &  - 6._dp*sqrt2*AYsCYzTYzCYzTYz(i1,i2) - 6._dp*sqrt2*AYsCYzYtCYtTYz(i1,i2)  &
-  &  - 4._dp*sqrt2*AYzadjYeYeadjYzYs(i1,i2) + 4._dp*sqrt2*g12*AYzadjYzYs(i1,i2)&
-  & /5._dp + 12._dp*sqrt2*g22*AYzadjYzYs(i1,i2) - 4._dp*sqrt2*TrYzadjYz*AYzadjYzYs(i1,i2)&
-  &  - 12._dp*sqrt2*AYzadjYzYzadjYzYs(i1,i2) - 12._dp*sqrt2*AYzCYtYtadjYzYs(i1,i2)&
-  &  - 12._dp*sqrt2*L1*AYdadjYdYs(i1,i2)*Conjg(L1) - 6._dp*sqrt2               &
-  & *L1*AYsCYdTYd(i1,i2)*Conjg(L1) - 4._dp*sqrt2*YdadjYdAYdadjYdYs(i1,i2)            &
-  &  + 2._dp*sqrt2*g12*YdadjYdAYs(i1,i2)/5._dp + 6._dp*sqrt2*g22*YdadjYdAYs(i1,i2)&
-  &  - 6._dp*sqrt2*TrYdadjYd*YdadjYdAYs(i1,i2) - 2._dp*sqrt2*TrYeadjYe*YdadjYdAYs(i1,i2)&
-  &  - 6._dp*sqrt2*AbsL1sq*YdadjYdAYs(i1,i2) - 2._dp*sqrt2*YdadjYdYdadjYdAYs(i1,i2)&
-  &  - 4._dp*sqrt2*g12*MassB*YdadjYdYs(i1,i2)/5._dp - 12._dp*sqrt2           &
-  & *g22*MassWB*YdadjYdYs(i1,i2) - 12._dp*sqrt2*TrAYdadjYd*YdadjYdYs(i1,i2)        &
-  &  - 4._dp*sqrt2*TrAYeadjYe*YdadjYdYs(i1,i2) - 12._dp*sqrt2*AL1*Conjg(L1)    &
-  & *YdadjYdYs(i1,i2) - 4._dp*sqrt2*YdadjYuAYuadjYdYs(i1,i2) - 2._dp*sqrt2     &
-  & *YdadjYuYuadjYdAYs(i1,i2) - 224._dp*sqrt2*g14*MassB*Ys(i1,i2)/5._dp -          &
-  &  256._dp*sqrt2*g12*g32*MassB*Ys(i1,i2)/15._dp - 256._dp*sqrt2          &
-  & *g12*g32*MassG*Ys(i1,i2)/15._dp - 1280._dp*sqrt2*g34*MassG*Ys(i1,i2)       &
-  & /3._dp - 8._dp*sqrt2*g12*TrCYsAYs*Ys(i1,i2)/15._dp - 8._dp*sqrt2         &
-  & *g32*TrCYsAYs*Ys(i1,i2)/3._dp - 12._dp*sqrt2*TrCYsAYsCYsYs*Ys(i1,i2)           &
-  &  - 6._dp*sqrt2*TrCYsYdadjYdAYs*Ys(i1,i2) + 2._dp*sqrt2*g12*MassB*TrCYsYs*Ys(i1,i2)&
-  & /5._dp + 2._dp*sqrt2*g32*MassG*TrCYsYs*Ys(i1,i2) - 16._dp*sqrt2          &
-  & *TrCYsYsCYsAYs*Ys(i1,i2) - 6._dp*sqrt2*TrCYsYzadjYzAYs*Ys(i1,i2) -               &
-  &  2._dp*sqrt2*TrYdadjYdAYsCYs*Ys(i1,i2) + 2._dp*sqrt2*g12*MassB*TrYsCYs*Ys(i1,i2)&
-  & /15._dp + 2._dp*sqrt2*g32*MassG*TrYsCYs*Ys(i1,i2)/3._dp - 8._dp*sqrt2    &
-  & *TrYsCYsAYdadjYd*Ys(i1,i2) - 4._dp*sqrt2*TrYsCYsAYsCYs*Ys(i1,i2) -               &
-  &  8._dp*sqrt2*TrYsCYsAYzadjYz*Ys(i1,i2) - 2._dp*sqrt2*TrYzadjYzAYsCYs*Ys(i1,i2)&
-  &  + 4._dp*sqrt2*g12*YsCYdTAYd(i1,i2)/5._dp + 12._dp*sqrt2*g22*YsCYdTAYd(i1,i2)&
-  &  - 12._dp*sqrt2*TrYdadjYd*YsCYdTAYd(i1,i2) - 4._dp*sqrt2*TrYeadjYe*YsCYdTAYd(i1,i2)&
-  &  - 12._dp*sqrt2*AbsL1sq*YsCYdTAYd(i1,i2) - 4._dp*sqrt2*YsCYdTAYdCYdTYd(i1,i2)&
-  &  - 16._dp*sqrt2*YsCYdTAYdCYsYs(i1,i2) - 4._dp*sqrt2*YsCYdTAYuCYuTYd(i1,i2) &
-  &  - 4._dp*sqrt2*g12*MassB*YsCYdTYd(i1,i2)/5._dp - 12._dp*sqrt2            &
-  & *g22*MassWB*YsCYdTYd(i1,i2) - 12._dp*sqrt2*TrAYdadjYd*YsCYdTYd(i1,i2)          &
-  &  - 4._dp*sqrt2*TrAYeadjYe*YsCYdTYd(i1,i2) - 12._dp*sqrt2*AL1*Conjg(L1)     &
-  & *YsCYdTYd(i1,i2) - 4._dp*sqrt2*YsCYdTYdCYdTAYd(i1,i2) - 8._dp*sqrt2        &
-  & *YsCYdTYdCYsAYs(i1,i2) - 4._dp*sqrt2*YsCYdTYuCYuTAYd(i1,i2) - 16._dp*sqrt2 &
-  & *YsCYsAYdadjYdYs(i1,i2) + 32._dp*sqrt2*g12*YsCYsAYs(i1,i2)/5._dp +             &
-  &  80._dp*sqrt2*g32*YsCYsAYs(i1,i2) - 9._dp*sqrt2*TrCYsYs*YsCYsAYs(i1,i2)  &
-  &  - 3._dp*sqrt2*TrYsCYs*YsCYsAYs(i1,i2) - 64._dp*sqrt2*YsCYsAYsCYsYs(i1,i2) &
-  &  - 16._dp*sqrt2*YsCYsAYzadjYzYs(i1,i2) - 16._dp*sqrt2*YsCYsYdadjYdAYs(i1,i2)&
-  &  - 128._dp*sqrt2*g12*MassB*YsCYsYs(i1,i2)/15._dp - 320._dp*sqrt2         &
-  & *g32*MassG*YsCYsYs(i1,i2)/3._dp - 16._dp*sqrt2*TrCYsAYs*YsCYsYs(i1,i2)         &
-  &  - 48._dp*sqrt2*YsCYsYsCYsAYs(i1,i2) - 16._dp*sqrt2*YsCYsYzadjYzAYs(i1,i2) &
-  &  - 12._dp*sqrt2*YsCYzAYtCYtTYz(i1,i2) - 4._dp*sqrt2*YsCYzTAYeCYeTYz(i1,i2) &
-  &  + 4._dp*sqrt2*g12*YsCYzTAYz(i1,i2)/5._dp + 12._dp*sqrt2*g22*YsCYzTAYz(i1,i2)&
-  &  - 4._dp*sqrt2*TrYzadjYz*YsCYzTAYz(i1,i2) - 16._dp*sqrt2*YsCYzTAYzCYsYs(i1,i2)&
-  &  - 12._dp*sqrt2*YsCYzTAYzCYzTYz(i1,i2) - 4._dp*sqrt2*YsCYzTYeCYeTAYz(i1,i2)&
-  &  - 4._dp*sqrt2*g12*MassB*YsCYzTYz(i1,i2)/5._dp - 12._dp*sqrt2            &
-  & *g22*MassWB*YsCYzTYz(i1,i2) - 4._dp*sqrt2*TrAYzadjYz*YsCYzTYz(i1,i2)           &
-  &  - 8._dp*sqrt2*YsCYzTYzCYsAYs(i1,i2) - 12._dp*sqrt2*YsCYzTYzCYzTAYz(i1,i2) &
-  &  - 12._dp*sqrt2*YsCYzYtCYtTAYz(i1,i2) - 4._dp*sqrt2*YzadjYeAYeadjYzYs(i1,i2)&
-  &  - 2._dp*sqrt2*YzadjYeYeadjYzAYs(i1,i2) + 2._dp*sqrt2*g12*YzadjYzAYs(i1,i2)&
-  & /5._dp + 6._dp*sqrt2*g22*YzadjYzAYs(i1,i2) - 2._dp*sqrt2*TrYzadjYz*YzadjYzAYs(i1,i2)&
-  &  - 12._dp*sqrt2*YzadjYzAYzadjYzYs(i1,i2) - 4._dp*sqrt2*g12*MassB*YzadjYzYs(i1,i2)&
-  & /5._dp - 12._dp*sqrt2*g22*MassWB*YzadjYzYs(i1,i2) - 4._dp*sqrt2          &
-  & *TrAYzadjYz*YzadjYzYs(i1,i2) - 6._dp*sqrt2*YzadjYzYzadjYzAYs(i1,i2)              &
-  &  - 12._dp*sqrt2*YzCYtAYtadjYzYs(i1,i2) - 6._dp*sqrt2*YzCYtYtadjYzAYs(i1,i2)&
-  &  + 56._dp*sqrt2*g14*AYs(i1,i2)/5._dp + 128._dp*sqrt2*g12*g32*AYs(i1,i2)&
-  & /15._dp + 320._dp*sqrt2*g34*AYs(i1,i2)/3._dp - (sqrt2*g12*TrCYsYs*AYs(i1,i2))&
-  & /5._dp - sqrt2*g32*TrCYsYs*AYs(i1,i2) - 6._dp*sqrt2*TrCYsYsCYsYs*AYs(i1,i2)&
-  &  - (sqrt2*g12*TrYsCYs*AYs(i1,i2))/15._dp - (sqrt2*g32*TrYsCYs*AYs(i1,i2))&
-  & /3._dp - 4._dp*sqrt2*TrYsCYsYdadjYd*AYs(i1,i2) - 2._dp*sqrt2               &
-  & *TrYsCYsYsCYs*AYs(i1,i2) - 4._dp*sqrt2*TrYsCYsYzadjYz*AYs(i1,i2))/sqrt2
-   End Do
-  End Do
-
-
-  DAYs = oo16pi2*( betaAYs1 + oo16pi2 * betaAYs2 )
-
-
-  Else
-  DAYs = oo16pi2* betaAYs1
-  End If
-
-
-  !--------------------
-  ! AYz
-  !--------------------
-
-  Do i1 = 1,3
-  Do i2 = 1,3
-  betaAYz1(i1,i2) = 4._dp*AYdadjYdYz(i1,i2) + 8._dp*AYsCYsYz(i1,i2) + AYzadjYeYe(i1,i2) &
-  &  + 7._dp*AYzadjYzYz(i1,i2) + 3._dp*AYzCYtYt(i1,i2) + 2._dp*YdadjYdAYz(i1,i2)           &
-  &  + 4._dp*YsCYsAYz(i1,i2) + 14._dp*g12*MassB*Yz(i1,i2)/15._dp + 32._dp*g32*MassG*Yz(i1,i2)&
-  & /3._dp + 6._dp*g22*MassWB*Yz(i1,i2) + 2._dp*TrAYzadjYz*Yz(i1,i2) + 2._dp*YzadjYeAYe(i1,i2)&
-  &  + 8._dp*YzadjYzAYz(i1,i2) + 6._dp*YzCYtAYt(i1,i2) - 7._dp*g12*AYz(i1,i2)            &
-  & /15._dp - 3._dp*g22*AYz(i1,i2) - 16._dp*g32*AYz(i1,i2)/3._dp + TrYzadjYz*AYz(i1,i2)
-   End Do
-  End Do
-
-
-  If (TwoLoopRGE) Then
-  Do i1 = 1,3
-  Do i2 = 1,3
-  betaAYz2(i1,i2) = -4._dp*AYdadjYdYdadjYdYz(i1,i2) + 4._dp*g12*AYdadjYdYz(i1,i2)     &
-  & /5._dp + 12._dp*g22*AYdadjYdYz(i1,i2) - 12._dp*TrYdadjYd*AYdadjYdYz(i1,i2)           &
-  &  - 4._dp*TrYeadjYe*AYdadjYdYz(i1,i2) - 4._dp*AYdadjYuYuadjYdYz(i1,i2) - 16._dp*AYsCYdTYdCYsYz(i1,i2)&
-  &  - 32._dp*AYsCYsYsCYsYz(i1,i2) + 64._dp*g12*AYsCYsYz(i1,i2)/15._dp + 160._dp*g32*AYsCYsYz(i1,i2)&
-  & /3._dp - 6._dp*TrCYsYs*AYsCYsYz(i1,i2) - 2._dp*TrYsCYs*AYsCYsYz(i1,i2) -               &
-  &  16._dp*AYsCYzTYzCYsYz(i1,i2) + 6._dp*g12*AYzadjYeYe(i1,i2)/5._dp - 3._dp*TrYdadjYd*AYzadjYeYe(i1,i2)&
-  &  - TrYeadjYe*AYzadjYeYe(i1,i2) - 2._dp*AYzadjYeYeadjYeYe(i1,i2) - 4._dp*AYzadjYeYeadjYzYz(i1,i2)&
-  &  - 6._dp*AYzadjYzYdadjYdYz(i1,i2) - 12._dp*AYzadjYzYsCYsYz(i1,i2) + 2._dp*g12*AYzadjYzYz(i1,i2)&
-  & /5._dp + 12._dp*g22*AYzadjYzYz(i1,i2) + 16._dp*g32*AYzadjYzYz(i1,i2)               &
-  &  - 7._dp*TrYzadjYz*AYzadjYzYz(i1,i2) - 18._dp*AYzadjYzYzadjYzYz(i1,i2) -               &
-  &  3._dp*AYzCYtTYeCYeYt(i1,i2) - 9._dp*AYzCYtTYzCYzYt(i1,i2) + 18._dp*g12*AYzCYtYt(i1,i2)&
-  & /5._dp + 12._dp*g22*AYzCYtYt(i1,i2) - 9._dp*TrCYtYt*AYzCYtYt(i1,i2)/4._dp -          &
-  &  3._dp*TrYtCYt*AYzCYtYt(i1,i2)/4._dp - 12._dp*AYzCYtYtadjYzYz(i1,i2) - 9._dp*AYzCYtYtCYtYt(i1,i2)&
-  &  - 12._dp*L1*AYdadjYdYz(i1,i2)*Conjg(L1) - 3._dp*L1*AYzadjYeYe(i1,i2)*Conjg(L1)        &
-  &  - 3._dp*L1*AYzCYtYt(i1,i2)*Conjg(L1) - 4._dp*YdadjYdAYdadjYdYz(i1,i2) +               &
-  &  2._dp*g12*YdadjYdAYz(i1,i2)/5._dp + 6._dp*g22*YdadjYdAYz(i1,i2) - 6._dp*TrYdadjYd*YdadjYdAYz(i1,i2)&
-  &  - 2._dp*TrYeadjYe*YdadjYdAYz(i1,i2) - 6._dp*AbsL1sq*YdadjYdAYz(i1,i2)            &
-  &  - 2._dp*YdadjYdYdadjYdAYz(i1,i2) - 4._dp*g12*MassB*YdadjYdYz(i1,i2)/5._dp -         &
-  &  12._dp*g22*MassWB*YdadjYdYz(i1,i2) - 12._dp*TrAYdadjYd*YdadjYdYz(i1,i2)             &
-  &  - 4._dp*TrAYeadjYe*YdadjYdYz(i1,i2) - 12._dp*AL1*Conjg(L1)*YdadjYdYz(i1,i2)           &
-  &  - 4._dp*YdadjYuAYuadjYdYz(i1,i2) - 2._dp*YdadjYuYuadjYdAYz(i1,i2) - 16._dp*YsCYdTAYdCYsYz(i1,i2)&
-  &  - 8._dp*YsCYdTYdCYsAYz(i1,i2) - 32._dp*YsCYsAYsCYsYz(i1,i2) + 32._dp*g12*YsCYsAYz(i1,i2)&
-  & /15._dp + 80._dp*g32*YsCYsAYz(i1,i2)/3._dp - 3._dp*TrCYsYs*YsCYsAYz(i1,i2)           &
-  &  - TrYsCYs*YsCYsAYz(i1,i2) - 16._dp*YsCYsYsCYsAYz(i1,i2) - 64._dp*g12*MassB*YsCYsYz(i1,i2)&
-  & /15._dp - 160._dp*g32*MassG*YsCYsYz(i1,i2)/3._dp - 8._dp*TrCYsAYs*YsCYsYz(i1,i2)     &
-  &  - 16._dp*YsCYzTAYzCYsYz(i1,i2) - 8._dp*YsCYzTYzCYsAYz(i1,i2) - 1162._dp*g14*MassB*Yz(i1,i2)&
-  & /45._dp - 2._dp*g12*g22*MassB*Yz(i1,i2) - 16._dp*g12*g32*MassB*Yz(i1,i2)       &
-  & /9._dp - 16._dp*g12*g32*MassG*Yz(i1,i2)/9._dp - 16._dp*g22*g32*MassG*Yz(i1,i2) &
-  &  - 1280._dp*g34*MassG*Yz(i1,i2)/9._dp - 2._dp*g12*g22*MassWB*Yz(i1,i2)           &
-  &  - 114._dp*g24*MassWB*Yz(i1,i2) - 16._dp*g22*g32*MassWB*Yz(i1,i2) +              &
-  &  4._dp*g12*TrAYzadjYz*Yz(i1,i2)/5._dp - 4._dp*TrCYsAYzadjYzYs*Yz(i1,i2)              &
-  &  - 5._dp*TrCYsYzadjYzAYs*Yz(i1,i2) - 3._dp*TrCYtAYtadjYzYz*Yz(i1,i2) - 4._dp*TrCYtYtadjYzAYz*Yz(i1,i2)&
-  &  - 4._dp*TrYdadjYdAYzadjYz*Yz(i1,i2) - 2._dp*TrYeadjYzAYzadjYe*Yz(i1,i2)               &
-  &  - 4._dp*TrYsCYsAYzadjYz*Yz(i1,i2) - 2._dp*TrYtadjYzAYzCYt*Yz(i1,i2) - 2._dp*TrYzadjYeAYeadjYz*Yz(i1,i2)&
-  &  - 4._dp*g12*MassB*TrYzadjYz*Yz(i1,i2)/5._dp - 4._dp*TrYzadjYzAYdadjYd*Yz(i1,i2)     &
-  &  - 3._dp*TrYzadjYzAYsCYs*Yz(i1,i2) - 20._dp*TrYzadjYzAYzadjYz*Yz(i1,i2) -              &
-  &  3._dp*TrYzCYtAYtadjYz*Yz(i1,i2) + 12._dp*g12*YzadjYeAYe(i1,i2)/5._dp -              &
-  &  6._dp*TrYdadjYd*YzadjYeAYe(i1,i2) - 2._dp*TrYeadjYe*YzadjYeAYe(i1,i2) -               &
-  &  6._dp*AbsL1sq*YzadjYeAYe(i1,i2) - 4._dp*YzadjYeAYeadjYeYe(i1,i2) -               &
-  &  4._dp*YzadjYeAYeadjYzYz(i1,i2) - 12._dp*g12*MassB*YzadjYeYe(i1,i2)/5._dp -          &
-  &  6._dp*TrAYdadjYd*YzadjYeYe(i1,i2) - 2._dp*TrAYeadjYe*YzadjYeYe(i1,i2) -               &
-  &  6._dp*AL1*Conjg(L1)*YzadjYeYe(i1,i2) - 4._dp*YzadjYeYeadjYeAYe(i1,i2) -               &
-  &  2._dp*YzadjYeYeadjYzAYz(i1,i2) - 12._dp*YzadjYzAYdadjYdYz(i1,i2) - 24._dp*YzadjYzAYsCYsYz(i1,i2)&
-  &  - 2._dp*g12*YzadjYzAYz(i1,i2)/5._dp + 6._dp*g22*YzadjYzAYz(i1,i2) +               &
-  &  32._dp*g32*YzadjYzAYz(i1,i2) - 8._dp*TrYzadjYz*YzadjYzAYz(i1,i2) - 24._dp*YzadjYzAYzadjYzYz(i1,i2)&
-  &  - 12._dp*YzadjYzYdadjYdAYz(i1,i2) - 24._dp*YzadjYzYsCYsAYz(i1,i2) - 32._dp*g32*MassG*YzadjYzYz(i1,i2)&
-  &  - 12._dp*g22*MassWB*YzadjYzYz(i1,i2) - 10._dp*TrAYzadjYz*YzadjYzYz(i1,i2)           &
-  &  - 18._dp*YzadjYzYzadjYzAYz(i1,i2) + 36._dp*g12*YzCYtAYt(i1,i2)/5._dp +              &
-  &  24._dp*g22*YzCYtAYt(i1,i2) - 9._dp*TrCYtYt*YzCYtAYt(i1,i2)/2._dp - 3._dp*TrYtCYt*YzCYtAYt(i1,i2)&
-  & /2._dp - 6._dp*AbsL1sq*YzCYtAYt(i1,i2) - 12._dp*YzCYtAYtadjYzYz(i1,i2)            &
-  &  - 18._dp*YzCYtAYtCYtYt(i1,i2) - 6._dp*YzCYtTAYeCYeYt(i1,i2) - 18._dp*YzCYtTAYzCYzYt(i1,i2)&
-  &  - 6._dp*YzCYtTYeCYeAYt(i1,i2) - 18._dp*YzCYtTYzCYzAYt(i1,i2) - 36._dp*g12*MassB*YzCYtYt(i1,i2)&
-  & /5._dp - 24._dp*g22*MassWB*YzCYtYt(i1,i2) - 6._dp*TrCYtAYt*YzCYtYt(i1,i2)            &
-  &  - 6._dp*AL1*Conjg(L1)*YzCYtYt(i1,i2) - 6._dp*YzCYtYtadjYzAYz(i1,i2) - 18._dp*YzCYtYtCYtAYt(i1,i2)&
-  &  + 581._dp*g14*AYz(i1,i2)/90._dp + g12*g22*AYz(i1,i2) + 57._dp*g24*AYz(i1,i2)  &
-  & /2._dp + 8._dp*g12*g32*AYz(i1,i2)/9._dp + 8._dp*g22*g32*AYz(i1,i2)             &
-  &  + 320._dp*g34*AYz(i1,i2)/9._dp - 2._dp*TrCYsYzadjYzYs*AYz(i1,i2) - 3._dp*TrCYtYtadjYzYz*AYz(i1,i2)&
-  & /2._dp - TrYeadjYzYzadjYe*AYz(i1,i2) - (TrYsCYsYzadjYz*AYz(i1,i2))/2._dp -             &
-  &  TrYtadjYzYzCYt*AYz(i1,i2) + 2._dp*g12*TrYzadjYz*AYz(i1,i2)/5._dp - 2._dp*TrYzadjYzYdadjYd*AYz(i1,i2)&
-  &  - 3._dp*TrYzadjYzYsCYs*AYz(i1,i2)/2._dp - 5._dp*TrYzadjYzYzadjYz*AYz(i1,i2)           &
-  &  - (TrYzCYtYtadjYz*AYz(i1,i2))/2._dp
-   End Do
-  End Do
-
-
-  DAYz = oo16pi2*( betaAYz1 + oo16pi2 * betaAYz2 )
-
-
-  Else
-  DAYz = oo16pi2* betaAYz1
-  End If
-
-
-  !--------------------
-  ! AL1
-  !--------------------
-
-  betaAL11 = (18._dp*sqrt2*g12*L1*MassB/5._dp + 14._dp*sqrt2              &
-  & *g22*L1*MassWB + 12._dp*sqrt2*L1*TrAYdadjYd + 4._dp*sqrt2*L1*TrAYeadjYe +&
-  &  2._dp*sqrt2*L1*TrCYtAYt - 9._dp*sqrt2*g12*AL1/5._dp - 7._dp*sqrt2 &
-  & *g22*AL1 + 3._dp*TrCYtYt*AL1/(2._dp*sqrt2) + 6._dp*sqrt2*TrYdadjYd*AL1 + &
-  &  2._dp*sqrt2*TrYeadjYe*AL1 + (TrYtCYt*AL1)/(2._dp*sqrt2) + 21._dp*sqrt2&
-  & *L1*AL1*Conjg(L1))/sqrt2
-
-
-  If (TwoLoopRGE) Then
-  betaAL12 = (-522._dp*sqrt2*g14*L1*MassB/5._dp - 114._dp*sqrt2           &
-  & *g12*g22*L1*MassB/5._dp - 114._dp*sqrt2*g12*g22*L1*MassWB/5._dp -        &
-  &  306._dp*sqrt2*g24*L1*MassWB - 8._dp*sqrt2*g12*L1*TrAYdadjYd/5._dp +   &
-  &  64._dp*sqrt2*g32*L1*TrAYdadjYd + 24._dp*sqrt2*g12*L1*TrAYeadjYe/5._dp -&
-  &  24._dp*sqrt2*L1*TrCYsAYdadjYdYs - 30._dp*sqrt2*L1*TrCYsYdadjYdAYs -       &
-  &  6._dp*sqrt2*g12*L1*TrCYtAYt/5._dp - 2._dp*sqrt2*g22*L1*TrCYtAYt -     &
-  &  6._dp*sqrt2*L1*TrCYtAYtadjYeYe - 9._dp*sqrt2*L1*TrCYtAYtCYtYt +           &
-  &  9._dp*g12*L1*MassB*TrCYtYt/(5._dp*sqrt2) + 3._dp*(g22*L1*MassWB*TrCYtYt)    &
-  & /sqrt2 - 12._dp*sqrt2*L1*TrCYtYtadjYeAYe - 12._dp*sqrt2              &
-  & *L1*TrCYtYtadjYzAYz - 12._dp*sqrt2*L1*TrCYtYtCYtAYt + 8._dp*sqrt2          &
-  & *g12*L1*MassB*TrYdadjYd/5._dp - 64._dp*sqrt2*g32*L1*MassG*TrYdadjYd -        &
-  &  72._dp*sqrt2*L1*TrYdadjYdAYdadjYd - 18._dp*sqrt2*L1*TrYdadjYdAYsCYs -     &
-  &  24._dp*sqrt2*L1*TrYdadjYdAYzadjYz - 12._dp*sqrt2*L1*TrYdadjYuAYuadjYd -   &
-  &  24._dp*sqrt2*g12*L1*MassB*TrYeadjYe/5._dp - 24._dp*sqrt2*L1*TrYeadjYeAYeadjYe -&
-  &  12._dp*sqrt2*L1*TrYeadjYzAYzadjYe - 10._dp*sqrt2*L1*TrYeCYtAYtadjYe -     &
-  &  24._dp*sqrt2*L1*TrYsCYsAYdadjYd - 4._dp*sqrt2*L1*TrYtadjYeAYeCYt +        &
-  &  3._dp*g12*L1*MassB*TrYtCYt/(5._dp*sqrt2) + (g22*L1*MassWB*TrYtCYt)          &
-  & /sqrt2 - 3._dp*sqrt2*L1*TrYtCYtAYtCYt - 12._dp*sqrt2*L1*TrYuadjYdAYdadjYu -&
-  &  12._dp*sqrt2*L1*TrYzadjYeAYeadjYz - 24._dp*sqrt2*L1*TrYzadjYzAYdadjYd -   &
-  &  12._dp*sqrt2*L1*TrYzCYtAYtadjYz + 261._dp*g14*AL1/(5._dp*sqrt2)         &
-  &  + 57._dp*sqrt2*g12*g22*AL1/5._dp + 153._dp*(g24*AL1)/sqrt2          &
-  &  - 12._dp*sqrt2*TrCYsYdadjYdYs*AL1 - 9._dp*g12*TrCYtYt*AL1/(10._dp*sqrt2)&
-  &  - 3._dp*g22*TrCYtYt*AL1/(2._dp*sqrt2) - 3._dp*sqrt2*TrCYtYtadjYeYe*AL1 -&
-  &  9._dp*(TrCYtYtCYtYt*AL1)/sqrt2 - 4._dp*sqrt2*g12*TrYdadjYd*AL1/5._dp +  &
-  &  32._dp*sqrt2*g32*TrYdadjYd*AL1 - 18._dp*sqrt2*TrYdadjYdYdadjYd*AL1 -    &
-  &  9._dp*sqrt2*TrYdadjYdYsCYs*AL1 - 12._dp*sqrt2*TrYdadjYdYzadjYz*AL1 +      &
-  &  12._dp*sqrt2*g12*TrYeadjYe*AL1/5._dp - 6._dp*sqrt2*TrYeadjYeYeadjYe*AL1 -&
-  &  3._dp*sqrt2*TrYeCYtYtadjYe*AL1 - 3._dp*sqrt2*TrYsCYsYdadjYd*AL1 -         &
-  &  2._dp*sqrt2*TrYtadjYeYeCYt*AL1 - 3._dp*g12*TrYtCYt*AL1/(10._dp*sqrt2)   &
-  &  - (g22*TrYtCYt*AL1)/(2._dp*sqrt2) - 3._dp*(TrYtCYtYtCYt*AL1)/sqrt2      &
-  &  - 6._dp*sqrt2*TrYuadjYdYdadjYu*AL1 - 6._dp*sqrt2*TrYzadjYeYeadjYz*AL1 -   &
-  &  6._dp*sqrt2*TrYzCYtYtadjYz*AL1 - 66._dp*sqrt2*g12*L1**2*MassB*Conjg(L1) &
-  & /5._dp - 46._dp*sqrt2*g22*L1**2*MassWB*Conjg(L1) - 48._dp*sqrt2          &
-  & *L1**2*TrAYdadjYd*Conjg(L1) - 16._dp*sqrt2*L1**2*TrAYeadjYe*Conjg(L1)            &
-  &  - 12._dp*sqrt2*L1**2*TrCYtAYt*Conjg(L1) + 99._dp*sqrt2*g12*L1*AL1*Conjg(L1)&
-  & /5._dp + 69._dp*sqrt2*g22*L1*AL1*Conjg(L1) - 27._dp*(L1*TrCYtYt*AL1*Conjg(L1)) &
-  & /sqrt2 - 72._dp*sqrt2*L1*TrYdadjYd*AL1*Conjg(L1) - 24._dp*sqrt2      &
-  & *L1*TrYeadjYe*AL1*Conjg(L1) - 9._dp*(L1*TrYtCYt*AL1*Conjg(L1))/sqrt2             &
-  &  - 150._dp*sqrt2*L1**2*AL1*Conjg(L1)**2)/sqrt2
-
-
-  DAL1 = oo16pi2*( betaAL11 + oo16pi2 * betaAL12 )
-
-
-  Else
-  DAL1 = oo16pi2* betaAL11
-  End If
-
-
-  !--------------------
-  ! AL2
-  !--------------------
-
-  betaAL21 = (18._dp*g12*L2*MassB/5._dp + 14._dp              &
-  & *g22*L2*MassWB + 12._dp*L2*TrAYuadjYu - 9._dp*g12*AL2/5._dp -&
-  &  7._dp*g22*AL2 + 6._dp*TrYuadjYu*AL2 + 21._dp    &
-  & *L2*AL2*Conjg(L2))
-
-
-  If (TwoLoopRGE) Then
-  betaAL22 = (-522._dp*sqrt2*g14*L2*MassB/5._dp - 114._dp*sqrt2           &
-  & *g12*g22*L2*MassB/5._dp - 114._dp*sqrt2*g12*g22*L2*MassWB/5._dp -        &
-  &  306._dp*sqrt2*g24*L2*MassWB + 16._dp*sqrt2*g12*L2*TrAYuadjYu/5._dp +  &
-  &  64._dp*sqrt2*g32*L2*TrAYuadjYu - 12._dp*sqrt2*L2*TrYdadjYuAYuadjYd -    &
-  &  12._dp*sqrt2*L2*TrYuadjYdAYdadjYu - 16._dp*sqrt2*g12*L2*MassB*TrYuadjYu/5._dp -&
-  &  64._dp*sqrt2*g32*L2*MassG*TrYuadjYu - 72._dp*sqrt2*L2*TrYuadjYuAYuadjYu +&
-  &  261._dp*g14*AL2/(5._dp*sqrt2) + 57._dp*sqrt2*g12*g22*AL2/5._dp +    &
-  &  153._dp*(g24*AL2)/sqrt2 - 6._dp*sqrt2*TrYdadjYuYuadjYd*AL2 +            &
-  &  8._dp*sqrt2*g12*TrYuadjYu*AL2/5._dp + 32._dp*sqrt2*g32*TrYuadjYu*AL2 -&
-  &  18._dp*sqrt2*TrYuadjYuYuadjYu*AL2 - 66._dp*sqrt2*g12*L2**2*MassB*Conjg(L2)&
-  & /5._dp - 46._dp*sqrt2*g22*L2**2*MassWB*Conjg(L2) - 48._dp*sqrt2          &
-  & *L2**2*TrAYuadjYu*Conjg(L2) + 99._dp*sqrt2*g12*L2*AL2*Conjg(L2)/5._dp +        &
-  &  69._dp*sqrt2*g22*L2*AL2*Conjg(L2) - 72._dp*sqrt2*L2*TrYuadjYu*AL2*Conjg(L2)&
-  &  - 150._dp*sqrt2*L2**2*AL2*Conjg(L2)**2)/sqrt2
-
-
-  DAL2 = oo16pi2*( betaAL21 + oo16pi2 * betaAL22 )
-
-
-  Else
-  DAL2 = oo16pi2* betaAL21
-  End If
-
-
-  !--------------------
-  ! Amue
-  !--------------------
-
-  betaAmue1 = 6._dp*g12*MassB*mue/5._dp + 6._dp*g22*MassWB*mue + 6._dp*TrAYdadjYd*mue +&
-  &  2._dp*TrAYeadjYe*mue + 6._dp*TrAYuadjYu*mue - 3._dp*g12*Amue/5._dp - 3._dp*g22*Amue +&
-  &  3._dp*TrYdadjYd*Amue + TrYeadjYe*Amue + 3._dp*TrYuadjYu*Amue + 6._dp*mue*AL1*Conjg(L1)&
-  &  + 3._dp*L1*Amue*Conjg(L1) + 6._dp*mue*AL2*Conjg(L2) + 3._dp*L2*Amue*Conjg(L2)
-
-
-  If (TwoLoopRGE) Then
-  betaAmue2 = -834._dp*g14*MassB*mue/25._dp - 18._dp*g12*g22*MassB*mue/5._dp -    &
-  &  18._dp*g12*g22*MassWB*mue/5._dp - 114._dp*g24*MassWB*mue - 4._dp*g12*TrAYdadjYd*mue/5._dp +&
-  &  32._dp*g32*TrAYdadjYd*mue + 12._dp*g12*TrAYeadjYe*mue/5._dp + 8._dp*g12*TrAYuadjYu*mue/5._dp +&
-  &  32._dp*g32*TrAYuadjYu*mue - 12._dp*TrCYsAYdadjYdYs*mue - 15._dp*TrCYsYdadjYdAYs*mue -&
-  &  3._dp*TrCYtAYtadjYeYe*mue - 4._dp*TrCYtYtadjYeAYe*mue + 4._dp*g12*MassB*TrYdadjYd*mue/5._dp -&
-  &  32._dp*g32*MassG*TrYdadjYd*mue - 36._dp*TrYdadjYdAYdadjYd*mue - 9._dp*TrYdadjYdAYsCYs*mue -&
-  &  12._dp*TrYdadjYdAYzadjYz*mue - 12._dp*TrYdadjYuAYuadjYd*mue - 12._dp*g12*MassB*TrYeadjYe*mue/5._dp -&
-  &  12._dp*TrYeadjYeAYeadjYe*mue - 6._dp*TrYeadjYzAYzadjYe*mue - 3._dp*TrYeCYtAYtadjYe*mue -&
-  &  12._dp*TrYsCYsAYdadjYd*mue - 2._dp*TrYtadjYeAYeCYt*mue - 12._dp*TrYuadjYdAYdadjYu*mue -&
-  &  8._dp*g12*MassB*TrYuadjYu*mue/5._dp - 32._dp*g32*MassG*TrYuadjYu*mue -            &
-  &  36._dp*TrYuadjYuAYuadjYu*mue - 6._dp*TrYzadjYeAYeadjYz*mue - 12._dp*TrYzadjYzAYdadjYd*mue +&
-  &  417._dp*g14*Amue/50._dp + 9._dp*g12*g22*Amue/5._dp + 57._dp*g24*Amue/2._dp -  &
-  &  6._dp*TrCYsYdadjYdYs*Amue - 3._dp*TrCYtYtadjYeYe*Amue/2._dp - 2._dp*g12*TrYdadjYd*Amue/5._dp +&
-  &  16._dp*g32*TrYdadjYd*Amue - 9._dp*TrYdadjYdYdadjYd*Amue - 9._dp*TrYdadjYdYsCYs*Amue/2._dp -&
-  &  6._dp*TrYdadjYdYzadjYz*Amue - 3._dp*TrYdadjYuYuadjYd*Amue + 6._dp*g12*TrYeadjYe*Amue/5._dp -&
-  &  3._dp*TrYeadjYeYeadjYe*Amue - (TrYeCYtYtadjYe*Amue)/2._dp - 3._dp*TrYsCYsYdadjYd*Amue/2._dp -&
-  &  TrYtadjYeYeCYt*Amue - 3._dp*TrYuadjYdYdadjYu*Amue + 4._dp*g12*TrYuadjYu*Amue/5._dp +&
-  &  16._dp*g32*TrYuadjYu*Amue - 9._dp*TrYuadjYuYuadjYu*Amue - 3._dp*TrYzadjYeYeadjYz*Amue -&
-  &  36._dp*g12*L1*MassB*mue*Conjg(L1)/5._dp - 24._dp*g22*L1*MassWB*mue*Conjg(L1)      &
-  &  - 18._dp*L1*TrAYdadjYd*mue*Conjg(L1) - 6._dp*L1*TrAYeadjYe*mue*Conjg(L1)              &
-  &  - 6._dp*L1*TrCYtAYt*mue*Conjg(L1) + 36._dp*g12*mue*AL1*Conjg(L1)/5._dp +            &
-  &  24._dp*g22*mue*AL1*Conjg(L1) - 9._dp*TrCYtYt*mue*AL1*Conjg(L1)/2._dp -              &
-  &  18._dp*TrYdadjYd*mue*AL1*Conjg(L1) - 6._dp*TrYeadjYe*mue*AL1*Conjg(L1) -              &
-  &  3._dp*TrYtCYt*mue*AL1*Conjg(L1)/2._dp + 18._dp*g12*L1*Amue*Conjg(L1)/5._dp +        &
-  &  12._dp*g22*L1*Amue*Conjg(L1) - 9._dp*L1*TrCYtYt*Amue*Conjg(L1)/4._dp -              &
-  &  9._dp*L1*TrYdadjYd*Amue*Conjg(L1) - 3._dp*L1*TrYeadjYe*Amue*Conjg(L1) -               &
-  &  3._dp*L1*TrYtCYt*Amue*Conjg(L1)/4._dp - 48._dp*L1*mue*AL1*Conjg(L1)**2 -              &
-  &  12._dp*L1**2*Amue*Conjg(L1)**2 - 36._dp*g12*L2*MassB*mue*Conjg(L2)/5._dp -          &
-  &  24._dp*g22*L2*MassWB*mue*Conjg(L2) - 18._dp*L2*TrAYuadjYu*mue*Conjg(L2)             &
-  &  + 36._dp*g12*mue*AL2*Conjg(L2)/5._dp + 24._dp*g22*mue*AL2*Conjg(L2)               &
-  &  - 18._dp*TrYuadjYu*mue*AL2*Conjg(L2) + 18._dp*g12*L2*Amue*Conjg(L2)/5._dp +         &
-  &  12._dp*g22*L2*Amue*Conjg(L2) - 9._dp*L2*TrYuadjYu*Amue*Conjg(L2) - 48._dp*L2*mue*AL2*Conjg(L2)&
-  & **2 - 12._dp*L2**2*Amue*Conjg(L2)**2
-
-
-  DAmue = oo16pi2*( betaAmue1 + oo16pi2 * betaAmue2 )
-
-
-  Else
-  DAmue = oo16pi2* betaAmue1
-  End If
-
-
-  !--------------------
-  ! AMTM
-  !--------------------
-
-  betaAMTM1 = 24._dp*g12*MassB*MTM/5._dp + 16._dp*g22*MassWB*MTM + 2._dp*MTM*TrCYtAYt -&
-  &  12._dp*g12*AMTM/5._dp - 8._dp*g22*AMTM + 3._dp*TrCYtYt*AMTM/4._dp +               &
-  &  (TrYtCYt*AMTM)/4._dp + 2._dp*MTM*AL1*Conjg(L1) + L1*AMTM*Conjg(L1) + 2._dp*MTM*AL2*Conjg(L2)&
-  &  + L2*AMTM*Conjg(L2)
-
-
-  If (TwoLoopRGE) Then
-  betaAMTM2 = -3552._dp*g14*MassB*MTM/25._dp - 192._dp*g12*g22*MassB*MTM/5._dp -  &
-  &  192._dp*g12*g22*MassWB*MTM/5._dp - 384._dp*g24*MassWB*MTM - 6._dp*g12*MTM*TrCYtAYt/5._dp -&
-  &  2._dp*g22*MTM*TrCYtAYt - 9._dp*MTM*TrCYtAYtCYtYt + 9._dp*g12*MassB*MTM*TrCYtYt/10._dp +&
-  &  3._dp*g22*MassWB*MTM*TrCYtYt/2._dp - 4._dp*MTM*TrCYtYtadjYeAYe - 12._dp*MTM*TrCYtYtadjYzAYz -&
-  &  12._dp*MTM*TrCYtYtCYtAYt - 4._dp*MTM*TrYeCYtAYtadjYe + 3._dp*g12*MassB*MTM*TrYtCYt/10._dp +&
-  &  (g22*MassWB*MTM*TrYtCYt)/2._dp - 3._dp*MTM*TrYtCYtAYtCYt - 12._dp*MTM*TrYzCYtAYtadjYz +&
-  &  888._dp*g14*AMTM/25._dp + 96._dp*g12*g22*AMTM/5._dp + 96._dp*g24*AMTM -       &
-  &  9._dp*g12*TrCYtYt*AMTM/20._dp - 3._dp*g22*TrCYtYt*AMTM/4._dp - 9._dp*TrCYtYtCYtYt*AMTM/2._dp -&
-  &  2._dp*TrYeCYtYtadjYe*AMTM - 3._dp*g12*TrYtCYt*AMTM/20._dp - (g22*TrYtCYt*AMTM)    &
-  & /4._dp - 3._dp*TrYtCYtYtCYt*AMTM/2._dp - 6._dp*TrYzCYtYtadjYz*AMTM + 6._dp*g12*L1*MassB*MTM*Conjg(L1)&
-  & /5._dp + 2._dp*g22*L1*MassWB*MTM*Conjg(L1) - 12._dp*L1*MTM*TrAYdadjYd*Conjg(L1)      &
-  &  - 4._dp*L1*MTM*TrAYeadjYe*Conjg(L1) - 6._dp*g12*MTM*AL1*Conjg(L1)/5._dp -           &
-  &  2._dp*g22*MTM*AL1*Conjg(L1) - 12._dp*MTM*TrYdadjYd*AL1*Conjg(L1) - 4._dp*MTM*TrYeadjYe*AL1*Conjg(L1)&
-  &  - 3._dp*g12*L1*AMTM*Conjg(L1)/5._dp - g22*L1*AMTM*Conjg(L1) - 6._dp*L1*TrYdadjYd*AMTM*Conjg(L1)&
-  &  - 2._dp*L1*TrYeadjYe*AMTM*Conjg(L1) - 24._dp*L1*MTM*AL1*Conjg(L1)**2 - 6._dp*L1**2*AMTM*Conjg(L1)&
-  & **2 + 6._dp*g12*L2*MassB*MTM*Conjg(L2)/5._dp + 2._dp*g22*L2*MassWB*MTM*Conjg(L2)   &
-  &  - 12._dp*L2*MTM*TrAYuadjYu*Conjg(L2) - 6._dp*g12*MTM*AL2*Conjg(L2)/5._dp -          &
-  &  2._dp*g22*MTM*AL2*Conjg(L2) - 12._dp*MTM*TrYuadjYu*AL2*Conjg(L2) - 3._dp*g12*L2*AMTM*Conjg(L2)&
-  & /5._dp - g22*L2*AMTM*Conjg(L2) - 6._dp*L2*TrYuadjYu*AMTM*Conjg(L2) - 24._dp*L2*MTM*AL2*Conjg(L2)&
-  & **2 - 6._dp*L2**2*AMTM*Conjg(L2)**2
-
-
-  DAMTM = oo16pi2*( betaAMTM1 + oo16pi2 * betaAMTM2 )
-
-
-  Else
-  DAMTM = oo16pi2* betaAMTM1
-  End If
-
-
-  !--------------------
-  ! AMZM
-  !--------------------
-
-  betaAMZM1 = 2._dp*g12*MassB*MZM/15._dp + 32._dp*g32*MassG*MZM/3._dp +             &
-  &  6._dp*g22*MassWB*MZM + 2._dp*MZM*TrAYzadjYz - (g12*AMZM)/15._dp - 3._dp*g22*AMZM -&
-  &  16._dp*g32*AMZM/3._dp + TrYzadjYz*AMZM
-
-
-  If (TwoLoopRGE) Then
-  betaAMZM2 = -818._dp*g14*MassB*MZM/225._dp - 2._dp*g12*g22*MassB*MZM/5._dp -    &
-  &  32._dp*g12*g32*MassB*MZM/45._dp - 32._dp*g12*g32*MassG*MZM/45._dp -           &
-  &  32._dp*g22*g32*MassG*MZM - 1280._dp*g34*MassG*MZM/9._dp - 2._dp*g12*g22*MassWB*MZM/5._dp -&
-  &  114._dp*g24*MassWB*MZM - 32._dp*g22*g32*MassWB*MZM + 4._dp*g12*MZM*TrAYzadjYz/5._dp -&
-  &  4._dp*MZM*TrCYsAYzadjYzYs - 5._dp*MZM*TrCYsYzadjYzAYs - 3._dp*MZM*TrCYtAYtadjYzYz -   &
-  &  4._dp*MZM*TrCYtYtadjYzAYz - 4._dp*MZM*TrYdadjYdAYzadjYz - 2._dp*MZM*TrYeadjYzAYzadjYe -&
-  &  4._dp*MZM*TrYsCYsAYzadjYz - 2._dp*MZM*TrYtadjYzAYzCYt - 2._dp*MZM*TrYzadjYeAYeadjYz - &
-  &  4._dp*g12*MassB*MZM*TrYzadjYz/5._dp - 4._dp*MZM*TrYzadjYzAYdadjYd - 3._dp*MZM*TrYzadjYzAYsCYs -&
-  &  20._dp*MZM*TrYzadjYzAYzadjYz - 3._dp*MZM*TrYzCYtAYtadjYz + 409._dp*g14*AMZM/450._dp +&
-  &  (g12*g22*AMZM)/5._dp + 57._dp*g24*AMZM/2._dp + 16._dp*g12*g32*AMZM/45._dp + &
-  &  16._dp*g22*g32*AMZM + 320._dp*g34*AMZM/9._dp - 2._dp*TrCYsYzadjYzYs*AMZM -      &
-  &  3._dp*TrCYtYtadjYzYz*AMZM/2._dp - TrYeadjYzYzadjYe*AMZM - (TrYsCYsYzadjYz*AMZM)       &
-  & /2._dp - TrYtadjYzYzCYt*AMZM + 2._dp*g12*TrYzadjYz*AMZM/5._dp - 2._dp*TrYzadjYzYdadjYd*AMZM -&
-  &  3._dp*TrYzadjYzYsCYs*AMZM/2._dp - 5._dp*TrYzadjYzYzadjYz*AMZM - (TrYzCYtYtadjYz*AMZM)/2._dp
-
-
-  DAMZM = oo16pi2*( betaAMZM1 + oo16pi2 * betaAMZM2 )
-
-
-  Else
-  DAMZM = oo16pi2* betaAMZM1
-  End If
-
-
-  !--------------------
-  ! AMSM
-  !--------------------
-
-  betaAMSM1 = 32._dp*g12*MassB*MSM/15._dp + 80._dp*g32*MassG*MSM/3._dp +            &
-  &  2._dp*MSM*TrCYsAYs - 16._dp*g12*AMSM/15._dp - 40._dp*g32*AMSM/3._dp +             &
-  &  3._dp*TrCYsYs*AMSM/4._dp + (TrYsCYs*AMSM)/4._dp
-
-
-  If (TwoLoopRGE) Then
-  betaAMSM2 = -13568._dp*g14*MassB*MSM/225._dp - 256._dp*g12*g32*MassB*MSM/9._dp -&
-  &  256._dp*g12*g32*MassG*MSM/9._dp - 5120._dp*g34*MassG*MSM/9._dp - 8._dp*g12*MSM*TrCYsAYs/15._dp -&
-  &  8._dp*g32*MSM*TrCYsAYs/3._dp - 12._dp*MSM*TrCYsAYsCYsYs - 6._dp*MSM*TrCYsYdadjYdAYs +&
-  &  2._dp*g12*MassB*MSM*TrCYsYs/5._dp + 2._dp*g32*MassG*MSM*TrCYsYs - 16._dp*MSM*TrCYsYsCYsAYs -&
-  &  6._dp*MSM*TrCYsYzadjYzAYs - 2._dp*MSM*TrYdadjYdAYsCYs + 2._dp*g12*MassB*MSM*TrYsCYs/15._dp +&
-  &  2._dp*g32*MassG*MSM*TrYsCYs/3._dp - 8._dp*MSM*TrYsCYsAYdadjYd - 4._dp*MSM*TrYsCYsAYsCYs -&
-  &  8._dp*MSM*TrYsCYsAYzadjYz - 2._dp*MSM*TrYzadjYzAYsCYs + 3392._dp*g14*AMSM/225._dp + &
-  &  128._dp*g12*g32*AMSM/9._dp + 1280._dp*g34*AMSM/9._dp - (g12*TrCYsYs*AMSM)     &
-  & /5._dp - g32*TrCYsYs*AMSM - 6._dp*TrCYsYsCYsYs*AMSM - (g12*TrYsCYs*AMSM)           &
-  & /15._dp - (g32*TrYsCYs*AMSM)/3._dp - 4._dp*TrYsCYsYdadjYd*AMSM - 2._dp*TrYsCYsYsCYs*AMSM -&
-  &  4._dp*TrYsCYsYzadjYz*AMSM
-
-
-  DAMSM = oo16pi2*( betaAMSM1 + oo16pi2 * betaAMSM2 )
-
-
-  Else
-  DAMSM = oo16pi2* betaAMSM1
-  End If
-
-
-  !--------------------
-  ! mq2
-  !--------------------
-
-  Do i1 = 1,3
-  Do i2 = 1,3
-  betamq21(i1,i2) = mq2TYdCYd(i1,i2) + mq2TYuCYu(i1,i2) + 2._dp*TAYdCAYd(i1,i2)         &
-  &  + 2._dp*TAYuCAYu(i1,i2) + 2._dp*mHd2*TYdCYd(i1,i2) + TYdCYdmq2(i1,i2) +               &
-  &  2._dp*TYdmd2CYd(i1,i2) + 2._dp*mHu2*TYuCYu(i1,i2) + TYuCYumq2(i1,i2) + 2._dp*TYumu2CYu(i1,i2)
-
-  If (i1.eq.i2) Then
-  betamq21(i1,i2) = betamq21(i1,i2)+(-2._dp*g12*MassB*Conjg(MassB)/15._dp - 32._dp*g32*MassG*Conjg(MassG)&
-  & /3._dp - 6._dp*g22*MassWB*Conjg(MassWB) + (g12*Tr1(1))/3._dp)
-  End If
-   End Do
-  End Do
-
-
-  If (TwoLoopRGE) Then
-  Do i1 = 1,3
-  Do i2 = 1,3
-  betamq22(i1,i2) = 2._dp*g12*mq2TYdCYd(i1,i2)/5._dp - 3._dp*TrYdadjYd*mq2TYdCYd(i1,i2)&
-  &  - TrYeadjYe*mq2TYdCYd(i1,i2) - 3._dp*AbsL1sq*mq2TYdCYd(i1,i2) - 2._dp*mq2TYdCYdTYdCYd(i1,i2)&
-  &  - 4._dp*mq2TYdCYsYsCYd(i1,i2) - 2._dp*mq2TYdCYzTYzCYd(i1,i2) + 4._dp*g12*mq2TYuCYu(i1,i2)&
-  & /5._dp - 3._dp*TrYuadjYu*mq2TYuCYu(i1,i2) - 3._dp*AbsL2sq*mq2TYuCYu(i1,i2)        &
-  &  - 2._dp*mq2TYuCYuTYuCYu(i1,i2) + 4._dp*g12*TAYdCAYd(i1,i2)/5._dp - 6._dp*TrYdadjYd*TAYdCAYd(i1,i2)&
-  &  - 2._dp*TrYeadjYe*TAYdCAYd(i1,i2) - 6._dp*AbsL1sq*TAYdCAYd(i1,i2) -              &
-  &  4._dp*TAYdCAYdTYdCYd(i1,i2) - 8._dp*TAYdCAYsYsCYd(i1,i2) - 4._dp*TAYdCAYzTYzCYd(i1,i2)&
-  &  - 6._dp*TrYdadjAYd*TAYdCYd(i1,i2) - 2._dp*TrYeadjAYe*TAYdCYd(i1,i2) - 4._dp*g12*Conjg(MassB)&
-  & *TAYdCYd(i1,i2)/5._dp - 6._dp*L1*Conjg(AL1)*TAYdCYd(i1,i2) - 4._dp*TAYdCYdTYdCAYd(i1,i2)&
-  &  - 8._dp*TAYdCYsYsCAYd(i1,i2) - 4._dp*TAYdCYzTYzCAYd(i1,i2) + 8._dp*g12*TAYuCAYu(i1,i2)&
-  & /5._dp - 6._dp*TrYuadjYu*TAYuCAYu(i1,i2) - 6._dp*AbsL2sq*TAYuCAYu(i1,i2)          &
-  &  - 4._dp*TAYuCAYuTYuCYu(i1,i2) - 6._dp*TrYuadjAYu*TAYuCYu(i1,i2) - 8._dp*g12*Conjg(MassB)&
-  & *TAYuCYu(i1,i2)/5._dp - 6._dp*L2*Conjg(AL2)*TAYuCYu(i1,i2) - 4._dp*TAYuCYuTYuCAYu(i1,i2)&
-  &  - 4._dp*g12*MassB*TYdCAYd(i1,i2)/5._dp - 6._dp*TrAYdadjYd*TYdCAYd(i1,i2)            &
-  &  - 2._dp*TrAYeadjYe*TYdCAYd(i1,i2) - 6._dp*AL1*Conjg(L1)*TYdCAYd(i1,i2) -              &
-  &  4._dp*TYdCAYdTAYdCYd(i1,i2) - 8._dp*TYdCAYsAYsCYd(i1,i2) - 4._dp*TYdCAYzTAYzCYd(i1,i2)&
-  &  + 4._dp*g12*mHd2*TYdCYd(i1,i2)/5._dp - 6._dp*TrAYdadjAYd*TYdCYd(i1,i2)              &
-  &  - 2._dp*TrAYeadjAYe*TYdCYd(i1,i2) - 6._dp*Trmd2YdadjYd*TYdCYd(i1,i2) - 2._dp*Trme2YeadjYe*TYdCYd(i1,i2)&
-  &  - 12._dp*mHd2*TrYdadjYd*TYdCYd(i1,i2) - 6._dp*TrYdmq2adjYd*TYdCYd(i1,i2)              &
-  &  - 4._dp*mHd2*TrYeadjYe*TYdCYd(i1,i2) - 2._dp*TrYeml2adjYe*TYdCYd(i1,i2)               &
-  &  - 18._dp*L1*mHd2*Conjg(L1)*TYdCYd(i1,i2) - 6._dp*L1*mt2*Conjg(L1)*TYdCYd(i1,i2)       &
-  &  + 8._dp*g12*MassB*Conjg(MassB)*TYdCYd(i1,i2)/5._dp - 6._dp*AL1*Conjg(AL1)           &
-  & *TYdCYd(i1,i2) + 2._dp*g12*TYdCYdmq2(i1,i2)/5._dp - 3._dp*TrYdadjYd*TYdCYdmq2(i1,i2) &
-  &  - TrYeadjYe*TYdCYdmq2(i1,i2) - 3._dp*AbsL1sq*TYdCYdmq2(i1,i2) - 4._dp*TYdCYdmq2TYdCYd(i1,i2)&
-  &  - 4._dp*TYdCYdTAYdCAYd(i1,i2) - 8._dp*mHd2*TYdCYdTYdCYd(i1,i2) - 2._dp*TYdCYdTYdCYdmq2(i1,i2)&
-  &  - 4._dp*TYdCYdTYdmd2CYd(i1,i2) - 8._dp*TYdCYsAYsCAYd(i1,i2) - 8._dp*TYdCYsmd2YsCYd(i1,i2)&
-  &  - 8._dp*mHd2*TYdCYsYsCYd(i1,i2) - 8._dp*ms2*TYdCYsYsCYd(i1,i2) - 4._dp*TYdCYsYsCYdmq2(i1,i2)&
-  &  - 8._dp*TYdCYsYsmd2CYd(i1,i2) - 4._dp*TYdCYzml2TYzCYd(i1,i2) - 4._dp*TYdCYzTAYzCAYd(i1,i2)&
-  &  - 4._dp*mHd2*TYdCYzTYzCYd(i1,i2) - 4._dp*mz2*TYdCYzTYzCYd(i1,i2) - 2._dp*TYdCYzTYzCYdmq2(i1,i2)&
-  &  - 4._dp*TYdCYzTYzmd2CYd(i1,i2) + 4._dp*g12*TYdmd2CYd(i1,i2)/5._dp - 6._dp*TrYdadjYd*TYdmd2CYd(i1,i2)&
-  &  - 2._dp*TrYeadjYe*TYdmd2CYd(i1,i2) - 6._dp*AbsL1sq*TYdmd2CYd(i1,i2)              &
-  &  - 4._dp*TYdmd2CYdTYdCYd(i1,i2) - 8._dp*TYdmd2CYsYsCYd(i1,i2) - 4._dp*TYdmd2CYzTYzCYd(i1,i2)&
-  &  - 8._dp*g12*MassB*TYuCAYu(i1,i2)/5._dp - 6._dp*TrAYuadjYu*TYuCAYu(i1,i2)            &
-  &  - 6._dp*AL2*Conjg(L2)*TYuCAYu(i1,i2) - 4._dp*TYuCAYuTAYuCYu(i1,i2) + 8._dp*g12*mHu2*TYuCYu(i1,i2)&
-  & /5._dp - 6._dp*TrAYuadjAYu*TYuCYu(i1,i2) - 6._dp*Trmu2YuadjYu*TYuCYu(i1,i2)            &
-  &  - 12._dp*mHu2*TrYuadjYu*TYuCYu(i1,i2) - 6._dp*TrYumq2adjYu*TYuCYu(i1,i2)              &
-  &  - 18._dp*L2*mHu2*Conjg(L2)*TYuCYu(i1,i2) - 6._dp*L2*mtb2*Conjg(L2)*TYuCYu(i1,i2)      &
-  &  + 16._dp*g12*MassB*Conjg(MassB)*TYuCYu(i1,i2)/5._dp - 6._dp*AL2*Conjg(AL2)          &
-  & *TYuCYu(i1,i2) + 4._dp*g12*TYuCYumq2(i1,i2)/5._dp - 3._dp*TrYuadjYu*TYuCYumq2(i1,i2) &
-  &  - 3._dp*AbsL2sq*TYuCYumq2(i1,i2) - 4._dp*TYuCYumq2TYuCYu(i1,i2) - 4._dp*TYuCYuTAYuCAYu(i1,i2)&
-  &  - 8._dp*mHu2*TYuCYuTYuCYu(i1,i2) - 2._dp*TYuCYuTYuCYumq2(i1,i2) - 4._dp*TYuCYuTYumu2CYu(i1,i2)&
-  &  + 8._dp*g12*TYumu2CYu(i1,i2)/5._dp - 6._dp*TrYuadjYu*TYumu2CYu(i1,i2)               &
-  &  - 6._dp*AbsL2sq*TYumu2CYu(i1,i2) - 4._dp*TYumu2CYuTYuCYu(i1,i2)
-
-  If (i1.eq.i2) Then
-  betamq22(i1,i2) = betamq22(i1,i2)+(409._dp*g14*MassB*Conjg(MassB)/75._dp + 2._dp*g12*g22*MassB*Conjg(MassB)&
-  & /5._dp + 32._dp*g12*g32*MassB*Conjg(MassB)/45._dp + 16._dp*g12*g32*MassG*Conjg(MassB)&
-  & /45._dp + (g12*g22*MassWB*Conjg(MassB))/5._dp + 16._dp*g12*g32*MassB*Conjg(MassG)&
-  & /45._dp + 32._dp*g12*g32*MassG*Conjg(MassG)/45._dp + 32._dp*g22*g32*MassG*Conjg(MassG)&
-  &  + 544._dp*g34*MassG*Conjg(MassG)/3._dp + 16._dp*g22*g32*MassWB*Conjg(MassG)     &
-  &  + (g12*g22*MassB*Conjg(MassWB))/5._dp + 16._dp*g22*g32*MassG*Conjg(MassWB)    &
-  &  + 2._dp*g12*g22*MassWB*Conjg(MassWB)/5._dp + 159._dp*g24*MassWB*Conjg(MassWB)   &
-  &  + 32._dp*g22*g32*MassWB*Conjg(MassWB) + 2._dp*g14*Tr2(1)/15._dp +               &
-  &  6._dp*g24*Tr2(2) + 32._dp*g34*Tr2(3)/3._dp + 4._dp*g12*Tr3(1)/3._dp +           &
-  &  4._dp*g32*Tr3(3) + 4._dp*(g32*Tr3(3))/sqrt3)
-  End If
-   End Do
-  End Do
-
-
-  Dmq2 = oo16pi2*( betamq21 + oo16pi2 * betamq22 )
-
-
-  Else
-  Dmq2 = oo16pi2* betamq21
-  End If
-
-
-  !--------------------
-  ! ml2
-  !--------------------
-
-  Do i1 = 1,3
-  Do i2 = 1,3
-  betaml21(i1,i2) = 6._dp*AYtCAYt(i1,i2) + ml2TYeCYe(i1,i2) + 3._dp*ml2TYzCYz(i1,i2)    &
-  &  + 3._dp*ml2YtCYt(i1,i2) + 2._dp*TAYeCAYe(i1,i2) + 6._dp*TAYzCAYz(i1,i2)               &
-  &  + 2._dp*mHd2*TYeCYe(i1,i2) + TYeCYeml2(i1,i2) + 2._dp*TYeme2CYe(i1,i2) +              &
-  &  6._dp*mz2*TYzCYz(i1,i2) + 3._dp*TYzCYzml2(i1,i2) + 6._dp*TYzmd2CYz(i1,i2)             &
-  &  + 6._dp*mt2*YtCYt(i1,i2) + 3._dp*YtCYtml2(i1,i2) + 6._dp*Ytml2CYt(i1,i2)
-
-  If (i1.eq.i2) Then
-  betaml21(i1,i2) = betaml21(i1,i2)+(-6._dp*g12*MassB*Conjg(MassB)/5._dp - 6._dp*g22*MassWB*Conjg(MassWB)&
-  &  - g12*Tr1(1))
-  End If
-   End Do
-  End Do
-
-
-  If (TwoLoopRGE) Then
-  Do i1 = 1,3
-  Do i2 = 1,3
-  betaml22(i1,i2) = -6._dp*AYtadjAYeYeCYt(i1,i2) - 18._dp*AYtadjAYzYzCYt(i1,i2)         &
-  &  - 6._dp*AYtadjYeYeCAYt(i1,i2) - 18._dp*AYtadjYzYzCAYt(i1,i2) + 36._dp*g12*AYtCAYt(i1,i2)&
-  & /5._dp + 24._dp*g22*AYtCAYt(i1,i2) - 9._dp*TrCYtYt*AYtCAYt(i1,i2)/2._dp -            &
-  &  3._dp*TrYtCYt*AYtCAYt(i1,i2)/2._dp - 18._dp*AYtCAYtYtCYt(i1,i2) - 6._dp*TrYtCAYt*AYtCYt(i1,i2)&
-  &  - 18._dp*AYtCYtYtCAYt(i1,i2) - 6._dp*L1*AYtCAYt(i1,i2)*Conjg(L1) - 36._dp*g12*AYtCYt(i1,i2)&
-  & *Conjg(MassB)/5._dp - 24._dp*g22*AYtCYt(i1,i2)*Conjg(MassWB) - 6._dp*L1*AYtCYt(i1,i2)&
-  & *Conjg(AL1) + 6._dp*g12*ml2TYeCYe(i1,i2)/5._dp - 3._dp*TrYdadjYd*ml2TYeCYe(i1,i2)    &
-  &  - TrYeadjYe*ml2TYeCYe(i1,i2) - 3._dp*AbsL1sq*ml2TYeCYe(i1,i2) - 2._dp*ml2TYeCYeTYeCYe(i1,i2)&
-  &  - 6._dp*ml2TYzCYdTYdCYz(i1,i2) - 12._dp*ml2TYzCYsYsCYz(i1,i2) - 2._dp*g12*ml2TYzCYz(i1,i2)&
-  & /5._dp + 16._dp*g32*ml2TYzCYz(i1,i2) - 3._dp*TrYzadjYz*ml2TYzCYz(i1,i2)              &
-  &  - 6._dp*ml2TYzCYzTYzCYz(i1,i2) - 3._dp*ml2YtadjYeYeCYt(i1,i2) - 9._dp*ml2YtadjYzYzCYt(i1,i2)&
-  &  + 18._dp*g12*ml2YtCYt(i1,i2)/5._dp + 12._dp*g22*ml2YtCYt(i1,i2) - 9._dp*TrCYtYt*ml2YtCYt(i1,i2)&
-  & /4._dp - 3._dp*TrYtCYt*ml2YtCYt(i1,i2)/4._dp - 3._dp*AbsL1sq*ml2YtCYt(i1,i2)      &
-  &  - 9._dp*ml2YtCYtYtCYt(i1,i2) + 12._dp*g12*TAYeCAYe(i1,i2)/5._dp - 6._dp*TrYdadjYd*TAYeCAYe(i1,i2)&
-  &  - 2._dp*TrYeadjYe*TAYeCAYe(i1,i2) - 6._dp*AbsL1sq*TAYeCAYe(i1,i2) -              &
-  &  4._dp*TAYeCAYeTYeCYe(i1,i2) - 6._dp*TrYdadjAYd*TAYeCYe(i1,i2) - 2._dp*TrYeadjAYe*TAYeCYe(i1,i2)&
-  &  - 12._dp*g12*Conjg(MassB)*TAYeCYe(i1,i2)/5._dp - 6._dp*L1*Conjg(AL1)*TAYeCYe(i1,i2) &
-  &  - 4._dp*TAYeCYeTYeCAYe(i1,i2) - 12._dp*TAYzCAYdTYdCYz(i1,i2) - 24._dp*TAYzCAYsYsCYz(i1,i2)&
-  &  - 4._dp*g12*TAYzCAYz(i1,i2)/5._dp + 32._dp*g32*TAYzCAYz(i1,i2) - 6._dp*TrYzadjYz*TAYzCAYz(i1,i2)&
-  &  - 12._dp*TAYzCAYzTYzCYz(i1,i2) - 12._dp*TAYzCYdTYdCAYz(i1,i2) - 24._dp*TAYzCYsYsCAYz(i1,i2)&
-  &  - 6._dp*TrYzadjAYz*TAYzCYz(i1,i2) + 4._dp*g12*Conjg(MassB)*TAYzCYz(i1,i2)           &
-  & /5._dp - 32._dp*g32*Conjg(MassG)*TAYzCYz(i1,i2) - 12._dp*TAYzCYzTYzCAYz(i1,i2)       &
-  &  - 12._dp*g12*MassB*TYeCAYe(i1,i2)/5._dp - 6._dp*TrAYdadjYd*TYeCAYe(i1,i2)           &
-  &  - 2._dp*TrAYeadjYe*TYeCAYe(i1,i2) - 6._dp*AL1*Conjg(L1)*TYeCAYe(i1,i2) -              &
-  &  4._dp*TYeCAYeTAYeCYe(i1,i2) + 12._dp*g12*mHd2*TYeCYe(i1,i2)/5._dp - 6._dp*TrAYdadjAYd*TYeCYe(i1,i2)&
-  &  - 2._dp*TrAYeadjAYe*TYeCYe(i1,i2) - 6._dp*Trmd2YdadjYd*TYeCYe(i1,i2) - 2._dp*Trme2YeadjYe*TYeCYe(i1,i2)&
-  &  - 12._dp*mHd2*TrYdadjYd*TYeCYe(i1,i2) - 6._dp*TrYdmq2adjYd*TYeCYe(i1,i2)              &
-  &  - 4._dp*mHd2*TrYeadjYe*TYeCYe(i1,i2) - 2._dp*TrYeml2adjYe*TYeCYe(i1,i2)               &
-  &  - 18._dp*L1*mHd2*Conjg(L1)*TYeCYe(i1,i2) - 6._dp*L1*mt2*Conjg(L1)*TYeCYe(i1,i2)       &
-  &  + 24._dp*g12*MassB*Conjg(MassB)*TYeCYe(i1,i2)/5._dp - 6._dp*AL1*Conjg(AL1)          &
-  & *TYeCYe(i1,i2) + 6._dp*g12*TYeCYeml2(i1,i2)/5._dp - 3._dp*TrYdadjYd*TYeCYeml2(i1,i2) &
-  &  - TrYeadjYe*TYeCYeml2(i1,i2) - 3._dp*AbsL1sq*TYeCYeml2(i1,i2) - 4._dp*TYeCYeml2TYeCYe(i1,i2)&
-  &  - 4._dp*TYeCYeTAYeCAYe(i1,i2) - 8._dp*mHd2*TYeCYeTYeCYe(i1,i2) - 2._dp*TYeCYeTYeCYeml2(i1,i2)&
-  &  - 4._dp*TYeCYeTYeme2CYe(i1,i2) + 12._dp*g12*TYeme2CYe(i1,i2)/5._dp - 6._dp*TrYdadjYd*TYeme2CYe(i1,i2)&
-  &  - 2._dp*TrYeadjYe*TYeme2CYe(i1,i2) - 6._dp*AbsL1sq*TYeme2CYe(i1,i2)              &
-  &  - 4._dp*TYeme2CYeTYeCYe(i1,i2) - 12._dp*TYzCAYdTAYdCYz(i1,i2) - 24._dp*TYzCAYsAYsCYz(i1,i2)&
-  &  + 4._dp*g12*MassB*TYzCAYz(i1,i2)/5._dp - 32._dp*g32*MassG*TYzCAYz(i1,i2)          &
-  &  - 6._dp*TrAYzadjYz*TYzCAYz(i1,i2) - 12._dp*TYzCAYzTAYzCYz(i1,i2) - 12._dp*TYzCYdmq2TYdCYz(i1,i2)&
-  &  - 12._dp*TYzCYdTAYdCAYz(i1,i2) - 12._dp*mHd2*TYzCYdTYdCYz(i1,i2) - 12._dp*mz2*TYzCYdTYdCYz(i1,i2)&
-  &  - 6._dp*TYzCYdTYdCYzml2(i1,i2) - 12._dp*TYzCYdTYdmd2CYz(i1,i2) - 24._dp*TYzCYsAYsCAYz(i1,i2)&
-  &  - 24._dp*TYzCYsmd2YsCYz(i1,i2) - 24._dp*ms2*TYzCYsYsCYz(i1,i2) - 24._dp*mz2*TYzCYsYsCYz(i1,i2)&
-  &  - 12._dp*TYzCYsYsCYzml2(i1,i2) - 24._dp*TYzCYsYsmd2CYz(i1,i2) - 4._dp*g12*mz2*TYzCYz(i1,i2)&
-  & /5._dp + 32._dp*g32*mz2*TYzCYz(i1,i2) - 6._dp*TrAYzadjAYz*TYzCYz(i1,i2)              &
-  &  - 6._dp*Trmd2YzadjYz*TYzCYz(i1,i2) - 12._dp*mz2*TrYzadjYz*TYzCYz(i1,i2)               &
-  &  - 6._dp*TrYzml2adjYz*TYzCYz(i1,i2) - 8._dp*g12*MassB*Conjg(MassB)*TYzCYz(i1,i2)     &
-  & /5._dp + 64._dp*g32*MassG*Conjg(MassG)*TYzCYz(i1,i2) - 2._dp*g12*TYzCYzml2(i1,i2)  &
-  & /5._dp + 16._dp*g32*TYzCYzml2(i1,i2) - 3._dp*TrYzadjYz*TYzCYzml2(i1,i2)              &
-  &  - 12._dp*TYzCYzml2TYzCYz(i1,i2) - 12._dp*TYzCYzTAYzCAYz(i1,i2) - 24._dp*mz2*TYzCYzTYzCYz(i1,i2)&
-  &  - 6._dp*TYzCYzTYzCYzml2(i1,i2) - 12._dp*TYzCYzTYzmd2CYz(i1,i2) - 12._dp*TYzmd2CYdTYdCYz(i1,i2)&
-  &  - 24._dp*TYzmd2CYsYsCYz(i1,i2) - 4._dp*g12*TYzmd2CYz(i1,i2)/5._dp + 32._dp*g32*TYzmd2CYz(i1,i2)&
-  &  - 6._dp*TrYzadjYz*TYzmd2CYz(i1,i2) - 12._dp*TYzmd2CYzTYzCYz(i1,i2) - 6._dp*YtadjAYeAYeCYt(i1,i2)&
-  &  - 18._dp*YtadjAYzAYzCYt(i1,i2) - 6._dp*YtadjYeAYeCAYt(i1,i2) - 6._dp*YtadjYeme2YeCYt(i1,i2)&
-  &  - 6._dp*mHd2*YtadjYeYeCYt(i1,i2) - 6._dp*mt2*YtadjYeYeCYt(i1,i2) - 3._dp*YtadjYeYeCYtml2(i1,i2)&
-  &  - 6._dp*YtadjYeYeml2CYt(i1,i2) - 18._dp*YtadjYzAYzCAYt(i1,i2) - 18._dp*YtadjYzmd2YzCYt(i1,i2)&
-  &  - 18._dp*mt2*YtadjYzYzCYt(i1,i2) - 18._dp*mz2*YtadjYzYzCYt(i1,i2) - 9._dp*YtadjYzYzCYtml2(i1,i2)&
-  &  - 18._dp*YtadjYzYzml2CYt(i1,i2) - 36._dp*g12*MassB*YtCAYt(i1,i2)/5._dp -            &
-  &  24._dp*g22*MassWB*YtCAYt(i1,i2) - 6._dp*TrCYtAYt*YtCAYt(i1,i2) - 6._dp*AL1*Conjg(L1)&
-  & *YtCAYt(i1,i2) - 18._dp*YtCAYtAYtCYt(i1,i2) + 36._dp*g12*mt2*YtCYt(i1,i2)            &
-  & /5._dp + 24._dp*g22*mt2*YtCYt(i1,i2) - 3._dp*TrAYtCAYt*YtCYt(i1,i2)/2._dp -          &
-  &  9._dp*TrCAYtAYt*YtCYt(i1,i2)/2._dp - 3._dp*TrCYtml2Yt*YtCYt(i1,i2) - 9._dp*mt2*TrCYtYt*YtCYt(i1,i2)&
-  &  - 6._dp*TrCYtYtml2*YtCYt(i1,i2) - 3._dp*mt2*TrYtCYt*YtCYt(i1,i2) - 3._dp*TrYtCYtml2*YtCYt(i1,i2)&
-  &  - 12._dp*L1*mHd2*Conjg(L1)*YtCYt(i1,i2) - 12._dp*L1*mt2*Conjg(L1)*YtCYt(i1,i2)        &
-  &  + 72._dp*g12*MassB*Conjg(MassB)*YtCYt(i1,i2)/5._dp + 48._dp*g22*MassWB*Conjg(MassWB)&
-  & *YtCYt(i1,i2) - 6._dp*AL1*Conjg(AL1)*YtCYt(i1,i2) - 18._dp*YtCYtAYtCAYt(i1,i2)         &
-  &  + 18._dp*g12*YtCYtml2(i1,i2)/5._dp + 12._dp*g22*YtCYtml2(i1,i2) - 9._dp*TrCYtYt*YtCYtml2(i1,i2)&
-  & /4._dp - 3._dp*TrYtCYt*YtCYtml2(i1,i2)/4._dp - 3._dp*AbsL1sq*YtCYtml2(i1,i2)      &
-  &  - 18._dp*YtCYtml2YtCYt(i1,i2) - 36._dp*mt2*YtCYtYtCYt(i1,i2) - 9._dp*YtCYtYtCYtml2(i1,i2)&
-  &  - 18._dp*YtCYtYtml2CYt(i1,i2) - 6._dp*Ytml2adjYeYeCYt(i1,i2) - 18._dp*Ytml2adjYzYzCYt(i1,i2)&
-  &  + 36._dp*g12*Ytml2CYt(i1,i2)/5._dp + 24._dp*g22*Ytml2CYt(i1,i2) - 9._dp*TrCYtYt*Ytml2CYt(i1,i2)&
-  & /2._dp - 3._dp*TrYtCYt*Ytml2CYt(i1,i2)/2._dp - 6._dp*AbsL1sq*Ytml2CYt(i1,i2)      &
-  &  - 18._dp*Ytml2CYtYtCYt(i1,i2)
-
-  If (i1.eq.i2) Then
-  betaml22(i1,i2) = betaml22(i1,i2)+(1251._dp*g14*MassB*Conjg(MassB)/25._dp + 18._dp*g12*g22*MassB*Conjg(MassB)&
-  & /5._dp + 9._dp*g12*g22*MassWB*Conjg(MassB)/5._dp + 9._dp*g12*g22*MassB*Conjg(MassWB)&
-  & /5._dp + 18._dp*g12*g22*MassWB*Conjg(MassWB)/5._dp + 159._dp*g24*MassWB*Conjg(MassWB)&
-  &  + 6._dp*g14*Tr2(1)/5._dp + 6._dp*g24*Tr2(2) - 4._dp*g12*Tr3(1))
-  End If
-   End Do
-  End Do
-
-
-  Dml2 = oo16pi2*( betaml21 + oo16pi2 * betaml22 )
-
-
-  Else
-  Dml2 = oo16pi2* betaml21
-  End If
-
-
-  !--------------------
-  ! mHd2
-  !--------------------
-
-  betamHd21 = 6._dp*TrAYdadjAYd + 2._dp*TrAYeadjAYe + 6._dp*Trmd2YdadjYd +              &
-  &  2._dp*Trme2YeadjYe + 6._dp*mHd2*TrYdadjYd + 6._dp*TrYdmq2adjYd + 2._dp*mHd2*TrYeadjYe +&
-  &  2._dp*TrYeml2adjYe + 12._dp*L1*mHd2*Conjg(L1) + 6._dp*L1*mt2*Conjg(L1) -              &
-  &  6._dp*g12*MassB*Conjg(MassB)/5._dp - 6._dp*g22*MassWB*Conjg(MassWB)               &
-  &  + 6._dp*AL1*Conjg(AL1) - g12*Tr1(1)
-
-
-  If (TwoLoopRGE) Then
-  betamHd22 = -4._dp*g12*TrAYdadjAYd/5._dp + 32._dp*g32*TrAYdadjAYd +               &
-  &  12._dp*g12*TrAYeadjAYe/5._dp - 12._dp*TrCYsAYdadjAYdYs - 15._dp*TrCYsYdadjAYdAYs -  &
-  &  12._dp*TrCYsYdadjYdmd2Ys - 21._dp*mHd2*TrCYsYdadjYdYs/2._dp - 12._dp*ms2*TrCYsYdadjYdYs -&
-  &  12._dp*TrCYsYdadjYdYsmd2 - 12._dp*TrCYsYdmq2adjYdYs - 2._dp*TrCYtAYtadjAYeYe -        &
-  &  3._dp*TrCYtYtadjAYeAYe - 3._dp*TrCYtYtadjYeme2Ye - 3._dp*mHd2*TrCYtYtadjYeYe/2._dp -  &
-  &  2._dp*mt2*TrCYtYtadjYeYe - 3._dp*TrCYtYtadjYeYeml2 - 2._dp*TrCYtYtml2adjYeYe -        &
-  &  4._dp*g12*Trmd2YdadjYd/5._dp + 32._dp*g32*Trmd2YdadjYd - 9._dp*Trmd2YdadjYdYsCYs +&
-  &  12._dp*g12*Trme2YeadjYe/5._dp - Trme2YeCYtYtadjYe - 3._dp*Trmq2adjYdYsCYsYd +       &
-  &  4._dp*g12*MassB*TrYdadjAYd/5._dp - 32._dp*g32*MassG*TrYdadjAYd - 36._dp*TrYdadjAYdAYdadjYd -&
-  &  9._dp*TrYdadjAYdAYsCYs - 12._dp*TrYdadjAYdAYzadjYz - 6._dp*TrYdadjAYuAYuadjYd -       &
-  &  4._dp*g12*mHd2*TrYdadjYd/5._dp + 32._dp*g32*mHd2*TrYdadjYd - 36._dp*TrYdadjYdAYdadjAYd -&
-  &  24._dp*TrYdadjYdAYsCAYs - 12._dp*TrYdadjYdAYzadjAYz - 36._dp*TrYdadjYdmd2YdadjYd -    &
-  &  9._dp*TrYdadjYdmd2YsCYs - 12._dp*TrYdadjYdmd2YzadjYz - 36._dp*mHd2*TrYdadjYdYdadjYd - &
-  &  18._dp*TrYdadjYdYdmq2adjYd - 9._dp*mHd2*TrYdadjYdYsCYs - 9._dp*ms2*TrYdadjYdYsCYs -   &
-  &  12._dp*mHd2*TrYdadjYdYzadjYz - 12._dp*mz2*TrYdadjYdYzadjYz - 12._dp*TrYdadjYdYzml2adjYz -&
-  &  6._dp*TrYdadjYuAYuadjAYd - 6._dp*TrYdadjYumu2YuadjYd - 3._dp*mHd2*TrYdadjYuYuadjYd -  &
-  &  4._dp*g12*TrYdmq2adjYd/5._dp + 32._dp*g32*TrYdmq2adjYd - 18._dp*TrYdmq2adjYdYdadjYd -&
-  &  9._dp*TrYdmq2adjYdYsCYs - 12._dp*TrYdmq2adjYdYzadjYz - 12._dp*g12*MassB*TrYeadjAYe/5._dp -&
-  &  12._dp*TrYeadjAYeAYeadjYe - 6._dp*TrYeadjAYzAYzadjYe + 12._dp*g12*mHd2*TrYeadjYe/5._dp -&
-  &  12._dp*TrYeadjYeAYeadjAYe - 12._dp*TrYeadjYeme2YeadjYe - 12._dp*mHd2*TrYeadjYeYeadjYe -&
-  &  6._dp*TrYeadjYeYeml2adjYe - 6._dp*TrYeadjYzAYzadjAYe - 6._dp*TrYeadjYzmd2YzadjYe -    &
-  &  3._dp*mHd2*TrYeadjYzYzadjYe - 6._dp*TrYeCAYtAYtadjYe - 4._dp*TrYeCYtAYtadjAYe -       &
-  &  3._dp*TrYeCYtml2YtadjYe - 7._dp*mHd2*TrYeCYtYtadjYe/2._dp - mt2*TrYeCYtYtadjYe -      &
-  &  TrYeCYtYtml2adjYe + 12._dp*g12*TrYeml2adjYe/5._dp - 6._dp*TrYeml2adjYeYeadjYe -     &
-  &  TrYeml2CYtYtadjYe - 24._dp*TrYsCAYsAYdadjYd - 12._dp*TrYsCYsAYdadjAYd -               &
-  &  15._dp*TrYsCYsmd2YdadjYd - 9._dp*mHd2*TrYsCYsYdadjYd/2._dp - 3._dp*ms2*TrYsCYsYdadjYd -&
-  &  3._dp*TrYsCYsYdadjYdmd2 - 12._dp*TrYsmd2CYsYdadjYd - 3._dp*TrYtadjAYeAYeCYt -         &
-  &  6._dp*TrYtadjYeAYeCAYt - 2._dp*TrYtadjYeme2YeCYt - mHd2*TrYtadjYeYeCYt -              &
-  &  3._dp*mt2*TrYtadjYeYeCYt - 3._dp*TrYtadjYeYeCYtml2 - 2._dp*TrYtadjYeYeml2CYt -        &
-  &  3._dp*TrYtml2adjYeYeCYt - 6._dp*TrYuadjAYdAYdadjYu - 6._dp*TrYuadjYdAYdadjAYu -       &
-  &  6._dp*TrYuadjYdmd2YdadjYu - 3._dp*mHd2*TrYuadjYdYdadjYu - 6._dp*mHu2*TrYuadjYdYdadjYu -&
-  &  6._dp*TrYuadjYdYdmq2adjYu - 6._dp*TrYumq2adjYdYdadjYu - 6._dp*TrYzadjAYeAYeadjYz -    &
-  &  12._dp*TrYzadjAYzAYdadjYd - 6._dp*TrYzadjYeAYeadjAYz - 6._dp*TrYzadjYeme2YeadjYz -    &
-  &  3._dp*mHd2*TrYzadjYeYeadjYz - 6._dp*mz2*TrYzadjYeYeadjYz - 6._dp*TrYzadjYeYeml2adjYz -&
-  &  12._dp*TrYzadjYzAYdadjAYd - 12._dp*TrYzadjYzmd2YdadjYd - 6._dp*TrYzml2adjYeYeadjYz +  &
-  &  72._dp*g12*L1*mHd2*Conjg(L1)/5._dp + 48._dp*g22*L1*mHd2*Conjg(L1) +               &
-  &  36._dp*g12*L1*mt2*Conjg(L1)/5._dp + 24._dp*g22*L1*mt2*Conjg(L1) - 18._dp*L1*TrAYdadjAYd*Conjg(L1)&
-  &  - 6._dp*L1*TrAYeadjAYe*Conjg(L1) - 3._dp*L1*TrAYtCAYt*Conjg(L1)/2._dp -               &
-  &  9._dp*L1*TrCAYtAYt*Conjg(L1)/2._dp - 3._dp*L1*TrCYtml2Yt*Conjg(L1) - 9._dp*L1*mHd2*TrCYtYt*Conjg(L1)&
-  &  - 9._dp*L1*mt2*TrCYtYt*Conjg(L1) - 6._dp*L1*TrCYtYtml2*Conjg(L1) - 18._dp*L1*Trmd2YdadjYd*Conjg(L1)&
-  &  - 6._dp*L1*Trme2YeadjYe*Conjg(L1) - 54._dp*L1*mHd2*TrYdadjYd*Conjg(L1) -              &
-  &  18._dp*L1*mt2*TrYdadjYd*Conjg(L1) - 18._dp*L1*TrYdmq2adjYd*Conjg(L1) - 18._dp*L1*mHd2*TrYeadjYe*Conjg(L1)&
-  &  - 6._dp*L1*mt2*TrYeadjYe*Conjg(L1) - 6._dp*L1*TrYeml2adjYe*Conjg(L1) - 3._dp*L1*mHd2*TrYtCYt*Conjg(L1)&
-  &  - 3._dp*L1*mt2*TrYtCYt*Conjg(L1) - 3._dp*L1*TrYtCYtml2*Conjg(L1) - 18._dp*TrYdadjAYd*AL1*Conjg(L1)&
-  &  - 6._dp*TrYeadjAYe*AL1*Conjg(L1) - 6._dp*TrYtCAYt*AL1*Conjg(L1) - 96._dp*L1**2*mHd2*Conjg(L1)&
-  & **2 - 48._dp*L1**2*mt2*Conjg(L1)**2 + 1251._dp*g14*MassB*Conjg(MassB)/25._dp +       &
-  &  18._dp*g12*g22*MassB*Conjg(MassB)/5._dp + 9._dp*g12*g22*MassWB*Conjg(MassB)   &
-  & /5._dp + 4._dp*g12*TrAYdadjYd*Conjg(MassB)/5._dp - 12._dp*g12*TrAYeadjYe*Conjg(MassB)&
-  & /5._dp - 8._dp*g12*MassB*TrYdadjYd*Conjg(MassB)/5._dp + 24._dp*g12*MassB*TrYeadjYe*Conjg(MassB)&
-  & /5._dp + 72._dp*g12*L1*MassB*Conjg(L1)*Conjg(MassB)/5._dp - 36._dp*g12*AL1*Conjg(L1)&
-  & *Conjg(MassB)/5._dp - 32._dp*g32*TrAYdadjYd*Conjg(MassG) + 64._dp*g32*MassG*TrYdadjYd*Conjg(MassG)&
-  &  + 9._dp*g12*g22*MassB*Conjg(MassWB)/5._dp + 18._dp*g12*g22*MassWB*Conjg(MassWB)&
-  & /5._dp + 159._dp*g24*MassWB*Conjg(MassWB) + 48._dp*g22*L1*MassWB*Conjg(L1)         &
-  & *Conjg(MassWB) - 24._dp*g22*AL1*Conjg(L1)*Conjg(MassWB) - 36._dp*g12*L1*MassB*Conjg(AL1)&
-  & /5._dp - 24._dp*g22*L1*MassWB*Conjg(AL1) - 18._dp*L1*TrAYdadjYd*Conjg(AL1)           &
-  &  - 6._dp*L1*TrAYeadjYe*Conjg(AL1) - 6._dp*L1*TrCYtAYt*Conjg(AL1) + 36._dp*g12*AL1*Conjg(AL1)&
-  & /5._dp + 24._dp*g22*AL1*Conjg(AL1) - 9._dp*TrCYtYt*AL1*Conjg(AL1)/2._dp -            &
-  &  18._dp*TrYdadjYd*AL1*Conjg(AL1) - 6._dp*TrYeadjYe*AL1*Conjg(AL1) - 3._dp*TrYtCYt*AL1*Conjg(AL1)&
-  & /2._dp - 96._dp*L1*AL1*Conjg(L1)*Conjg(AL1) + 6._dp*g14*Tr2(1)/5._dp +               &
-  &  6._dp*g24*Tr2(2) - 4._dp*g12*Tr3(1)
-
-
-  DmHd2 = oo16pi2*( betamHd21 + oo16pi2 * betamHd22 )
-
-
-  Else
-  DmHd2 = oo16pi2* betamHd21
-  End If
-
-
-  !--------------------
-  ! mHu2
-  !--------------------
-
-  betamHu21 = 6._dp*TrAYuadjAYu + 6._dp*Trmu2YuadjYu + 6._dp*mHu2*TrYuadjYu +           &
-  &  6._dp*TrYumq2adjYu + 12._dp*L2*mHu2*Conjg(L2) + 6._dp*L2*mtb2*Conjg(L2)               &
-  &  - 6._dp*g12*MassB*Conjg(MassB)/5._dp - 6._dp*g22*MassWB*Conjg(MassWB)             &
-  &  + 6._dp*AL2*Conjg(AL2) + g12*Tr1(1)
-
-
-  If (TwoLoopRGE) Then
-  betamHu22 = 8._dp*g12*TrAYuadjAYu/5._dp + 32._dp*g32*TrAYuadjAYu + 8._dp*g12*Trmu2YuadjYu/5._dp +&
-  &  32._dp*g32*Trmu2YuadjYu - 6._dp*TrYdadjAYuAYuadjYd - 6._dp*TrYdadjYuAYuadjAYd -     &
-  &  6._dp*TrYdadjYumu2YuadjYd - 6._dp*mHd2*TrYdadjYuYuadjYd - 3._dp*mHu2*TrYdadjYuYuadjYd -&
-  &  6._dp*TrYdadjYuYumq2adjYd - 6._dp*TrYdmq2adjYuYuadjYd - 6._dp*TrYuadjAYdAYdadjYu -    &
-  &  8._dp*g12*MassB*TrYuadjAYu/5._dp - 32._dp*g32*MassG*TrYuadjAYu - 36._dp*TrYuadjAYuAYuadjYu -&
-  &  6._dp*TrYuadjYdAYdadjAYu - 6._dp*TrYuadjYdmd2YdadjYu - 3._dp*mHu2*TrYuadjYdYdadjYu +  &
-  &  8._dp*g12*mHu2*TrYuadjYu/5._dp + 32._dp*g32*mHu2*TrYuadjYu - 36._dp*TrYuadjYuAYuadjAYu -&
-  &  36._dp*TrYuadjYumu2YuadjYu - 36._dp*mHu2*TrYuadjYuYuadjYu - 18._dp*TrYuadjYuYumq2adjYu +&
-  &  8._dp*g12*TrYumq2adjYu/5._dp + 32._dp*g32*TrYumq2adjYu - 18._dp*TrYumq2adjYuYuadjYu +&
-  &  72._dp*g12*L2*mHu2*Conjg(L2)/5._dp + 48._dp*g22*L2*mHu2*Conjg(L2) +               &
-  &  36._dp*g12*L2*mtb2*Conjg(L2)/5._dp + 24._dp*g22*L2*mtb2*Conjg(L2) -               &
-  &  18._dp*L2*TrAYuadjAYu*Conjg(L2) - 18._dp*L2*Trmu2YuadjYu*Conjg(L2) - 54._dp*L2*mHu2*TrYuadjYu*Conjg(L2)&
-  &  - 18._dp*L2*mtb2*TrYuadjYu*Conjg(L2) - 18._dp*L2*TrYumq2adjYu*Conjg(L2)               &
-  &  - 18._dp*TrYuadjAYu*AL2*Conjg(L2) - 96._dp*L2**2*mHu2*Conjg(L2)**2 - 48._dp*L2**2*mtb2*Conjg(L2)&
-  & **2 + 1251._dp*g14*MassB*Conjg(MassB)/25._dp + 18._dp*g12*g22*MassB*Conjg(MassB) &
-  & /5._dp + 9._dp*g12*g22*MassWB*Conjg(MassB)/5._dp - 8._dp*g12*TrAYuadjYu*Conjg(MassB)&
-  & /5._dp + 16._dp*g12*MassB*TrYuadjYu*Conjg(MassB)/5._dp + 72._dp*g12*L2*MassB*Conjg(L2)&
-  & *Conjg(MassB)/5._dp - 36._dp*g12*AL2*Conjg(L2)*Conjg(MassB)/5._dp - 32._dp*g32*TrAYuadjYu*Conjg(MassG)&
-  &  + 64._dp*g32*MassG*TrYuadjYu*Conjg(MassG) + 9._dp*g12*g22*MassB*Conjg(MassWB)   &
-  & /5._dp + 18._dp*g12*g22*MassWB*Conjg(MassWB)/5._dp + 159._dp*g24*MassWB*Conjg(MassWB)&
-  &  + 48._dp*g22*L2*MassWB*Conjg(L2)*Conjg(MassWB) - 24._dp*g22*AL2*Conjg(L2)         &
-  & *Conjg(MassWB) - 36._dp*g12*L2*MassB*Conjg(AL2)/5._dp - 24._dp*g22*L2*MassWB*Conjg(AL2)&
-  &  - 18._dp*L2*TrAYuadjYu*Conjg(AL2) + 36._dp*g12*AL2*Conjg(AL2)/5._dp +               &
-  &  24._dp*g22*AL2*Conjg(AL2) - 18._dp*TrYuadjYu*AL2*Conjg(AL2) - 96._dp*L2*AL2*Conjg(L2)&
-  & *Conjg(AL2) + 6._dp*g14*Tr2(1)/5._dp + 6._dp*g24*Tr2(2) + 4._dp*g12*Tr3(1)
-
-
-  DmHu2 = oo16pi2*( betamHu21 + oo16pi2 * betamHu22 )
-
-
-  Else
-  DmHu2 = oo16pi2* betamHu21
-  End If
-
-
-  !--------------------
-  ! md2
-  !--------------------
-
-  Do i1 = 1,3
-  Do i2 = 1,3
-  betamd21(i1,i2) = 4._dp*AYdadjAYd(i1,i2) + 8._dp*AYsCAYs(i1,i2) + 4._dp*AYzadjAYz(i1,i2)&
-  &  + 2._dp*md2YdadjYd(i1,i2) + 4._dp*md2YsCYs(i1,i2) + 2._dp*md2YzadjYz(i1,i2)           &
-  &  + 4._dp*mHd2*YdadjYd(i1,i2) + 2._dp*YdadjYdmd2(i1,i2) + 4._dp*Ydmq2adjYd(i1,i2)       &
-  &  + 8._dp*ms2*YsCYs(i1,i2) + 4._dp*YsCYsmd2(i1,i2) + 8._dp*Ysmd2CYs(i1,i2)              &
-  &  + 4._dp*mz2*YzadjYz(i1,i2) + 2._dp*YzadjYzmd2(i1,i2) + 4._dp*Yzml2adjYz(i1,i2)
-
-  If (i1.eq.i2) Then
-  betamd21(i1,i2) = betamd21(i1,i2)+(-8._dp*g12*MassB*Conjg(MassB)/15._dp - 32._dp*g32*MassG*Conjg(MassG)&
-  & /3._dp + 2._dp*g12*Tr1(1)/3._dp)
-  End If
-   End Do
-  End Do
-
-
-  If (TwoLoopRGE) Then
-  Do i1 = 1,3
-  Do i2 = 1,3
-  betamd22(i1,i2) = 4._dp*g12*AYdadjAYd(i1,i2)/5._dp + 12._dp*g22*AYdadjAYd(i1,i2)  &
-  &  - 12._dp*TrYdadjYd*AYdadjAYd(i1,i2) - 4._dp*TrYeadjYe*AYdadjAYd(i1,i2) -              &
-  &  4._dp*AYdadjAYdYdadjYd(i1,i2) - 4._dp*AYdadjAYuYuadjYd(i1,i2) - 12._dp*TrYdadjAYd*AYdadjYd(i1,i2)&
-  &  - 4._dp*TrYeadjAYe*AYdadjYd(i1,i2) - 4._dp*AYdadjYdYdadjAYd(i1,i2) - 4._dp*AYdadjYuYuadjAYd(i1,i2)&
-  &  - 16._dp*AYsCAYdTYdCYs(i1,i2) + 64._dp*g12*AYsCAYs(i1,i2)/15._dp + 160._dp*g32*AYsCAYs(i1,i2)&
-  & /3._dp - 6._dp*TrCYsYs*AYsCAYs(i1,i2) - 2._dp*TrYsCYs*AYsCAYs(i1,i2) - 32._dp*AYsCAYsYsCYs(i1,i2)&
-  &  - 16._dp*AYsCAYzTYzCYs(i1,i2) - 16._dp*AYsCYdTYdCAYs(i1,i2) - 8._dp*TrYsCAYs*AYsCYs(i1,i2)&
-  &  - 32._dp*AYsCYsYsCAYs(i1,i2) - 16._dp*AYsCYzTYzCAYs(i1,i2) - 4._dp*AYzadjAYeYeadjYz(i1,i2)&
-  &  + 4._dp*g12*AYzadjAYz(i1,i2)/5._dp + 12._dp*g22*AYzadjAYz(i1,i2) - 4._dp*TrYzadjYz*AYzadjAYz(i1,i2)&
-  &  - 12._dp*AYzadjAYzYzadjYz(i1,i2) - 4._dp*AYzadjYeYeadjAYz(i1,i2) - 4._dp*TrYzadjAYz*AYzadjYz(i1,i2)&
-  &  - 12._dp*AYzadjYzYzadjAYz(i1,i2) - 12._dp*AYzCAYtYtadjYz(i1,i2) - 12._dp*AYzCYtYtadjAYz(i1,i2)&
-  &  - 12._dp*L1*AYdadjAYd(i1,i2)*Conjg(L1) - 4._dp*g12*AYdadjYd(i1,i2)*Conjg(MassB)     &
-  & /5._dp - 64._dp*g12*AYsCYs(i1,i2)*Conjg(MassB)/15._dp - 4._dp*g12*AYzadjYz(i1,i2)  &
-  & *Conjg(MassB)/5._dp - 160._dp*g32*AYsCYs(i1,i2)*Conjg(MassG)/3._dp - 12._dp*g22*AYdadjYd(i1,i2)&
-  & *Conjg(MassWB) - 12._dp*g22*AYzadjYz(i1,i2)*Conjg(MassWB) - 12._dp*L1*AYdadjYd(i1,i2)&
-  & *Conjg(AL1) + 2._dp*g12*md2YdadjYd(i1,i2)/5._dp + 6._dp*g22*md2YdadjYd(i1,i2)      &
-  &  - 6._dp*TrYdadjYd*md2YdadjYd(i1,i2) - 2._dp*TrYeadjYe*md2YdadjYd(i1,i2)               &
-  &  - 6._dp*AbsL1sq*md2YdadjYd(i1,i2) - 2._dp*md2YdadjYdYdadjYd(i1,i2)               &
-  &  - 2._dp*md2YdadjYuYuadjYd(i1,i2) - 8._dp*md2YsCYdTYdCYs(i1,i2) + 32._dp*g12*md2YsCYs(i1,i2)&
-  & /15._dp + 80._dp*g32*md2YsCYs(i1,i2)/3._dp - 3._dp*TrCYsYs*md2YsCYs(i1,i2)           &
-  &  - TrYsCYs*md2YsCYs(i1,i2) - 16._dp*md2YsCYsYsCYs(i1,i2) - 8._dp*md2YsCYzTYzCYs(i1,i2) &
-  &  - 2._dp*md2YzadjYeYeadjYz(i1,i2) + 2._dp*g12*md2YzadjYz(i1,i2)/5._dp +              &
-  &  6._dp*g22*md2YzadjYz(i1,i2) - 2._dp*TrYzadjYz*md2YzadjYz(i1,i2) - 6._dp*md2YzadjYzYzadjYz(i1,i2)&
-  &  - 6._dp*md2YzCYtYtadjYz(i1,i2) - 4._dp*g12*MassB*YdadjAYd(i1,i2)/5._dp -            &
-  &  12._dp*g22*MassWB*YdadjAYd(i1,i2) - 12._dp*TrAYdadjYd*YdadjAYd(i1,i2)               &
-  &  - 4._dp*TrAYeadjYe*YdadjAYd(i1,i2) - 12._dp*AL1*Conjg(L1)*YdadjAYd(i1,i2)             &
-  &  - 4._dp*YdadjAYdAYdadjYd(i1,i2) - 4._dp*YdadjAYuAYuadjYd(i1,i2) + 4._dp*g12*mHd2*YdadjYd(i1,i2)&
-  & /5._dp + 12._dp*g22*mHd2*YdadjYd(i1,i2) - 12._dp*TrAYdadjAYd*YdadjYd(i1,i2)          &
-  &  - 4._dp*TrAYeadjAYe*YdadjYd(i1,i2) - 12._dp*Trmd2YdadjYd*YdadjYd(i1,i2)               &
-  &  - 4._dp*Trme2YeadjYe*YdadjYd(i1,i2) - 24._dp*mHd2*TrYdadjYd*YdadjYd(i1,i2)            &
-  &  - 12._dp*TrYdmq2adjYd*YdadjYd(i1,i2) - 8._dp*mHd2*TrYeadjYe*YdadjYd(i1,i2)            &
-  &  - 4._dp*TrYeml2adjYe*YdadjYd(i1,i2) - 36._dp*L1*mHd2*Conjg(L1)*YdadjYd(i1,i2)         &
-  &  - 12._dp*L1*mt2*Conjg(L1)*YdadjYd(i1,i2) + 8._dp*g12*MassB*Conjg(MassB)             &
-  & *YdadjYd(i1,i2)/5._dp + 24._dp*g22*MassWB*Conjg(MassWB)*YdadjYd(i1,i2)               &
-  &  - 12._dp*AL1*Conjg(AL1)*YdadjYd(i1,i2) - 4._dp*YdadjYdAYdadjAYd(i1,i2) +              &
-  &  2._dp*g12*YdadjYdmd2(i1,i2)/5._dp + 6._dp*g22*YdadjYdmd2(i1,i2) - 6._dp*TrYdadjYd*YdadjYdmd2(i1,i2)&
-  &  - 2._dp*TrYeadjYe*YdadjYdmd2(i1,i2) - 6._dp*AbsL1sq*YdadjYdmd2(i1,i2)            &
-  &  - 4._dp*YdadjYdmd2YdadjYd(i1,i2) - 8._dp*mHd2*YdadjYdYdadjYd(i1,i2) - 2._dp*YdadjYdYdadjYdmd2(i1,i2)&
-  &  - 4._dp*YdadjYdYdmq2adjYd(i1,i2) - 4._dp*YdadjYuAYuadjAYd(i1,i2) - 4._dp*YdadjYumu2YuadjYd(i1,i2)&
-  &  - 4._dp*mHd2*YdadjYuYuadjYd(i1,i2) - 4._dp*mHu2*YdadjYuYuadjYd(i1,i2) -               &
-  &  2._dp*YdadjYuYuadjYdmd2(i1,i2) - 4._dp*YdadjYuYumq2adjYd(i1,i2) + 4._dp*g12*Ydmq2adjYd(i1,i2)&
-  & /5._dp + 12._dp*g22*Ydmq2adjYd(i1,i2) - 12._dp*TrYdadjYd*Ydmq2adjYd(i1,i2)           &
-  &  - 4._dp*TrYeadjYe*Ydmq2adjYd(i1,i2) - 12._dp*AbsL1sq*Ydmq2adjYd(i1,i2)           &
-  &  - 4._dp*Ydmq2adjYdYdadjYd(i1,i2) - 4._dp*Ydmq2adjYuYuadjYd(i1,i2) - 16._dp*YsCAYdTAYdCYs(i1,i2)&
-  &  - 64._dp*g12*MassB*YsCAYs(i1,i2)/15._dp - 160._dp*g32*MassG*YsCAYs(i1,i2)         &
-  & /3._dp - 8._dp*TrCYsAYs*YsCAYs(i1,i2) - 32._dp*YsCAYsAYsCYs(i1,i2) - 16._dp*YsCAYzTAYzCYs(i1,i2)&
-  &  - 16._dp*YsCYdmq2TYdCYs(i1,i2) - 16._dp*YsCYdTAYdCAYs(i1,i2) - 16._dp*mHd2*YsCYdTYdCYs(i1,i2)&
-  &  - 16._dp*ms2*YsCYdTYdCYs(i1,i2) - 8._dp*YsCYdTYdCYsmd2(i1,i2) - 16._dp*YsCYdTYdmd2CYs(i1,i2)&
-  &  + 64._dp*g12*ms2*YsCYs(i1,i2)/15._dp + 160._dp*g32*ms2*YsCYs(i1,i2)               &
-  & /3._dp - 2._dp*TrAYsCAYs*YsCYs(i1,i2) - 6._dp*TrCAYsAYs*YsCYs(i1,i2) - 4._dp*TrCYsmd2Ys*YsCYs(i1,i2)&
-  &  - 12._dp*ms2*TrCYsYs*YsCYs(i1,i2) - 8._dp*TrCYsYsmd2*YsCYs(i1,i2) - 4._dp*ms2*TrYsCYs*YsCYs(i1,i2)&
-  &  - 4._dp*TrYsCYsmd2*YsCYs(i1,i2) + 128._dp*g12*MassB*Conjg(MassB)*YsCYs(i1,i2)       &
-  & /15._dp + 320._dp*g32*MassG*Conjg(MassG)*YsCYs(i1,i2)/3._dp - 32._dp*YsCYsAYsCAYs(i1,i2)&
-  &  + 32._dp*g12*YsCYsmd2(i1,i2)/15._dp + 80._dp*g32*YsCYsmd2(i1,i2)/3._dp -          &
-  &  3._dp*TrCYsYs*YsCYsmd2(i1,i2) - TrYsCYs*YsCYsmd2(i1,i2) - 32._dp*YsCYsmd2YsCYs(i1,i2) &
-  &  - 64._dp*ms2*YsCYsYsCYs(i1,i2) - 16._dp*YsCYsYsCYsmd2(i1,i2) - 32._dp*YsCYsYsmd2CYs(i1,i2)&
-  &  - 16._dp*YsCYzml2TYzCYs(i1,i2) - 16._dp*YsCYzTAYzCAYs(i1,i2) - 16._dp*ms2*YsCYzTYzCYs(i1,i2)&
-  &  - 16._dp*mz2*YsCYzTYzCYs(i1,i2) - 8._dp*YsCYzTYzCYsmd2(i1,i2) - 16._dp*YsCYzTYzmd2CYs(i1,i2)&
-  &  - 16._dp*Ysmd2CYdTYdCYs(i1,i2) + 64._dp*g12*Ysmd2CYs(i1,i2)/15._dp + 160._dp*g32*Ysmd2CYs(i1,i2)&
-  & /3._dp - 6._dp*TrCYsYs*Ysmd2CYs(i1,i2) - 2._dp*TrYsCYs*Ysmd2CYs(i1,i2) -               &
-  &  32._dp*Ysmd2CYsYsCYs(i1,i2) - 16._dp*Ysmd2CYzTYzCYs(i1,i2) - 4._dp*YzadjAYeAYeadjYz(i1,i2)&
-  &  - 4._dp*g12*MassB*YzadjAYz(i1,i2)/5._dp - 12._dp*g22*MassWB*YzadjAYz(i1,i2)       &
-  &  - 4._dp*TrAYzadjYz*YzadjAYz(i1,i2) - 12._dp*YzadjAYzAYzadjYz(i1,i2) - 4._dp*YzadjYeAYeadjAYz(i1,i2)&
-  &  - 4._dp*YzadjYeme2YeadjYz(i1,i2) - 4._dp*mHd2*YzadjYeYeadjYz(i1,i2) - 4._dp*mz2*YzadjYeYeadjYz(i1,i2)&
-  &  - 2._dp*YzadjYeYeadjYzmd2(i1,i2) - 4._dp*YzadjYeYeml2adjYz(i1,i2) + 4._dp*g12*mz2*YzadjYz(i1,i2)&
-  & /5._dp + 12._dp*g22*mz2*YzadjYz(i1,i2) - 4._dp*TrAYzadjAYz*YzadjYz(i1,i2)            &
-  &  - 4._dp*Trmd2YzadjYz*YzadjYz(i1,i2) - 8._dp*mz2*TrYzadjYz*YzadjYz(i1,i2)              &
-  &  - 4._dp*TrYzml2adjYz*YzadjYz(i1,i2) + 8._dp*g12*MassB*Conjg(MassB)*YzadjYz(i1,i2)   &
-  & /5._dp + 24._dp*g22*MassWB*Conjg(MassWB)*YzadjYz(i1,i2) - 12._dp*YzadjYzAYzadjAYz(i1,i2)&
-  &  + 2._dp*g12*YzadjYzmd2(i1,i2)/5._dp + 6._dp*g22*YzadjYzmd2(i1,i2) -               &
-  &  2._dp*TrYzadjYz*YzadjYzmd2(i1,i2) - 12._dp*YzadjYzmd2YzadjYz(i1,i2) - 24._dp*mz2*YzadjYzYzadjYz(i1,i2)&
-  &  - 6._dp*YzadjYzYzadjYzmd2(i1,i2) - 12._dp*YzadjYzYzml2adjYz(i1,i2) - 12._dp*YzCAYtAYtadjYz(i1,i2)&
-  &  - 12._dp*YzCYtAYtadjAYz(i1,i2) - 12._dp*YzCYtml2YtadjYz(i1,i2) - 12._dp*mt2*YzCYtYtadjYz(i1,i2)&
-  &  - 12._dp*mz2*YzCYtYtadjYz(i1,i2) - 6._dp*YzCYtYtadjYzmd2(i1,i2) - 12._dp*YzCYtYtml2adjYz(i1,i2)&
-  &  - 4._dp*Yzml2adjYeYeadjYz(i1,i2) + 4._dp*g12*Yzml2adjYz(i1,i2)/5._dp +              &
-  &  12._dp*g22*Yzml2adjYz(i1,i2) - 4._dp*TrYzadjYz*Yzml2adjYz(i1,i2) - 12._dp*Yzml2adjYzYzadjYz(i1,i2)&
-  &  - 12._dp*Yzml2CYtYtadjYz(i1,i2)
-
-  If (i1.eq.i2) Then
-  betamd22(i1,i2) = betamd22(i1,i2)+(1648._dp*g14*MassB*Conjg(MassB)/75._dp + 128._dp*g12*g32*MassB*Conjg(MassB)&
-  & /45._dp + 64._dp*g12*g32*MassG*Conjg(MassB)/45._dp + 64._dp*g12*g32*MassB*Conjg(MassG)&
-  & /45._dp + 128._dp*g12*g32*MassG*Conjg(MassG)/45._dp + 544._dp*g34*MassG*Conjg(MassG)&
-  & /3._dp + 8._dp*g14*Tr2(1)/15._dp + 32._dp*g34*Tr2(3)/3._dp + 8._dp*g12*Tr3(1)    &
-  & /3._dp - 4._dp*g32*Tr3(3) - 4._dp*(g32*Tr3(3))/sqrt3)
-  End If
-   End Do
-  End Do
-
-
-  Dmd2 = oo16pi2*( betamd21 + oo16pi2 * betamd22 )
-
-
-  Else
-  Dmd2 = oo16pi2* betamd21
-  End If
-
-
-  !--------------------
-  ! mu2
-  !--------------------
-
-  Do i1 = 1,3
-  Do i2 = 1,3
-  betamu21(i1,i2) = 4._dp*AYuadjAYu(i1,i2) + 2._dp*mu2YuadjYu(i1,i2) + 4._dp*mHu2*YuadjYu(i1,i2)&
-  &  + 2._dp*YuadjYumu2(i1,i2) + 4._dp*Yumq2adjYu(i1,i2)
-
-  If (i1.eq.i2) Then
-  betamu21(i1,i2) = betamu21(i1,i2)+(-32._dp*g12*MassB*Conjg(MassB)/15._dp - 32._dp*g32*MassG*Conjg(MassG)&
-  & /3._dp - 4._dp*g12*Tr1(1)/3._dp)
-  End If
-   End Do
-  End Do
-
-
-  If (TwoLoopRGE) Then
-  Do i1 = 1,3
-  Do i2 = 1,3
-  betamu22(i1,i2) = -4._dp*AYuadjAYdYdadjYu(i1,i2) - 4._dp*g12*AYuadjAYu(i1,i2)       &
-  & /5._dp + 12._dp*g22*AYuadjAYu(i1,i2) - 12._dp*TrYuadjYu*AYuadjAYu(i1,i2)             &
-  &  - 4._dp*AYuadjAYuYuadjYu(i1,i2) - 4._dp*AYuadjYdYdadjAYu(i1,i2) - 12._dp*TrYuadjAYu*AYuadjYu(i1,i2)&
-  &  - 4._dp*AYuadjYuYuadjAYu(i1,i2) - 12._dp*L2*AYuadjAYu(i1,i2)*Conjg(L2) +              &
-  &  4._dp*g12*AYuadjYu(i1,i2)*Conjg(MassB)/5._dp - 12._dp*g22*AYuadjYu(i1,i2)         &
-  & *Conjg(MassWB) - 12._dp*L2*AYuadjYu(i1,i2)*Conjg(AL2) - 2._dp*mu2YuadjYdYdadjYu(i1,i2) &
-  &  - 2._dp*g12*mu2YuadjYu(i1,i2)/5._dp + 6._dp*g22*mu2YuadjYu(i1,i2) -               &
-  &  6._dp*TrYuadjYu*mu2YuadjYu(i1,i2) - 6._dp*AbsL2sq*mu2YuadjYu(i1,i2)              &
-  &  - 2._dp*mu2YuadjYuYuadjYu(i1,i2) - 4._dp*YuadjAYdAYdadjYu(i1,i2) + 4._dp*g12*MassB*YuadjAYu(i1,i2)&
-  & /5._dp - 12._dp*g22*MassWB*YuadjAYu(i1,i2) - 12._dp*TrAYuadjYu*YuadjAYu(i1,i2)       &
-  &  - 12._dp*AL2*Conjg(L2)*YuadjAYu(i1,i2) - 4._dp*YuadjAYuAYuadjYu(i1,i2) -              &
-  &  4._dp*YuadjYdAYdadjAYu(i1,i2) - 4._dp*YuadjYdmd2YdadjYu(i1,i2) - 4._dp*mHd2*YuadjYdYdadjYu(i1,i2)&
-  &  - 4._dp*mHu2*YuadjYdYdadjYu(i1,i2) - 2._dp*YuadjYdYdadjYumu2(i1,i2) - 4._dp*YuadjYdYdmq2adjYu(i1,i2)&
-  &  - 4._dp*g12*mHu2*YuadjYu(i1,i2)/5._dp + 12._dp*g22*mHu2*YuadjYu(i1,i2)            &
-  &  - 12._dp*TrAYuadjAYu*YuadjYu(i1,i2) - 12._dp*Trmu2YuadjYu*YuadjYu(i1,i2)              &
-  &  - 24._dp*mHu2*TrYuadjYu*YuadjYu(i1,i2) - 12._dp*TrYumq2adjYu*YuadjYu(i1,i2)           &
-  &  - 36._dp*L2*mHu2*Conjg(L2)*YuadjYu(i1,i2) - 12._dp*L2*mtb2*Conjg(L2)*YuadjYu(i1,i2)   &
-  &  - 8._dp*g12*MassB*Conjg(MassB)*YuadjYu(i1,i2)/5._dp + 24._dp*g22*MassWB*Conjg(MassWB)&
-  & *YuadjYu(i1,i2) - 12._dp*AL2*Conjg(AL2)*YuadjYu(i1,i2) - 4._dp*YuadjYuAYuadjAYu(i1,i2) &
-  &  - 2._dp*g12*YuadjYumu2(i1,i2)/5._dp + 6._dp*g22*YuadjYumu2(i1,i2) -               &
-  &  6._dp*TrYuadjYu*YuadjYumu2(i1,i2) - 6._dp*AbsL2sq*YuadjYumu2(i1,i2)              &
-  &  - 4._dp*YuadjYumu2YuadjYu(i1,i2) - 8._dp*mHu2*YuadjYuYuadjYu(i1,i2) - 2._dp*YuadjYuYuadjYumu2(i1,i2)&
-  &  - 4._dp*YuadjYuYumq2adjYu(i1,i2) - 4._dp*Yumq2adjYdYdadjYu(i1,i2) - 4._dp*g12*Yumq2adjYu(i1,i2)&
-  & /5._dp + 12._dp*g22*Yumq2adjYu(i1,i2) - 12._dp*TrYuadjYu*Yumq2adjYu(i1,i2)           &
-  &  - 12._dp*AbsL2sq*Yumq2adjYu(i1,i2) - 4._dp*Yumq2adjYuYuadjYu(i1,i2)
-
-  If (i1.eq.i2) Then
-  betamu22(i1,i2) = betamu22(i1,i2)+(6784._dp*g14*MassB*Conjg(MassB)/75._dp + 512._dp*g12*g32*MassB*Conjg(MassB)&
-  & /45._dp + 256._dp*g12*g32*MassG*Conjg(MassB)/45._dp + 256._dp*g12*g32*MassB*Conjg(MassG)&
-  & /45._dp + 512._dp*g12*g32*MassG*Conjg(MassG)/45._dp + 544._dp*g34*MassG*Conjg(MassG)&
-  & /3._dp + 32._dp*g14*Tr2(1)/15._dp + 32._dp*g34*Tr2(3)/3._dp - 16._dp*g12*Tr3(1)  &
-  & /3._dp - 4._dp*g32*Tr3(3) - 4._dp*(g32*Tr3(3))/sqrt3)
-  End If
-   End Do
-  End Do
-
-
-  Dmu2 = oo16pi2*( betamu21 + oo16pi2 * betamu22 )
-
-
-  Else
-  Dmu2 = oo16pi2* betamu21
-  End If
-
-
-  !--------------------
-  ! me2
-  !--------------------
-
-  Do i1 = 1,3
-  Do i2 = 1,3
-  betame21(i1,i2) = 4._dp*AYeadjAYe(i1,i2) + 2._dp*me2YeadjYe(i1,i2) + 4._dp*mHd2*YeadjYe(i1,i2)&
-  &  + 2._dp*YeadjYeme2(i1,i2) + 4._dp*Yeml2adjYe(i1,i2)
-
-  If (i1.eq.i2) Then
-  betame21(i1,i2) = betame21(i1,i2)+(-24._dp*g12*MassB*Conjg(MassB)/5._dp + 2._dp*g12*Tr1(1))
-  End If
-   End Do
-  End Do
-
-
-  If (TwoLoopRGE) Then
-  Do i1 = 1,3
-  Do i2 = 1,3
-  betame22(i1,i2) = -12._dp*g12*AYeadjAYe(i1,i2)/5._dp + 12._dp*g22*AYeadjAYe(i1,i2)&
-  &  - 12._dp*TrYdadjYd*AYeadjAYe(i1,i2) - 4._dp*TrYeadjYe*AYeadjAYe(i1,i2) -              &
-  &  4._dp*AYeadjAYeYeadjYe(i1,i2) - 12._dp*AYeadjAYzYzadjYe(i1,i2) - 12._dp*TrYdadjAYd*AYeadjYe(i1,i2)&
-  &  - 4._dp*TrYeadjAYe*AYeadjYe(i1,i2) - 4._dp*AYeadjYeYeadjAYe(i1,i2) - 12._dp*AYeadjYzYzadjAYe(i1,i2)&
-  &  - 12._dp*AYeCAYtYtadjYe(i1,i2) - 12._dp*AYeCYtYtadjAYe(i1,i2) - 12._dp*L1*AYeadjAYe(i1,i2)&
-  & *Conjg(L1) + 12._dp*g12*AYeadjYe(i1,i2)*Conjg(MassB)/5._dp - 12._dp*g22*AYeadjYe(i1,i2)&
-  & *Conjg(MassWB) - 12._dp*L1*AYeadjYe(i1,i2)*Conjg(AL1) - 6._dp*g12*me2YeadjYe(i1,i2)  &
-  & /5._dp + 6._dp*g22*me2YeadjYe(i1,i2) - 6._dp*TrYdadjYd*me2YeadjYe(i1,i2)             &
-  &  - 2._dp*TrYeadjYe*me2YeadjYe(i1,i2) - 6._dp*AbsL1sq*me2YeadjYe(i1,i2)            &
-  &  - 2._dp*me2YeadjYeYeadjYe(i1,i2) - 6._dp*me2YeadjYzYzadjYe(i1,i2) - 6._dp*me2YeCYtYtadjYe(i1,i2)&
-  &  + 12._dp*g12*MassB*YeadjAYe(i1,i2)/5._dp - 12._dp*g22*MassWB*YeadjAYe(i1,i2)      &
-  &  - 12._dp*TrAYdadjYd*YeadjAYe(i1,i2) - 4._dp*TrAYeadjYe*YeadjAYe(i1,i2) -              &
-  &  12._dp*AL1*Conjg(L1)*YeadjAYe(i1,i2) - 4._dp*YeadjAYeAYeadjYe(i1,i2) - 12._dp*YeadjAYzAYzadjYe(i1,i2)&
-  &  - 12._dp*g12*mHd2*YeadjYe(i1,i2)/5._dp + 12._dp*g22*mHd2*YeadjYe(i1,i2)           &
-  &  - 12._dp*TrAYdadjAYd*YeadjYe(i1,i2) - 4._dp*TrAYeadjAYe*YeadjYe(i1,i2) -              &
-  &  12._dp*Trmd2YdadjYd*YeadjYe(i1,i2) - 4._dp*Trme2YeadjYe*YeadjYe(i1,i2) -              &
-  &  24._dp*mHd2*TrYdadjYd*YeadjYe(i1,i2) - 12._dp*TrYdmq2adjYd*YeadjYe(i1,i2)             &
-  &  - 8._dp*mHd2*TrYeadjYe*YeadjYe(i1,i2) - 4._dp*TrYeml2adjYe*YeadjYe(i1,i2)             &
-  &  - 36._dp*L1*mHd2*Conjg(L1)*YeadjYe(i1,i2) - 12._dp*L1*mt2*Conjg(L1)*YeadjYe(i1,i2)    &
-  &  - 24._dp*g12*MassB*Conjg(MassB)*YeadjYe(i1,i2)/5._dp + 24._dp*g22*MassWB*Conjg(MassWB)&
-  & *YeadjYe(i1,i2) - 12._dp*AL1*Conjg(AL1)*YeadjYe(i1,i2) - 4._dp*YeadjYeAYeadjAYe(i1,i2) &
-  &  - 6._dp*g12*YeadjYeme2(i1,i2)/5._dp + 6._dp*g22*YeadjYeme2(i1,i2) -               &
-  &  6._dp*TrYdadjYd*YeadjYeme2(i1,i2) - 2._dp*TrYeadjYe*YeadjYeme2(i1,i2) -               &
-  &  6._dp*AbsL1sq*YeadjYeme2(i1,i2) - 4._dp*YeadjYeme2YeadjYe(i1,i2) -               &
-  &  8._dp*mHd2*YeadjYeYeadjYe(i1,i2) - 2._dp*YeadjYeYeadjYeme2(i1,i2) - 4._dp*YeadjYeYeml2adjYe(i1,i2)&
-  &  - 12._dp*YeadjYzAYzadjAYe(i1,i2) - 12._dp*YeadjYzmd2YzadjYe(i1,i2) - 12._dp*mHd2*YeadjYzYzadjYe(i1,i2)&
-  &  - 12._dp*mz2*YeadjYzYzadjYe(i1,i2) - 6._dp*YeadjYzYzadjYeme2(i1,i2) - 12._dp*YeadjYzYzml2adjYe(i1,i2)&
-  &  - 12._dp*YeCAYtAYtadjYe(i1,i2) - 12._dp*YeCYtAYtadjAYe(i1,i2) - 12._dp*YeCYtml2YtadjYe(i1,i2)&
-  &  - 12._dp*mHd2*YeCYtYtadjYe(i1,i2) - 12._dp*mt2*YeCYtYtadjYe(i1,i2) - 6._dp*YeCYtYtadjYeme2(i1,i2)&
-  &  - 12._dp*YeCYtYtml2adjYe(i1,i2) - 12._dp*g12*Yeml2adjYe(i1,i2)/5._dp +              &
-  &  12._dp*g22*Yeml2adjYe(i1,i2) - 12._dp*TrYdadjYd*Yeml2adjYe(i1,i2) - 4._dp*TrYeadjYe*Yeml2adjYe(i1,i2)&
-  &  - 12._dp*AbsL1sq*Yeml2adjYe(i1,i2) - 4._dp*Yeml2adjYeYeadjYe(i1,i2)              &
-  &  - 12._dp*Yeml2adjYzYzadjYe(i1,i2) - 12._dp*Yeml2CYtYtadjYe(i1,i2)
-
-  If (i1.eq.i2) Then
-  betame22(i1,i2) = betame22(i1,i2)+(5328._dp*g14*MassB*Conjg(MassB)/25._dp + 24._dp*g14*Tr2(1)&
-  & /5._dp + 8._dp*g12*Tr3(1))
-  End If
-   End Do
-  End Do
-
-
-  Dme2 = oo16pi2*( betame21 + oo16pi2 * betame22 )
-
-
-  Else
-  Dme2 = oo16pi2* betame21
-  End If
-
-
-  !--------------------
-  ! mt2
-  !--------------------
-
-  betamt21 = TrAYtCAYt/2._dp + 3._dp*TrCAYtAYt/2._dp + TrCYtml2Yt + 3._dp*mt2*TrCYtYt/2._dp +&
-  &  2._dp*TrCYtYtml2 + (mt2*TrYtCYt)/2._dp + TrYtCYtml2 + 4._dp*L1*mHd2*Conjg(L1)         &
-  &  + 2._dp*L1*mt2*Conjg(L1) - 24._dp*g12*MassB*Conjg(MassB)/5._dp - 16._dp*g22*MassWB*Conjg(MassWB)&
-  &  + 2._dp*AL1*Conjg(AL1) + 2._dp*g12*Tr1(1)
-
-
-  If (TwoLoopRGE) Then
-  betamt22 = -3._dp*g12*TrAYtCAYt/10._dp - (g22*TrAYtCAYt)/2._dp - 9._dp*g12*TrCAYtAYt/10._dp -&
-  &  3._dp*g22*TrCAYtAYt/2._dp - 19._dp*TrCYtAYtCAYtYt/2._dp - 3._dp*g12*TrCYtml2Yt/5._dp -&
-  &  g22*TrCYtml2Yt - TrCYtml2YtCYtYt/2._dp - 9._dp*g12*mt2*TrCYtYt/10._dp -           &
-  &  3._dp*g22*mt2*TrCYtYt/2._dp - 4._dp*TrCYtYtadjAYeAYe - 12._dp*TrCYtYtadjAYzAYz -    &
-  &  3._dp*TrCYtYtadjYeme2Ye - mt2*TrCYtYtadjYeYe - 9._dp*TrCYtYtadjYzmd2Yz -              &
-  &  3._dp*mt2*TrCYtYtadjYzYz - 43._dp*TrCYtYtCAYtAYt/2._dp - 25._dp*TrCYtYtCYtml2Yt/2._dp -&
-  &  19._dp*mt2*TrCYtYtCYtYt - 10._dp*TrCYtYtCYtYtml2 - 6._dp*g12*TrCYtYtml2/5._dp -     &
-  &  2._dp*g22*TrCYtYtml2 - 8._dp*TrCYtYtml2CYtYt - 3._dp*Trmd2YzCYtYtadjYz -            &
-  &  Trme2YeCYtYtadjYe - Trml2CYtYtCYtYt/2._dp - 3._dp*g12*Trml2YtCYt/5._dp -            &
-  &  g22*Trml2YtCYt - 2._dp*Trml2YtCYtYtCYt - 4._dp*TrYeCAYtAYtadjYe - 4._dp*TrYeCYtAYtadjAYe -&
-  &  4._dp*TrYeCYtml2YtadjYe - 4._dp*mHd2*TrYeCYtYtadjYe - 3._dp*mt2*TrYeCYtYtadjYe -      &
-  &  4._dp*TrYeCYtYtml2adjYe - 4._dp*TrYeml2CYtYtadjYe - 4._dp*TrYtadjYeAYeCAYt -          &
-  &  12._dp*TrYtadjYzAYzCAYt + 6._dp*g12*MassB*TrYtCAYt/5._dp + 2._dp*g22*MassWB*TrYtCAYt -&
-  &  5._dp*TrYtCAYtAYtCYt/2._dp - 3._dp*g12*mt2*TrYtCYt/10._dp - (g22*mt2*TrYtCYt)     &
-  & /2._dp - 29._dp*TrYtCYtAYtCAYt/2._dp - TrYtCYtml2YtCYt - 5._dp*mt2*TrYtCYtYtCYt -      &
-  &  7._dp*TrYtCYtYtCYtml2/2._dp - 7._dp*TrYtCYtYtml2CYt/2._dp - 13._dp*TrYtml2CYtYtCYt/2._dp -&
-  &  12._dp*TrYzCAYtAYtadjYz - 12._dp*TrYzCYtAYtadjAYz - 12._dp*TrYzCYtml2YtadjYz -        &
-  &  9._dp*mt2*TrYzCYtYtadjYz - 12._dp*mz2*TrYzCYtYtadjYz - 12._dp*TrYzCYtYtml2adjYz -     &
-  &  12._dp*TrYzml2CYtYtadjYz - 12._dp*g12*L1*mHd2*Conjg(L1)/5._dp - 4._dp*g22*L1*mHd2*Conjg(L1)&
-  &  - 6._dp*g12*L1*mt2*Conjg(L1)/5._dp - 2._dp*g22*L1*mt2*Conjg(L1) - 12._dp*L1*TrAYdadjAYd*Conjg(L1)&
-  &  - 4._dp*L1*TrAYeadjAYe*Conjg(L1) - 12._dp*L1*Trmd2YdadjYd*Conjg(L1) - 4._dp*L1*Trme2YeadjYe*Conjg(L1)&
-  &  - 36._dp*L1*mHd2*TrYdadjYd*Conjg(L1) - 12._dp*L1*mt2*TrYdadjYd*Conjg(L1)              &
-  &  - 12._dp*L1*TrYdmq2adjYd*Conjg(L1) - 12._dp*L1*mHd2*TrYeadjYe*Conjg(L1)               &
-  &  - 4._dp*L1*mt2*TrYeadjYe*Conjg(L1) - 4._dp*L1*TrYeml2adjYe*Conjg(L1) - 12._dp*TrYdadjAYd*AL1*Conjg(L1)&
-  &  - 4._dp*TrYeadjAYe*AL1*Conjg(L1) - 48._dp*L1**2*mHd2*Conjg(L1)**2 - 24._dp*L1**2*mt2*Conjg(L1)&
-  & **2 + 5328._dp*g14*MassB*Conjg(MassB)/25._dp + 192._dp*g12*g22*MassB*Conjg(MassB)&
-  & /5._dp + 96._dp*g12*g22*MassWB*Conjg(MassB)/5._dp + 6._dp*g12*TrCYtAYt*Conjg(MassB)&
-  & /5._dp - 9._dp*g12*MassB*TrCYtYt*Conjg(MassB)/5._dp - 3._dp*g12*MassB*TrYtCYt*Conjg(MassB)&
-  & /5._dp - 12._dp*g12*L1*MassB*Conjg(L1)*Conjg(MassB)/5._dp + 6._dp*g12*AL1*Conjg(L1)&
-  & *Conjg(MassB)/5._dp + 96._dp*g12*g22*MassB*Conjg(MassWB)/5._dp + 192._dp*g12*g22*MassWB*Conjg(MassWB)&
-  & /5._dp + 544._dp*g24*MassWB*Conjg(MassWB) + 2._dp*g22*TrCYtAYt*Conjg(MassWB)       &
-  &  - 3._dp*g22*MassWB*TrCYtYt*Conjg(MassWB) - g22*MassWB*TrYtCYt*Conjg(MassWB)       &
-  &  - 4._dp*g22*L1*MassWB*Conjg(L1)*Conjg(MassWB) + 2._dp*g22*AL1*Conjg(L1)           &
-  & *Conjg(MassWB) + 6._dp*g12*L1*MassB*Conjg(AL1)/5._dp + 2._dp*g22*L1*MassWB*Conjg(AL1)&
-  &  - 12._dp*L1*TrAYdadjYd*Conjg(AL1) - 4._dp*L1*TrAYeadjYe*Conjg(AL1) - 6._dp*g12*AL1*Conjg(AL1)&
-  & /5._dp - 2._dp*g22*AL1*Conjg(AL1) - 12._dp*TrYdadjYd*AL1*Conjg(AL1) - 4._dp*TrYeadjYe*AL1*Conjg(AL1)&
-  &  - 48._dp*L1*AL1*Conjg(L1)*Conjg(AL1) + 24._dp*g14*Tr2(1)/5._dp + 16._dp*g24*Tr2(2)&
-  &  + 8._dp*g12*Tr3(1)
-
-
-  Dmt2 = oo16pi2*( betamt21 + oo16pi2 * betamt22 )
-
-
-  Else
-  Dmt2 = oo16pi2* betamt21
-  End If
-
-
-  !--------------------
-  ! mtb2
-  !--------------------
-
-  betamtb21 = 4._dp*L2*mHu2*Conjg(L2) + 2._dp*L2*mtb2*Conjg(L2) - 24._dp*g12*MassB*Conjg(MassB)&
-  & /5._dp - 16._dp*g22*MassWB*Conjg(MassWB) + 2._dp*AL2*Conjg(AL2) - 2._dp*g12*Tr1(1)
-
-
-  If (TwoLoopRGE) Then
-  betamtb22 = -12._dp*g12*L2*mHu2*Conjg(L2)/5._dp - 4._dp*g22*L2*mHu2*Conjg(L2)     &
-  &  - 6._dp*g12*L2*mtb2*Conjg(L2)/5._dp - 2._dp*g22*L2*mtb2*Conjg(L2) -               &
-  &  12._dp*L2*TrAYuadjAYu*Conjg(L2) - 12._dp*L2*Trmu2YuadjYu*Conjg(L2) - 36._dp*L2*mHu2*TrYuadjYu*Conjg(L2)&
-  &  - 12._dp*L2*mtb2*TrYuadjYu*Conjg(L2) - 12._dp*L2*TrYumq2adjYu*Conjg(L2)               &
-  &  - 12._dp*TrYuadjAYu*AL2*Conjg(L2) - 48._dp*L2**2*mHu2*Conjg(L2)**2 - 24._dp*L2**2*mtb2*Conjg(L2)&
-  & **2 + 5328._dp*g14*MassB*Conjg(MassB)/25._dp + 192._dp*g12*g22*MassB*Conjg(MassB)&
-  & /5._dp + 96._dp*g12*g22*MassWB*Conjg(MassB)/5._dp - 12._dp*g12*L2*MassB*Conjg(L2)&
-  & *Conjg(MassB)/5._dp + 6._dp*g12*AL2*Conjg(L2)*Conjg(MassB)/5._dp + 96._dp*g12*g22*MassB*Conjg(MassWB)&
-  & /5._dp + 192._dp*g12*g22*MassWB*Conjg(MassWB)/5._dp + 544._dp*g24*MassWB*Conjg(MassWB)&
-  &  - 4._dp*g22*L2*MassWB*Conjg(L2)*Conjg(MassWB) + 2._dp*g22*AL2*Conjg(L2)           &
-  & *Conjg(MassWB) + 6._dp*g12*L2*MassB*Conjg(AL2)/5._dp + 2._dp*g22*L2*MassWB*Conjg(AL2)&
-  &  - 12._dp*L2*TrAYuadjYu*Conjg(AL2) - 6._dp*g12*AL2*Conjg(AL2)/5._dp - 2._dp*g22*AL2*Conjg(AL2)&
-  &  - 12._dp*TrYuadjYu*AL2*Conjg(AL2) - 48._dp*L2*AL2*Conjg(L2)*Conjg(AL2) +              &
-  &  24._dp*g14*Tr2(1)/5._dp + 16._dp*g24*Tr2(2) - 8._dp*g12*Tr3(1)
-
-
-  Dmtb2 = oo16pi2*( betamtb21 + oo16pi2 * betamtb22 )
-
-
-  Else
-  Dmtb2 = oo16pi2* betamtb21
-  End If
-
-
-  !--------------------
-  ! ms2
-  !--------------------
-
-  betams21 = TrAYsCAYs/2._dp + 3._dp*TrCAYsAYs/2._dp + TrCYsmd2Ys + 3._dp*ms2*TrCYsYs/2._dp +&
-  &  2._dp*TrCYsYsmd2 + (ms2*TrYsCYs)/2._dp + TrYsCYsmd2 - 32._dp*g12*MassB*Conjg(MassB) &
-  & /15._dp - 80._dp*g32*MassG*Conjg(MassG)/3._dp - 4._dp*g12*Tr1(1)/3._dp
-
-
-  If (TwoLoopRGE) Then
-  betams22 = -2._dp*g12*TrAYsCAYs/15._dp - 2._dp*g32*TrAYsCAYs/3._dp -              &
-  &  2._dp*g12*TrCAYsAYs/5._dp - 2._dp*g32*TrCAYsAYs - 13._dp*TrCYsAYsCAYsYs -         &
-  &  4._dp*g12*TrCYsmd2Ys/15._dp - 4._dp*g32*TrCYsmd2Ys/3._dp - TrCYsmd2YsCYsYs/2._dp -&
-  &  6._dp*TrCYsYdadjAYdAYs - 2._dp*TrCYsYdadjYdmd2Ys - 2._dp*g12*ms2*TrCYsYs/5._dp -    &
-  &  2._dp*g32*ms2*TrCYsYs - 29._dp*TrCYsYsCAYsAYs - 35._dp*TrCYsYsCYsmd2Ys/2._dp -      &
-  &  26._dp*ms2*TrCYsYsCYsYs - 27._dp*TrCYsYsCYsYsmd2/2._dp - 8._dp*g12*TrCYsYsmd2/15._dp -&
-  &  8._dp*g32*TrCYsYsmd2/3._dp - 11._dp*TrCYsYsmd2CYsYs - 6._dp*TrCYsYzadjAYzAYs -      &
-  &  2._dp*TrCYsYzadjYzmd2Ys - Trmd2CYsYsCYsYs/2._dp - 4._dp*g12*Trmd2YsCYs/15._dp -     &
-  &  4._dp*g32*Trmd2YsCYs/3._dp - 6._dp*Trmd2YsCYsYdadjYd - 5._dp*Trmd2YsCYsYsCYs/2._dp -&
-  &  6._dp*Trmd2YsCYsYzadjYz - 2._dp*Trml2adjYzYsCYsYz - 2._dp*Trmq2adjYdYsCYsYd -         &
-  &  2._dp*TrYdadjAYdAYsCYs - 8._dp*TrYdadjYdAYsCAYs - ms2*TrYdadjYdYsCYs + 8._dp*g12*MassB*TrYsCAYs/15._dp +&
-  &  8._dp*g32*MassG*TrYsCAYs/3._dp - 8._dp*TrYsCAYsAYdadjYd - 3._dp*TrYsCAYsAYsCYs -    &
-  &  8._dp*TrYsCAYsAYzadjYz - 2._dp*g12*ms2*TrYsCYs/15._dp - 2._dp*g32*ms2*TrYsCYs/3._dp -&
-  &  8._dp*TrYsCYsAYdadjAYd - 19._dp*TrYsCYsAYsCAYs - 8._dp*TrYsCYsAYzadjAYz -             &
-  &  8._dp*TrYsCYsmd2YdadjYd - 3._dp*TrYsCYsmd2YsCYs/2._dp - 8._dp*TrYsCYsmd2YzadjYz -     &
-  &  8._dp*mHd2*TrYsCYsYdadjYd - 7._dp*ms2*TrYsCYsYdadjYd - 6._dp*TrYsCYsYdmq2adjYd -      &
-  &  6._dp*ms2*TrYsCYsYsCYs - 4._dp*TrYsCYsYsCYsmd2 - 5._dp*TrYsCYsYsmd2CYs -              &
-  &  7._dp*ms2*TrYsCYsYzadjYz - 8._dp*mz2*TrYsCYsYzadjYz - 6._dp*TrYsCYsYzml2adjYz -       &
-  &  8._dp*TrYsmd2CYsYdadjYd - 8._dp*TrYsmd2CYsYsCYs - 8._dp*TrYsmd2CYsYzadjYz -           &
-  &  2._dp*TrYzadjAYzAYsCYs - 8._dp*TrYzadjYzAYsCAYs - ms2*TrYzadjYzYsCYs + 6784._dp*g14*MassB*Conjg(MassB)&
-  & /75._dp + 256._dp*g12*g32*MassB*Conjg(MassB)/9._dp + 128._dp*g12*g32*MassG*Conjg(MassB)&
-  & /9._dp + 8._dp*g12*TrCYsAYs*Conjg(MassB)/15._dp - 4._dp*g12*MassB*TrCYsYs*Conjg(MassB)&
-  & /5._dp - 4._dp*g12*MassB*TrYsCYs*Conjg(MassB)/15._dp + 128._dp*g12*g32*MassB*Conjg(MassG)&
-  & /9._dp + 256._dp*g12*g32*MassG*Conjg(MassG)/9._dp + 2320._dp*g34*MassG*Conjg(MassG)&
-  & /3._dp + 8._dp*g32*TrCYsAYs*Conjg(MassG)/3._dp - 4._dp*g32*MassG*TrCYsYs*Conjg(MassG)&
-  &  - 4._dp*g32*MassG*TrYsCYs*Conjg(MassG)/3._dp + 32._dp*g14*Tr2(1)/15._dp +         &
-  &  80._dp*g34*Tr2(3)/3._dp - 16._dp*g12*Tr3(1)/3._dp + 4._dp*g32*Tr3(3)
-
-
-  Dms2 = oo16pi2*( betams21 + oo16pi2 * betams22 )
-
-
-  Else
-  Dms2 = oo16pi2* betams21
-  End If
-
-
-  !--------------------
-  ! msb2
-  !--------------------
-
-  betamsb21 = -32._dp*g12*MassB*Conjg(MassB)/15._dp - 80._dp*g32*MassG*Conjg(MassG) &
-  & /3._dp + 4._dp*g12*Tr1(1)/3._dp
-
-
-  If (TwoLoopRGE) Then
-  betamsb22 = 6784._dp*g14*MassB*Conjg(MassB)/75._dp + 256._dp*g12*g32*MassB*Conjg(MassB)&
-  & /9._dp + 128._dp*g12*g32*MassG*Conjg(MassB)/9._dp + 128._dp*g12*g32*MassB*Conjg(MassG)&
-  & /9._dp + 256._dp*g12*g32*MassG*Conjg(MassG)/9._dp + 2320._dp*g34*MassG*Conjg(MassG)&
-  & /3._dp + 32._dp*g14*Tr2(1)/15._dp + 80._dp*g34*Tr2(3)/3._dp + 16._dp*g12*Tr3(1)  &
-  & /3._dp - 4._dp*g32*Tr3(3)
-
-
-  Dmsb2 = oo16pi2*( betamsb21 + oo16pi2 * betamsb22 )
-
-
-  Else
-  Dmsb2 = oo16pi2* betamsb21
-  End If
-
-
-  !--------------------
-  ! mz2
-  !--------------------
-
-  betamz21 = 2._dp*TrAYzadjAYz + 2._dp*Trmd2YzadjYz + 2._dp*mz2*TrYzadjYz +             &
-  &  2._dp*TrYzml2adjYz - 2._dp*g12*MassB*Conjg(MassB)/15._dp - 32._dp*g32*MassG*Conjg(MassG)&
-  & /3._dp - 6._dp*g22*MassWB*Conjg(MassWB) + (g12*Tr1(1))/3._dp
-
-
-  If (TwoLoopRGE) Then
-  betamz22 = 4._dp*g12*TrAYzadjAYz/5._dp - 4._dp*TrCYsAYzadjAYzYs - 5._dp*TrCYsYzadjAYzAYs -&
-  &  4._dp*TrCYsYzadjYzmd2Ys - 4._dp*ms2*TrCYsYzadjYzYs - 7._dp*mz2*TrCYsYzadjYzYs/2._dp - &
-  &  4._dp*TrCYsYzadjYzYsmd2 - 4._dp*TrCYsYzml2adjYzYs - 2._dp*TrCYtAYtadjAYzYz -          &
-  &  3._dp*TrCYtYtadjAYzAYz - 3._dp*TrCYtYtadjYzmd2Yz - 2._dp*mt2*TrCYtYtadjYzYz -         &
-  &  3._dp*mz2*TrCYtYtadjYzYz/2._dp - 3._dp*TrCYtYtadjYzYzml2 - 2._dp*TrCYtYtml2adjYzYz +  &
-  &  4._dp*g12*Trmd2YzadjYz/5._dp - 3._dp*Trmd2YzadjYzYsCYs - Trmd2YzCYtYtadjYz -        &
-  &  Trml2adjYzYsCYsYz - 4._dp*TrYdadjAYdAYzadjYz - 4._dp*TrYdadjYdAYzadjAYz -             &
-  &  4._dp*TrYdadjYdmd2YzadjYz - 2._dp*TrYeadjAYzAYzadjYe - 2._dp*TrYeadjYzAYzadjAYe -     &
-  &  2._dp*TrYeadjYzmd2YzadjYe - 2._dp*mHd2*TrYeadjYzYzadjYe - mz2*TrYeadjYzYzadjYe -      &
-  &  2._dp*TrYeadjYzYzml2adjYe - 2._dp*TrYeml2adjYzYzadjYe - 8._dp*TrYsCAYsAYzadjYz -      &
-  &  4._dp*TrYsCYsAYzadjAYz - 5._dp*TrYsCYsmd2YzadjYz - ms2*TrYsCYsYzadjYz -               &
-  &  3._dp*mz2*TrYsCYsYzadjYz/2._dp - TrYsCYsYzadjYzmd2 - 4._dp*TrYsmd2CYsYzadjYz -        &
-  &  3._dp*TrYtadjAYzAYzCYt - 6._dp*TrYtadjYzAYzCAYt - 2._dp*TrYtadjYzmd2YzCYt -           &
-  &  3._dp*mt2*TrYtadjYzYzCYt - mz2*TrYtadjYzYzCYt - 3._dp*TrYtadjYzYzCYtml2 -             &
-  &  2._dp*TrYtadjYzYzml2CYt - 3._dp*TrYtml2adjYzYzCYt - 2._dp*TrYzadjAYeAYeadjYz -        &
-  &  4._dp*g12*MassB*TrYzadjAYz/5._dp - 4._dp*TrYzadjAYzAYdadjYd - 3._dp*TrYzadjAYzAYsCYs -&
-  &  20._dp*TrYzadjAYzAYzadjYz - 2._dp*TrYzadjYeAYeadjAYz - 2._dp*TrYzadjYeme2YeadjYz -    &
-  &  mz2*TrYzadjYeYeadjYz + 4._dp*g12*mz2*TrYzadjYz/5._dp - 4._dp*TrYzadjYzAYdadjAYd -   &
-  &  8._dp*TrYzadjYzAYsCAYs - 20._dp*TrYzadjYzAYzadjAYz - 4._dp*TrYzadjYzmd2YdadjYd -      &
-  &  3._dp*TrYzadjYzmd2YsCYs - 20._dp*TrYzadjYzmd2YzadjYz - 4._dp*mHd2*TrYzadjYzYdadjYd -  &
-  &  4._dp*mz2*TrYzadjYzYdadjYd - 4._dp*TrYzadjYzYdmq2adjYd - 3._dp*ms2*TrYzadjYzYsCYs -   &
-  &  3._dp*mz2*TrYzadjYzYsCYs - 20._dp*mz2*TrYzadjYzYzadjYz - 10._dp*TrYzadjYzYzml2adjYz - &
-  &  6._dp*TrYzCAYtAYtadjYz - 4._dp*TrYzCYtAYtadjAYz - 3._dp*TrYzCYtml2YtadjYz -           &
-  &  mt2*TrYzCYtYtadjYz - 7._dp*mz2*TrYzCYtYtadjYz/2._dp - TrYzCYtYtml2adjYz +             &
-  &  4._dp*g12*TrYzml2adjYz/5._dp - 4._dp*TrYzml2adjYzYdadjYd - 3._dp*TrYzml2adjYzYsCYs -&
-  &  10._dp*TrYzml2adjYzYzadjYz - TrYzml2CYtYtadjYz + 409._dp*g14*MassB*Conjg(MassB)     &
-  & /75._dp + 2._dp*g12*g22*MassB*Conjg(MassB)/5._dp + 32._dp*g12*g32*MassB*Conjg(MassB)&
-  & /45._dp + 16._dp*g12*g32*MassG*Conjg(MassB)/45._dp + (g12*g22*MassWB*Conjg(MassB))&
-  & /5._dp - 4._dp*g12*TrAYzadjYz*Conjg(MassB)/5._dp + 8._dp*g12*MassB*TrYzadjYz*Conjg(MassB)&
-  & /5._dp + 16._dp*g12*g32*MassB*Conjg(MassG)/45._dp + 32._dp*g12*g32*MassG*Conjg(MassG)&
-  & /45._dp + 32._dp*g22*g32*MassG*Conjg(MassG) + 544._dp*g34*MassG*Conjg(MassG)     &
-  & /3._dp + 16._dp*g22*g32*MassWB*Conjg(MassG) + (g12*g22*MassB*Conjg(MassWB))    &
-  & /5._dp + 16._dp*g22*g32*MassG*Conjg(MassWB) + 2._dp*g12*g22*MassWB*Conjg(MassWB)&
-  & /5._dp + 159._dp*g24*MassWB*Conjg(MassWB) + 32._dp*g22*g32*MassWB*Conjg(MassWB)  &
-  &  + 2._dp*g14*Tr2(1)/15._dp + 6._dp*g24*Tr2(2) + 32._dp*g34*Tr2(3)/3._dp +        &
-  &  4._dp*g12*Tr3(1)/3._dp + 4._dp*g32*Tr3(3) + 4._dp*(g32*Tr3(3))/sqrt3
-
-
-  Dmz2 = oo16pi2*( betamz21 + oo16pi2 * betamz22 )
-
-
-  Else
-  Dmz2 = oo16pi2* betamz21
-  End If
-
-
-  !--------------------
-  ! mzb2
-  !--------------------
-
-  betamzb21 = -2._dp*g12*MassB*Conjg(MassB)/15._dp - 32._dp*g32*MassG*Conjg(MassG)  &
-  & /3._dp - 6._dp*g22*MassWB*Conjg(MassWB) - (g12*Tr1(1))/3._dp
-
-
-  If (TwoLoopRGE) Then
-  betamzb22 = 409._dp*g14*MassB*Conjg(MassB)/75._dp + 2._dp*g12*g22*MassB*Conjg(MassB)&
-  & /5._dp + 32._dp*g12*g32*MassB*Conjg(MassB)/45._dp + 16._dp*g12*g32*MassG*Conjg(MassB)&
-  & /45._dp + (g12*g22*MassWB*Conjg(MassB))/5._dp + 16._dp*g12*g32*MassB*Conjg(MassG)&
-  & /45._dp + 32._dp*g12*g32*MassG*Conjg(MassG)/45._dp + 32._dp*g22*g32*MassG*Conjg(MassG)&
-  &  + 544._dp*g34*MassG*Conjg(MassG)/3._dp + 16._dp*g22*g32*MassWB*Conjg(MassG)     &
-  &  + (g12*g22*MassB*Conjg(MassWB))/5._dp + 16._dp*g22*g32*MassG*Conjg(MassWB)    &
-  &  + 2._dp*g12*g22*MassWB*Conjg(MassWB)/5._dp + 159._dp*g24*MassWB*Conjg(MassWB)   &
-  &  + 32._dp*g22*g32*MassWB*Conjg(MassWB) + 2._dp*g14*Tr2(1)/15._dp +               &
-  &  6._dp*g24*Tr2(2) + 32._dp*g34*Tr2(3)/3._dp - 4._dp*g12*Tr3(1)/3._dp -           &
-  &  4._dp*g32*Tr3(3) - 4._dp*(g32*Tr3(3))/sqrt3
-
-
-  Dmzb2 = oo16pi2*( betamzb21 + oo16pi2 * betamzb22 )
-
-
-  Else
-  Dmzb2 = oo16pi2* betamzb21
-  End If
-
-
-  !--------------------
-  ! MassB
-  !--------------------
-
-  betaMassB1 = 136._dp*MassB/5._dp
-
-
-  If (TwoLoopRGE) Then
-  betaMassB2 = 6008._dp*g12*MassB/75._dp + 348._dp*g22*MassB/5._dp +          &
-  &  368._dp*g32*MassB/3._dp + 368._dp*g32*MassG/3._dp + 348._dp*g22*MassWB/5._dp +&
-  &  28._dp*TrAYdadjYd/5._dp + 36._dp*TrAYeadjYe/5._dp + 52._dp*TrAYuadjYu/5._dp +&
-  &  28._dp*TrAYzadjYz/5._dp + 48._dp*TrCYsAYs/5._dp - 42._dp*MassB*TrCYsYs/5._dp +&
-  &  54._dp*TrCYtAYt/5._dp - 9._dp*MassB*TrCYtYt - 28._dp*MassB*TrYdadjYd/5._dp -&
-  &  36._dp*MassB*TrYeadjYe/5._dp - 6._dp*MassB*TrYsCYs/5._dp - 9._dp*MassB*TrYtCYt/5._dp -&
-  &  52._dp*MassB*TrYuadjYu/5._dp - 28._dp*MassB*TrYzadjYz/5._dp -             &
-  &  54._dp*L1*MassB*Conjg(L1)/5._dp + 54._dp*AL1*Conjg(L1)/5._dp -            &
-  &  54._dp*L2*MassB*Conjg(L2)/5._dp + 54._dp*AL2*Conjg(L2)/5._dp
-
-
-  DMassB = oo16pi2*g12*( betaMassB1 + oo16pi2 * betaMassB2 )
-
-
-  Else
-  DMassB = oo16pi2*g12* betaMassB1
-  End If
-
-
-  !--------------------
-  ! MassWB
-  !--------------------
-
-  betaMassWB1 = 16._dp*MassWB
-
-  If (TwoLoopRGE) Then
-  betaMassWB2 = 116._dp*g12*MassB/5._dp + 80._dp*g32*MassG +            &
-  &  116._dp*g12*MassWB/5._dp + 376._dp*g22*MassWB + 80._dp*g32*MassWB + &
-  &  12._dp*TrAYdadjYd + 4._dp*TrAYeadjYe + 12._dp*TrAYuadjYu +          &
-  &  12._dp*TrAYzadjYz + 14._dp*TrCYtAYt - 35._dp*MassWB*TrCYtYt/3._dp - &
-  &  12._dp*MassWB*TrYdadjYd - 4._dp*MassWB*TrYeadjYe - 7._dp*MassWB*TrYtCYt/3._dp -&
-  &  12._dp*MassWB*TrYuadjYu - 12._dp*MassWB*TrYzadjYz - 14._dp*L1*MassWB*Conjg(L1)&
-  &  + 14._dp*AL1*Conjg(L1) - 14._dp*L2*MassWB*Conjg(L2) + 14._dp*AL2*Conjg(L2)
-
-
-  DMassWB = oo16pi2*g22*( betaMassWB1 + oo16pi2 * betaMassWB2 )
-
-
-  Else
-  DMassWB = oo16pi2*g22* betaMassWB1
-  End If
-
-
-  !--------------------
-  ! MassG
-  !--------------------
-
-  betaMassG1 = 8._dp*MassG
-
-
-  If (TwoLoopRGE) Then
-  betaMassG2 = 46._dp*g12*MassB/3._dp + 46._dp*g12*MassG/3._dp +        &
-  &  30._dp*g22*MassG + 1600._dp*g32*MassG/3._dp + 30._dp*g22*MassWB +   &
-  &  8._dp*TrAYdadjYd + 8._dp*TrAYuadjYu + 8._dp*TrAYzadjYz +            &
-  &  18._dp*TrCYsAYs - 63._dp*MassG*TrCYsYs/4._dp - 8._dp*MassG*TrYdadjYd -&
-  &  9._dp*MassG*TrYsCYs/4._dp - 8._dp*MassG*TrYuadjYu - 8._dp*MassG*TrYzadjYz
-
-
-  DMassG = oo16pi2*g32*( betaMassG1 + oo16pi2 * betaMassG2 )
-
-
-  Else
-  DMassG = oo16pi2*g32* betaMassG1
-  End If
-
-
-  Call ParametersToG353(Dg1,Dg2,Dg3,DYu,DYd,DYe,DYt,DYs,DYz,DL1,DL2,DMTM,               &
-  & Dmue,DMZM,DMSM,DAYu,DAYd,DAYe,DAYt,DAYs,DAYz,DAL1,DAL2,DAmue,DAMTM,DAMZM,              &
-  & DAMSM,Dmq2,Dml2,DmHd2,DmHu2,Dmd2,Dmu2,Dme2,Dmt2,Dmtb2,Dms2,Dmsb2,Dmz2,Dmzb2,           &
-  & DMassB,DMassWB,DMassG,f)
-
-  Iname = Iname - 1
-
- End Subroutine rge353
-
-
- Subroutine GToParameters117(g,g1,g2,g3,Yu,Yd,Ye,Yt,Ys,Yz,L1,L2,MTM)
-
- Implicit None 
-  Real(dp), Intent(in) :: g(117) 
-  Real(dp),Intent(out) :: g1,g2,g3
-
-  Complex(dp),Intent(out) :: Yu(3,3),Yd(3,3),Ye(3,3),Yt(3,3),Ys(3,3),Yz(3,3)     & 
-    & ,L1,L2,MTM
-
-  Integer i1, i2, SumI 
- 
-  Iname = Iname +1 
-  NameOfUnit(Iname) = 'GToParameters117' 
- 
-  g1= g(1) 
-  g2= g(2) 
-  g3= g(3) 
-  Do i1 = 1,3
-   Do i2 = 1,3
-    SumI = 2 * ( (i2-1) + (i1-1)*3)
-    Yu(i1,i2) = Cmplx( g(SumI+4), g(SumI+5), dp) 
-    Yd(i1,i2) = Cmplx( g(SumI+22), g(SumI+23), dp) 
-    Ye(i1,i2) = Cmplx( g(SumI+40), g(SumI+41), dp) 
-    Yt(i1,i2) = Cmplx( g(SumI+58), g(SumI+59), dp) 
-    Ys(i1,i2) = Cmplx( g(SumI+76), g(SumI+77), dp) 
-    Yz(i1,i2) = Cmplx( g(SumI+94), g(SumI+95), dp) 
-   End Do 
-  End Do 
- 
-  L1= Cmplx(g(112),g(113),dp) 
-  L2= Cmplx(g(114),g(115),dp) 
-  MTM= Cmplx(g(116),g(117),dp) 
-  Iname = Iname - 1 
- 
- End Subroutine GToParameters117
-
-
- Subroutine ParametersToG117(g1,g2,g3,Yu,Yd,Ye,Yt,Ys,Yz,L1,L2,MTM,g)
-
- Implicit None 
-  Real(dp), Intent(out) :: g(117) 
-  Real(dp), Intent(in) :: g1,g2,g3
-
-  Complex(dp), Intent(in) :: Yu(3,3),Yd(3,3),Ye(3,3),Yt(3,3),Ys(3,3),Yz(3,3)            & 
-   & ,L1,L2,MTM
-
-  Integer i1, i2, SumI 
- 
-  Iname = Iname +1 
-  NameOfUnit(Iname) = 'ParametersToG117' 
- 
-  g(1) = g1  
-  g(2) = g2  
-  g(3) = g3  
-  Do i1 = 1,3
-   Do i2 = 1,3
-    SumI = 2 * ( (i2-1) + (i1-1)*3 )
-    g(SumI+4) = Real(Yu(i1,i2), dp) 
-    g(SumI+5) = Aimag(Yu(i1,i2)) 
-    g(SumI+22) = Real(Yd(i1,i2), dp) 
-    g(SumI+23) = Aimag(Yd(i1,i2)) 
-    g(SumI+40) = Real(Ye(i1,i2), dp) 
-    g(SumI+41) = Aimag(Ye(i1,i2)) 
-    g(SumI+58) = Real(Yt(i1,i2), dp) 
-    g(SumI+59) = Aimag(Yt(i1,i2)) 
-    g(SumI+76) = Real(Ys(i1,i2), dp) 
-    g(SumI+77) = Aimag(Ys(i1,i2)) 
-    g(SumI+94) = Real(Yz(i1,i2), dp) 
-    g(SumI+95) = Aimag(Yz(i1,i2)) 
-   End Do 
-  End Do 
-
-  g(112) = Real(L1,dp)  
-  g(113) = Aimag(L1)  
-  g(114) = Real(L2,dp)  
-  g(115) = Aimag(L2)  
-  g(116) = Real(MTM,dp)  
-  g(117) = Aimag(MTM)  
-
-  Iname = Iname - 1 
- 
- End Subroutine ParametersToG117
 
 
  Subroutine GToParameters555(g,g1,g2,g3,Yu,Yd,Ye,Yb3,Yw3,Yx3,mue,MXM3,MWM3,     &
@@ -14753,23 +11254,23 @@ q = t
  
 Call GToParameters111(gy,g1,g2,g3,Yu,Yd,Ye,Yb3,Yw3,Yx3)
 
-If (ThresholdCrossed.lt.1) Then 
+If (ThresholdCrossed.Lt.1) Then 
 Yx3(1,:) = 0._dp 
 Yb3(1,:) = 0._dp 
 Yw3(1,:) = 0._dp 
-End if 
+End If 
 
-If (ThresholdCrossed.lt.2) Then 
+If (ThresholdCrossed.Lt.2) Then 
 Yx3(2,:) = 0._dp 
 Yb3(2,:) = 0._dp 
 Yw3(2,:) = 0._dp 
-End if 
+End If 
 
-If (ThresholdCrossed.lt.3) Then 
+If (ThresholdCrossed.Lt.3) Then 
 Yx3(3,:) = 0._dp 
 Yb3(3,:) = 0._dp 
 Yw3(3,:) = 0._dp 
-End if 
+End If 
 
 Call Adjungate(Yu,adjYu)
 Call Adjungate(Yd,adjYd)
@@ -14777,49 +11278,49 @@ Call Adjungate(Ye,adjYe)
 Call Adjungate(Yb3,adjYb3)
 Call Adjungate(Yw3,adjYw3)
 Call Adjungate(Yx3,adjYx3)
- Yb3adjYb3 = Matmul2(Yb3,adjYb3,OnlyDiagonal) 
+ Yb3adjYb3 = Matmul(Yb3,adjYb3) 
 Forall(i2=1:3)  Yb3adjYb3(i2,i2) =  Real(Yb3adjYb3(i2,i2),dp) 
- YdadjYd = Matmul2(Yd,adjYd,OnlyDiagonal) 
+ YdadjYd = Matmul(Yd,adjYd) 
 Forall(i2=1:3)  YdadjYd(i2,i2) =  Real(YdadjYd(i2,i2),dp) 
- YeadjYe = Matmul2(Ye,adjYe,OnlyDiagonal) 
+ YeadjYe = Matmul(Ye,adjYe) 
 Forall(i2=1:3)  YeadjYe(i2,i2) =  Real(YeadjYe(i2,i2),dp) 
- YuadjYu = Matmul2(Yu,adjYu,OnlyDiagonal) 
+ YuadjYu = Matmul(Yu,adjYu) 
 Forall(i2=1:3)  YuadjYu(i2,i2) =  Real(YuadjYu(i2,i2),dp) 
- Yw3adjYw3 = Matmul2(Yw3,adjYw3,OnlyDiagonal) 
+ Yw3adjYw3 = Matmul(Yw3,adjYw3) 
 Forall(i2=1:3)  Yw3adjYw3(i2,i2) =  Real(Yw3adjYw3(i2,i2),dp) 
- Yx3adjYx3 = Matmul2(Yx3,adjYx3,OnlyDiagonal) 
+ Yx3adjYx3 = Matmul(Yx3,adjYx3) 
 Forall(i2=1:3)  Yx3adjYx3(i2,i2) =  Real(Yx3adjYx3(i2,i2),dp) 
- adjYb3Yb3 = Matmul2(adjYb3,Yb3,OnlyDiagonal) 
+ adjYb3Yb3 = Matmul(adjYb3,Yb3) 
 Forall(i2=1:3)  adjYb3Yb3(i2,i2) =  Real(adjYb3Yb3(i2,i2),dp) 
- adjYdYd = Matmul2(adjYd,Yd,OnlyDiagonal) 
+ adjYdYd = Matmul(adjYd,Yd) 
 Forall(i2=1:3)  adjYdYd(i2,i2) =  Real(adjYdYd(i2,i2),dp) 
- adjYeYe = Matmul2(adjYe,Ye,OnlyDiagonal) 
+ adjYeYe = Matmul(adjYe,Ye) 
 Forall(i2=1:3)  adjYeYe(i2,i2) =  Real(adjYeYe(i2,i2),dp) 
- adjYuYu = Matmul2(adjYu,Yu,OnlyDiagonal) 
+ adjYuYu = Matmul(adjYu,Yu) 
 Forall(i2=1:3)  adjYuYu(i2,i2) =  Real(adjYuYu(i2,i2),dp) 
- adjYw3Yw3 = Matmul2(adjYw3,Yw3,OnlyDiagonal) 
+ adjYw3Yw3 = Matmul(adjYw3,Yw3) 
 Forall(i2=1:3)  adjYw3Yw3(i2,i2) =  Real(adjYw3Yw3(i2,i2),dp) 
- adjYx3Yx3 = Matmul2(adjYx3,Yx3,OnlyDiagonal) 
+ adjYx3Yx3 = Matmul(adjYx3,Yx3) 
 Forall(i2=1:3)  adjYx3Yx3(i2,i2) =  Real(adjYx3Yx3(i2,i2),dp) 
- CYdTpYd = Matmul2(Conjg(Yd),Transpose(Yd),OnlyDiagonal) 
+ CYdTpYd = Matmul(Conjg(Yd),Transpose(Yd)) 
 Forall(i2=1:3)  CYdTpYd(i2,i2) =  Real(CYdTpYd(i2,i2),dp) 
- CYx3Yd = Matmul2(Conjg(Yx3),Yd,OnlyDiagonal) 
- Yb3adjYb3Yb3 = Matmul2(Yb3,adjYb3Yb3,OnlyDiagonal) 
- Yb3adjYeYe = Matmul2(Yb3,adjYeYe,OnlyDiagonal) 
- Yb3adjYw3Yw3 = Matmul2(Yb3,adjYw3Yw3,OnlyDiagonal) 
- YdadjYdYd = Matmul2(Yd,adjYdYd,OnlyDiagonal) 
- YdadjYuYu = Matmul2(Yd,adjYuYu,OnlyDiagonal) 
- YeadjYb3Yb3 = Matmul2(Ye,adjYb3Yb3,OnlyDiagonal) 
- YeadjYeYe = Matmul2(Ye,adjYeYe,OnlyDiagonal) 
- YeadjYw3Yw3 = Matmul2(Ye,adjYw3Yw3,OnlyDiagonal) 
- YuadjYdYd = Matmul2(Yu,adjYdYd,OnlyDiagonal) 
- YuadjYuYu = Matmul2(Yu,adjYuYu,OnlyDiagonal) 
- Yw3adjYb3Yb3 = Matmul2(Yw3,adjYb3Yb3,OnlyDiagonal) 
- Yw3adjYeYe = Matmul2(Yw3,adjYeYe,OnlyDiagonal) 
- Yw3adjYw3Yw3 = Matmul2(Yw3,adjYw3Yw3,OnlyDiagonal) 
- Yx3adjYx3Yx3 = Matmul2(Yx3,adjYx3Yx3,OnlyDiagonal) 
- Yx3CYdTpYd = Matmul2(Yx3,CYdTpYd,OnlyDiagonal) 
- TpYx3CYx3Yd = Matmul2(Transpose(Yx3),CYx3Yd,OnlyDiagonal) 
+ CYx3Yd = Matmul(Conjg(Yx3),Yd) 
+ Yb3adjYb3Yb3 = Matmul(Yb3,adjYb3Yb3) 
+ Yb3adjYeYe = Matmul(Yb3,adjYeYe) 
+ Yb3adjYw3Yw3 = Matmul(Yb3,adjYw3Yw3) 
+ YdadjYdYd = Matmul(Yd,adjYdYd) 
+ YdadjYuYu = Matmul(Yd,adjYuYu) 
+ YeadjYb3Yb3 = Matmul(Ye,adjYb3Yb3) 
+ YeadjYeYe = Matmul(Ye,adjYeYe) 
+ YeadjYw3Yw3 = Matmul(Ye,adjYw3Yw3) 
+ YuadjYdYd = Matmul(Yu,adjYdYd) 
+ YuadjYuYu = Matmul(Yu,adjYuYu) 
+ Yw3adjYb3Yb3 = Matmul(Yw3,adjYb3Yb3) 
+ Yw3adjYeYe = Matmul(Yw3,adjYeYe) 
+ Yw3adjYw3Yw3 = Matmul(Yw3,adjYw3Yw3) 
+ Yx3adjYx3Yx3 = Matmul(Yx3,adjYx3Yx3) 
+ Yx3CYdTpYd = Matmul(Yx3,CYdTpYd) 
+ TpYx3CYx3Yd = Matmul(Transpose(Yx3),CYx3Yd) 
  TrYb3adjYb3 = Real(cTrace(Yb3adjYb3),dp) 
  TrYdadjYd = Real(cTrace(YdadjYd),dp) 
  TrYeadjYe = Real(cTrace(YeadjYe),dp) 
@@ -14835,108 +11336,108 @@ Forall(i2=1:3)  CYdTpYd(i2,i2) =  Real(CYdTpYd(i2,i2),dp)
 
 
 If (TwoLoopRGE) Then 
- YeadjYb3 = Matmul2(Ye,adjYb3,OnlyDiagonal) 
- YuadjYd = Matmul2(Yu,adjYd,OnlyDiagonal) 
- Yw3adjYb3 = Matmul2(Yw3,adjYb3,OnlyDiagonal) 
- Yw3adjYe = Matmul2(Yw3,adjYe,OnlyDiagonal) 
- CYuTpYd = Matmul2(Conjg(Yu),Transpose(Yd),OnlyDiagonal) 
- TpYx3CYx3 = Matmul2(Transpose(Yx3),Conjg(Yx3),OnlyDiagonal) 
+ YeadjYb3 = Matmul(Ye,adjYb3) 
+ YuadjYd = Matmul(Yu,adjYd) 
+ Yw3adjYb3 = Matmul(Yw3,adjYb3) 
+ Yw3adjYe = Matmul(Yw3,adjYe) 
+ CYuTpYd = Matmul(Conjg(Yu),Transpose(Yd)) 
+ TpYx3CYx3 = Matmul(Transpose(Yx3),Conjg(Yx3)) 
 Forall(i2=1:3)  TpYx3CYx3(i2,i2) =  Real(TpYx3CYx3(i2,i2),dp) 
- adjYb3Yb3adjYb3 = Matmul2(adjYb3,Yb3adjYb3,OnlyDiagonal) 
- adjYdYdadjYd = Matmul2(adjYd,YdadjYd,OnlyDiagonal) 
- adjYdTpYx3CYx3 = Matmul2(adjYd,TpYx3CYx3,OnlyDiagonal) 
- adjYeYeadjYb3 = Matmul2(adjYe,YeadjYb3,OnlyDiagonal) 
- adjYeYeadjYe = Matmul2(adjYe,YeadjYe,OnlyDiagonal) 
- adjYuYuadjYd = Matmul2(adjYu,YuadjYd,OnlyDiagonal) 
- adjYuYuadjYu = Matmul2(adjYu,YuadjYu,OnlyDiagonal) 
- adjYw3Yw3adjYb3 = Matmul2(adjYw3,Yw3adjYb3,OnlyDiagonal) 
- adjYw3Yw3adjYe = Matmul2(adjYw3,Yw3adjYe,OnlyDiagonal) 
- adjYw3Yw3adjYw3 = Matmul2(adjYw3,Yw3adjYw3,OnlyDiagonal) 
- adjYx3Yx3adjYx3 = Matmul2(adjYx3,Yx3adjYx3,OnlyDiagonal) 
- TpYdadjYx3Yx3 = Matmul2(Transpose(Yd),adjYx3Yx3,OnlyDiagonal) 
- TpYdCYdTpYd = Matmul2(Transpose(Yd),CYdTpYd,OnlyDiagonal) 
- TpYuCYuTpYd = Matmul2(Transpose(Yu),CYuTpYd,OnlyDiagonal) 
- Yb3adjYb3Yb3adjYb3 = Matmul2(Yb3,adjYb3Yb3adjYb3,OnlyDiagonal) 
+ adjYb3Yb3adjYb3 = Matmul(adjYb3,Yb3adjYb3) 
+ adjYdYdadjYd = Matmul(adjYd,YdadjYd) 
+ adjYdTpYx3CYx3 = Matmul(adjYd,TpYx3CYx3) 
+ adjYeYeadjYb3 = Matmul(adjYe,YeadjYb3) 
+ adjYeYeadjYe = Matmul(adjYe,YeadjYe) 
+ adjYuYuadjYd = Matmul(adjYu,YuadjYd) 
+ adjYuYuadjYu = Matmul(adjYu,YuadjYu) 
+ adjYw3Yw3adjYb3 = Matmul(adjYw3,Yw3adjYb3) 
+ adjYw3Yw3adjYe = Matmul(adjYw3,Yw3adjYe) 
+ adjYw3Yw3adjYw3 = Matmul(adjYw3,Yw3adjYw3) 
+ adjYx3Yx3adjYx3 = Matmul(adjYx3,Yx3adjYx3) 
+ TpYdadjYx3Yx3 = Matmul(Transpose(Yd),adjYx3Yx3) 
+ TpYdCYdTpYd = Matmul(Transpose(Yd),CYdTpYd) 
+ TpYuCYuTpYd = Matmul(Transpose(Yu),CYuTpYd) 
+ Yb3adjYb3Yb3adjYb3 = Matmul(Yb3,adjYb3Yb3adjYb3) 
 Forall(i2=1:3)  Yb3adjYb3Yb3adjYb3(i2,i2) =  Real(Yb3adjYb3Yb3adjYb3(i2,i2),dp) 
- Yb3adjYeYeadjYb3 = Matmul2(Yb3,adjYeYeadjYb3,OnlyDiagonal) 
+ Yb3adjYeYeadjYb3 = Matmul(Yb3,adjYeYeadjYb3) 
 Forall(i2=1:3)  Yb3adjYeYeadjYb3(i2,i2) =  Real(Yb3adjYeYeadjYb3(i2,i2),dp) 
- Yb3adjYw3Yw3adjYb3 = Matmul2(Yb3,adjYw3Yw3adjYb3,OnlyDiagonal) 
+ Yb3adjYw3Yw3adjYb3 = Matmul(Yb3,adjYw3Yw3adjYb3) 
 Forall(i2=1:3)  Yb3adjYw3Yw3adjYb3(i2,i2) =  Real(Yb3adjYw3Yw3adjYb3(i2,i2),dp) 
- YdadjYdYdadjYd = Matmul2(Yd,adjYdYdadjYd,OnlyDiagonal) 
+ YdadjYdYdadjYd = Matmul(Yd,adjYdYdadjYd) 
 Forall(i2=1:3)  YdadjYdYdadjYd(i2,i2) =  Real(YdadjYdYdadjYd(i2,i2),dp) 
- YdadjYdTpYx3CYx3 = Matmul2(Yd,adjYdTpYx3CYx3,OnlyDiagonal) 
- YdadjYuYuadjYd = Matmul2(Yd,adjYuYuadjYd,OnlyDiagonal) 
+ YdadjYdTpYx3CYx3 = Matmul(Yd,adjYdTpYx3CYx3) 
+ YdadjYuYuadjYd = Matmul(Yd,adjYuYuadjYd) 
 Forall(i2=1:3)  YdadjYuYuadjYd(i2,i2) =  Real(YdadjYuYuadjYd(i2,i2),dp) 
- YeadjYeYeadjYe = Matmul2(Ye,adjYeYeadjYe,OnlyDiagonal) 
+ YeadjYeYeadjYe = Matmul(Ye,adjYeYeadjYe) 
 Forall(i2=1:3)  YeadjYeYeadjYe(i2,i2) =  Real(YeadjYeYeadjYe(i2,i2),dp) 
- YeadjYw3Yw3adjYe = Matmul2(Ye,adjYw3Yw3adjYe,OnlyDiagonal) 
+ YeadjYw3Yw3adjYe = Matmul(Ye,adjYw3Yw3adjYe) 
 Forall(i2=1:3)  YeadjYw3Yw3adjYe(i2,i2) =  Real(YeadjYw3Yw3adjYe(i2,i2),dp) 
- YuadjYuYuadjYu = Matmul2(Yu,adjYuYuadjYu,OnlyDiagonal) 
+ YuadjYuYuadjYu = Matmul(Yu,adjYuYuadjYu) 
 Forall(i2=1:3)  YuadjYuYuadjYu(i2,i2) =  Real(YuadjYuYuadjYu(i2,i2),dp) 
- Yw3adjYw3Yw3adjYw3 = Matmul2(Yw3,adjYw3Yw3adjYw3,OnlyDiagonal) 
+ Yw3adjYw3Yw3adjYw3 = Matmul(Yw3,adjYw3Yw3adjYw3) 
 Forall(i2=1:3)  Yw3adjYw3Yw3adjYw3(i2,i2) =  Real(Yw3adjYw3Yw3adjYw3(i2,i2),dp) 
- Yx3adjYx3Yx3adjYx3 = Matmul2(Yx3,adjYx3Yx3adjYx3,OnlyDiagonal) 
+ Yx3adjYx3Yx3adjYx3 = Matmul(Yx3,adjYx3Yx3adjYx3) 
 Forall(i2=1:3)  Yx3adjYx3Yx3adjYx3(i2,i2) =  Real(Yx3adjYx3Yx3adjYx3(i2,i2),dp) 
- adjYb3Yb3adjYb3Yb3 = Matmul2(adjYb3,Yb3adjYb3Yb3,OnlyDiagonal) 
+ adjYb3Yb3adjYb3Yb3 = Matmul(adjYb3,Yb3adjYb3Yb3) 
 Forall(i2=1:3)  adjYb3Yb3adjYb3Yb3(i2,i2) =  Real(adjYb3Yb3adjYb3Yb3(i2,i2),dp) 
- adjYb3Yb3adjYeYe = Matmul2(adjYb3,Yb3adjYeYe,OnlyDiagonal) 
- adjYb3Yb3adjYw3Yw3 = Matmul2(adjYb3,Yb3adjYw3Yw3,OnlyDiagonal) 
- adjYdYdadjYdYd = Matmul2(adjYd,YdadjYdYd,OnlyDiagonal) 
+ adjYb3Yb3adjYeYe = Matmul(adjYb3,Yb3adjYeYe) 
+ adjYb3Yb3adjYw3Yw3 = Matmul(adjYb3,Yb3adjYw3Yw3) 
+ adjYdYdadjYdYd = Matmul(adjYd,YdadjYdYd) 
 Forall(i2=1:3)  adjYdYdadjYdYd(i2,i2) =  Real(adjYdYdadjYdYd(i2,i2),dp) 
- adjYdYdadjYuYu = Matmul2(adjYd,YdadjYuYu,OnlyDiagonal) 
- adjYdTpYx3CYx3Yd = Matmul2(adjYd,TpYx3CYx3Yd,OnlyDiagonal) 
+ adjYdYdadjYuYu = Matmul(adjYd,YdadjYuYu) 
+ adjYdTpYx3CYx3Yd = Matmul(adjYd,TpYx3CYx3Yd) 
 Forall(i2=1:3)  adjYdTpYx3CYx3Yd(i2,i2) =  Real(adjYdTpYx3CYx3Yd(i2,i2),dp) 
- adjYeYeadjYb3Yb3 = Matmul2(adjYe,YeadjYb3Yb3,OnlyDiagonal) 
- adjYeYeadjYeYe = Matmul2(adjYe,YeadjYeYe,OnlyDiagonal) 
+ adjYeYeadjYb3Yb3 = Matmul(adjYe,YeadjYb3Yb3) 
+ adjYeYeadjYeYe = Matmul(adjYe,YeadjYeYe) 
 Forall(i2=1:3)  adjYeYeadjYeYe(i2,i2) =  Real(adjYeYeadjYeYe(i2,i2),dp) 
- adjYeYeadjYw3Yw3 = Matmul2(adjYe,YeadjYw3Yw3,OnlyDiagonal) 
- adjYuYuadjYdYd = Matmul2(adjYu,YuadjYdYd,OnlyDiagonal) 
- adjYuYuadjYuYu = Matmul2(adjYu,YuadjYuYu,OnlyDiagonal) 
+ adjYeYeadjYw3Yw3 = Matmul(adjYe,YeadjYw3Yw3) 
+ adjYuYuadjYdYd = Matmul(adjYu,YuadjYdYd) 
+ adjYuYuadjYuYu = Matmul(adjYu,YuadjYuYu) 
 Forall(i2=1:3)  adjYuYuadjYuYu(i2,i2) =  Real(adjYuYuadjYuYu(i2,i2),dp) 
- adjYw3Yw3adjYb3Yb3 = Matmul2(adjYw3,Yw3adjYb3Yb3,OnlyDiagonal) 
- adjYw3Yw3adjYeYe = Matmul2(adjYw3,Yw3adjYeYe,OnlyDiagonal) 
- adjYw3Yw3adjYw3Yw3 = Matmul2(adjYw3,Yw3adjYw3Yw3,OnlyDiagonal) 
+ adjYw3Yw3adjYb3Yb3 = Matmul(adjYw3,Yw3adjYb3Yb3) 
+ adjYw3Yw3adjYeYe = Matmul(adjYw3,Yw3adjYeYe) 
+ adjYw3Yw3adjYw3Yw3 = Matmul(adjYw3,Yw3adjYw3Yw3) 
 Forall(i2=1:3)  adjYw3Yw3adjYw3Yw3(i2,i2) =  Real(adjYw3Yw3adjYw3Yw3(i2,i2),dp) 
- adjYx3Yx3adjYx3Yx3 = Matmul2(adjYx3,Yx3adjYx3Yx3,OnlyDiagonal) 
+ adjYx3Yx3adjYx3Yx3 = Matmul(adjYx3,Yx3adjYx3Yx3) 
 Forall(i2=1:3)  adjYx3Yx3adjYx3Yx3(i2,i2) =  Real(adjYx3Yx3adjYx3Yx3(i2,i2),dp) 
- CYdTpYdadjYx3Yx3 = Matmul2(Conjg(Yd),TpYdadjYx3Yx3,OnlyDiagonal) 
- CYdTpYdCYdTpYd = Matmul2(Conjg(Yd),TpYdCYdTpYd,OnlyDiagonal) 
+ CYdTpYdadjYx3Yx3 = Matmul(Conjg(Yd),TpYdadjYx3Yx3) 
+ CYdTpYdCYdTpYd = Matmul(Conjg(Yd),TpYdCYdTpYd) 
 Forall(i2=1:3)  CYdTpYdCYdTpYd(i2,i2) =  Real(CYdTpYdCYdTpYd(i2,i2),dp) 
- CYdTpYuCYuTpYd = Matmul2(Conjg(Yd),TpYuCYuTpYd,OnlyDiagonal) 
+ CYdTpYuCYuTpYd = Matmul(Conjg(Yd),TpYuCYuTpYd) 
 Forall(i2=1:3)  CYdTpYuCYuTpYd(i2,i2) =  Real(CYdTpYuCYuTpYd(i2,i2),dp) 
- CYx3TpYx3CYx3Yd = Matmul2(Conjg(Yx3),TpYx3CYx3Yd,OnlyDiagonal) 
- Yb3adjYb3Yb3adjYb3Yb3 = Matmul2(Yb3,adjYb3Yb3adjYb3Yb3,OnlyDiagonal) 
- Yb3adjYb3Yb3adjYw3Yw3 = Matmul2(Yb3,adjYb3Yb3adjYw3Yw3,OnlyDiagonal) 
- Yb3adjYeYeadjYb3Yb3 = Matmul2(Yb3,adjYeYeadjYb3Yb3,OnlyDiagonal) 
- Yb3adjYeYeadjYeYe = Matmul2(Yb3,adjYeYeadjYeYe,OnlyDiagonal) 
- Yb3adjYw3Yw3adjYb3Yb3 = Matmul2(Yb3,adjYw3Yw3adjYb3Yb3,OnlyDiagonal) 
- Yb3adjYw3Yw3adjYw3Yw3 = Matmul2(Yb3,adjYw3Yw3adjYw3Yw3,OnlyDiagonal) 
- YdadjYdYdadjYdYd = Matmul2(Yd,adjYdYdadjYdYd,OnlyDiagonal) 
- YdadjYdTpYx3CYx3Yd = Matmul2(Yd,adjYdTpYx3CYx3Yd,OnlyDiagonal) 
- YdadjYuYuadjYdYd = Matmul2(Yd,adjYuYuadjYdYd,OnlyDiagonal) 
- YdadjYuYuadjYuYu = Matmul2(Yd,adjYuYuadjYuYu,OnlyDiagonal) 
- YeadjYb3Yb3adjYb3Yb3 = Matmul2(Ye,adjYb3Yb3adjYb3Yb3,OnlyDiagonal) 
- YeadjYb3Yb3adjYeYe = Matmul2(Ye,adjYb3Yb3adjYeYe,OnlyDiagonal) 
- YeadjYb3Yb3adjYw3Yw3 = Matmul2(Ye,adjYb3Yb3adjYw3Yw3,OnlyDiagonal) 
- YeadjYeYeadjYeYe = Matmul2(Ye,adjYeYeadjYeYe,OnlyDiagonal) 
- YeadjYw3Yw3adjYb3Yb3 = Matmul2(Ye,adjYw3Yw3adjYb3Yb3,OnlyDiagonal) 
- YeadjYw3Yw3adjYeYe = Matmul2(Ye,adjYw3Yw3adjYeYe,OnlyDiagonal) 
- YeadjYw3Yw3adjYw3Yw3 = Matmul2(Ye,adjYw3Yw3adjYw3Yw3,OnlyDiagonal) 
- YuadjYdYdadjYdYd = Matmul2(Yu,adjYdYdadjYdYd,OnlyDiagonal) 
- YuadjYdYdadjYuYu = Matmul2(Yu,adjYdYdadjYuYu,OnlyDiagonal) 
- YuadjYdTpYx3CYx3Yd = Matmul2(Yu,adjYdTpYx3CYx3Yd,OnlyDiagonal) 
- YuadjYuYuadjYuYu = Matmul2(Yu,adjYuYuadjYuYu,OnlyDiagonal) 
- Yw3adjYb3Yb3adjYb3Yb3 = Matmul2(Yw3,adjYb3Yb3adjYb3Yb3,OnlyDiagonal) 
- Yw3adjYb3Yb3adjYw3Yw3 = Matmul2(Yw3,adjYb3Yb3adjYw3Yw3,OnlyDiagonal) 
- Yw3adjYeYeadjYeYe = Matmul2(Yw3,adjYeYeadjYeYe,OnlyDiagonal) 
- Yw3adjYeYeadjYw3Yw3 = Matmul2(Yw3,adjYeYeadjYw3Yw3,OnlyDiagonal) 
- Yw3adjYw3Yw3adjYb3Yb3 = Matmul2(Yw3,adjYw3Yw3adjYb3Yb3,OnlyDiagonal) 
- Yw3adjYw3Yw3adjYw3Yw3 = Matmul2(Yw3,adjYw3Yw3adjYw3Yw3,OnlyDiagonal) 
- Yx3adjYx3Yx3adjYx3Yx3 = Matmul2(Yx3,adjYx3Yx3adjYx3Yx3,OnlyDiagonal) 
- Yx3CYdTpYdadjYx3Yx3 = Matmul2(Yx3,CYdTpYdadjYx3Yx3,OnlyDiagonal) 
- Yx3CYdTpYdCYdTpYd = Matmul2(Yx3,CYdTpYdCYdTpYd,OnlyDiagonal) 
- Yx3CYdTpYuCYuTpYd = Matmul2(Yx3,CYdTpYuCYuTpYd,OnlyDiagonal) 
- TpYx3CYx3TpYx3CYx3Yd = Matmul2(Transpose(Yx3),CYx3TpYx3CYx3Yd,OnlyDiagonal) 
+ CYx3TpYx3CYx3Yd = Matmul(Conjg(Yx3),TpYx3CYx3Yd) 
+ Yb3adjYb3Yb3adjYb3Yb3 = Matmul(Yb3,adjYb3Yb3adjYb3Yb3) 
+ Yb3adjYb3Yb3adjYw3Yw3 = Matmul(Yb3,adjYb3Yb3adjYw3Yw3) 
+ Yb3adjYeYeadjYb3Yb3 = Matmul(Yb3,adjYeYeadjYb3Yb3) 
+ Yb3adjYeYeadjYeYe = Matmul(Yb3,adjYeYeadjYeYe) 
+ Yb3adjYw3Yw3adjYb3Yb3 = Matmul(Yb3,adjYw3Yw3adjYb3Yb3) 
+ Yb3adjYw3Yw3adjYw3Yw3 = Matmul(Yb3,adjYw3Yw3adjYw3Yw3) 
+ YdadjYdYdadjYdYd = Matmul(Yd,adjYdYdadjYdYd) 
+ YdadjYdTpYx3CYx3Yd = Matmul(Yd,adjYdTpYx3CYx3Yd) 
+ YdadjYuYuadjYdYd = Matmul(Yd,adjYuYuadjYdYd) 
+ YdadjYuYuadjYuYu = Matmul(Yd,adjYuYuadjYuYu) 
+ YeadjYb3Yb3adjYb3Yb3 = Matmul(Ye,adjYb3Yb3adjYb3Yb3) 
+ YeadjYb3Yb3adjYeYe = Matmul(Ye,adjYb3Yb3adjYeYe) 
+ YeadjYb3Yb3adjYw3Yw3 = Matmul(Ye,adjYb3Yb3adjYw3Yw3) 
+ YeadjYeYeadjYeYe = Matmul(Ye,adjYeYeadjYeYe) 
+ YeadjYw3Yw3adjYb3Yb3 = Matmul(Ye,adjYw3Yw3adjYb3Yb3) 
+ YeadjYw3Yw3adjYeYe = Matmul(Ye,adjYw3Yw3adjYeYe) 
+ YeadjYw3Yw3adjYw3Yw3 = Matmul(Ye,adjYw3Yw3adjYw3Yw3) 
+ YuadjYdYdadjYdYd = Matmul(Yu,adjYdYdadjYdYd) 
+ YuadjYdYdadjYuYu = Matmul(Yu,adjYdYdadjYuYu) 
+ YuadjYdTpYx3CYx3Yd = Matmul(Yu,adjYdTpYx3CYx3Yd) 
+ YuadjYuYuadjYuYu = Matmul(Yu,adjYuYuadjYuYu) 
+ Yw3adjYb3Yb3adjYb3Yb3 = Matmul(Yw3,adjYb3Yb3adjYb3Yb3) 
+ Yw3adjYb3Yb3adjYw3Yw3 = Matmul(Yw3,adjYb3Yb3adjYw3Yw3) 
+ Yw3adjYeYeadjYeYe = Matmul(Yw3,adjYeYeadjYeYe) 
+ Yw3adjYeYeadjYw3Yw3 = Matmul(Yw3,adjYeYeadjYw3Yw3) 
+ Yw3adjYw3Yw3adjYb3Yb3 = Matmul(Yw3,adjYw3Yw3adjYb3Yb3) 
+ Yw3adjYw3Yw3adjYw3Yw3 = Matmul(Yw3,adjYw3Yw3adjYw3Yw3) 
+ Yx3adjYx3Yx3adjYx3Yx3 = Matmul(Yx3,adjYx3Yx3adjYx3Yx3) 
+ Yx3CYdTpYdadjYx3Yx3 = Matmul(Yx3,CYdTpYdadjYx3Yx3) 
+ Yx3CYdTpYdCYdTpYd = Matmul(Yx3,CYdTpYdCYdTpYd) 
+ Yx3CYdTpYuCYuTpYd = Matmul(Yx3,CYdTpYuCYuTpYd) 
+ TpYx3CYx3TpYx3CYx3Yd = Matmul(Transpose(Yx3),CYx3TpYx3CYx3Yd) 
  TrYb3adjYb3Yb3adjYb3 = cTrace(Yb3adjYb3Yb3adjYb3) 
  TrYb3adjYeYeadjYb3 = cTrace(Yb3adjYeYeadjYb3) 
  TrYb3adjYw3Yw3adjYb3 = cTrace(Yb3adjYw3Yw3adjYb3) 
@@ -15224,23 +11725,23 @@ DYx3 = oo16pi2* betaYx31
 End If 
  
  
-If (ThresholdCrossed.lt.1) Then 
+If (ThresholdCrossed.Lt.1) Then 
 DYx3(1,:) = 0._dp 
 DYb3(1,:) = 0._dp 
 DYw3(1,:) = 0._dp 
-End if 
+End If 
 
-If (ThresholdCrossed.lt.2) Then 
+If (ThresholdCrossed.Lt.2) Then 
 DYx3(2,:) = 0._dp 
 DYb3(2,:) = 0._dp 
 DYw3(2,:) = 0._dp 
-End if 
+End If 
 
-If (ThresholdCrossed.lt.3) Then 
+If (ThresholdCrossed.Lt.3) Then 
 DYx3(3,:) = 0._dp 
 DYb3(3,:) = 0._dp 
 DYw3(3,:) = 0._dp 
-End if 
+End If 
 
 Call ParametersToG111(Dg1,Dg2,Dg3,DYu,DYd,DYe,DYb3,DYw3,DYx3,f)
 
@@ -15271,10 +11772,8 @@ Complex(dp) :: Yu(3,3),betaYu1(3,3),betaYu2(3,3),DYu(3,3),adjYu(3,3),Yd(3,3)    
 & ,betaTYe2(3,3),DTYe(3,3),adjTYe(3,3),TYb3(3,3),betaTYb31(3,3),betaTYb32(3,3)           & 
 & ,DTYb3(3,3),adjTYb3(3,3),TYw3(3,3),betaTYw31(3,3),betaTYw32(3,3),DTYw3(3,3)            & 
 & ,adjTYw3(3,3),TYx3(3,3),betaTYx31(3,3),betaTYx32(3,3),DTYx3(3,3),adjTYx3(3,3)          & 
-& ,Bmue,betaBmue1,betaBmue2,DBmue,BMXM3(3,3),betaBMXM31(3,3),betaBMXM32(3,3)             & 
-& ,DBMXM3(3,3),adjBMXM3(3,3),BMWM3(3,3),betaBMWM31(3,3),betaBMWM32(3,3),DBMWM3(3,3)      & 
-& ,adjBMWM3(3,3),BMGM3(3,3),betaBMGM31(3,3),betaBMGM32(3,3),DBMGM3(3,3),adjBMGM3(3,3)    & 
-& ,BMBM3(3,3),betaBMBM31(3,3),betaBMBM32(3,3),DBMBM3(3,3),adjBMBM3(3,3),mq2(3,3)         & 
+& ,Bmue,betaBmue1,betaBmue2,DBmue,BMXM3(3,3),DBMXM3(3,3),BMWM3(3,3),DBMWM3(3,3)      & 
+& ,BMGM3(3,3),DBMGM3(3,3),BMBM3(3,3),DBMBM3(3,3),mq2(3,3)         & 
 & ,betamq21(3,3),betamq22(3,3),Dmq2(3,3),adjmq2(3,3),ml2(3,3),betaml21(3,3)              & 
 & ,betaml22(3,3),Dml2(3,3),adjml2(3,3),md2(3,3),betamd21(3,3),betamd22(3,3)              & 
 & ,Dmd2(3,3),adjmd2(3,3),mu2(3,3),betamu21(3,3),betamu22(3,3),Dmu2(3,3),adjmu2(3,3)      & 
@@ -15283,44 +11782,45 @@ Complex(dp) :: Yu(3,3),betaYu1(3,3),betaYu2(3,3),DYu(3,3),adjYu(3,3),Yd(3,3)    
 & ,DmHg32(3,3),adjmHg32(3,3),mHb32(3,3),betamHb321(3,3),betamHb322(3,3),DmHb32(3,3)      & 
 & ,adjmHb32(3,3),mHx32(3,3),betamHx321(3,3),betamHx322(3,3),DmHx32(3,3),adjmHx32(3,3)    & 
 & ,mHxb32(3,3),betamHxb321(3,3),betamHxb322(3,3),DmHxb32(3,3),adjmHxb32(3,3)             & 
-& ,MassB,betaMassB1,betaMassB2,DMassB,MassWB,betaMassWB1,betaMassWB2,DMassWB,MassG,betaMassG1,betaMassG2,DMassG
+& ,MassB,betaMassB1,betaMassB2,DMassB,MassWB,betaMassWB1,betaMassWB2,DMassWB,MassG    &
+& ,betaMassG1,betaMassG2,DMassG
 Complex(dp) :: Tr1(3),Tr2(3),Tr3(3) 
 Real(dp) :: AbsMassB,AbsMassWB,AbsMassG
 Complex(dp) :: md2adjYx3(3,3),md2CYd(3,3),me2CYe(3,3),mHb32CYb3(3,3),mHw32CYw3(3,3),mHxb32CYx3(3,3), & 
 & ml2adjYb3(3,3),ml2adjYe(3,3),ml2adjYw3(3,3),mq2adjYd(3,3),mq2adjYu(3,3),               & 
 & mu2CYu(3,3),Yb3adjYb3(3,3),YdadjYd(3,3),YeadjYe(3,3),YuadjYu(3,3),Yw3adjYw3(3,3),      & 
-& Yx3adjYx3(3,3),adjYb3MBM3(3,3),adjYb3mHb32(3,3),adjYb3Yb3(3,3),adjYb3BMBM3(3,3),       & 
+& Yx3adjYx3(3,3),adjYb3MBM3(3,3),adjYb3mHb32(3,3),adjYb3Yb3(3,3),       & 
 & adjYb3TYb3(3,3),adjYdmd2(3,3),adjYdYd(3,3),adjYdTYd(3,3),adjYeme2(3,3),adjYeYe(3,3),   & 
 & adjYeTYe(3,3),adjYumu2(3,3),adjYuYu(3,3),adjYuTYu(3,3),adjYw3mHw32(3,3),               & 
-& adjYw3MWM3(3,3),adjYw3Yw3(3,3),adjYw3BMWM3(3,3),adjYw3TYw3(3,3),adjYx3mHxb32(3,3),     & 
-& adjYx3Yx3(3,3),adjYx3TYx3(3,3),CYb3ml2(3,3),CYb3TpYb3(3,3),CYb3TpTYb3(3,3),            & 
+& adjYw3MWM3(3,3),adjYw3Yw3(3,3),adjYw3TYw3(3,3),adjYx3mHxb32(3,3),     & 
+& adjYx3Yx3(3,3),adjYx3TYx3(3,3),CYb3ml2(3,3),CYb3TpYb3(3,3),            & 
 & CYdmq2(3,3),CYdTpYd(3,3),CYdTpTYd(3,3),CYeml2(3,3),CYumq2(3,3),CYw3ml2(3,3),           & 
-& CYw3TpYw3(3,3),CYw3TpTYw3(3,3),CYx3md2(3,3),CYx3Yd(3,3),CYx3TYd(3,3),CYx3TpYx3(3,3),   & 
-& CYx3TpTYx3(3,3),CTYb3TpTYb3(3,3),CTYdTpTYd(3,3),CTYeTpTYe(3,3),CTYuTpTYu(3,3),         & 
+& CYw3TpYw3(3,3),CYx3md2(3,3),CYx3Yd(3,3),CYx3TYd(3,3),CYx3TpYx3(3,3),   & 
+& CTYb3TpTYb3(3,3),CTYdTpTYd(3,3),CTYeTpTYe(3,3),CTYuTpTYu(3,3),         & 
 & CTYw3TpTYw3(3,3),CTYx3TpTYx3(3,3),TYb3adjTYb3(3,3),TYdadjTYd(3,3),TYeadjTYe(3,3),      & 
 & TYuadjTYu(3,3),TYw3adjTYw3(3,3),TYx3adjTYx3(3,3),TpYb3CYb3(3,3),TpYdCYd(3,3),          & 
 & TpYeCYe(3,3),TpYuCYu(3,3),TpYw3CYw3(3,3),TpYx3CYx3(3,3),TpTYb3CTYb3(3,3),              & 
 & TpTYdCTYd(3,3),TpTYeCTYe(3,3),TpTYuCTYu(3,3),TpTYw3CTYw3(3,3),TpTYx3CTYx3(3,3),        & 
-& MBM3CYb3TpYb3(3,3),MBM3CYb3TpTYb3(3,3),md2YdadjYd(3,3),md2adjYx3Yx3(3,3),              & 
+& MBM3CYb3TpYb3(3,3),md2YdadjYd(3,3),md2adjYx3Yx3(3,3),              & 
 & md2TpYx3CYx3(3,3),me2YeadjYe(3,3),mHb32Yb3adjYb3(3,3),mHw32Yw3adjYw3(3,3),             & 
 & mHxb32Yx3adjYx3(3,3),ml2adjYb3Yb3(3,3),ml2adjYeYe(3,3),ml2adjYw3Yw3(3,3),              & 
 & ml2TpYb3CYb3(3,3),ml2TpYeCYe(3,3),ml2TpYw3CYw3(3,3),mq2adjYdYd(3,3),mq2adjYuYu(3,3),   & 
-& mq2TpYdCYd(3,3),mq2TpYuCYu(3,3),mu2YuadjYu(3,3),MWM3CYw3TpYw3(3,3),MWM3CYw3TpTYw3(3,3),& 
-& MXM3CYx3TpYx3(3,3),MXM3CYx3TpTYx3(3,3),Yb3ml2adjYb3(3,3),Yb3adjYb3MBM3(3,3),           & 
-& Yb3adjYb3mHb32(3,3),Yb3adjYb3Yb3(3,3),Yb3adjYb3BMBM3(3,3),Yb3adjYb3TYb3(3,3),          & 
+& mq2TpYdCYd(3,3),mq2TpYuCYu(3,3),mu2YuadjYu(3,3),MWM3CYw3TpYw3(3,3),& 
+& MXM3CYx3TpYx3(3,3),Yb3ml2adjYb3(3,3),Yb3adjYb3MBM3(3,3),           & 
+& Yb3adjYb3mHb32(3,3),Yb3adjYb3Yb3(3,3),Yb3adjYb3TYb3(3,3),          & 
 & Yb3adjYeYe(3,3),Yb3adjYeTYe(3,3),Yb3adjYw3Yw3(3,3),Yb3adjYw3TYw3(3,3),Ydmq2adjYd(3,3), & 
 & YdadjYdmd2(3,3),YdadjYdYd(3,3),YdadjYdTYd(3,3),YdadjYuYu(3,3),YdadjYuTYu(3,3),         & 
 & Yeml2adjYe(3,3),YeadjYb3Yb3(3,3),YeadjYb3TYb3(3,3),YeadjYeme2(3,3),YeadjYeYe(3,3),     & 
 & YeadjYeTYe(3,3),YeadjYw3Yw3(3,3),YeadjYw3TYw3(3,3),Yumq2adjYu(3,3),YuadjYdYd(3,3),     & 
 & YuadjYdTYd(3,3),YuadjYumu2(3,3),YuadjYuYu(3,3),YuadjYuTYu(3,3),Yw3ml2adjYw3(3,3),      & 
 & Yw3adjYb3Yb3(3,3),Yw3adjYb3TYb3(3,3),Yw3adjYeYe(3,3),Yw3adjYeTYe(3,3),Yw3adjYw3mHw32(3,3),& 
-& Yw3adjYw3MWM3(3,3),Yw3adjYw3Yw3(3,3),Yw3adjYw3BMWM3(3,3),Yw3adjYw3TYw3(3,3),           & 
+& Yw3adjYw3MWM3(3,3),Yw3adjYw3Yw3(3,3),Yw3adjYw3TYw3(3,3),           & 
 & Yx3md2adjYx3(3,3),Yx3adjYx3mHxb32(3,3),Yx3adjYx3Yx3(3,3),Yx3adjYx3TYx3(3,3),           & 
-& Yx3CYdTpYd(3,3),Yx3CYdTpTYd(3,3),BMBM3CYb3TpYb3(3,3),BMWM3CYw3TpYw3(3,3),              & 
-& BMXM3CYx3TpYx3(3,3),TYb3adjYb3MBM3(3,3),TYb3adjYb3Yb3(3,3),TYb3adjYeYe(3,3),           & 
+& Yx3CYdTpYd(3,3),Yx3CYdTpTYd(3,3),              & 
+& TYb3adjYb3Yb3(3,3),TYb3adjYeYe(3,3),           & 
 & TYb3adjYw3Yw3(3,3),TYdadjYdYd(3,3),TYdadjYuYu(3,3),TYeadjYb3Yb3(3,3),TYeadjYeYe(3,3),  & 
 & TYeadjYw3Yw3(3,3),TYuadjYdYd(3,3),TYuadjYuYu(3,3),TYw3adjYb3Yb3(3,3),TYw3adjYeYe(3,3), & 
-& TYw3adjYw3MWM3(3,3),TYw3adjYw3Yw3(3,3),TYx3adjYx3Yx3(3,3),TYx3CYdTpYd(3,3),            & 
+& TYw3adjYw3Yw3(3,3),TYx3adjYx3Yx3(3,3),TYx3CYdTpYd(3,3),            & 
 & TpYb3mHb32CYb3(3,3),TpYb3CYb3ml2(3,3),TpYdmd2CYd(3,3),TpYdCYdmq2(3,3),TpYeme2CYe(3,3), & 
 & TpYeCYeml2(3,3),TpYumu2CYu(3,3),TpYuCYumq2(3,3),TpYw3mHw32CYw3(3,3),TpYw3CYw3ml2(3,3)
 
@@ -15331,10 +11831,10 @@ Complex(dp) :: Yb3adjYe(3,3),Yb3adjYw3(3,3),Yb3adjTYb3(3,3),Yb3adjTYe(3,3),Yb3ad
 & YdadjYu(3,3),YdadjTYd(3,3),YdadjTYu(3,3),YeadjYb3(3,3),YeadjYw3(3,3),YeadjTYb3(3,3),   & 
 & YeadjTYe(3,3),YeadjTYw3(3,3),YuadjYd(3,3),YuadjTYd(3,3),YuadjTYu(3,3),Yw3adjYb3(3,3),  & 
 & Yw3adjYe(3,3),Yw3adjTYb3(3,3),Yw3adjTYe(3,3),Yw3adjTYw3(3,3),Yx3adjTYx3(3,3),          & 
-& Yx3CYd(3,3),Yx3CTYd(3,3),adjYdadjTYx3(3,3),adjYdTpYx3(3,3),adjYdTpTYx3(3,3),           & 
-& adjTYdadjYx3(3,3),CYb3TpYw3(3,3),CYb3TpTYw3(3,3),CYeTpYb3(3,3),CYeTpYw3(3,3),          & 
-& CYeTpTYb3(3,3),CYeTpTYw3(3,3),CYuTpYd(3,3),CYuTpTYd(3,3),CYw3TpYb3(3,3),               & 
-& CYw3TpTYb3(3,3),CTYb3adjYb3(3,3),CTYb3adjYe(3,3),CTYb3adjYw3(3,3),CTYb3TpYb3(3,3),     & 
+& Yx3CYd(3,3),Yx3CTYd(3,3),adjYdadjTYx3(3,3),adjYdTpYx3(3,3),           & 
+& adjTYdadjYx3(3,3),CYb3TpYw3(3,3),CYeTpYb3(3,3),CYeTpYw3(3,3),          & 
+& CYuTpYd(3,3),CYuTpTYd(3,3),CYw3TpYb3(3,3),               & 
+& CTYb3adjYb3(3,3),CTYb3adjYe(3,3),CTYb3adjYw3(3,3),CTYb3TpYb3(3,3),     & 
 & CTYdadjYd(3,3),CTYdadjYu(3,3),CTYdTpYd(3,3),CTYeadjYb3(3,3),CTYeadjYe(3,3),            & 
 & CTYeadjYw3(3,3),CTYeTpYe(3,3),CTYuadjYd(3,3),CTYuadjYu(3,3),CTYuTpYu(3,3),             & 
 & CTYw3adjYb3(3,3),CTYw3adjYe(3,3),CTYw3adjYw3(3,3),CTYw3TpYw3(3,3),CTYx3adjYx3(3,3),    & 
@@ -15349,12 +11849,12 @@ Complex(dp) :: Yb3adjYe(3,3),Yb3adjYw3(3,3),Yb3adjTYb3(3,3),Yb3adjTYe(3,3),Yb3ad
 & TpTYw3CYw3(3,3),TpTYx3CYx3(3,3),md2YdadjYu(3,3),me2YeadjYb3(3,3),me2YeadjYw3(3,3),     & 
 & mHb32Yb3adjYe(3,3),mHb32Yb3adjYw3(3,3),mHw32Yw3adjYb3(3,3),mHw32Yw3adjYe(3,3),         & 
 & mHxb32Yx3CYd(3,3),mq2TpYdadjYx3(3,3),mu2YuadjYd(3,3),Yb3ml2adjYe(3,3),Yb3ml2adjYw3(3,3),& 
-& Yb3adjYeme2(3,3),Yb3adjYw3mHw32(3,3),Yb3adjYw3MWM3(3,3),Yb3adjYw3BMWM3(3,3),           & 
-& Ydmq2adjYu(3,3),YdadjYdTpYx3(3,3),YdadjYdTpTYx3(3,3),YdadjYumu2(3,3),YdadjTYdadjYx3(3,3),& 
-& Yeml2adjYb3(3,3),Yeml2adjYw3(3,3),YeadjYb3MBM3(3,3),YeadjYb3mHb32(3,3),YeadjYb3BMBM3(3,3),& 
-& YeadjYw3mHw32(3,3),YeadjYw3MWM3(3,3),YeadjYw3BMWM3(3,3),Yumq2adjYd(3,3),               & 
+& Yb3adjYeme2(3,3),Yb3adjYw3mHw32(3,3),Yb3adjYw3MWM3(3,3),           & 
+& Ydmq2adjYu(3,3),YdadjYdTpYx3(3,3),YdadjYumu2(3,3),YdadjTYdadjYx3(3,3),& 
+& Yeml2adjYb3(3,3),Yeml2adjYw3(3,3),YeadjYb3MBM3(3,3),YeadjYb3mHb32(3,3),& 
+& YeadjYw3mHw32(3,3),YeadjYw3MWM3(3,3),Yumq2adjYd(3,3),               & 
 & YuadjYdmd2(3,3),Yw3ml2adjYb3(3,3),Yw3ml2adjYe(3,3),Yw3adjYb3MBM3(3,3),Yw3adjYb3mHb32(3,3),& 
-& Yw3adjYb3BMBM3(3,3),Yw3adjYeme2(3,3),Yx3md2CYd(3,3),Yx3CYdmq2(3,3),adjYb3Yb3adjYb3(3,3),& 
+& Yw3adjYeme2(3,3),Yx3md2CYd(3,3),Yx3CYdmq2(3,3),adjYb3Yb3adjYb3(3,3),& 
 & adjYb3Yb3adjYe(3,3),adjYb3Yb3adjYw3(3,3),adjYb3Yb3adjTYb3(3,3),adjYb3Yb3adjTYe(3,3),   & 
 & adjYb3Yb3adjTYw3(3,3),adjYb3TYb3adjYb3(3,3),adjYb3TYb3adjYe(3,3),adjYb3TYb3adjYw3(3,3),& 
 & adjYb3TYb3adjTYb3(3,3),adjYb3TYb3adjTYe(3,3),adjYb3TYb3adjTYw3(3,3),adjYdYdadjYd(3,3), & 
@@ -15383,25 +11883,25 @@ Complex(dp) :: adjYuYuadjYu(3,3),adjYuYuadjTYd(3,3),adjYuYuadjTYu(3,3),adjYuTYua
 & CYw3TpTYw3CTYw3(3,3),CYx3YdadjYd(3,3),CYx3TpYx3CYx3(3,3),CYx3TpYx3CTYx3(3,3),          & 
 & CYx3TpTYx3CTYx3(3,3),CTYb3TpTYb3CYb3(3,3),CTYb3TpTYw3CYw3(3,3),CTYdTpTYdadjYx3(3,3),   & 
 & CTYdTpTYdCYd(3,3),CTYeTpTYeCYe(3,3),CTYuTpTYuCYu(3,3),CTYw3TpTYb3CYb3(3,3),            & 
-& CTYw3TpTYw3CYw3(3,3),CTYx3TpTYx3CYx3(3,3),TYb3adjYw3MWM3(3,3),TYb3TpYb3CYb3(3,3),      & 
-& TYb3TpYw3CYw3(3,3),TYdadjYdadjTYx3(3,3),TYdadjYdTpYx3(3,3),TYdTpYdCYd(3,3),            & 
-& TYeadjYb3MBM3(3,3),TYeadjYw3MWM3(3,3),TYeTpYeCYe(3,3),TYuTpYuCYu(3,3),TYw3adjYb3MBM3(3,3),& 
+& CTYw3TpTYw3CYw3(3,3),CTYx3TpTYx3CYx3(3,3),TYb3TpYb3CYb3(3,3),      & 
+& TYb3TpYw3CYw3(3,3),TYdadjYdadjTYx3(3,3),TYdTpYdCYd(3,3),            & 
+& TYeTpYeCYe(3,3),TYuTpYuCYu(3,3),& 
 & TYw3TpYb3CYb3(3,3),TYw3TpYw3CYw3(3,3),TYx3CTYdTpYd(3,3),TYx3TpYx3CYx3(3,3),            & 
-& TpYb3CYb3TpYb3(3,3),TpYb3CYb3TpYw3(3,3),TpYb3CYb3TpTYb3(3,3),TpYb3CYb3TpTYw3(3,3),     & 
+& TpYb3CYb3TpYb3(3,3),TpYb3CYb3TpYw3(3,3),     & 
 & TpYb3CTYb3adjYb3(3,3),TpYb3CTYb3adjYe(3,3),TpYb3CTYb3adjYw3(3,3),TpYdmd2adjYx3(3,3),   & 
 & TpYdadjYx3mHxb32(3,3),TpYdadjYx3Yx3(3,3),TpYdadjYx3TYx3(3,3),TpYdCYdTpYd(3,3),         & 
 & TpYdCYdTpTYd(3,3),TpYdCTYdadjYd(3,3),TpYdCTYdadjYu(3,3),TpYeCYeTpYb3(3,3),             & 
-& TpYeCYeTpYw3(3,3),TpYeCYeTpTYb3(3,3),TpYeCYeTpTYw3(3,3),TpYeCTYeadjYb3(3,3),           & 
+& TpYeCYeTpYw3(3,3),TpYeCTYeadjYb3(3,3),           & 
 & TpYeCTYeadjYe(3,3),TpYeCTYeadjYw3(3,3),TpYuCYuTpYd(3,3),TpYuCYuTpTYd(3,3),             & 
 & TpYuCTYuadjYd(3,3),TpYuCTYuadjYu(3,3),TpYw3CYw3TpYb3(3,3),TpYw3CYw3TpYw3(3,3),         & 
-& TpYw3CYw3TpTYb3(3,3),TpYw3CYw3TpTYw3(3,3),TpYw3CTYw3adjYb3(3,3),TpYw3CTYw3adjYe(3,3),  & 
-& TpYw3CTYw3adjYw3(3,3),TpYx3CYx3TpYx3(3,3),TpYx3CYx3TpTYx3(3,3),TpYx3CTYx3adjYx3(3,3),  & 
-& TpYx3CTYx3TYd(3,3),TpYx3CTYx3TpTYd(3,3),TpTYb3CYb3TpYb3(3,3),TpTYb3CYb3TpYw3(3,3),     & 
+& TpYw3CTYw3adjYb3(3,3),TpYw3CTYw3adjYe(3,3),  & 
+& TpYw3CTYw3adjYw3(3,3),TpYx3CYx3TpYx3(3,3),TpYx3CTYx3adjYx3(3,3),  & 
+& TpYx3CTYx3TYd(3,3),TpYx3CTYx3TpTYd(3,3),     & 
 & TpTYb3CTYb3adjYb3(3,3),TpTYb3CTYb3adjYe(3,3),TpTYb3CTYb3adjYw3(3,3),TpTYdCYdTpYd(3,3), & 
-& TpTYdCTYdadjYd(3,3),TpTYdCTYdadjYu(3,3),TpTYeCYeTpYb3(3,3),TpTYeCYeTpYw3(3,3),         & 
+& TpTYdCTYdadjYd(3,3),TpTYdCTYdadjYu(3,3),         & 
 & TpTYeCTYeadjYb3(3,3),TpTYeCTYeadjYe(3,3),TpTYeCTYeadjYw3(3,3),TpTYuCYuTpYd(3,3),       & 
-& TpTYuCTYuadjYd(3,3),TpTYuCTYuadjYu(3,3),TpTYw3CYw3TpYb3(3,3),TpTYw3CYw3TpYw3(3,3),     & 
-& TpTYw3CTYw3adjYb3(3,3),TpTYw3CTYw3adjYe(3,3),TpTYw3CTYw3adjYw3(3,3),TpTYx3CYx3TpYx3(3,3)
+& TpTYuCTYuadjYd(3,3),TpTYuCTYuadjYu(3,3),     & 
+& TpTYw3CTYw3adjYb3(3,3),TpTYw3CTYw3adjYe(3,3),TpTYw3CTYw3adjYw3(3,3)
 
 Complex(dp) :: TpTYx3CTYx3adjYx3(3,3),TpTYx3CTYx3TpYd(3,3),md2adjYx3Yx3adjYx3(3,3),md2adjYx3Yx3CYd(3,3),& 
 & md2CYdTpYdadjYx3(3,3),md2CYdTpYdCYd(3,3),me2CYeTpYeCYe(3,3),mHb32CYb3TpYb3CYb3(3,3),   & 
@@ -15433,11 +11933,11 @@ Complex(dp) :: TpTYx3CTYx3adjYx3(3,3),TpTYx3CTYx3TpYd(3,3),md2adjYx3Yx3adjYx3(3,
 & Yx3CTYdTpTYdadjYx3(3,3),Yx3TYdadjYdadjTYx3(3,3),Yx3TpTYx3CTYx3adjYx3(3,3),             & 
 & adjYb3mHb32Yb3adjYb3(3,3),adjYb3mHb32Yb3adjYe(3,3),adjYb3mHb32Yb3adjYw3(3,3),          & 
 & adjYb3Yb3ml2adjYb3(3,3),adjYb3Yb3ml2adjYe(3,3),adjYb3Yb3ml2adjYw3(3,3),adjYb3Yb3adjYb3MBM3(3,3),& 
-& adjYb3Yb3adjYb3mHb32(3,3),adjYb3Yb3adjYb3Yb3(3,3),adjYb3Yb3adjYb3BMBM3(3,3),           & 
+& adjYb3Yb3adjYb3mHb32(3,3),adjYb3Yb3adjYb3Yb3(3,3),           & 
 & adjYb3Yb3adjYb3TYb3(3,3),adjYb3Yb3adjYeme2(3,3),adjYb3Yb3adjYeYe(3,3),adjYb3Yb3adjYeTYe(3,3),& 
 & adjYb3Yb3adjYw3mHw32(3,3),adjYb3Yb3adjYw3MWM3(3,3),adjYb3Yb3adjYw3Yw3(3,3),            & 
-& adjYb3Yb3adjYw3BMWM3(3,3),adjYb3Yb3adjYw3TYw3(3,3),adjYb3TYb3adjYb3MBM3(3,3),          & 
-& adjYb3TYb3adjYb3Yb3(3,3),adjYb3TYb3adjYeYe(3,3),adjYb3TYb3adjYw3MWM3(3,3),             & 
+& adjYb3Yb3adjYw3TYw3(3,3),          & 
+& adjYb3TYb3adjYb3Yb3(3,3),adjYb3TYb3adjYeYe(3,3),             & 
 & adjYb3TYb3adjYw3Yw3(3,3),adjYdmd2YdadjYd(3,3),adjYdmd2YdadjYu(3,3),adjYdYdmq2adjYd(3,3),& 
 & adjYdYdmq2adjYu(3,3),adjYdYdadjYdmd2(3,3),adjYdYdadjYdYd(3,3),adjYdYdadjYdTYd(3,3)
 
@@ -15446,20 +11946,20 @@ Complex(dp) :: adjYdYdadjYumu2(3,3),adjYdYdadjYuYu(3,3),adjYdYdadjYuTYu(3,3),adj
 & adjYdTpYx3CTYx3TpTYd(3,3),adjYdTpTYx3CYx3Yd(3,3),adjYdTpTYx3CTYx3TpYd(3,3),            & 
 & adjYeme2YeadjYb3(3,3),adjYeme2YeadjYe(3,3),adjYeme2YeadjYw3(3,3),adjYeYeml2adjYb3(3,3),& 
 & adjYeYeml2adjYe(3,3),adjYeYeml2adjYw3(3,3),adjYeYeadjYb3MBM3(3,3),adjYeYeadjYb3mHb32(3,3),& 
-& adjYeYeadjYb3Yb3(3,3),adjYeYeadjYb3BMBM3(3,3),adjYeYeadjYb3TYb3(3,3),adjYeYeadjYeme2(3,3),& 
+& adjYeYeadjYb3Yb3(3,3),adjYeYeadjYb3TYb3(3,3),adjYeYeadjYeme2(3,3),& 
 & adjYeYeadjYeYe(3,3),adjYeYeadjYeTYe(3,3),adjYeYeadjYw3mHw32(3,3),adjYeYeadjYw3MWM3(3,3),& 
-& adjYeYeadjYw3Yw3(3,3),adjYeYeadjYw3BMWM3(3,3),adjYeYeadjYw3TYw3(3,3),adjYeTYeadjYb3MBM3(3,3),& 
-& adjYeTYeadjYb3Yb3(3,3),adjYeTYeadjYeYe(3,3),adjYeTYeadjYw3MWM3(3,3),adjYeTYeadjYw3Yw3(3,3),& 
+& adjYeYeadjYw3Yw3(3,3),adjYeYeadjYw3TYw3(3,3), & 
+& adjYeTYeadjYb3Yb3(3,3),adjYeTYeadjYeYe(3,3),adjYeTYeadjYw3Yw3(3,3),& 
 & adjYumu2YuadjYd(3,3),adjYumu2YuadjYu(3,3),adjYuYumq2adjYd(3,3),adjYuYumq2adjYu(3,3),   & 
 & adjYuYuadjYdmd2(3,3),adjYuYuadjYdYd(3,3),adjYuYuadjYdTYd(3,3),adjYuYuadjYumu2(3,3),    & 
 & adjYuYuadjYuYu(3,3),adjYuYuadjYuTYu(3,3),adjYuTYuadjYdYd(3,3),adjYuTYuadjYuYu(3,3),    & 
 & adjYw3mHw32Yw3adjYb3(3,3),adjYw3mHw32Yw3adjYe(3,3),adjYw3mHw32Yw3adjYw3(3,3),          & 
 & adjYw3Yw3ml2adjYb3(3,3),adjYw3Yw3ml2adjYe(3,3),adjYw3Yw3ml2adjYw3(3,3),adjYw3Yw3adjYb3MBM3(3,3),& 
-& adjYw3Yw3adjYb3mHb32(3,3),adjYw3Yw3adjYb3Yb3(3,3),adjYw3Yw3adjYb3BMBM3(3,3),           & 
+& adjYw3Yw3adjYb3mHb32(3,3),adjYw3Yw3adjYb3Yb3(3,3),           & 
 & adjYw3Yw3adjYb3TYb3(3,3),adjYw3Yw3adjYeme2(3,3),adjYw3Yw3adjYeYe(3,3),adjYw3Yw3adjYeTYe(3,3),& 
 & adjYw3Yw3adjYw3mHw32(3,3),adjYw3Yw3adjYw3MWM3(3,3),adjYw3Yw3adjYw3Yw3(3,3),            & 
-& adjYw3Yw3adjYw3BMWM3(3,3),adjYw3Yw3adjYw3TYw3(3,3),adjYw3TYw3adjYb3MBM3(3,3),          & 
-& adjYw3TYw3adjYb3Yb3(3,3),adjYw3TYw3adjYeYe(3,3),adjYw3TYw3adjYw3MWM3(3,3),             & 
+& adjYw3Yw3adjYw3TYw3(3,3),          & 
+& adjYw3TYw3adjYb3Yb3(3,3),adjYw3TYw3adjYeYe(3,3),             & 
 & adjYw3TYw3adjYw3Yw3(3,3),adjYx3mHxb32Yx3adjYx3(3,3),adjYx3mHxb32Yx3CYd(3,3),           & 
 & adjYx3Yx3md2adjYx3(3,3),adjYx3Yx3md2CYd(3,3),adjYx3Yx3adjYx3mHxb32(3,3),               & 
 & adjYx3Yx3adjYx3Yx3(3,3),adjYx3Yx3adjYx3TYx3(3,3),adjYx3Yx3CYdmq2(3,3),adjYx3TYx3adjYx3Yx3(3,3),& 
@@ -15467,22 +11967,21 @@ Complex(dp) :: adjYdYdadjYumu2(3,3),adjYdYdadjYuYu(3,3),adjYdYdadjYuTYu(3,3),adj
 & adjTYb3TYb3TpYw3CYw3(3,3),adjTYdTYdTpYdCYd(3,3),adjTYeTYeTpYeCYe(3,3),adjTYuTYuTpYuCYu(3,3),& 
 & adjTYw3TYw3TpYb3CYb3(3,3),adjTYw3TYw3TpYw3CYw3(3,3),adjTYx3TYx3TpYx3CYx3(3,3),         & 
 & CYb3ml2TpYb3CYb3(3,3),CYb3ml2TpYw3CYw3(3,3),CYb3TpYb3mHb32CYb3(3,3),CYb3TpYb3CYb3ml2(3,3),& 
-& CYb3TpYb3CYb3TpYb3(3,3),CYb3TpYb3CYb3TpTYb3(3,3),CYb3TpYeCYeTpYb3(3,3),CYb3TpYeCYeTpTYb3(3,3),& 
-& CYb3TpYw3mHw32CYw3(3,3),CYb3TpYw3CYw3ml2(3,3),CYb3TpYw3CYw3TpYb3(3,3),CYb3TpYw3CYw3TpTYb3(3,3),& 
-& CYb3TpTYb3CYb3TpYb3(3,3),CYb3TpTYeCYeTpYb3(3,3),CYb3TpTYw3CYw3TpYb3(3,3),              & 
+& CYb3TpYb3CYb3TpYb3(3,3),CYb3TpYeCYeTpYb3(3,3),& 
+& CYb3TpYw3mHw32CYw3(3,3),CYb3TpYw3CYw3ml2(3,3),CYb3TpYw3CYw3TpYb3(3,3),& 
 & CYdmq2TpYdadjYx3(3,3),CYdmq2TpYdCYd(3,3),CYdTpYdmd2adjYx3(3,3),CYdTpYdmd2CYd(3,3),     & 
 & CYdTpYdadjYx3mHxb32(3,3),CYdTpYdadjYx3Yx3(3,3),CYdTpYdadjYx3TYx3(3,3),CYdTpYdCYdmq2(3,3),& 
 & CYdTpYdCYdTpYd(3,3),CYdTpYdCYdTpTYd(3,3),CYdTpYuCYuTpYd(3,3),CYdTpYuCYuTpTYd(3,3),     & 
 & CYdTpTYdCYdTpYd(3,3),CYdTpTYuCYuTpYd(3,3),CYeml2TpYeCYe(3,3),CYeTpYeme2CYe(3,3),       & 
 & CYeTpYeCYeml2(3,3),CYumq2TpYuCYu(3,3),CYuTpYumu2CYu(3,3),CYuTpYuCYumq2(3,3),           & 
 & CYw3ml2TpYb3CYb3(3,3),CYw3ml2TpYw3CYw3(3,3),CYw3TpYb3mHb32CYb3(3,3),CYw3TpYb3CYb3ml2(3,3),& 
-& CYw3TpYb3CYb3TpYw3(3,3),CYw3TpYb3CYb3TpTYw3(3,3),CYw3TpYeCYeTpYw3(3,3),CYw3TpYeCYeTpTYw3(3,3),& 
-& CYw3TpYw3mHw32CYw3(3,3),CYw3TpYw3CYw3ml2(3,3),CYw3TpYw3CYw3TpYw3(3,3),CYw3TpYw3CYw3TpTYw3(3,3)
+& CYw3TpYb3CYb3TpYw3(3,3),CYw3TpYeCYeTpYw3(3,3),& 
+& CYw3TpYw3mHw32CYw3(3,3),CYw3TpYw3CYw3ml2(3,3),CYw3TpYw3CYw3TpYw3(3,3)
 
-Complex(dp) :: CYw3TpTYb3CYb3TpYw3(3,3),CYw3TpTYeCYeTpYw3(3,3),CYw3TpTYw3CYw3TpYw3(3,3),              & 
-& CYx3md2TpYx3CYx3(3,3),CYx3YdadjYdTpYx3(3,3),CYx3YdadjYdTpTYx3(3,3),CYx3TYdadjYdTpYx3(3,3),& 
+Complex(dp) ::               & 
+& CYx3md2TpYx3CYx3(3,3),CYx3YdadjYdTpYx3(3,3),& 
 & CYx3TpYx3mHxb32CYx3(3,3),CYx3TpYx3CYx3md2(3,3),CYx3TpYx3CYx3Yd(3,3),CYx3TpYx3CYx3TYd(3,3),& 
-& CYx3TpYx3CYx3TpYx3(3,3),CYx3TpYx3CYx3TpTYx3(3,3),CYx3TpTYx3CYx3Yd(3,3),CYx3TpTYx3CYx3TpYx3(3,3),& 
+& CYx3TpYx3CYx3TpYx3(3,3),CYx3TpTYx3CYx3Yd(3,3),& 
 & TYb3adjYb3Yb3adjTYb3(3,3),TYb3adjYeYeadjTYb3(3,3),TYb3adjYw3Yw3adjTYb3(3,3),           & 
 & TYb3TpYb3CTYb3adjYb3(3,3),TYb3TpYeCTYeadjYb3(3,3),TYb3TpYw3CTYw3adjYb3(3,3),           & 
 & TYdadjYdYdadjTYd(3,3),TYdadjYdadjYx3Yx3(3,3),TYdadjYuYuadjTYd(3,3),TYdTpYdCTYdadjYd(3,3),& 
@@ -15503,10 +12002,9 @@ Complex(dp) :: CYw3TpTYb3CYb3TpYw3(3,3),CYw3TpTYeCYeTpYw3(3,3),CYw3TpTYw3CYw3TpY
 & TpYx3CTYx3TpTYx3CYx3(3,3),TpTYb3CYb3TpYb3CTYb3(3,3),TpTYb3CYb3TpYw3CTYw3(3,3),         & 
 & TpTYdadjYdTpYx3CTYx3(3,3),TpTYdadjYx3Yx3CTYd(3,3),TpTYdCYdTpYdCTYd(3,3),               & 
 & TpTYeCYeTpYeCTYe(3,3),TpTYuCYuTpYuCTYu(3,3),TpTYw3CYw3TpYb3CTYb3(3,3),TpTYw3CYw3TpYw3CTYw3(3,3),& 
-& TpTYx3CYx3TpYx3CTYx3(3,3),MBM3CYb3TpYb3CYb3TpYb3(3,3),MBM3CYb3TpYb3CYb3TpTYb3(3,3),    & 
-& MBM3CYb3TpYeCYeTpYb3(3,3),MBM3CYb3TpYeCYeTpTYb3(3,3),MBM3CYb3TpYw3CYw3TpYb3(3,3),      & 
-& MBM3CYb3TpYw3CYw3TpTYb3(3,3),MBM3CYb3TpTYb3CYb3TpYb3(3,3),MBM3CYb3TpTYeCYeTpYb3(3,3),  & 
-& MBM3CYb3TpTYw3CYw3TpYb3(3,3),md2YdadjYdYdadjYd(3,3),md2YdadjYdTpYx3CYx3(3,3),          & 
+& TpTYx3CYx3TpYx3CTYx3(3,3),MBM3CYb3TpYb3CYb3TpYb3(3,3),    & 
+& MBM3CYb3TpYeCYeTpYb3(3,3),MBM3CYb3TpYw3CYw3TpYb3(3,3),      & 
+& md2YdadjYdYdadjYd(3,3),md2YdadjYdTpYx3CYx3(3,3),          & 
 & md2YdadjYuYuadjYd(3,3),md2adjYx3Yx3adjYx3Yx3(3,3),md2TpYx3CYx3YdadjYd(3,3),            & 
 & md2TpYx3CYx3TpYx3CYx3(3,3),me2YeadjYb3Yb3adjYe(3,3),me2YeadjYeYeadjYe(3,3),            & 
 & me2YeadjYw3Yw3adjYe(3,3),mHb32Yb3adjYb3Yb3adjYb3(3,3),mHb32Yb3adjYeYeadjYb3(3,3),      & 
@@ -15517,28 +12015,54 @@ Complex(dp) :: CYw3TpTYb3CYb3TpYw3(3,3),CYw3TpTYeCYeTpYw3(3,3),CYw3TpTYw3CYw3TpY
 & ml2adjYeYeadjYw3Yw3(3,3),ml2adjYw3Yw3adjYb3Yb3(3,3),ml2adjYw3Yw3adjYeYe(3,3),          & 
 & ml2adjYw3Yw3adjYw3Yw3(3,3),ml2TpYb3CYb3TpYb3CYb3(3,3),ml2TpYb3CYb3TpYw3CYw3(3,3)
 
+! the corresponding RGEs are commented out
+! complex(dp) :: MBM3CYb3TpYw3CYw3TpTYb3(3,3),MBM3CYb3TpTYb3(3,3),CYb3TpYw3CYw3TpTYb3(3,3), &
+!  & MBM3CYb3TpTYb3CYb3TpYb3(3,3),MBM3CYb3TpYb3CYb3TpTYb3(3,3),MBM3CYb3TpYeCYeTpTYb3(3,3), &
+!  & MBM3CYb3TpTYeCYeTpYb3(3,3),MWM3CYw3TpTYw3CYw3TpYw3(3,3),MWM3CYw3TpTYw3(3,3),  & 
+!  & MWM3CYw3TpTYeCYeTpYw3(3,3),MWM3CYw3TpTYb3CYb3TpYw3(3,3),MWM3CYw3TpYb3CYb3TpTYw3(3,3), &
+!  & MWM3CYw3TpYeCYeTpTYw3(3,3),MXM3CYx3TpTYx3CYx3TpYx3(3,3),MXM3CYx3TpTYx3(3,3),
+!  & MWM3CYw3TpYw3CYw3TpTYw3(3,3),MXM3CYx3TpYx3CYx3TpTYx3(3,3),TYb3adjYeYeadjYb3MBM3(3,3),  & 
+!  & MXM3CYx3YdadjYdTpTYx3(3,3), MXM3CYx3TYdadjYdTpYx3(3,3),TYb3adjYb3Yb3adjYb3MBM3(3,3), &
+!  & TYb3adjYw3Yw3adjYb3MBM3(3,3),TYw3adjYb3Yb3adjYw3MWM3(3,3),TYw3adjYeYeadjYw3MWM3(3,3), &
+!  & TYw3adjYw3Yw3adjYw3MWM3(3,3),Yb3adjYb3TYb3adjYb3MBM3(3,3),Yb3adjYeTYeadjYb3MBM3(3,3), &
+!  & Yb3adjYw3TYw3adjYb3MBM3(3,3),Yw3adjYb3TYb3adjYw3MWM3(3,3),Yw3adjYeTYeadjYw3MWM3(3,3), &
+!  & Yw3adjYw3TYw3adjYw3MWM3(3,3),adjYb3TYb3adjYb3MBM3(3,3),adjYb3TYb3adjYw3MWM3(3,3),     &
+!  & adjYeTYeadjYb3MBM3(3,3),adjYeTYeadjYw3MWM3(3,3),adjYw3TYw3adjYb3MBM3(3,3),            &
+!  & adjYw3TYw3adjYw3MWM3(3,3),CYb3TpTYb3CYb3TpYb3(3,3),CYb3TpTYeCYeTpYb3(3,3),
+!  & CYb3TpTYw3CYw3TpYb3(3,3),CYb3TpYb3CYb3TpTYb3(3,3),CYb3TpYeCYeTpTYb3(3,3),              &
+!  & CYw3TpTYb3CYb3TpYw3(3,3),CYw3TpTYeCYeTpYw3(3,3),CYw3TpTYw3CYw3TpYw3(3,3),    &
+!  & CYw3TpYb3CYb3TpTYw3(3,3),CYw3TpYeCYeTpTYw3(3,3),CYw3TpYw3CYw3TpTYw3(3,3), &
+!  & CYx3TpTYx3CYx3TpYx3(3,3),CYx3TpYx3CYx3TpTYx3(3,3),CYx3TYdadjYdTpYx3(3,3), &
+!  & CYx3YdadjYdTpTYx3(3,3),TpTYb3CYb3TpYb3(3,3),TpTYb3CYb3TpYw3(3,3),TpTYeCYeTpYb3(3,3), &
+!  & TpTYeCYeTpYw3(3,3),TpTYw3CYw3TpYb3(3,3),TpTYw3CYw3TpYw3(3,3),TpTYx3CYx3TpYx3(3,3),   &
+!  & TpYb3CYb3TpTYb3(3,3),TpYb3CYb3TpTYw3(3,3),TpYeCYeTpTYb3(3,3),TpYeCYeTpTYw3(3,3), &
+!  & TpYw3CYw3TpTYb3(3,3),TpYw3CYw3TpTYw3(3,3),TpYx3CYx3TpTYx3(3,3),TYb3adjYb3MBM3(3,3), &
+!  & TYb3adjYw3MWM3(3,3),TYdadjYdTpYx3(3,3),TYeadjYb3MBM3(3,3),TYeadjYw3MWM3(3,3), &
+!  & TYw3adjYb3MBM3(3,3),TYw3adjYw3MWM3(3,3),YdadjYdTpTYx3(3,3),adjYdTpTYx3(3,3), &
+!  & CYb3TpTYb3(3,3),CYb3TpTYw3(3,3),CYeTpTYb3(3,3),CYeTpTYw3(3,3),CYw3TpTYb3(3,3), &
+!  & CYw3TpTYw3(3,3),CYx3TpTYx3(3,3),
+
 Complex(dp) :: ml2TpYeCYeTpYeCYe(3,3),ml2TpYw3CYw3TpYb3CYb3(3,3),ml2TpYw3CYw3TpYw3CYw3(3,3),          & 
 & mq2adjYdYdadjYdYd(3,3),mq2adjYdYdadjYuYu(3,3),mq2adjYdTpYx3CYx3Yd(3,3),mq2adjYuYuadjYdYd(3,3),& 
 & mq2adjYuYuadjYuYu(3,3),mq2TpYdCYdTpYdCYd(3,3),mq2TpYuCYuTpYuCYu(3,3),mu2YuadjYdYdadjYu(3,3),& 
-& mu2YuadjYuYuadjYu(3,3),MWM3CYw3TpYb3CYb3TpYw3(3,3),MWM3CYw3TpYb3CYb3TpTYw3(3,3),       & 
-& MWM3CYw3TpYeCYeTpYw3(3,3),MWM3CYw3TpYeCYeTpTYw3(3,3),MWM3CYw3TpYw3CYw3TpYw3(3,3),      & 
-& MWM3CYw3TpYw3CYw3TpTYw3(3,3),MWM3CYw3TpTYb3CYb3TpYw3(3,3),MWM3CYw3TpTYeCYeTpYw3(3,3),  & 
-& MWM3CYw3TpTYw3CYw3TpYw3(3,3),MXM3CYx3YdadjYdTpYx3(3,3),MXM3CYx3YdadjYdTpTYx3(3,3),     & 
-& MXM3CYx3TYdadjYdTpYx3(3,3),MXM3CYx3TpYx3CYx3TpYx3(3,3),MXM3CYx3TpYx3CYx3TpTYx3(3,3),   & 
-& MXM3CYx3TpTYx3CYx3TpYx3(3,3),Yb3ml2adjYb3Yb3adjYb3(3,3),Yb3ml2adjYeYeadjYb3(3,3),      & 
+& mu2YuadjYuYuadjYu(3,3),MWM3CYw3TpYb3CYb3TpYw3(3,3),       & 
+& MWM3CYw3TpYeCYeTpYw3(3,3),MWM3CYw3TpYw3CYw3TpYw3(3,3),      & 
+& MXM3CYx3YdadjYdTpYx3(3,3),     & 
+& MXM3CYx3TpYx3CYx3TpYx3(3,3),   & 
+& Yb3ml2adjYb3Yb3adjYb3(3,3),Yb3ml2adjYeYeadjYb3(3,3),      & 
 & Yb3ml2adjYw3Yw3adjYb3(3,3),Yb3adjYb3mHb32Yb3adjYb3(3,3),Yb3adjYb3Yb3ml2adjYb3(3,3),    & 
 & Yb3adjYb3Yb3adjYb3MBM3(3,3),Yb3adjYb3Yb3adjYb3mHb32(3,3),Yb3adjYb3Yb3adjYb3Yb3(3,3),   & 
-& Yb3adjYb3Yb3adjYb3BMBM3(3,3),Yb3adjYb3Yb3adjYb3TYb3(3,3),Yb3adjYb3Yb3adjYw3Yw3(3,3),   & 
-& Yb3adjYb3Yb3adjYw3TYw3(3,3),Yb3adjYb3TYb3adjYb3MBM3(3,3),Yb3adjYb3TYb3adjYb3Yb3(3,3),  & 
+& Yb3adjYb3Yb3adjYb3TYb3(3,3),Yb3adjYb3Yb3adjYw3Yw3(3,3),   & 
+& Yb3adjYb3Yb3adjYw3TYw3(3,3),Yb3adjYb3TYb3adjYb3Yb3(3,3),  & 
 & Yb3adjYb3TYb3adjYw3Yw3(3,3),Yb3adjYeme2YeadjYb3(3,3),Yb3adjYeYeml2adjYb3(3,3),         & 
 & Yb3adjYeYeadjYb3MBM3(3,3),Yb3adjYeYeadjYb3mHb32(3,3),Yb3adjYeYeadjYb3Yb3(3,3),         & 
-& Yb3adjYeYeadjYb3BMBM3(3,3),Yb3adjYeYeadjYb3TYb3(3,3),Yb3adjYeYeadjYeYe(3,3),           & 
-& Yb3adjYeYeadjYeTYe(3,3),Yb3adjYeYeadjYw3TYw3(3,3),Yb3adjYeTYeadjYb3MBM3(3,3),          & 
+& Yb3adjYeYeadjYb3TYb3(3,3),Yb3adjYeYeadjYeYe(3,3),           & 
+& Yb3adjYeYeadjYeTYe(3,3),Yb3adjYeYeadjYw3TYw3(3,3),          & 
 & Yb3adjYeTYeadjYb3Yb3(3,3),Yb3adjYeTYeadjYeYe(3,3),Yb3adjYeTYeadjYw3Yw3(3,3),           & 
 & Yb3adjYw3mHw32Yw3adjYb3(3,3),Yb3adjYw3Yw3ml2adjYb3(3,3),Yb3adjYw3Yw3adjYb3MBM3(3,3),   & 
-& Yb3adjYw3Yw3adjYb3mHb32(3,3),Yb3adjYw3Yw3adjYb3Yb3(3,3),Yb3adjYw3Yw3adjYb3BMBM3(3,3),  & 
+& Yb3adjYw3Yw3adjYb3mHb32(3,3),Yb3adjYw3Yw3adjYb3Yb3(3,3),  & 
 & Yb3adjYw3Yw3adjYb3TYb3(3,3),Yb3adjYw3Yw3adjYw3Yw3(3,3),Yb3adjYw3Yw3adjYw3TYw3(3,3),    & 
-& Yb3adjYw3TYw3adjYb3MBM3(3,3),Yb3adjYw3TYw3adjYb3Yb3(3,3),Yb3adjYw3TYw3adjYw3Yw3(3,3),  & 
+& Yb3adjYw3TYw3adjYb3Yb3(3,3),Yb3adjYw3TYw3adjYw3Yw3(3,3),  & 
 & Ydmq2adjYdYdadjYd(3,3),Ydmq2adjYuYuadjYd(3,3),Ydmq2adjYx3Yx3CYd(3,3),YdadjYdmd2YdadjYd(3,3),& 
 & YdadjYdYdmq2adjYd(3,3),YdadjYdYdadjYdmd2(3,3),YdadjYdYdadjYdYd(3,3),YdadjYdYdadjYdTYd(3,3),& 
 & YdadjYdTYdadjYdYd(3,3),YdadjYdTpYx3CYx3Yd(3,3),YdadjYdTpYx3CYx3TYd(3,3),               & 
@@ -15564,38 +12088,36 @@ Complex(dp) :: YeadjYw3TYw3adjYb3Yb3(3,3),YeadjYw3TYw3adjYeYe(3,3),YeadjYw3TYw3a
 & YuadjYuTYuadjYuYu(3,3),Yw3ml2adjYb3Yb3adjYw3(3,3),Yw3ml2adjYeYeadjYw3(3,3),            & 
 & Yw3ml2adjYw3Yw3adjYw3(3,3),Yw3adjYb3mHb32Yb3adjYw3(3,3),Yw3adjYb3Yb3ml2adjYw3(3,3),    & 
 & Yw3adjYb3Yb3adjYb3Yb3(3,3),Yw3adjYb3Yb3adjYb3TYb3(3,3),Yw3adjYb3Yb3adjYw3mHw32(3,3),   & 
-& Yw3adjYb3Yb3adjYw3MWM3(3,3),Yw3adjYb3Yb3adjYw3Yw3(3,3),Yw3adjYb3Yb3adjYw3BMWM3(3,3),   & 
-& Yw3adjYb3Yb3adjYw3TYw3(3,3),Yw3adjYb3TYb3adjYb3Yb3(3,3),Yw3adjYb3TYb3adjYw3MWM3(3,3),  & 
+& Yw3adjYb3Yb3adjYw3MWM3(3,3),Yw3adjYb3Yb3adjYw3Yw3(3,3),   & 
+& Yw3adjYb3Yb3adjYw3TYw3(3,3),Yw3adjYb3TYb3adjYb3Yb3(3,3),  & 
 & Yw3adjYb3TYb3adjYw3Yw3(3,3),Yw3adjYeme2YeadjYw3(3,3),Yw3adjYeYeml2adjYw3(3,3),         & 
 & Yw3adjYeYeadjYb3TYb3(3,3),Yw3adjYeYeadjYeYe(3,3),Yw3adjYeYeadjYeTYe(3,3),              & 
 & Yw3adjYeYeadjYw3mHw32(3,3),Yw3adjYeYeadjYw3MWM3(3,3),Yw3adjYeYeadjYw3Yw3(3,3),         & 
-& Yw3adjYeYeadjYw3BMWM3(3,3),Yw3adjYeYeadjYw3TYw3(3,3),Yw3adjYeTYeadjYb3Yb3(3,3),        & 
-& Yw3adjYeTYeadjYeYe(3,3),Yw3adjYeTYeadjYw3MWM3(3,3),Yw3adjYeTYeadjYw3Yw3(3,3),          & 
+& Yw3adjYeYeadjYw3TYw3(3,3),Yw3adjYeTYeadjYb3Yb3(3,3),        & 
+& Yw3adjYeTYeadjYeYe(3,3),Yw3adjYeTYeadjYw3Yw3(3,3),          & 
 & Yw3adjYw3mHw32Yw3adjYw3(3,3),Yw3adjYw3Yw3ml2adjYw3(3,3),Yw3adjYw3Yw3adjYb3Yb3(3,3),    & 
 & Yw3adjYw3Yw3adjYb3TYb3(3,3),Yw3adjYw3Yw3adjYw3mHw32(3,3),Yw3adjYw3Yw3adjYw3MWM3(3,3),  & 
-& Yw3adjYw3Yw3adjYw3Yw3(3,3),Yw3adjYw3Yw3adjYw3BMWM3(3,3),Yw3adjYw3Yw3adjYw3TYw3(3,3),   & 
-& Yw3adjYw3TYw3adjYb3Yb3(3,3),Yw3adjYw3TYw3adjYw3MWM3(3,3),Yw3adjYw3TYw3adjYw3Yw3(3,3),  & 
+& Yw3adjYw3Yw3adjYw3Yw3(3,3),Yw3adjYw3Yw3adjYw3TYw3(3,3),   & 
+& Yw3adjYw3TYw3adjYb3Yb3(3,3),Yw3adjYw3TYw3adjYw3Yw3(3,3),  & 
 & Yx3md2adjYx3Yx3adjYx3(3,3),Yx3md2CYdTpYdadjYx3(3,3),Yx3adjYx3mHxb32Yx3adjYx3(3,3),     & 
 & Yx3adjYx3Yx3md2adjYx3(3,3),Yx3adjYx3Yx3adjYx3mHxb32(3,3),Yx3adjYx3Yx3adjYx3Yx3(3,3),   & 
 & Yx3adjYx3Yx3adjYx3TYx3(3,3),Yx3adjYx3TYx3adjYx3Yx3(3,3),Yx3CYdmq2TpYdadjYx3(3,3),      & 
 & Yx3CYdTpYdmd2adjYx3(3,3),Yx3CYdTpYdadjYx3mHxb32(3,3),Yx3CYdTpYdadjYx3Yx3(3,3),         & 
 & Yx3CYdTpYdadjYx3TYx3(3,3),Yx3CYdTpYdCYdTpYd(3,3),Yx3CYdTpYdCYdTpTYd(3,3),              & 
 & Yx3CYdTpYuCYuTpYd(3,3),Yx3CYdTpYuCYuTpTYd(3,3),Yx3CYdTpTYdCYdTpYd(3,3),Yx3CYdTpTYuCYuTpYd(3,3),& 
-& Yx3TYdadjYdadjYx3Yx3(3,3),BMBM3CYb3TpYb3CYb3TpYb3(3,3),BMBM3CYb3TpYeCYeTpYb3(3,3),     & 
-& BMBM3CYb3TpYw3CYw3TpYb3(3,3),BMWM3CYw3TpYb3CYb3TpYw3(3,3),BMWM3CYw3TpYeCYeTpYw3(3,3),  & 
-& BMWM3CYw3TpYw3CYw3TpYw3(3,3),BMXM3CYx3YdadjYdTpYx3(3,3),BMXM3CYx3TpYx3CYx3TpYx3(3,3),  & 
-& TYb3adjYb3Yb3adjYb3MBM3(3,3),TYb3adjYb3Yb3adjYb3Yb3(3,3),TYb3adjYb3Yb3adjYw3Yw3(3,3),  & 
-& TYb3adjYeYeadjYb3MBM3(3,3),TYb3adjYeYeadjYb3Yb3(3,3),TYb3adjYeYeadjYeYe(3,3),          & 
-& TYb3adjYeYeadjYw3Yw3(3,3),TYb3adjYw3Yw3adjYb3MBM3(3,3),TYb3adjYw3Yw3adjYb3Yb3(3,3),    & 
+& Yx3TYdadjYdadjYx3Yx3(3,3),  & 
+& TYb3adjYb3Yb3adjYb3Yb3(3,3),TYb3adjYb3Yb3adjYw3Yw3(3,3),  & 
+& TYb3adjYeYeadjYb3Yb3(3,3),TYb3adjYeYeadjYeYe(3,3),          & 
+& TYb3adjYeYeadjYw3Yw3(3,3),TYb3adjYw3Yw3adjYb3Yb3(3,3),    & 
 & TYb3adjYw3Yw3adjYw3Yw3(3,3),TYdadjYdYdadjYdYd(3,3),TYdadjYdTpYx3CYx3Yd(3,3),           & 
 & TYdadjYuYuadjYdYd(3,3),TYdadjYuYuadjYuYu(3,3),TYeadjYb3Yb3adjYb3Yb3(3,3),              & 
 & TYeadjYb3Yb3adjYeYe(3,3),TYeadjYb3Yb3adjYw3Yw3(3,3),TYeadjYeYeadjYeYe(3,3),            & 
 & TYeadjYw3Yw3adjYb3Yb3(3,3),TYeadjYw3Yw3adjYeYe(3,3),TYeadjYw3Yw3adjYw3Yw3(3,3),        & 
 & TYuadjYdYdadjYdYd(3,3),TYuadjYdYdadjYuYu(3,3),TYuadjYdTpYx3CYx3Yd(3,3),TYuadjYuYuadjYuYu(3,3)
 
-Complex(dp) :: TYw3adjYb3Yb3adjYb3Yb3(3,3),TYw3adjYb3Yb3adjYw3MWM3(3,3),TYw3adjYb3Yb3adjYw3Yw3(3,3),  & 
-& TYw3adjYeYeadjYb3Yb3(3,3),TYw3adjYeYeadjYeYe(3,3),TYw3adjYeYeadjYw3MWM3(3,3),          & 
-& TYw3adjYeYeadjYw3Yw3(3,3),TYw3adjYw3Yw3adjYb3Yb3(3,3),TYw3adjYw3Yw3adjYw3MWM3(3,3),    & 
+Complex(dp) :: TYw3adjYb3Yb3adjYb3Yb3(3,3),TYw3adjYb3Yb3adjYw3Yw3(3,3),  & 
+& TYw3adjYeYeadjYb3Yb3(3,3),TYw3adjYeYeadjYeYe(3,3),          & 
+& TYw3adjYeYeadjYw3Yw3(3,3),TYw3adjYw3Yw3adjYb3Yb3(3,3),    & 
 & TYw3adjYw3Yw3adjYw3Yw3(3,3),TYx3adjYx3Yx3adjYx3Yx3(3,3),TYx3CYdTpYdadjYx3Yx3(3,3),     & 
 & TYx3CYdTpYdCYdTpYd(3,3),TYx3CYdTpYuCYuTpYd(3,3),TpYb3mHb32CYb3TpYb3CYb3(3,3),          & 
 & TpYb3mHb32CYb3TpYw3CYw3(3,3),TpYb3CYb3ml2TpYb3CYb3(3,3),TpYb3CYb3ml2TpYw3CYw3(3,3),    & 
@@ -15770,9 +12292,9 @@ mHw32(3,:) = 0._dp
 mHw32(:,3) = 0._dp 
 End if 
 
-AbsMassB = Conjg(MassB)*MassB
-AbsMassWB = Conjg(MassWB)*MassWB
-AbsMassG = Conjg(MassG)*MassG
+AbsMassB = Abs(MassB)**2
+AbsMassWB = Abs(MassWB)**2
+AbsMassG = Abs(MassG)**2
 Call Adjungate(Yu,adjYu)
 Call Adjungate(Yd,adjYd)
 Call Adjungate(Ye,adjYe)
@@ -15858,7 +12380,7 @@ Forall(i2=1:3)  adjYx3Yx3(i2,i2) =  Real(adjYx3Yx3(i2,i2),dp)
  CYb3ml2 = Matmul(Conjg(Yb3),ml2) 
  CYb3TpYb3 = Matmul(Conjg(Yb3),Transpose(Yb3)) 
 Forall(i2=1:3)  CYb3TpYb3(i2,i2) =  Real(CYb3TpYb3(i2,i2),dp) 
- CYb3TpTYb3 = Matmul(Conjg(Yb3),Transpose(TYb3)) 
+! CYb3TpTYb3 = Matmul(Conjg(Yb3),Transpose(TYb3)) 
  CYdmq2 = Matmul(Conjg(Yd),mq2) 
  CYdTpYd = Matmul(Conjg(Yd),Transpose(Yd)) 
 Forall(i2=1:3)  CYdTpYd(i2,i2) =  Real(CYdTpYd(i2,i2),dp) 
@@ -15868,13 +12390,13 @@ Forall(i2=1:3)  CYdTpYd(i2,i2) =  Real(CYdTpYd(i2,i2),dp)
  CYw3ml2 = Matmul(Conjg(Yw3),ml2) 
  CYw3TpYw3 = Matmul(Conjg(Yw3),Transpose(Yw3)) 
 Forall(i2=1:3)  CYw3TpYw3(i2,i2) =  Real(CYw3TpYw3(i2,i2),dp) 
- CYw3TpTYw3 = Matmul(Conjg(Yw3),Transpose(TYw3)) 
+! CYw3TpTYw3 = Matmul(Conjg(Yw3),Transpose(TYw3)) 
  CYx3md2 = Matmul(Conjg(Yx3),md2) 
  CYx3Yd = Matmul(Conjg(Yx3),Yd) 
  CYx3TYd = Matmul(Conjg(Yx3),TYd) 
  CYx3TpYx3 = Matmul(Conjg(Yx3),Transpose(Yx3)) 
 Forall(i2=1:3)  CYx3TpYx3(i2,i2) =  Real(CYx3TpYx3(i2,i2),dp) 
- CYx3TpTYx3 = Matmul(Conjg(Yx3),Transpose(TYx3)) 
+! CYx3TpTYx3 = Matmul(Conjg(Yx3),Transpose(TYx3)) 
  CTYb3TpTYb3 = Matmul(Conjg(TYb3),Transpose(TYb3)) 
  CTYdTpTYd = Matmul(Conjg(TYd),Transpose(TYd)) 
  CTYeTpTYe = Matmul(Conjg(TYe),Transpose(TYe)) 
@@ -15906,7 +12428,7 @@ Forall(i2=1:3)  TpYx3CYx3(i2,i2) =  Real(TpYx3CYx3(i2,i2),dp)
  TpTYw3CTYw3 = Matmul(Transpose(TYw3),Conjg(TYw3)) 
  TpTYx3CTYx3 = Matmul(Transpose(TYx3),Conjg(TYx3)) 
  MBM3CYb3TpYb3 = Matmul(MBM3,CYb3TpYb3) 
- MBM3CYb3TpTYb3 = Matmul(MBM3,CYb3TpTYb3) 
+! MBM3CYb3TpTYb3 = Matmul(MBM3,CYb3TpTYb3) 
  md2YdadjYd = Matmul(md2,YdadjYd) 
  md2adjYx3Yx3 = Matmul(md2,adjYx3Yx3) 
  md2TpYx3CYx3 = Matmul(md2,TpYx3CYx3) 
@@ -15926,9 +12448,9 @@ Forall(i2=1:3)  TpYx3CYx3(i2,i2) =  Real(TpYx3CYx3(i2,i2),dp)
  mq2TpYuCYu = Matmul(mq2,TpYuCYu) 
  mu2YuadjYu = Matmul(mu2,YuadjYu) 
  MWM3CYw3TpYw3 = Matmul(MWM3,CYw3TpYw3) 
- MWM3CYw3TpTYw3 = Matmul(MWM3,CYw3TpTYw3) 
+! MWM3CYw3TpTYw3 = Matmul(MWM3,CYw3TpTYw3) 
  MXM3CYx3TpYx3 = Matmul(MXM3,CYx3TpYx3) 
- MXM3CYx3TpTYx3 = Matmul(MXM3,CYx3TpTYx3) 
+! MXM3CYx3TpTYx3 = Matmul(MXM3,CYx3TpTYx3) 
  Yb3ml2adjYb3 = Matmul(Yb3,ml2adjYb3) 
  Yb3adjYb3MBM3 = Matmul(Yb3,adjYb3MBM3) 
  Yb3adjYb3mHb32 = Matmul(Yb3,adjYb3mHb32) 
@@ -15978,7 +12500,7 @@ Forall(i2=1:3)  TpYx3CYx3(i2,i2) =  Real(TpYx3CYx3(i2,i2),dp)
 ! BMBM3CYb3TpYb3 = Matmul(BMBM3,CYb3TpYb3) 
 ! BMWM3CYw3TpYw3 = Matmul(BMWM3,CYw3TpYw3) 
 ! BMXM3CYx3TpYx3 = Matmul(BMXM3,CYx3TpYx3) 
- TYb3adjYb3MBM3 = Matmul(TYb3,adjYb3MBM3) 
+! TYb3adjYb3MBM3 = Matmul(TYb3,adjYb3MBM3) 
  TYb3adjYb3Yb3 = Matmul(TYb3,adjYb3Yb3) 
  TYb3adjYeYe = Matmul(TYb3,adjYeYe) 
  TYb3adjYw3Yw3 = Matmul(TYb3,adjYw3Yw3) 
@@ -15991,7 +12513,7 @@ Forall(i2=1:3)  TpYx3CYx3(i2,i2) =  Real(TpYx3CYx3(i2,i2),dp)
  TYuadjYuYu = Matmul(TYu,adjYuYu) 
  TYw3adjYb3Yb3 = Matmul(TYw3,adjYb3Yb3) 
  TYw3adjYeYe = Matmul(TYw3,adjYeYe) 
- TYw3adjYw3MWM3 = Matmul(TYw3,adjYw3MWM3) 
+! TYw3adjYw3MWM3 = Matmul(TYw3,adjYw3MWM3) 
  TYw3adjYw3Yw3 = Matmul(TYw3,adjYw3Yw3) 
  TYx3adjYx3Yx3 = Matmul(TYx3,adjYx3Yx3) 
  TYx3CYdTpYd = Matmul(TYx3,CYdTpYd) 
@@ -16082,18 +12604,18 @@ If (TwoLoopRGE) Then
  Yx3CTYd = Matmul(Yx3,Conjg(TYd)) 
  adjYdadjTYx3 = Matmul(adjYd,adjTYx3) 
  adjYdTpYx3 = Matmul(adjYd,Transpose(Yx3)) 
- adjYdTpTYx3 = Matmul(adjYd,Transpose(TYx3)) 
+! adjYdTpTYx3 = Matmul(adjYd,Transpose(TYx3)) 
  adjTYdadjYx3 = Matmul(adjTYd,adjYx3) 
  CYb3TpYw3 = Matmul(Conjg(Yb3),Transpose(Yw3)) 
- CYb3TpTYw3 = Matmul(Conjg(Yb3),Transpose(TYw3)) 
+! CYb3TpTYw3 = Matmul(Conjg(Yb3),Transpose(TYw3)) 
  CYeTpYb3 = Matmul(Conjg(Ye),Transpose(Yb3)) 
  CYeTpYw3 = Matmul(Conjg(Ye),Transpose(Yw3)) 
- CYeTpTYb3 = Matmul(Conjg(Ye),Transpose(TYb3)) 
- CYeTpTYw3 = Matmul(Conjg(Ye),Transpose(TYw3)) 
+! CYeTpTYb3 = Matmul(Conjg(Ye),Transpose(TYb3)) 
+! CYeTpTYw3 = Matmul(Conjg(Ye),Transpose(TYw3)) 
  CYuTpYd = Matmul(Conjg(Yu),Transpose(Yd)) 
  CYuTpTYd = Matmul(Conjg(Yu),Transpose(TYd)) 
  CYw3TpYb3 = Matmul(Conjg(Yw3),Transpose(Yb3)) 
- CYw3TpTYb3 = Matmul(Conjg(Yw3),Transpose(TYb3)) 
+! CYw3TpTYb3 = Matmul(Conjg(Yw3),Transpose(TYb3)) 
  CTYb3adjYb3 = Matmul(Conjg(TYb3),adjYb3) 
  CTYb3adjYe = Matmul(Conjg(TYb3),adjYe) 
  CTYb3adjYw3 = Matmul(Conjg(TYb3),adjYw3) 
@@ -16173,7 +12695,7 @@ If (TwoLoopRGE) Then
 ! Yb3adjYw3BMWM3 = Matmul(Yb3,adjYw3BMWM3) 
  Ydmq2adjYu = Matmul(Yd,mq2adjYu) 
  YdadjYdTpYx3 = Matmul(Yd,adjYdTpYx3) 
- YdadjYdTpTYx3 = Matmul(Yd,adjYdTpTYx3) 
+! YdadjYdTpTYx3 = Matmul(Yd,adjYdTpTYx3) 
  YdadjYumu2 = Matmul(Yd,adjYumu2) 
  YdadjTYdadjYx3 = Matmul(Yd,adjTYdadjYx3) 
  Yeml2adjYb3 = Matmul(Ye,ml2adjYb3) 
@@ -16307,25 +12829,25 @@ If (TwoLoopRGE) Then
  CTYw3TpTYb3CYb3 = Matmul(Conjg(TYw3),TpTYb3CYb3) 
  CTYw3TpTYw3CYw3 = Matmul(Conjg(TYw3),TpTYw3CYw3) 
  CTYx3TpTYx3CYx3 = Matmul(Conjg(TYx3),TpTYx3CYx3) 
- TYb3adjYw3MWM3 = Matmul(TYb3,adjYw3MWM3) 
+! TYb3adjYw3MWM3 = Matmul(TYb3,adjYw3MWM3) 
  TYb3TpYb3CYb3 = Matmul(TYb3,TpYb3CYb3) 
  TYb3TpYw3CYw3 = Matmul(TYb3,TpYw3CYw3) 
  TYdadjYdadjTYx3 = Matmul(TYd,adjYdadjTYx3) 
- TYdadjYdTpYx3 = Matmul(TYd,adjYdTpYx3) 
+! TYdadjYdTpYx3 = Matmul(TYd,adjYdTpYx3) 
  TYdTpYdCYd = Matmul(TYd,TpYdCYd) 
- TYeadjYb3MBM3 = Matmul(TYe,adjYb3MBM3) 
- TYeadjYw3MWM3 = Matmul(TYe,adjYw3MWM3) 
+! TYeadjYb3MBM3 = Matmul(TYe,adjYb3MBM3) 
+! TYeadjYw3MWM3 = Matmul(TYe,adjYw3MWM3) 
  TYeTpYeCYe = Matmul(TYe,TpYeCYe) 
  TYuTpYuCYu = Matmul(TYu,TpYuCYu) 
- TYw3adjYb3MBM3 = Matmul(TYw3,adjYb3MBM3) 
+! TYw3adjYb3MBM3 = Matmul(TYw3,adjYb3MBM3) 
  TYw3TpYb3CYb3 = Matmul(TYw3,TpYb3CYb3) 
  TYw3TpYw3CYw3 = Matmul(TYw3,TpYw3CYw3) 
  TYx3CTYdTpYd = Matmul(TYx3,CTYdTpYd) 
  TYx3TpYx3CYx3 = Matmul(TYx3,TpYx3CYx3) 
  TpYb3CYb3TpYb3 = Matmul(Transpose(Yb3),CYb3TpYb3) 
  TpYb3CYb3TpYw3 = Matmul(Transpose(Yb3),CYb3TpYw3) 
- TpYb3CYb3TpTYb3 = Matmul(Transpose(Yb3),CYb3TpTYb3) 
- TpYb3CYb3TpTYw3 = Matmul(Transpose(Yb3),CYb3TpTYw3) 
+! TpYb3CYb3TpTYb3 = Matmul(Transpose(Yb3),CYb3TpTYb3) 
+! TpYb3CYb3TpTYw3 = Matmul(Transpose(Yb3),CYb3TpTYw3) 
  TpYb3CTYb3adjYb3 = Matmul(Transpose(Yb3),CTYb3adjYb3) 
  TpYb3CTYb3adjYe = Matmul(Transpose(Yb3),CTYb3adjYe) 
  TpYb3CTYb3adjYw3 = Matmul(Transpose(Yb3),CTYb3adjYw3) 
@@ -16339,8 +12861,8 @@ If (TwoLoopRGE) Then
  TpYdCTYdadjYu = Matmul(Transpose(Yd),CTYdadjYu) 
  TpYeCYeTpYb3 = Matmul(Transpose(Ye),CYeTpYb3) 
  TpYeCYeTpYw3 = Matmul(Transpose(Ye),CYeTpYw3) 
- TpYeCYeTpTYb3 = Matmul(Transpose(Ye),CYeTpTYb3) 
- TpYeCYeTpTYw3 = Matmul(Transpose(Ye),CYeTpTYw3) 
+! TpYeCYeTpTYb3 = Matmul(Transpose(Ye),CYeTpTYb3) 
+! TpYeCYeTpTYw3 = Matmul(Transpose(Ye),CYeTpTYw3) 
  TpYeCTYeadjYb3 = Matmul(Transpose(Ye),CTYeadjYb3) 
  TpYeCTYeadjYe = Matmul(Transpose(Ye),CTYeadjYe) 
  TpYeCTYeadjYw3 = Matmul(Transpose(Ye),CTYeadjYw3) 
@@ -16350,38 +12872,38 @@ If (TwoLoopRGE) Then
  TpYuCTYuadjYu = Matmul(Transpose(Yu),CTYuadjYu) 
  TpYw3CYw3TpYb3 = Matmul(Transpose(Yw3),CYw3TpYb3) 
  TpYw3CYw3TpYw3 = Matmul(Transpose(Yw3),CYw3TpYw3) 
- TpYw3CYw3TpTYb3 = Matmul(Transpose(Yw3),CYw3TpTYb3) 
- TpYw3CYw3TpTYw3 = Matmul(Transpose(Yw3),CYw3TpTYw3) 
+! TpYw3CYw3TpTYb3 = Matmul(Transpose(Yw3),CYw3TpTYb3) 
+! TpYw3CYw3TpTYw3 = Matmul(Transpose(Yw3),CYw3TpTYw3) 
  TpYw3CTYw3adjYb3 = Matmul(Transpose(Yw3),CTYw3adjYb3) 
  TpYw3CTYw3adjYe = Matmul(Transpose(Yw3),CTYw3adjYe) 
  TpYw3CTYw3adjYw3 = Matmul(Transpose(Yw3),CTYw3adjYw3) 
  TpYx3CYx3TpYx3 = Matmul(Transpose(Yx3),CYx3TpYx3) 
- TpYx3CYx3TpTYx3 = Matmul(Transpose(Yx3),CYx3TpTYx3) 
+! TpYx3CYx3TpTYx3 = Matmul(Transpose(Yx3),CYx3TpTYx3) 
  TpYx3CTYx3adjYx3 = Matmul(Transpose(Yx3),CTYx3adjYx3) 
  TpYx3CTYx3TYd = Matmul(Transpose(Yx3),CTYx3TYd) 
  TpYx3CTYx3TpTYd = Matmul(Transpose(Yx3),CTYx3TpTYd) 
- TpTYb3CYb3TpYb3 = Matmul(Transpose(TYb3),CYb3TpYb3) 
- TpTYb3CYb3TpYw3 = Matmul(Transpose(TYb3),CYb3TpYw3) 
+! TpTYb3CYb3TpYb3 = Matmul(Transpose(TYb3),CYb3TpYb3) 
+! TpTYb3CYb3TpYw3 = Matmul(Transpose(TYb3),CYb3TpYw3) 
  TpTYb3CTYb3adjYb3 = Matmul(Transpose(TYb3),CTYb3adjYb3) 
  TpTYb3CTYb3adjYe = Matmul(Transpose(TYb3),CTYb3adjYe) 
  TpTYb3CTYb3adjYw3 = Matmul(Transpose(TYb3),CTYb3adjYw3) 
  TpTYdCYdTpYd = Matmul(Transpose(TYd),CYdTpYd) 
  TpTYdCTYdadjYd = Matmul(Transpose(TYd),CTYdadjYd) 
  TpTYdCTYdadjYu = Matmul(Transpose(TYd),CTYdadjYu) 
- TpTYeCYeTpYb3 = Matmul(Transpose(TYe),CYeTpYb3) 
- TpTYeCYeTpYw3 = Matmul(Transpose(TYe),CYeTpYw3) 
+! TpTYeCYeTpYb3 = Matmul(Transpose(TYe),CYeTpYb3) 
+! TpTYeCYeTpYw3 = Matmul(Transpose(TYe),CYeTpYw3) 
  TpTYeCTYeadjYb3 = Matmul(Transpose(TYe),CTYeadjYb3) 
  TpTYeCTYeadjYe = Matmul(Transpose(TYe),CTYeadjYe) 
  TpTYeCTYeadjYw3 = Matmul(Transpose(TYe),CTYeadjYw3) 
  TpTYuCYuTpYd = Matmul(Transpose(TYu),CYuTpYd) 
  TpTYuCTYuadjYd = Matmul(Transpose(TYu),CTYuadjYd) 
  TpTYuCTYuadjYu = Matmul(Transpose(TYu),CTYuadjYu) 
- TpTYw3CYw3TpYb3 = Matmul(Transpose(TYw3),CYw3TpYb3) 
- TpTYw3CYw3TpYw3 = Matmul(Transpose(TYw3),CYw3TpYw3) 
+! TpTYw3CYw3TpYb3 = Matmul(Transpose(TYw3),CYw3TpYb3) 
+! TpTYw3CYw3TpYw3 = Matmul(Transpose(TYw3),CYw3TpYw3) 
  TpTYw3CTYw3adjYb3 = Matmul(Transpose(TYw3),CTYw3adjYb3) 
  TpTYw3CTYw3adjYe = Matmul(Transpose(TYw3),CTYw3adjYe) 
  TpTYw3CTYw3adjYw3 = Matmul(Transpose(TYw3),CTYw3adjYw3) 
- TpTYx3CYx3TpYx3 = Matmul(Transpose(TYx3),CYx3TpYx3) 
+! TpTYx3CYx3TpYx3 = Matmul(Transpose(TYx3),CYx3TpYx3) 
  TpTYx3CTYx3adjYx3 = Matmul(Transpose(TYx3),CTYx3adjYx3) 
  TpTYx3CTYx3TpYd = Matmul(Transpose(TYx3),CTYx3TpYd) 
  md2adjYx3Yx3adjYx3 = Matmul(md2,adjYx3Yx3adjYx3) 
@@ -16519,10 +13041,10 @@ Forall(i2=1:3)  adjYb3Yb3adjYb3Yb3(i2,i2) =  Real(adjYb3Yb3adjYb3Yb3(i2,i2),dp)
  adjYb3Yb3adjYw3Yw3 = Matmul(adjYb3,Yb3adjYw3Yw3) 
 ! adjYb3Yb3adjYw3BMWM3 = Matmul(adjYb3,Yb3adjYw3BMWM3) 
  adjYb3Yb3adjYw3TYw3 = Matmul(adjYb3,Yb3adjYw3TYw3) 
- adjYb3TYb3adjYb3MBM3 = Matmul(adjYb3,TYb3adjYb3MBM3) 
+! adjYb3TYb3adjYb3MBM3 = Matmul(adjYb3,TYb3adjYb3MBM3) 
  adjYb3TYb3adjYb3Yb3 = Matmul(adjYb3,TYb3adjYb3Yb3) 
  adjYb3TYb3adjYeYe = Matmul(adjYb3,TYb3adjYeYe) 
- adjYb3TYb3adjYw3MWM3 = Matmul(adjYb3,TYb3adjYw3MWM3) 
+! adjYb3TYb3adjYw3MWM3 = Matmul(adjYb3,TYb3adjYw3MWM3) 
  adjYb3TYb3adjYw3Yw3 = Matmul(adjYb3,TYb3adjYw3Yw3) 
  adjYdmd2YdadjYd = Matmul(adjYd,md2YdadjYd) 
  adjYdmd2YdadjYu = Matmul(adjYd,md2YdadjYu) 
@@ -16564,10 +13086,10 @@ Forall(i2=1:3)  adjYeYeadjYeYe(i2,i2) =  Real(adjYeYeadjYeYe(i2,i2),dp)
  adjYeYeadjYw3Yw3 = Matmul(adjYe,YeadjYw3Yw3) 
 ! adjYeYeadjYw3BMWM3 = Matmul(adjYe,YeadjYw3BMWM3) 
  adjYeYeadjYw3TYw3 = Matmul(adjYe,YeadjYw3TYw3) 
- adjYeTYeadjYb3MBM3 = Matmul(adjYe,TYeadjYb3MBM3) 
+! adjYeTYeadjYb3MBM3 = Matmul(adjYe,TYeadjYb3MBM3) 
  adjYeTYeadjYb3Yb3 = Matmul(adjYe,TYeadjYb3Yb3) 
  adjYeTYeadjYeYe = Matmul(adjYe,TYeadjYeYe) 
- adjYeTYeadjYw3MWM3 = Matmul(adjYe,TYeadjYw3MWM3) 
+! adjYeTYeadjYw3MWM3 = Matmul(adjYe,TYeadjYw3MWM3) 
  adjYeTYeadjYw3Yw3 = Matmul(adjYe,TYeadjYw3Yw3) 
  adjYumu2YuadjYd = Matmul(adjYu,mu2YuadjYd) 
  adjYumu2YuadjYu = Matmul(adjYu,mu2YuadjYu) 
@@ -16602,10 +13124,10 @@ Forall(i2=1:3)  adjYuYuadjYuYu(i2,i2) =  Real(adjYuYuadjYuYu(i2,i2),dp)
 Forall(i2=1:3)  adjYw3Yw3adjYw3Yw3(i2,i2) =  Real(adjYw3Yw3adjYw3Yw3(i2,i2),dp) 
 ! adjYw3Yw3adjYw3BMWM3 = Matmul(adjYw3,Yw3adjYw3BMWM3) 
  adjYw3Yw3adjYw3TYw3 = Matmul(adjYw3,Yw3adjYw3TYw3) 
- adjYw3TYw3adjYb3MBM3 = Matmul(adjYw3,TYw3adjYb3MBM3) 
+! adjYw3TYw3adjYb3MBM3 = Matmul(adjYw3,TYw3adjYb3MBM3) 
  adjYw3TYw3adjYb3Yb3 = Matmul(adjYw3,TYw3adjYb3Yb3) 
  adjYw3TYw3adjYeYe = Matmul(adjYw3,TYw3adjYeYe) 
- adjYw3TYw3adjYw3MWM3 = Matmul(adjYw3,TYw3adjYw3MWM3) 
+! adjYw3TYw3adjYw3MWM3 = Matmul(adjYw3,TYw3adjYw3MWM3) 
  adjYw3TYw3adjYw3Yw3 = Matmul(adjYw3,TYw3adjYw3Yw3) 
  adjYx3mHxb32Yx3adjYx3 = Matmul(adjYx3,mHxb32Yx3adjYx3) 
  adjYx3mHxb32Yx3CYd = Matmul(adjYx3,mHxb32Yx3CYd) 
@@ -16633,18 +13155,18 @@ Forall(i2=1:3)  adjYx3Yx3adjYx3Yx3(i2,i2) =  Real(adjYx3Yx3adjYx3Yx3(i2,i2),dp)
  CYb3TpYb3CYb3ml2 = Matmul(Conjg(Yb3),TpYb3CYb3ml2) 
  CYb3TpYb3CYb3TpYb3 = Matmul(Conjg(Yb3),TpYb3CYb3TpYb3) 
 Forall(i2=1:3)  CYb3TpYb3CYb3TpYb3(i2,i2) =  Real(CYb3TpYb3CYb3TpYb3(i2,i2),dp) 
- CYb3TpYb3CYb3TpTYb3 = Matmul(Conjg(Yb3),TpYb3CYb3TpTYb3) 
+! CYb3TpYb3CYb3TpTYb3 = Matmul(Conjg(Yb3),TpYb3CYb3TpTYb3) 
  CYb3TpYeCYeTpYb3 = Matmul(Conjg(Yb3),TpYeCYeTpYb3) 
 Forall(i2=1:3)  CYb3TpYeCYeTpYb3(i2,i2) =  Real(CYb3TpYeCYeTpYb3(i2,i2),dp) 
- CYb3TpYeCYeTpTYb3 = Matmul(Conjg(Yb3),TpYeCYeTpTYb3) 
+! CYb3TpYeCYeTpTYb3 = Matmul(Conjg(Yb3),TpYeCYeTpTYb3) 
  CYb3TpYw3mHw32CYw3 = Matmul(Conjg(Yb3),TpYw3mHw32CYw3) 
  CYb3TpYw3CYw3ml2 = Matmul(Conjg(Yb3),TpYw3CYw3ml2) 
  CYb3TpYw3CYw3TpYb3 = Matmul(Conjg(Yb3),TpYw3CYw3TpYb3) 
 Forall(i2=1:3)  CYb3TpYw3CYw3TpYb3(i2,i2) =  Real(CYb3TpYw3CYw3TpYb3(i2,i2),dp) 
- CYb3TpYw3CYw3TpTYb3 = Matmul(Conjg(Yb3),TpYw3CYw3TpTYb3) 
- CYb3TpTYb3CYb3TpYb3 = Matmul(Conjg(Yb3),TpTYb3CYb3TpYb3) 
- CYb3TpTYeCYeTpYb3 = Matmul(Conjg(Yb3),TpTYeCYeTpYb3) 
- CYb3TpTYw3CYw3TpYb3 = Matmul(Conjg(Yb3),TpTYw3CYw3TpYb3) 
+! CYb3TpYw3CYw3TpTYb3 = Matmul(Conjg(Yb3),TpYw3CYw3TpTYb3) 
+! CYb3TpTYb3CYb3TpYb3 = Matmul(Conjg(Yb3),TpTYb3CYb3TpYb3) 
+! CYb3TpTYeCYeTpYb3 = Matmul(Conjg(Yb3),TpTYeCYeTpYb3) 
+! CYb3TpTYw3CYw3TpYb3 = Matmul(Conjg(Yb3),TpTYw3CYw3TpYb3) 
  CYdmq2TpYdadjYx3 = Matmul(Conjg(Yd),mq2TpYdadjYx3) 
  CYdmq2TpYdCYd = Matmul(Conjg(Yd),mq2TpYdCYd) 
  CYdTpYdmd2adjYx3 = Matmul(Conjg(Yd),TpYdmd2adjYx3) 
@@ -16673,32 +13195,32 @@ Forall(i2=1:3)  CYdTpYuCYuTpYd(i2,i2) =  Real(CYdTpYuCYuTpYd(i2,i2),dp)
  CYw3TpYb3CYb3ml2 = Matmul(Conjg(Yw3),TpYb3CYb3ml2) 
  CYw3TpYb3CYb3TpYw3 = Matmul(Conjg(Yw3),TpYb3CYb3TpYw3) 
 Forall(i2=1:3)  CYw3TpYb3CYb3TpYw3(i2,i2) =  Real(CYw3TpYb3CYb3TpYw3(i2,i2),dp) 
- CYw3TpYb3CYb3TpTYw3 = Matmul(Conjg(Yw3),TpYb3CYb3TpTYw3) 
+! CYw3TpYb3CYb3TpTYw3 = Matmul(Conjg(Yw3),TpYb3CYb3TpTYw3) 
  CYw3TpYeCYeTpYw3 = Matmul(Conjg(Yw3),TpYeCYeTpYw3) 
 Forall(i2=1:3)  CYw3TpYeCYeTpYw3(i2,i2) =  Real(CYw3TpYeCYeTpYw3(i2,i2),dp) 
- CYw3TpYeCYeTpTYw3 = Matmul(Conjg(Yw3),TpYeCYeTpTYw3) 
+! CYw3TpYeCYeTpTYw3 = Matmul(Conjg(Yw3),TpYeCYeTpTYw3) 
  CYw3TpYw3mHw32CYw3 = Matmul(Conjg(Yw3),TpYw3mHw32CYw3) 
  CYw3TpYw3CYw3ml2 = Matmul(Conjg(Yw3),TpYw3CYw3ml2) 
  CYw3TpYw3CYw3TpYw3 = Matmul(Conjg(Yw3),TpYw3CYw3TpYw3) 
 Forall(i2=1:3)  CYw3TpYw3CYw3TpYw3(i2,i2) =  Real(CYw3TpYw3CYw3TpYw3(i2,i2),dp) 
- CYw3TpYw3CYw3TpTYw3 = Matmul(Conjg(Yw3),TpYw3CYw3TpTYw3) 
- CYw3TpTYb3CYb3TpYw3 = Matmul(Conjg(Yw3),TpTYb3CYb3TpYw3) 
- CYw3TpTYeCYeTpYw3 = Matmul(Conjg(Yw3),TpTYeCYeTpYw3) 
- CYw3TpTYw3CYw3TpYw3 = Matmul(Conjg(Yw3),TpTYw3CYw3TpYw3) 
+! CYw3TpYw3CYw3TpTYw3 = Matmul(Conjg(Yw3),TpYw3CYw3TpTYw3) 
+! CYw3TpTYb3CYb3TpYw3 = Matmul(Conjg(Yw3),TpTYb3CYb3TpYw3) 
+! CYw3TpTYeCYeTpYw3 = Matmul(Conjg(Yw3),TpTYeCYeTpYw3) 
+! CYw3TpTYw3CYw3TpYw3 = Matmul(Conjg(Yw3),TpTYw3CYw3TpYw3) 
  CYx3md2TpYx3CYx3 = Matmul(Conjg(Yx3),md2TpYx3CYx3) 
  CYx3YdadjYdTpYx3 = Matmul(Conjg(Yx3),YdadjYdTpYx3) 
 Forall(i2=1:3)  CYx3YdadjYdTpYx3(i2,i2) =  Real(CYx3YdadjYdTpYx3(i2,i2),dp) 
- CYx3YdadjYdTpTYx3 = Matmul(Conjg(Yx3),YdadjYdTpTYx3) 
- CYx3TYdadjYdTpYx3 = Matmul(Conjg(Yx3),TYdadjYdTpYx3) 
+! CYx3YdadjYdTpTYx3 = Matmul(Conjg(Yx3),YdadjYdTpTYx3) 
+! CYx3TYdadjYdTpYx3 = Matmul(Conjg(Yx3),TYdadjYdTpYx3) 
  CYx3TpYx3mHxb32CYx3 = Matmul(Conjg(Yx3),TpYx3mHxb32CYx3) 
  CYx3TpYx3CYx3md2 = Matmul(Conjg(Yx3),TpYx3CYx3md2) 
  CYx3TpYx3CYx3Yd = Matmul(Conjg(Yx3),TpYx3CYx3Yd) 
  CYx3TpYx3CYx3TYd = Matmul(Conjg(Yx3),TpYx3CYx3TYd) 
  CYx3TpYx3CYx3TpYx3 = Matmul(Conjg(Yx3),TpYx3CYx3TpYx3) 
 Forall(i2=1:3)  CYx3TpYx3CYx3TpYx3(i2,i2) =  Real(CYx3TpYx3CYx3TpYx3(i2,i2),dp) 
- CYx3TpYx3CYx3TpTYx3 = Matmul(Conjg(Yx3),TpYx3CYx3TpTYx3) 
+! CYx3TpYx3CYx3TpTYx3 = Matmul(Conjg(Yx3),TpYx3CYx3TpTYx3) 
  CYx3TpTYx3CYx3Yd = Matmul(Conjg(Yx3),TpTYx3CYx3Yd) 
- CYx3TpTYx3CYx3TpYx3 = Matmul(Conjg(Yx3),TpTYx3CYx3TpYx3) 
+! CYx3TpTYx3CYx3TpYx3 = Matmul(Conjg(Yx3),TpTYx3CYx3TpYx3) 
  TYb3adjYb3Yb3adjTYb3 = Matmul(TYb3,adjYb3Yb3adjTYb3) 
  TYb3adjYeYeadjTYb3 = Matmul(TYb3,adjYeYeadjTYb3) 
  TYb3adjYw3Yw3adjTYb3 = Matmul(TYb3,adjYw3Yw3adjTYb3) 
@@ -16776,14 +13298,14 @@ Forall(i2=1:3)  TpYx3CYx3TpYx3CYx3(i2,i2) =  Real(TpYx3CYx3TpYx3CYx3(i2,i2),dp)
  TpTYw3CYw3TpYw3CTYw3 = Matmul(Transpose(TYw3),CYw3TpYw3CTYw3) 
  TpTYx3CYx3TpYx3CTYx3 = Matmul(Transpose(TYx3),CYx3TpYx3CTYx3) 
  MBM3CYb3TpYb3CYb3TpYb3 = Matmul(MBM3,CYb3TpYb3CYb3TpYb3) 
- MBM3CYb3TpYb3CYb3TpTYb3 = Matmul(MBM3,CYb3TpYb3CYb3TpTYb3) 
+! MBM3CYb3TpYb3CYb3TpTYb3 = Matmul(MBM3,CYb3TpYb3CYb3TpTYb3) 
  MBM3CYb3TpYeCYeTpYb3 = Matmul(MBM3,CYb3TpYeCYeTpYb3) 
- MBM3CYb3TpYeCYeTpTYb3 = Matmul(MBM3,CYb3TpYeCYeTpTYb3) 
+! MBM3CYb3TpYeCYeTpTYb3 = Matmul(MBM3,CYb3TpYeCYeTpTYb3) 
  MBM3CYb3TpYw3CYw3TpYb3 = Matmul(MBM3,CYb3TpYw3CYw3TpYb3) 
- MBM3CYb3TpYw3CYw3TpTYb3 = Matmul(MBM3,CYb3TpYw3CYw3TpTYb3) 
- MBM3CYb3TpTYb3CYb3TpYb3 = Matmul(MBM3,CYb3TpTYb3CYb3TpYb3) 
- MBM3CYb3TpTYeCYeTpYb3 = Matmul(MBM3,CYb3TpTYeCYeTpYb3) 
- MBM3CYb3TpTYw3CYw3TpYb3 = Matmul(MBM3,CYb3TpTYw3CYw3TpYb3) 
+! MBM3CYb3TpYw3CYw3TpTYb3 = Matmul(MBM3,CYb3TpYw3CYw3TpTYb3) 
+! MBM3CYb3TpTYb3CYb3TpYb3 = Matmul(MBM3,CYb3TpTYb3CYb3TpYb3) 
+! MBM3CYb3TpTYeCYeTpYb3 = Matmul(MBM3,CYb3TpTYeCYeTpYb3) 
+! MBM3CYb3TpTYw3CYw3TpYb3 = Matmul(MBM3,CYb3TpTYw3CYw3TpYb3) 
  md2YdadjYdYdadjYd = Matmul(md2,YdadjYdYdadjYd) 
  md2YdadjYdTpYx3CYx3 = Matmul(md2,YdadjYdTpYx3CYx3) 
  md2YdadjYuYuadjYd = Matmul(md2,YdadjYuYuadjYd) 
@@ -16826,20 +13348,20 @@ Forall(i2=1:3)  TpYx3CYx3TpYx3CYx3(i2,i2) =  Real(TpYx3CYx3TpYx3CYx3(i2,i2),dp)
  mu2YuadjYdYdadjYu = Matmul(mu2,YuadjYdYdadjYu) 
  mu2YuadjYuYuadjYu = Matmul(mu2,YuadjYuYuadjYu) 
  MWM3CYw3TpYb3CYb3TpYw3 = Matmul(MWM3,CYw3TpYb3CYb3TpYw3) 
- MWM3CYw3TpYb3CYb3TpTYw3 = Matmul(MWM3,CYw3TpYb3CYb3TpTYw3) 
+! MWM3CYw3TpYb3CYb3TpTYw3 = Matmul(MWM3,CYw3TpYb3CYb3TpTYw3) 
  MWM3CYw3TpYeCYeTpYw3 = Matmul(MWM3,CYw3TpYeCYeTpYw3) 
- MWM3CYw3TpYeCYeTpTYw3 = Matmul(MWM3,CYw3TpYeCYeTpTYw3) 
+! MWM3CYw3TpYeCYeTpTYw3 = Matmul(MWM3,CYw3TpYeCYeTpTYw3) 
  MWM3CYw3TpYw3CYw3TpYw3 = Matmul(MWM3,CYw3TpYw3CYw3TpYw3) 
- MWM3CYw3TpYw3CYw3TpTYw3 = Matmul(MWM3,CYw3TpYw3CYw3TpTYw3) 
- MWM3CYw3TpTYb3CYb3TpYw3 = Matmul(MWM3,CYw3TpTYb3CYb3TpYw3) 
- MWM3CYw3TpTYeCYeTpYw3 = Matmul(MWM3,CYw3TpTYeCYeTpYw3) 
- MWM3CYw3TpTYw3CYw3TpYw3 = Matmul(MWM3,CYw3TpTYw3CYw3TpYw3) 
+! MWM3CYw3TpYw3CYw3TpTYw3 = Matmul(MWM3,CYw3TpYw3CYw3TpTYw3) 
+! MWM3CYw3TpTYb3CYb3TpYw3 = Matmul(MWM3,CYw3TpTYb3CYb3TpYw3) 
+! MWM3CYw3TpTYeCYeTpYw3 = Matmul(MWM3,CYw3TpTYeCYeTpYw3) 
+! MWM3CYw3TpTYw3CYw3TpYw3 = Matmul(MWM3,CYw3TpTYw3CYw3TpYw3) 
  MXM3CYx3YdadjYdTpYx3 = Matmul(MXM3,CYx3YdadjYdTpYx3) 
- MXM3CYx3YdadjYdTpTYx3 = Matmul(MXM3,CYx3YdadjYdTpTYx3) 
- MXM3CYx3TYdadjYdTpYx3 = Matmul(MXM3,CYx3TYdadjYdTpYx3) 
+! MXM3CYx3YdadjYdTpTYx3 = Matmul(MXM3,CYx3YdadjYdTpTYx3) 
+! MXM3CYx3TYdadjYdTpYx3 = Matmul(MXM3,CYx3TYdadjYdTpYx3) 
  MXM3CYx3TpYx3CYx3TpYx3 = Matmul(MXM3,CYx3TpYx3CYx3TpYx3) 
- MXM3CYx3TpYx3CYx3TpTYx3 = Matmul(MXM3,CYx3TpYx3CYx3TpTYx3) 
- MXM3CYx3TpTYx3CYx3TpYx3 = Matmul(MXM3,CYx3TpTYx3CYx3TpYx3) 
+! MXM3CYx3TpYx3CYx3TpTYx3 = Matmul(MXM3,CYx3TpYx3CYx3TpTYx3) 
+! MXM3CYx3TpTYx3CYx3TpYx3 = Matmul(MXM3,CYx3TpTYx3CYx3TpYx3) 
  Yb3ml2adjYb3Yb3adjYb3 = Matmul(Yb3,ml2adjYb3Yb3adjYb3) 
  Yb3ml2adjYeYeadjYb3 = Matmul(Yb3,ml2adjYeYeadjYb3) 
  Yb3ml2adjYw3Yw3adjYb3 = Matmul(Yb3,ml2adjYw3Yw3adjYb3) 
@@ -16852,7 +13374,7 @@ Forall(i2=1:3)  TpYx3CYx3TpYx3CYx3(i2,i2) =  Real(TpYx3CYx3TpYx3CYx3(i2,i2),dp)
  Yb3adjYb3Yb3adjYb3TYb3 = Matmul(Yb3,adjYb3Yb3adjYb3TYb3) 
  Yb3adjYb3Yb3adjYw3Yw3 = Matmul(Yb3,adjYb3Yb3adjYw3Yw3) 
  Yb3adjYb3Yb3adjYw3TYw3 = Matmul(Yb3,adjYb3Yb3adjYw3TYw3) 
- Yb3adjYb3TYb3adjYb3MBM3 = Matmul(Yb3,adjYb3TYb3adjYb3MBM3) 
+! Yb3adjYb3TYb3adjYb3MBM3 = Matmul(Yb3,adjYb3TYb3adjYb3MBM3) 
  Yb3adjYb3TYb3adjYb3Yb3 = Matmul(Yb3,adjYb3TYb3adjYb3Yb3) 
  Yb3adjYb3TYb3adjYw3Yw3 = Matmul(Yb3,adjYb3TYb3adjYw3Yw3) 
  Yb3adjYeme2YeadjYb3 = Matmul(Yb3,adjYeme2YeadjYb3) 
@@ -16865,7 +13387,7 @@ Forall(i2=1:3)  TpYx3CYx3TpYx3CYx3(i2,i2) =  Real(TpYx3CYx3TpYx3CYx3(i2,i2),dp)
  Yb3adjYeYeadjYeYe = Matmul(Yb3,adjYeYeadjYeYe) 
  Yb3adjYeYeadjYeTYe = Matmul(Yb3,adjYeYeadjYeTYe) 
  Yb3adjYeYeadjYw3TYw3 = Matmul(Yb3,adjYeYeadjYw3TYw3) 
- Yb3adjYeTYeadjYb3MBM3 = Matmul(Yb3,adjYeTYeadjYb3MBM3) 
+! Yb3adjYeTYeadjYb3MBM3 = Matmul(Yb3,adjYeTYeadjYb3MBM3) 
  Yb3adjYeTYeadjYb3Yb3 = Matmul(Yb3,adjYeTYeadjYb3Yb3) 
  Yb3adjYeTYeadjYeYe = Matmul(Yb3,adjYeTYeadjYeYe) 
  Yb3adjYeTYeadjYw3Yw3 = Matmul(Yb3,adjYeTYeadjYw3Yw3) 
@@ -16878,7 +13400,7 @@ Forall(i2=1:3)  TpYx3CYx3TpYx3CYx3(i2,i2) =  Real(TpYx3CYx3TpYx3CYx3(i2,i2),dp)
  Yb3adjYw3Yw3adjYb3TYb3 = Matmul(Yb3,adjYw3Yw3adjYb3TYb3) 
  Yb3adjYw3Yw3adjYw3Yw3 = Matmul(Yb3,adjYw3Yw3adjYw3Yw3) 
  Yb3adjYw3Yw3adjYw3TYw3 = Matmul(Yb3,adjYw3Yw3adjYw3TYw3) 
- Yb3adjYw3TYw3adjYb3MBM3 = Matmul(Yb3,adjYw3TYw3adjYb3MBM3) 
+! Yb3adjYw3TYw3adjYb3MBM3 = Matmul(Yb3,adjYw3TYw3adjYb3MBM3) 
  Yb3adjYw3TYw3adjYb3Yb3 = Matmul(Yb3,adjYw3TYw3adjYb3Yb3) 
  Yb3adjYw3TYw3adjYw3Yw3 = Matmul(Yb3,adjYw3TYw3adjYw3Yw3) 
  Ydmq2adjYdYdadjYd = Matmul(Yd,mq2adjYdYdadjYd) 
@@ -16968,7 +13490,7 @@ Forall(i2=1:3)  TpYx3CYx3TpYx3CYx3(i2,i2) =  Real(TpYx3CYx3TpYx3CYx3(i2,i2),dp)
 ! Yw3adjYb3Yb3adjYw3BMWM3 = Matmul(Yw3,adjYb3Yb3adjYw3BMWM3) 
  Yw3adjYb3Yb3adjYw3TYw3 = Matmul(Yw3,adjYb3Yb3adjYw3TYw3) 
  Yw3adjYb3TYb3adjYb3Yb3 = Matmul(Yw3,adjYb3TYb3adjYb3Yb3) 
- Yw3adjYb3TYb3adjYw3MWM3 = Matmul(Yw3,adjYb3TYb3adjYw3MWM3) 
+! Yw3adjYb3TYb3adjYw3MWM3 = Matmul(Yw3,adjYb3TYb3adjYw3MWM3) 
  Yw3adjYb3TYb3adjYw3Yw3 = Matmul(Yw3,adjYb3TYb3adjYw3Yw3) 
  Yw3adjYeme2YeadjYw3 = Matmul(Yw3,adjYeme2YeadjYw3) 
  Yw3adjYeYeml2adjYw3 = Matmul(Yw3,adjYeYeml2adjYw3) 
@@ -16982,7 +13504,7 @@ Forall(i2=1:3)  TpYx3CYx3TpYx3CYx3(i2,i2) =  Real(TpYx3CYx3TpYx3CYx3(i2,i2),dp)
  Yw3adjYeYeadjYw3TYw3 = Matmul(Yw3,adjYeYeadjYw3TYw3) 
  Yw3adjYeTYeadjYb3Yb3 = Matmul(Yw3,adjYeTYeadjYb3Yb3) 
  Yw3adjYeTYeadjYeYe = Matmul(Yw3,adjYeTYeadjYeYe) 
- Yw3adjYeTYeadjYw3MWM3 = Matmul(Yw3,adjYeTYeadjYw3MWM3) 
+! Yw3adjYeTYeadjYw3MWM3 = Matmul(Yw3,adjYeTYeadjYw3MWM3) 
  Yw3adjYeTYeadjYw3Yw3 = Matmul(Yw3,adjYeTYeadjYw3Yw3) 
  Yw3adjYw3mHw32Yw3adjYw3 = Matmul(Yw3,adjYw3mHw32Yw3adjYw3) 
  Yw3adjYw3Yw3ml2adjYw3 = Matmul(Yw3,adjYw3Yw3ml2adjYw3) 
@@ -16994,7 +13516,7 @@ Forall(i2=1:3)  TpYx3CYx3TpYx3CYx3(i2,i2) =  Real(TpYx3CYx3TpYx3CYx3(i2,i2),dp)
 ! Yw3adjYw3Yw3adjYw3BMWM3 = Matmul(Yw3,adjYw3Yw3adjYw3BMWM3) 
  Yw3adjYw3Yw3adjYw3TYw3 = Matmul(Yw3,adjYw3Yw3adjYw3TYw3) 
  Yw3adjYw3TYw3adjYb3Yb3 = Matmul(Yw3,adjYw3TYw3adjYb3Yb3) 
- Yw3adjYw3TYw3adjYw3MWM3 = Matmul(Yw3,adjYw3TYw3adjYw3MWM3) 
+! Yw3adjYw3TYw3adjYw3MWM3 = Matmul(Yw3,adjYw3TYw3adjYw3MWM3) 
  Yw3adjYw3TYw3adjYw3Yw3 = Matmul(Yw3,adjYw3TYw3adjYw3Yw3) 
  Yx3md2adjYx3Yx3adjYx3 = Matmul(Yx3,md2adjYx3Yx3adjYx3) 
  Yx3md2CYdTpYdadjYx3 = Matmul(Yx3,md2CYdTpYdadjYx3) 
@@ -17024,14 +13546,14 @@ Forall(i2=1:3)  TpYx3CYx3TpYx3CYx3(i2,i2) =  Real(TpYx3CYx3TpYx3CYx3(i2,i2),dp)
 ! BMWM3CYw3TpYw3CYw3TpYw3 = Matmul(BMWM3,CYw3TpYw3CYw3TpYw3) 
 ! BMXM3CYx3YdadjYdTpYx3 = Matmul(BMXM3,CYx3YdadjYdTpYx3) 
 ! BMXM3CYx3TpYx3CYx3TpYx3 = Matmul(BMXM3,CYx3TpYx3CYx3TpYx3) 
- TYb3adjYb3Yb3adjYb3MBM3 = Matmul(TYb3,adjYb3Yb3adjYb3MBM3) 
+! TYb3adjYb3Yb3adjYb3MBM3 = Matmul(TYb3,adjYb3Yb3adjYb3MBM3) 
  TYb3adjYb3Yb3adjYb3Yb3 = Matmul(TYb3,adjYb3Yb3adjYb3Yb3) 
  TYb3adjYb3Yb3adjYw3Yw3 = Matmul(TYb3,adjYb3Yb3adjYw3Yw3) 
- TYb3adjYeYeadjYb3MBM3 = Matmul(TYb3,adjYeYeadjYb3MBM3) 
+! TYb3adjYeYeadjYb3MBM3 = Matmul(TYb3,adjYeYeadjYb3MBM3) 
  TYb3adjYeYeadjYb3Yb3 = Matmul(TYb3,adjYeYeadjYb3Yb3) 
  TYb3adjYeYeadjYeYe = Matmul(TYb3,adjYeYeadjYeYe) 
  TYb3adjYeYeadjYw3Yw3 = Matmul(TYb3,adjYeYeadjYw3Yw3) 
- TYb3adjYw3Yw3adjYb3MBM3 = Matmul(TYb3,adjYw3Yw3adjYb3MBM3) 
+! TYb3adjYw3Yw3adjYb3MBM3 = Matmul(TYb3,adjYw3Yw3adjYb3MBM3) 
  TYb3adjYw3Yw3adjYb3Yb3 = Matmul(TYb3,adjYw3Yw3adjYb3Yb3) 
  TYb3adjYw3Yw3adjYw3Yw3 = Matmul(TYb3,adjYw3Yw3adjYw3Yw3) 
  TYdadjYdYdadjYdYd = Matmul(TYd,adjYdYdadjYdYd) 
@@ -17050,14 +13572,14 @@ Forall(i2=1:3)  TpYx3CYx3TpYx3CYx3(i2,i2) =  Real(TpYx3CYx3TpYx3CYx3(i2,i2),dp)
  TYuadjYdTpYx3CYx3Yd = Matmul(TYu,adjYdTpYx3CYx3Yd) 
  TYuadjYuYuadjYuYu = Matmul(TYu,adjYuYuadjYuYu) 
  TYw3adjYb3Yb3adjYb3Yb3 = Matmul(TYw3,adjYb3Yb3adjYb3Yb3) 
- TYw3adjYb3Yb3adjYw3MWM3 = Matmul(TYw3,adjYb3Yb3adjYw3MWM3) 
+! TYw3adjYb3Yb3adjYw3MWM3 = Matmul(TYw3,adjYb3Yb3adjYw3MWM3) 
  TYw3adjYb3Yb3adjYw3Yw3 = Matmul(TYw3,adjYb3Yb3adjYw3Yw3) 
  TYw3adjYeYeadjYb3Yb3 = Matmul(TYw3,adjYeYeadjYb3Yb3) 
  TYw3adjYeYeadjYeYe = Matmul(TYw3,adjYeYeadjYeYe) 
- TYw3adjYeYeadjYw3MWM3 = Matmul(TYw3,adjYeYeadjYw3MWM3) 
+! TYw3adjYeYeadjYw3MWM3 = Matmul(TYw3,adjYeYeadjYw3MWM3) 
  TYw3adjYeYeadjYw3Yw3 = Matmul(TYw3,adjYeYeadjYw3Yw3) 
  TYw3adjYw3Yw3adjYb3Yb3 = Matmul(TYw3,adjYw3Yw3adjYb3Yb3) 
- TYw3adjYw3Yw3adjYw3MWM3 = Matmul(TYw3,adjYw3Yw3adjYw3MWM3) 
+! TYw3adjYw3Yw3adjYw3MWM3 = Matmul(TYw3,adjYw3Yw3adjYw3MWM3) 
  TYw3adjYw3Yw3adjYw3Yw3 = Matmul(TYw3,adjYw3Yw3adjYw3Yw3) 
  TYx3adjYx3Yx3adjYx3Yx3 = Matmul(TYx3,adjYx3Yx3adjYx3Yx3) 
  TYx3CYdTpYdadjYx3Yx3 = Matmul(TYx3,CYdTpYdadjYx3Yx3) 
@@ -18317,7 +14839,7 @@ Dml2 = oo16pi2* betaml21
 End If 
  
  
-Forall(i1=1:3) Dml2(i1,i1) =  Real(Dml2(i1,i1),dp) 
+Forall(i1=1:3) Dml2(i1,i1) =  Real(Dml2(i1,i1),dp)
 !-------------------- 
 ! mHd2 
 !-------------------- 
@@ -18859,8 +15381,7 @@ End If
 ! MassG 
 !-------------------- 
  
-betaMassG1  = 2*g3p2*MassG*(-3 + 3*NGHg3 + NGHx3 +      & 
-&  NGHxb3)
+betaMassG1  = 2*g3p2*MassG*(-3 + 3*NGHg3 + NGHx3 + NGHxb3)
 
  
  
@@ -18890,14 +15411,14 @@ Do i2 = 1,3
 gammaL1(i1,i2) =  3._dp*adjYb3Yb3(i1,i2)/10._dp + adjYeYe(i1,i2) + 3._dp*adjYw3Yw3(i1,i2)/2._dp
 
 If(i1.eq.i2) Then
- gammaL1(i1,i2) = + gammaL1(i1,i2) -3._dp*g1p2/10._dp - 3._dp*g2p2/2._dp
+ gammaL1(i1,i2) = gammaL1(i1,i2) -0.3_dp*g1p2 - 1.5_dp*g2p2
 End If
 
 End Do
 End Do
 
-gammaHd1 = -3._dp*g1p2/10._dp - 3._dp*g2p2/2._dp + 3._dp*TrYb3adjYb3/10._dp + &
-& 3._dp*TrYuadjYu + 3._dp*TrYw3adjYw3/2._dp + 3._dp*TrYx3adjYx3
+gammaHd1 = -0.3_dp*g1p2 - 1.5_dp*g2p2 + 0.3_dp*TrYb3adjYb3 + &
+& 3._dp*TrYuadjYu + 1.5_dp*TrYw3adjYw3 + 3._dp*TrYx3adjYx3
 
 betaMnuL1 = MatMul(Transpose(gammaL1),MnuL) + MatMul(MnuL,gammaL1) + 2._dp*MnuL*gammaHd1
 
@@ -19054,14 +15575,4937 @@ DmHw32(3,:) = 0._dp
 DmHw32(:,3) = 0._dp 
 End if 
 
-Call ParametersToG555(Dg1,Dg2,Dg3,DYu,DYd,DYe,DYb3,DYw3,DYx3,Dmue,DMXM3,              & 
-& DMWM3,DMGM3,DMBM3,DTYu,DTYd,DTYe,DTYb3,DTYw3,DTYx3,DBmue,DBMXM3,DBMWM3,DBMGM3,         & 
-& DBMBM3,Dmq2,Dml2,DmHd2,DmHu2,Dmd2,Dmu2,Dme2,DmHw32,DmHg32,DmHb32,DmHx32,               & 
-& DmHxb32,DMassB,DMassWB,DMassG,DMnuL,f)
+!-------------------------------------------------------------------------------
+! these matrices are hermitian but numerical effects induce non-hermiatian parts
+! which need to be corrected
+!-------------------------------------------------------------------------------
+Dmd2 = 0.5_dp * ( Dmd2 + Transpose(Conjg(Dmd2)) )
+Dme2 = 0.5_dp * ( Dme2 + Transpose(Conjg(Dme2)) )
+Dml2 = 0.5_dp * ( Dml2 + Transpose(Conjg(Dml2)) )
+Dmq2 = 0.5_dp * ( Dmq2 + Transpose(Conjg(Dmq2)) )
+Dmu2 = 0.5_dp * ( Dmu2 + Transpose(Conjg(Dmu2)) )
+
+DmHb32 = 0.5_dp * ( DmHb32 + Transpose(Conjg(DmHb32)) )
+DmHg32 = 0.5_dp * ( DmHg32 + Transpose(Conjg(DmHg32)) )
+DmHw32 = 0.5_dp * ( DmHw32 + Transpose(Conjg(DmHw32)) )
+DmHx32 = 0.5_dp * ( DmHx32 + Transpose(Conjg(DmHx32)) )
+
+Call Chop(Dmue)
+Call Chop(DBmue)
+
+Call ParametersToG555(Dg1,Dg2,Dg3,DYu,DYd,DYe,DYb3,DYw3,DYx3,Dmue,DMXM3,       & 
+& DMWM3,DMGM3,DMBM3,DTYu,DTYd,DTYe,DTYb3,DTYw3,DTYx3,DBmue,DBMXM3,DBMWM3,      & 
+& DBMGM3,DBMBM3,Dmq2,Dml2,DmHd2,DmHu2,Dmd2,Dmu2,Dme2,DmHw32,DmHg32,DmHb32,     & 
+& DmHx32, DmHxb32,DMassB,DMassWB,DMassG,DMnuL,f)
 
 Iname = Iname - 1 
  
 End Subroutine rge555
+
+#endif SEESAWIII
+
+
+#ifdef SEESAWIII
+
+! ----------------------------------------------------------------------  
+! This file was automatically created by SARAH version SARAHVERSION 
+! SARAH References: arXiv:0806.0538, arXiv:0909.2863, arXiv:1002.0840    
+! (c) Florian Staub, 2011  
+! ----------------------------------------------------------------------  
+! File created at 13:17 on 29.2.2012   
+! ----------------------------------------------------------------------  
+ 
+ Subroutine GToParameters115(g,g1,g2,g3,Yu,Yd,Ye,YtII,YsII,YzII,L1II,L2II)
+
+ Implicit None 
+  Real(dp), Intent(in) :: g(115) 
+  Real(dp),Intent(out) :: g1,g2,g3
+
+  Complex(dp),Intent(out) :: Yu(3,3),Yd(3,3),Ye(3,3),YtII(3,3),YsII(3,3),YzII(3,3) &
+     & ,L1II,L2II
+
+  Integer i1, i2, SumI 
+ 
+  Iname = Iname +1 
+  NameOfUnit(Iname) = 'GToParameters115' 
+ 
+  g1 = g(1) 
+  g2 = g(2) 
+  g3 = g(3)
+
+  Do i1 = 1,3
+   Do i2 = 1,3
+    SumI = 2 * ((i2-1) + (i1-1)*3)
+    Yu(i1,i2) = Cmplx( g(SumI+4), g(SumI+5), dp) 
+    Yd(i1,i2) = Cmplx( g(SumI+22), g(SumI+23), dp) 
+    Ye(i1,i2) = Cmplx( g(SumI+40), g(SumI+41), dp) 
+    YtII(i1,i2) = Cmplx( g(SumI+58), g(SumI+59), dp) 
+    YsII(i1,i2) = Cmplx( g(SumI+76), g(SumI+77), dp) 
+    YzII(i1,i2) = Cmplx( g(SumI+94), g(SumI+95), dp) 
+   End Do 
+  End Do 
+ 
+  L1II= Cmplx(g(112),g(113),dp) 
+  L2II= Cmplx(g(114),g(115),dp) 
+  Do i1=1,115 
+   If (g(i1).ne.g(i1)) Then 
+    Write(*,*) "NaN appearing in ",NameOfUnit(Iname) 
+    Write(*,*) "At position ", i1 
+    Call TerminateProgram 
+   End if 
+  End do 
+  Iname = Iname - 1 
+ 
+ End Subroutine GToParameters115
+
+
+ Subroutine ParametersToG115(g1,g2,g3,Yu,Yd,Ye,YtII,YsII,YzII,L1II,L2II,g)
+
+ Implicit None 
+  Real(dp), Intent(out) :: g(115) 
+  Real(dp), Intent(in) :: g1,g2,g3
+
+  Complex(dp), Intent(in) :: Yu(3,3),Yd(3,3),Ye(3,3),YtII(3,3),YsII(3,3),YzII(3,3) &
+    & ,L1II,L2II
+
+  Integer i1, i2, SumI 
+ 
+  Iname = Iname +1 
+  NameOfUnit(Iname) = 'ParametersToG115' 
+ 
+  g(1) = g1
+  g(2) = g2
+  g(3) = g3
+  Do i1 = 1,3
+   Do i2 = 1,3
+    SumI = 2 * ( (i2-1) + (i1-1)*3 )
+    g(SumI+4) = Real(Yu(i1,i2), dp) 
+    g(SumI+5) = Aimag(Yu(i1,i2)) 
+    g(SumI+22) = Real(Yd(i1,i2), dp) 
+    g(SumI+23) = Aimag(Yd(i1,i2)) 
+    g(SumI+40) = Real(Ye(i1,i2), dp) 
+    g(SumI+41) = Aimag(Ye(i1,i2)) 
+    g(SumI+58) = Real(YtII(i1,i2), dp) 
+    g(SumI+59) = Aimag(YtII(i1,i2)) 
+    g(SumI+76) = Real(YsII(i1,i2), dp) 
+    g(SumI+77) = Aimag(YsII(i1,i2)) 
+    g(SumI+94) = Real(YzII(i1,i2), dp) 
+    g(SumI+95) = Aimag(YzII(i1,i2)) 
+   End Do 
+  End Do 
+
+  g(112) = Real(L1II,dp)  
+  g(113) = Aimag(L1II)  
+  g(114) = Real(L2II,dp)  
+  g(115) = Aimag(L2II)  
+  Iname = Iname - 1 
+ 
+ End Subroutine ParametersToG115
+
+Subroutine rge115(len, T, GY, F) 
+Implicit None 
+Integer, Intent(in) :: len 
+Real(dp), Intent(in) :: T, GY(len) 
+Real(dp), Intent(out) :: F(len) 
+Integer :: i2
+Real(dp) :: q 
+Real(dp) :: g1,betag11,betag12,Dg1,g2,betag21,betag22,Dg2,g3,betag31,betag32,Dg3
+Complex(dp) :: Yu(3,3),betaYu1(3,3),betaYu2(3,3),DYu(3,3),adjYu(3,3),Yd(3,3)          & 
+& ,betaYd1(3,3),betaYd2(3,3),DYd(3,3),adjYd(3,3),Ye(3,3),betaYe1(3,3),betaYe2(3,3)       & 
+& ,DYe(3,3),adjYe(3,3),YtII(3,3),betaYtII1(3,3),betaYtII2(3,3),DYtII(3,3),               & 
+& adjYtII(3,3),YsII(3,3),betaYsII1(3,3),betaYsII2(3,3),DYsII(3,3),adjYsII(3,3)           & 
+& ,YzII(3,3),betaYzII1(3,3),betaYzII2(3,3),DYzII(3,3),adjYzII(3,3),L1II,betaL1II1,       & 
+& betaL1II2,DL1II,L2II,betaL2II1,betaL2II2,DL2II
+Real(dp) :: AbsL1II,AbsL2II
+Complex(dp) :: YdadjYd(3,3),YeadjYe(3,3),YsIICYsII(3,3),YtIICYtII(3,3),YuadjYu(3,3),YzIIadjYzII(3,3),& 
+& adjYdYd(3,3),adjYdYsII(3,3),adjYdYzII(3,3),adjYeYe(3,3),adjYuYu(3,3),adjYzIIYd(3,3),   & 
+& adjYzIIYsII(3,3),adjYzIIYzII(3,3),CYdTpYd(3,3),CYeYtII(3,3),CYsIIYd(3,3),              & 
+& CYsIIYsII(3,3),CYsIIYzII(3,3),CYtIIYtII(3,3),CYzIIYtII(3,3),CYzIITpYzII(3,3),          & 
+& YdadjYdYd(3,3),YdadjYdYsII(3,3),YdadjYdYzII(3,3),YdadjYuYu(3,3),YeadjYeYe(3,3),        & 
+& YeadjYzIIYzII(3,3),YeCYtIIYtII(3,3),YsIICYdTpYd(3,3),YsIICYsIIYd(3,3),YsIICYsIIYsII(3,3),& 
+& YsIICYsIIYzII(3,3),YsIICYzIITpYzII(3,3),YtIIadjYeYe(3,3),YtIIadjYzIIYzII(3,3),         & 
+& YtIICYtIIYtII(3,3),YuadjYdYd(3,3),YuadjYuYu(3,3),YzIIadjYeYe(3,3),YzIIadjYzIIYd(3,3),  & 
+& YzIIadjYzIIYsII(3,3),YzIIadjYzIIYzII(3,3),YzIICYtIIYtII(3,3),TpYeCYeYtII(3,3),         & 
+& TpYzIICYzIIYtII(3,3)
+
+Complex(dp) :: YtIIadjYe(3,3),YuadjYd(3,3),YzIIadjYe(3,3),YzIICYtII(3,3),CYeTpYzII(3,3),             & 
+& CYtIITpYzII(3,3),CYuTpYd(3,3),YeadjYzIIYd(3,3),YeadjYzIIYsII(3,3),YsIICYzIIYtII(3,3),  & 
+& YtIIadjYzIIYd(3,3),YtIIadjYzIIYsII(3,3),YtIICYtIITpYzII(3,3),YuadjYdYsII(3,3),         & 
+& YuadjYdYzII(3,3),adjYdYdadjYd(3,3),adjYdYsIICYsII(3,3),adjYdYzIIadjYzII(3,3),          & 
+& adjYeYeadjYe(3,3),adjYuYuadjYd(3,3),adjYuYuadjYu(3,3),adjYzIIYzIIadjYe(3,3),           & 
+& adjYzIIYzIIadjYzII(3,3),adjYzIIYzIICYtII(3,3),CYsIIYsIICYsII(3,3),CYsIIYzIIadjYzII(3,3),& 
+& CYtIIYtIIadjYe(3,3),CYtIIYtIICYtII(3,3),TpYdCYdTpYd(3,3),TpYdCYsIIYd(3,3),             & 
+& TpYdCYsIIYsII(3,3),TpYdCYsIIYzII(3,3),TpYdCYzIIYtII(3,3),TpYeCYeTpYzII(3,3),           & 
+& TpYuCYuTpYd(3,3),TpYzIICYsIIYd(3,3),TpYzIICYsIIYsII(3,3),TpYzIICYsIIYzII(3,3),         & 
+& TpYzIICYzIITpYzII(3,3),YdadjYdYdadjYd(3,3),YdadjYdYsIICYsII(3,3),YdadjYdYzIIadjYzII(3,3),& 
+& YdadjYuYuadjYd(3,3),YeadjYeYeadjYe(3,3),YeadjYzIIYzIIadjYe(3,3),YeCYtIIYtIIadjYe(3,3), & 
+& YsIICYsIIYsIICYsII(3,3),YsIICYsIIYzIIadjYzII(3,3),YtIIadjYzIIYzIICYtII(3,3),           & 
+& YtIICYtIIYtIICYtII(3,3),YuadjYuYuadjYu(3,3),YzIIadjYzIIYzIIadjYzII(3,3),               & 
+& adjYdYdadjYdYd(3,3),adjYdYdadjYdYsII(3,3),adjYdYdadjYdYzII(3,3),adjYdYdadjYuYu(3,3),   & 
+& adjYdYsIICYsIIYd(3,3),adjYdYzIIadjYzIIYd(3,3),adjYeYeadjYeYe(3,3),adjYeYeadjYzIIYd(3,3),& 
+& adjYeYeadjYzIIYsII(3,3),adjYeYeadjYzIIYzII(3,3),adjYeYeCYtIIYtII(3,3),adjYuYuadjYdYd(3,3),& 
+& adjYuYuadjYdYsII(3,3),adjYuYuadjYdYzII(3,3),adjYuYuadjYuYu(3,3),adjYzIIYdadjYdYzII(3,3),& 
+& adjYzIIYsIICYsIIYzII(3,3),adjYzIIYzIIadjYeYe(3,3),adjYzIIYzIIadjYzIIYd(3,3),           & 
+& adjYzIIYzIIadjYzIIYsII(3,3),adjYzIIYzIIadjYzIIYzII(3,3),adjYzIIYzIICYtIIYtII(3,3),     & 
+& CYdTpYdCYdTpYd(3,3),CYdTpYdCYsIIYd(3,3),CYdTpYdCYsIIYsII(3,3),CYdTpYdCYsIIYzII(3,3),   & 
+& CYdTpYdCYzIIYtII(3,3),CYdTpYuCYuTpYd(3,3),CYeTpYeCYeYtII(3,3),CYsIIYdadjYdYsII(3,3),   & 
+& CYsIIYsIICYsIIYd(3,3),CYsIIYsIICYsIIYsII(3,3),CYsIIYsIICYsIIYzII(3,3),CYsIIYsIICYzIIYtII(3,3),& 
+& CYsIIYzIIadjYzIIYsII(3,3),CYtIIYtIIadjYeYe(3,3),CYtIIYtIIadjYzIIYd(3,3),               & 
+& CYtIIYtIIadjYzIIYsII(3,3),CYtIIYtIIadjYzIIYzII(3,3),CYtIIYtIICYtIIYtII(3,3),           & 
+& CYtIITpYeCYeYtII(3,3),CYtIITpYzIICYzIIYtII(3,3),CYzIIYtIICYtIITpYzII(3,3),             & 
+& CYzIITpYeCYeTpYzII(3,3),CYzIITpYzIICYsIIYd(3,3),CYzIITpYzIICYsIIYsII(3,3),             & 
+& CYzIITpYzIICYsIIYzII(3,3),CYzIITpYzIICYzIIYtII(3,3),CYzIITpYzIICYzIITpYzII(3,3),       & 
+& YdadjYdYdadjYdYd(3,3),YdadjYdYdadjYdYsII(3,3),YdadjYdYdadjYdYzII(3,3),YdadjYdYsIICYsIIYd(3,3),& 
+& YdadjYdYzIIadjYzIIYd(3,3),YdadjYuYuadjYdYd(3,3),YdadjYuYuadjYdYsII(3,3),               & 
+& YdadjYuYuadjYdYzII(3,3),YdadjYuYuadjYuYu(3,3),YeadjYeYeadjYeYe(3,3),YeadjYzIIYdadjYdYzII(3,3),& 
+& YeadjYzIIYsIICYsIIYzII(3,3),YeadjYzIIYzIIadjYeYe(3,3),YeadjYzIIYzIIadjYzIIYzII(3,3),   & 
+& YeCYtIIYtIIadjYeYe(3,3),YeCYtIIYtIICYtIIYtII(3,3),YeCYtIITpYeCYeYtII(3,3),             & 
+& YeCYtIITpYzIICYzIIYtII(3,3),YsIICYdTpYdCYdTpYd(3,3),YsIICYdTpYdCYsIIYd(3,3),           & 
+& YsIICYdTpYdCYsIIYsII(3,3),YsIICYdTpYdCYsIIYzII(3,3),YsIICYdTpYuCYuTpYd(3,3),           & 
+& YsIICYsIIYdadjYdYsII(3,3),YsIICYsIIYsIICYsIIYd(3,3),YsIICYsIIYsIICYsIIYsII(3,3),       & 
+& YsIICYsIIYsIICYsIIYzII(3,3),YsIICYsIIYzIIadjYzIIYsII(3,3),YsIICYzIIYtIICYtIITpYzII(3,3),& 
+& YsIICYzIITpYeCYeTpYzII(3,3),YsIICYzIITpYzIICYsIIYd(3,3),YsIICYzIITpYzIICYsIIYsII(3,3)
+
+Complex(dp) :: YsIICYzIITpYzIICYsIIYzII(3,3),YsIICYzIITpYzIICYzIITpYzII(3,3),YtIIadjYeYeadjYeYe(3,3), & 
+& YtIIadjYeYeCYtIIYtII(3,3),YtIIadjYzIIYdadjYdYzII(3,3),YtIIadjYzIIYsIICYsIIYzII(3,3),   & 
+& YtIIadjYzIIYzIIadjYzIIYzII(3,3),YtIIadjYzIIYzIICYtIIYtII(3,3),YtIICYtIIYtIICYtIIYtII(3,3),& 
+& YtIICYtIITpYeCYeYtII(3,3),YtIICYtIITpYzIICYzIIYtII(3,3),YuadjYdYdadjYdYd(3,3),         & 
+& YuadjYdYdadjYuYu(3,3),YuadjYdYsIICYsIIYd(3,3),YuadjYdYzIIadjYzIIYd(3,3),               & 
+& YuadjYuYuadjYuYu(3,3),YzIIadjYeYeadjYeYe(3,3),YzIIadjYeYeadjYzIIYd(3,3),               & 
+& YzIIadjYeYeadjYzIIYsII(3,3),YzIIadjYeYeadjYzIIYzII(3,3),YzIIadjYzIIYdadjYdYzII(3,3),   & 
+& YzIIadjYzIIYsIICYsIIYzII(3,3),YzIIadjYzIIYzIIadjYzIIYd(3,3),YzIIadjYzIIYzIIadjYzIIYsII(3,3),& 
+& YzIIadjYzIIYzIIadjYzIIYzII(3,3),YzIICYtIIYtIIadjYzIIYd(3,3),YzIICYtIIYtIIadjYzIIYsII(3,3),& 
+& YzIICYtIIYtIIadjYzIIYzII(3,3),YzIICYtIIYtIICYtIIYtII(3,3),YzIICYtIITpYeCYeYtII(3,3),   & 
+& YzIICYtIITpYzIICYzIIYtII(3,3),TpYeCYeTpYeCYeYtII(3,3),TpYzIICYdTpYdCYzIIYtII(3,3),     & 
+& TpYzIICYsIIYsIICYzIIYtII(3,3),TpYzIICYzIITpYzIICYzIIYtII(3,3)
+
+Complex(dp) :: TrYdadjYd,TrYeadjYe,TrYsIICYsII,TrYtIICYtII,TrYuadjYu,TrYzIIadjYzII
+
+Complex(dp) :: TrYdadjYdYdadjYd,TrYdadjYdYsIICYsII,TrYdadjYdYzIIadjYzII,TrYdadjYuYuadjYd,            & 
+& TrYeadjYeYeadjYe,TrYeadjYzIIYzIIadjYe,TrYeCYtIIYtIIadjYe,TrYsIICYsIIYsIICYsII,         & 
+& TrYsIICYsIIYzIIadjYzII,TrYtIIadjYzIIYzIICYtII,TrYtIICYtIIYtIICYtII,TrYuadjYuYuadjYu,   & 
+& TrYzIIadjYzIIYzIIadjYzII
+
+Real(dp) :: g1p2,g1p3,g2p2,g2p3,g3p2,g3p3
+
+Complex(dp) :: L1IIp2,L2IIp2
+
+Real(dp) :: g1p4,g2p4,g3p4
+
+Complex(dp) :: CL1IIp2,CL2IIp2
+
+Iname = Iname +1 
+NameOfUnit(Iname) = 'rge115' 
+ 
+OnlyDiagonal = .Not.GenerationMixing 
+q = t 
+ 
+Call GToParameters115(gy,g1,g2,g3,Yu,Yd,Ye,YtII,YsII,YzII,L1II,L2II)
+
+AbsL1II = Abs(L1II)**2
+AbsL2II = Abs(L2II)**2
+Call Adjungate(Yu,adjYu)
+Call Adjungate(Yd,adjYd)
+Call Adjungate(Ye,adjYe)
+Call Adjungate(YtII,adjYtII)
+Call Adjungate(YsII,adjYsII)
+Call Adjungate(YzII,adjYzII)
+ YdadjYd = Matmul2(Yd,adjYd,OnlyDiagonal) 
+Forall(i2=1:3)  YdadjYd(i2,i2) =  Real(YdadjYd(i2,i2),dp) 
+ YeadjYe = Matmul2(Ye,adjYe,OnlyDiagonal) 
+Forall(i2=1:3)  YeadjYe(i2,i2) =  Real(YeadjYe(i2,i2),dp) 
+ YsIICYsII = Matmul2(YsII,adjYsII,OnlyDiagonal) 
+ YtIICYtII = Matmul2(YtII,adjYtII,OnlyDiagonal) 
+ YuadjYu = Matmul2(Yu,adjYu,OnlyDiagonal) 
+Forall(i2=1:3)  YuadjYu(i2,i2) =  Real(YuadjYu(i2,i2),dp) 
+ YzIIadjYzII = Matmul2(YzII,adjYzII,OnlyDiagonal) 
+Forall(i2=1:3)  YzIIadjYzII(i2,i2) =  Real(YzIIadjYzII(i2,i2),dp) 
+ adjYdYd = Matmul2(adjYd,Yd,OnlyDiagonal) 
+Forall(i2=1:3)  adjYdYd(i2,i2) =  Real(adjYdYd(i2,i2),dp) 
+ adjYdYsII = Matmul2(adjYd,YsII,OnlyDiagonal) 
+ adjYdYzII = Matmul2(adjYd,YzII,OnlyDiagonal) 
+ adjYeYe = Matmul2(adjYe,Ye,OnlyDiagonal) 
+Forall(i2=1:3)  adjYeYe(i2,i2) =  Real(adjYeYe(i2,i2),dp) 
+ adjYuYu = Matmul2(adjYu,Yu,OnlyDiagonal) 
+Forall(i2=1:3)  adjYuYu(i2,i2) =  Real(adjYuYu(i2,i2),dp) 
+ adjYzIIYd = Matmul2(adjYzII,Yd,OnlyDiagonal) 
+ adjYzIIYsII = Matmul2(adjYzII,YsII,OnlyDiagonal) 
+ adjYzIIYzII = Matmul2(adjYzII,YzII,OnlyDiagonal) 
+Forall(i2=1:3)  adjYzIIYzII(i2,i2) =  Real(adjYzIIYzII(i2,i2),dp) 
+ CYdTpYd = Matmul2(Conjg(Yd),Transpose(Yd),OnlyDiagonal) 
+Forall(i2=1:3)  CYdTpYd(i2,i2) =  Real(CYdTpYd(i2,i2),dp) 
+ CYeYtII = Matmul2(Conjg(Ye),YtII,OnlyDiagonal) 
+ CYsIIYd = Matmul2(adjYsII,Yd,OnlyDiagonal) 
+ CYsIIYsII = Matmul2(adjYsII,YsII,OnlyDiagonal) 
+ CYsIIYzII = Matmul2(adjYsII,YzII,OnlyDiagonal) 
+ CYtIIYtII = Matmul2(adjYtII,YtII,OnlyDiagonal) 
+ CYzIIYtII = Matmul2(Conjg(YzII),YtII,OnlyDiagonal) 
+ CYzIITpYzII = Matmul2(Conjg(YzII),Transpose(YzII),OnlyDiagonal) 
+Forall(i2=1:3)  CYzIITpYzII(i2,i2) =  Real(CYzIITpYzII(i2,i2),dp) 
+ YdadjYdYd = Matmul2(Yd,adjYdYd,OnlyDiagonal) 
+ YdadjYdYsII = Matmul2(Yd,adjYdYsII,OnlyDiagonal) 
+ YdadjYdYzII = Matmul2(Yd,adjYdYzII,OnlyDiagonal) 
+ YdadjYuYu = Matmul2(Yd,adjYuYu,OnlyDiagonal) 
+ YeadjYeYe = Matmul2(Ye,adjYeYe,OnlyDiagonal) 
+ YeadjYzIIYzII = Matmul2(Ye,adjYzIIYzII,OnlyDiagonal) 
+ YeCYtIIYtII = Matmul2(Ye,CYtIIYtII,OnlyDiagonal) 
+ YsIICYdTpYd = Matmul2(YsII,CYdTpYd,OnlyDiagonal) 
+ YsIICYsIIYd = Matmul2(YsII,CYsIIYd,OnlyDiagonal) 
+ YsIICYsIIYsII = Matmul2(YsII,CYsIIYsII,OnlyDiagonal) 
+ YsIICYsIIYzII = Matmul2(YsII,CYsIIYzII,OnlyDiagonal) 
+ YsIICYzIITpYzII = Matmul2(YsII,CYzIITpYzII,OnlyDiagonal) 
+ YtIIadjYeYe = Matmul2(YtII,adjYeYe,OnlyDiagonal) 
+ YtIIadjYzIIYzII = Matmul2(YtII,adjYzIIYzII,OnlyDiagonal) 
+ YtIICYtIIYtII = Matmul2(YtII,CYtIIYtII,OnlyDiagonal) 
+ YuadjYdYd = Matmul2(Yu,adjYdYd,OnlyDiagonal) 
+ YuadjYuYu = Matmul2(Yu,adjYuYu,OnlyDiagonal) 
+ YzIIadjYeYe = Matmul2(YzII,adjYeYe,OnlyDiagonal) 
+ YzIIadjYzIIYd = Matmul2(YzII,adjYzIIYd,OnlyDiagonal) 
+ YzIIadjYzIIYsII = Matmul2(YzII,adjYzIIYsII,OnlyDiagonal) 
+ YzIIadjYzIIYzII = Matmul2(YzII,adjYzIIYzII,OnlyDiagonal) 
+ YzIICYtIIYtII = Matmul2(YzII,CYtIIYtII,OnlyDiagonal) 
+ TpYeCYeYtII = Matmul2(Transpose(Ye),CYeYtII,OnlyDiagonal) 
+ TpYzIICYzIIYtII = Matmul2(Transpose(YzII),CYzIIYtII,OnlyDiagonal) 
+ TrYdadjYd = Real(cTrace(YdadjYd),dp) 
+ TrYeadjYe = Real(cTrace(YeadjYe),dp) 
+ TrYsIICYsII = Real(cTrace(YsIICYsII),dp) 
+ TrYtIICYtII = Real(cTrace(YtIICYtII),dp) 
+ TrYuadjYu = Real(cTrace(YuadjYu),dp) 
+ TrYzIIadjYzII = Real(cTrace(YzIIadjYzII),dp) 
+ g1p2 =g1**2 
+ g1p3 =g1**3 
+ g2p2 =g2**2 
+ g2p3 =g2**3 
+ g3p2 =g3**2 
+ g3p3 =g3**3 
+ L1IIp2 =L1II**2 
+ L2IIp2 =L2II**2 
+ g1p4 =g1**4 
+ g2p4 =g2**4 
+ g3p4 =g3**4 
+ CL1IIp2 =Conjg(L1II)**2 
+ CL2IIp2 =Conjg(L2II)**2 
+
+
+If (TwoLoopRGE) Then 
+ YtIIadjYe = Matmul2(YtII,adjYe,OnlyDiagonal) 
+ YuadjYd = Matmul2(Yu,adjYd,OnlyDiagonal) 
+ YzIIadjYe = Matmul2(YzII,adjYe,OnlyDiagonal) 
+ YzIICYtII = Matmul2(YzII,adjYtII,OnlyDiagonal) 
+ CYeTpYzII = Matmul2(Conjg(Ye),Transpose(YzII),OnlyDiagonal) 
+ CYtIITpYzII = Matmul2(adjYtII,Transpose(YzII),OnlyDiagonal) 
+ CYuTpYd = Matmul2(Conjg(Yu),Transpose(Yd),OnlyDiagonal) 
+ YeadjYzIIYd = Matmul2(Ye,adjYzIIYd,OnlyDiagonal) 
+ YeadjYzIIYsII = Matmul2(Ye,adjYzIIYsII,OnlyDiagonal) 
+ YsIICYzIIYtII = Matmul2(YsII,CYzIIYtII,OnlyDiagonal) 
+ YtIIadjYzIIYd = Matmul2(YtII,adjYzIIYd,OnlyDiagonal) 
+ YtIIadjYzIIYsII = Matmul2(YtII,adjYzIIYsII,OnlyDiagonal) 
+ YtIICYtIITpYzII = Matmul2(YtII,CYtIITpYzII,OnlyDiagonal) 
+ YuadjYdYsII = Matmul2(Yu,adjYdYsII,OnlyDiagonal) 
+ YuadjYdYzII = Matmul2(Yu,adjYdYzII,OnlyDiagonal) 
+ adjYdYdadjYd = Matmul2(adjYd,YdadjYd,OnlyDiagonal) 
+ adjYdYsIICYsII = Matmul2(adjYd,YsIICYsII,OnlyDiagonal) 
+ adjYdYzIIadjYzII = Matmul2(adjYd,YzIIadjYzII,OnlyDiagonal) 
+ adjYeYeadjYe = Matmul2(adjYe,YeadjYe,OnlyDiagonal) 
+ adjYuYuadjYd = Matmul2(adjYu,YuadjYd,OnlyDiagonal) 
+ adjYuYuadjYu = Matmul2(adjYu,YuadjYu,OnlyDiagonal) 
+ adjYzIIYzIIadjYe = Matmul2(adjYzII,YzIIadjYe,OnlyDiagonal) 
+ adjYzIIYzIIadjYzII = Matmul2(adjYzII,YzIIadjYzII,OnlyDiagonal) 
+ adjYzIIYzIICYtII = Matmul2(adjYzII,YzIICYtII,OnlyDiagonal) 
+ CYsIIYsIICYsII = Matmul2(adjYsII,YsIICYsII,OnlyDiagonal) 
+ CYsIIYzIIadjYzII = Matmul2(adjYsII,YzIIadjYzII,OnlyDiagonal) 
+ CYtIIYtIIadjYe = Matmul2(adjYtII,YtIIadjYe,OnlyDiagonal) 
+ CYtIIYtIICYtII = Matmul2(adjYtII,YtIICYtII,OnlyDiagonal) 
+ TpYdCYdTpYd = Matmul2(Transpose(Yd),CYdTpYd,OnlyDiagonal) 
+ TpYdCYsIIYd = Matmul2(Transpose(Yd),CYsIIYd,OnlyDiagonal) 
+ TpYdCYsIIYsII = Matmul2(Transpose(Yd),CYsIIYsII,OnlyDiagonal) 
+ TpYdCYsIIYzII = Matmul2(Transpose(Yd),CYsIIYzII,OnlyDiagonal) 
+ TpYdCYzIIYtII = Matmul2(Transpose(Yd),CYzIIYtII,OnlyDiagonal) 
+ TpYeCYeTpYzII = Matmul2(Transpose(Ye),CYeTpYzII,OnlyDiagonal) 
+ TpYuCYuTpYd = Matmul2(Transpose(Yu),CYuTpYd,OnlyDiagonal) 
+ TpYzIICYsIIYd = Matmul2(Transpose(YzII),CYsIIYd,OnlyDiagonal) 
+ TpYzIICYsIIYsII = Matmul2(Transpose(YzII),CYsIIYsII,OnlyDiagonal) 
+ TpYzIICYsIIYzII = Matmul2(Transpose(YzII),CYsIIYzII,OnlyDiagonal) 
+ TpYzIICYzIITpYzII = Matmul2(Transpose(YzII),CYzIITpYzII,OnlyDiagonal) 
+ YdadjYdYdadjYd = Matmul2(Yd,adjYdYdadjYd,OnlyDiagonal) 
+Forall(i2=1:3)  YdadjYdYdadjYd(i2,i2) =  Real(YdadjYdYdadjYd(i2,i2),dp) 
+ YdadjYdYsIICYsII = Matmul2(Yd,adjYdYsIICYsII,OnlyDiagonal) 
+ YdadjYdYzIIadjYzII = Matmul2(Yd,adjYdYzIIadjYzII,OnlyDiagonal) 
+ YdadjYuYuadjYd = Matmul2(Yd,adjYuYuadjYd,OnlyDiagonal) 
+Forall(i2=1:3)  YdadjYuYuadjYd(i2,i2) =  Real(YdadjYuYuadjYd(i2,i2),dp) 
+ YeadjYeYeadjYe = Matmul2(Ye,adjYeYeadjYe,OnlyDiagonal) 
+Forall(i2=1:3)  YeadjYeYeadjYe(i2,i2) =  Real(YeadjYeYeadjYe(i2,i2),dp) 
+ YeadjYzIIYzIIadjYe = Matmul2(Ye,adjYzIIYzIIadjYe,OnlyDiagonal) 
+Forall(i2=1:3)  YeadjYzIIYzIIadjYe(i2,i2) =  Real(YeadjYzIIYzIIadjYe(i2,i2),dp) 
+ YeCYtIIYtIIadjYe = Matmul2(Ye,CYtIIYtIIadjYe,OnlyDiagonal) 
+ YsIICYsIIYsIICYsII = Matmul2(YsII,CYsIIYsIICYsII,OnlyDiagonal) 
+ YsIICYsIIYzIIadjYzII = Matmul2(YsII,CYsIIYzIIadjYzII,OnlyDiagonal) 
+ YtIIadjYzIIYzIICYtII = Matmul2(YtII,adjYzIIYzIICYtII,OnlyDiagonal) 
+ YtIICYtIIYtIICYtII = Matmul2(YtII,CYtIIYtIICYtII,OnlyDiagonal) 
+ YuadjYuYuadjYu = Matmul2(Yu,adjYuYuadjYu,OnlyDiagonal) 
+Forall(i2=1:3)  YuadjYuYuadjYu(i2,i2) =  Real(YuadjYuYuadjYu(i2,i2),dp) 
+ YzIIadjYzIIYzIIadjYzII = Matmul2(YzII,adjYzIIYzIIadjYzII,OnlyDiagonal) 
+Forall(i2=1:3)  YzIIadjYzIIYzIIadjYzII(i2,i2) =  Real(YzIIadjYzIIYzIIadjYzII(i2,i2),dp) 
+ adjYdYdadjYdYd = Matmul2(adjYd,YdadjYdYd,OnlyDiagonal) 
+Forall(i2=1:3)  adjYdYdadjYdYd(i2,i2) =  Real(adjYdYdadjYdYd(i2,i2),dp) 
+ adjYdYdadjYdYsII = Matmul2(adjYd,YdadjYdYsII,OnlyDiagonal) 
+ adjYdYdadjYdYzII = Matmul2(adjYd,YdadjYdYzII,OnlyDiagonal) 
+ adjYdYdadjYuYu = Matmul2(adjYd,YdadjYuYu,OnlyDiagonal) 
+ adjYdYsIICYsIIYd = Matmul2(adjYd,YsIICYsIIYd,OnlyDiagonal) 
+ adjYdYzIIadjYzIIYd = Matmul2(adjYd,YzIIadjYzIIYd,OnlyDiagonal) 
+Forall(i2=1:3)  adjYdYzIIadjYzIIYd(i2,i2) =  Real(adjYdYzIIadjYzIIYd(i2,i2),dp) 
+ adjYeYeadjYeYe = Matmul2(adjYe,YeadjYeYe,OnlyDiagonal) 
+Forall(i2=1:3)  adjYeYeadjYeYe(i2,i2) =  Real(adjYeYeadjYeYe(i2,i2),dp) 
+ adjYeYeadjYzIIYd = Matmul2(adjYe,YeadjYzIIYd,OnlyDiagonal) 
+ adjYeYeadjYzIIYsII = Matmul2(adjYe,YeadjYzIIYsII,OnlyDiagonal) 
+ adjYeYeadjYzIIYzII = Matmul2(adjYe,YeadjYzIIYzII,OnlyDiagonal) 
+ adjYeYeCYtIIYtII = Matmul2(adjYe,YeCYtIIYtII,OnlyDiagonal) 
+ adjYuYuadjYdYd = Matmul2(adjYu,YuadjYdYd,OnlyDiagonal) 
+ adjYuYuadjYdYsII = Matmul2(adjYu,YuadjYdYsII,OnlyDiagonal) 
+ adjYuYuadjYdYzII = Matmul2(adjYu,YuadjYdYzII,OnlyDiagonal) 
+ adjYuYuadjYuYu = Matmul2(adjYu,YuadjYuYu,OnlyDiagonal) 
+Forall(i2=1:3)  adjYuYuadjYuYu(i2,i2) =  Real(adjYuYuadjYuYu(i2,i2),dp) 
+ adjYzIIYdadjYdYzII = Matmul2(adjYzII,YdadjYdYzII,OnlyDiagonal) 
+Forall(i2=1:3)  adjYzIIYdadjYdYzII(i2,i2) =  Real(adjYzIIYdadjYdYzII(i2,i2),dp) 
+ adjYzIIYsIICYsIIYzII = Matmul2(adjYzII,YsIICYsIIYzII,OnlyDiagonal) 
+ adjYzIIYzIIadjYeYe = Matmul2(adjYzII,YzIIadjYeYe,OnlyDiagonal) 
+ adjYzIIYzIIadjYzIIYd = Matmul2(adjYzII,YzIIadjYzIIYd,OnlyDiagonal) 
+ adjYzIIYzIIadjYzIIYsII = Matmul2(adjYzII,YzIIadjYzIIYsII,OnlyDiagonal) 
+ adjYzIIYzIIadjYzIIYzII = Matmul2(adjYzII,YzIIadjYzIIYzII,OnlyDiagonal) 
+Forall(i2=1:3)  adjYzIIYzIIadjYzIIYzII(i2,i2) =  Real(adjYzIIYzIIadjYzIIYzII(i2,i2),dp) 
+ adjYzIIYzIICYtIIYtII = Matmul2(adjYzII,YzIICYtIIYtII,OnlyDiagonal) 
+ CYdTpYdCYdTpYd = Matmul2(Conjg(Yd),TpYdCYdTpYd,OnlyDiagonal) 
+Forall(i2=1:3)  CYdTpYdCYdTpYd(i2,i2) =  Real(CYdTpYdCYdTpYd(i2,i2),dp) 
+ CYdTpYdCYsIIYd = Matmul2(Conjg(Yd),TpYdCYsIIYd,OnlyDiagonal) 
+ CYdTpYdCYsIIYsII = Matmul2(Conjg(Yd),TpYdCYsIIYsII,OnlyDiagonal) 
+ CYdTpYdCYsIIYzII = Matmul2(Conjg(Yd),TpYdCYsIIYzII,OnlyDiagonal) 
+ CYdTpYdCYzIIYtII = Matmul2(Conjg(Yd),TpYdCYzIIYtII,OnlyDiagonal) 
+ CYdTpYuCYuTpYd = Matmul2(Conjg(Yd),TpYuCYuTpYd,OnlyDiagonal) 
+Forall(i2=1:3)  CYdTpYuCYuTpYd(i2,i2) =  Real(CYdTpYuCYuTpYd(i2,i2),dp) 
+ CYeTpYeCYeYtII = Matmul2(Conjg(Ye),TpYeCYeYtII,OnlyDiagonal) 
+ CYsIIYdadjYdYsII = Matmul2(adjYsII,YdadjYdYsII,OnlyDiagonal) 
+ CYsIIYsIICYsIIYd = Matmul2(adjYsII,YsIICYsIIYd,OnlyDiagonal) 
+ CYsIIYsIICYsIIYsII = Matmul2(adjYsII,YsIICYsIIYsII,OnlyDiagonal) 
+ CYsIIYsIICYsIIYzII = Matmul2(adjYsII,YsIICYsIIYzII,OnlyDiagonal) 
+ CYsIIYsIICYzIIYtII = Matmul2(adjYsII,YsIICYzIIYtII,OnlyDiagonal) 
+ CYsIIYzIIadjYzIIYsII = Matmul2(adjYsII,YzIIadjYzIIYsII,OnlyDiagonal) 
+ CYtIIYtIIadjYeYe = Matmul2(adjYtII,YtIIadjYeYe,OnlyDiagonal) 
+ CYtIIYtIIadjYzIIYd = Matmul2(adjYtII,YtIIadjYzIIYd,OnlyDiagonal) 
+ CYtIIYtIIadjYzIIYsII = Matmul2(adjYtII,YtIIadjYzIIYsII,OnlyDiagonal) 
+ CYtIIYtIIadjYzIIYzII = Matmul2(adjYtII,YtIIadjYzIIYzII,OnlyDiagonal) 
+ CYtIIYtIICYtIIYtII = Matmul2(adjYtII,YtIICYtIIYtII,OnlyDiagonal) 
+ CYtIITpYeCYeYtII = Matmul2(adjYtII,TpYeCYeYtII,OnlyDiagonal) 
+ CYtIITpYzIICYzIIYtII = Matmul2(adjYtII,TpYzIICYzIIYtII,OnlyDiagonal) 
+ CYzIIYtIICYtIITpYzII = Matmul2(Conjg(YzII),YtIICYtIITpYzII,OnlyDiagonal) 
+ CYzIITpYeCYeTpYzII = Matmul2(Conjg(YzII),TpYeCYeTpYzII,OnlyDiagonal) 
+Forall(i2=1:3)  CYzIITpYeCYeTpYzII(i2,i2) =  Real(CYzIITpYeCYeTpYzII(i2,i2),dp) 
+ CYzIITpYzIICYsIIYd = Matmul2(Conjg(YzII),TpYzIICYsIIYd,OnlyDiagonal) 
+ CYzIITpYzIICYsIIYsII = Matmul2(Conjg(YzII),TpYzIICYsIIYsII,OnlyDiagonal) 
+ CYzIITpYzIICYsIIYzII = Matmul2(Conjg(YzII),TpYzIICYsIIYzII,OnlyDiagonal) 
+ CYzIITpYzIICYzIIYtII = Matmul2(Conjg(YzII),TpYzIICYzIIYtII,OnlyDiagonal) 
+ CYzIITpYzIICYzIITpYzII = Matmul2(Conjg(YzII),TpYzIICYzIITpYzII,OnlyDiagonal) 
+Forall(i2=1:3)  CYzIITpYzIICYzIITpYzII(i2,i2) =  Real(CYzIITpYzIICYzIITpYzII(i2,i2),dp) 
+ YdadjYdYdadjYdYd = Matmul2(Yd,adjYdYdadjYdYd,OnlyDiagonal) 
+ YdadjYdYdadjYdYsII = Matmul2(Yd,adjYdYdadjYdYsII,OnlyDiagonal) 
+ YdadjYdYdadjYdYzII = Matmul2(Yd,adjYdYdadjYdYzII,OnlyDiagonal) 
+ YdadjYdYsIICYsIIYd = Matmul2(Yd,adjYdYsIICYsIIYd,OnlyDiagonal) 
+ YdadjYdYzIIadjYzIIYd = Matmul2(Yd,adjYdYzIIadjYzIIYd,OnlyDiagonal) 
+ YdadjYuYuadjYdYd = Matmul2(Yd,adjYuYuadjYdYd,OnlyDiagonal) 
+ YdadjYuYuadjYdYsII = Matmul2(Yd,adjYuYuadjYdYsII,OnlyDiagonal) 
+ YdadjYuYuadjYdYzII = Matmul2(Yd,adjYuYuadjYdYzII,OnlyDiagonal) 
+ YdadjYuYuadjYuYu = Matmul2(Yd,adjYuYuadjYuYu,OnlyDiagonal) 
+ YeadjYeYeadjYeYe = Matmul2(Ye,adjYeYeadjYeYe,OnlyDiagonal) 
+ YeadjYzIIYdadjYdYzII = Matmul2(Ye,adjYzIIYdadjYdYzII,OnlyDiagonal) 
+ YeadjYzIIYsIICYsIIYzII = Matmul2(Ye,adjYzIIYsIICYsIIYzII,OnlyDiagonal) 
+ YeadjYzIIYzIIadjYeYe = Matmul2(Ye,adjYzIIYzIIadjYeYe,OnlyDiagonal) 
+ YeadjYzIIYzIIadjYzIIYzII = Matmul2(Ye,adjYzIIYzIIadjYzIIYzII,OnlyDiagonal) 
+ YeCYtIIYtIIadjYeYe = Matmul2(Ye,CYtIIYtIIadjYeYe,OnlyDiagonal) 
+ YeCYtIIYtIICYtIIYtII = Matmul2(Ye,CYtIIYtIICYtIIYtII,OnlyDiagonal) 
+ YeCYtIITpYeCYeYtII = Matmul2(Ye,CYtIITpYeCYeYtII,OnlyDiagonal) 
+ YeCYtIITpYzIICYzIIYtII = Matmul2(Ye,CYtIITpYzIICYzIIYtII,OnlyDiagonal) 
+ YsIICYdTpYdCYdTpYd = Matmul2(YsII,CYdTpYdCYdTpYd,OnlyDiagonal) 
+ YsIICYdTpYdCYsIIYd = Matmul2(YsII,CYdTpYdCYsIIYd,OnlyDiagonal) 
+ YsIICYdTpYdCYsIIYsII = Matmul2(YsII,CYdTpYdCYsIIYsII,OnlyDiagonal) 
+ YsIICYdTpYdCYsIIYzII = Matmul2(YsII,CYdTpYdCYsIIYzII,OnlyDiagonal) 
+ YsIICYdTpYuCYuTpYd = Matmul2(YsII,CYdTpYuCYuTpYd,OnlyDiagonal) 
+ YsIICYsIIYdadjYdYsII = Matmul2(YsII,CYsIIYdadjYdYsII,OnlyDiagonal) 
+ YsIICYsIIYsIICYsIIYd = Matmul2(YsII,CYsIIYsIICYsIIYd,OnlyDiagonal) 
+ YsIICYsIIYsIICYsIIYsII = Matmul2(YsII,CYsIIYsIICYsIIYsII,OnlyDiagonal) 
+ YsIICYsIIYsIICYsIIYzII = Matmul2(YsII,CYsIIYsIICYsIIYzII,OnlyDiagonal) 
+ YsIICYsIIYzIIadjYzIIYsII = Matmul2(YsII,CYsIIYzIIadjYzIIYsII,OnlyDiagonal) 
+ YsIICYzIIYtIICYtIITpYzII = Matmul2(YsII,CYzIIYtIICYtIITpYzII,OnlyDiagonal) 
+ YsIICYzIITpYeCYeTpYzII = Matmul2(YsII,CYzIITpYeCYeTpYzII,OnlyDiagonal) 
+ YsIICYzIITpYzIICYsIIYd = Matmul2(YsII,CYzIITpYzIICYsIIYd,OnlyDiagonal) 
+ YsIICYzIITpYzIICYsIIYsII = Matmul2(YsII,CYzIITpYzIICYsIIYsII,OnlyDiagonal) 
+ YsIICYzIITpYzIICYsIIYzII = Matmul2(YsII,CYzIITpYzIICYsIIYzII,OnlyDiagonal) 
+ YsIICYzIITpYzIICYzIITpYzII = Matmul2(YsII,CYzIITpYzIICYzIITpYzII,OnlyDiagonal) 
+ YtIIadjYeYeadjYeYe = Matmul2(YtII,adjYeYeadjYeYe,OnlyDiagonal) 
+ YtIIadjYeYeCYtIIYtII = Matmul2(YtII,adjYeYeCYtIIYtII,OnlyDiagonal) 
+ YtIIadjYzIIYdadjYdYzII = Matmul2(YtII,adjYzIIYdadjYdYzII,OnlyDiagonal) 
+ YtIIadjYzIIYsIICYsIIYzII = Matmul2(YtII,adjYzIIYsIICYsIIYzII,OnlyDiagonal) 
+ YtIIadjYzIIYzIIadjYzIIYzII = Matmul2(YtII,adjYzIIYzIIadjYzIIYzII,OnlyDiagonal) 
+ YtIIadjYzIIYzIICYtIIYtII = Matmul2(YtII,adjYzIIYzIICYtIIYtII,OnlyDiagonal) 
+ YtIICYtIIYtIICYtIIYtII = Matmul2(YtII,CYtIIYtIICYtIIYtII,OnlyDiagonal) 
+ YtIICYtIITpYeCYeYtII = Matmul2(YtII,CYtIITpYeCYeYtII,OnlyDiagonal) 
+ YtIICYtIITpYzIICYzIIYtII = Matmul2(YtII,CYtIITpYzIICYzIIYtII,OnlyDiagonal) 
+ YuadjYdYdadjYdYd = Matmul2(Yu,adjYdYdadjYdYd,OnlyDiagonal) 
+ YuadjYdYdadjYuYu = Matmul2(Yu,adjYdYdadjYuYu,OnlyDiagonal) 
+ YuadjYdYsIICYsIIYd = Matmul2(Yu,adjYdYsIICYsIIYd,OnlyDiagonal) 
+ YuadjYdYzIIadjYzIIYd = Matmul2(Yu,adjYdYzIIadjYzIIYd,OnlyDiagonal) 
+ YuadjYuYuadjYuYu = Matmul2(Yu,adjYuYuadjYuYu,OnlyDiagonal) 
+ YzIIadjYeYeadjYeYe = Matmul2(YzII,adjYeYeadjYeYe,OnlyDiagonal) 
+ YzIIadjYeYeadjYzIIYd = Matmul2(YzII,adjYeYeadjYzIIYd,OnlyDiagonal) 
+ YzIIadjYeYeadjYzIIYsII = Matmul2(YzII,adjYeYeadjYzIIYsII,OnlyDiagonal) 
+ YzIIadjYeYeadjYzIIYzII = Matmul2(YzII,adjYeYeadjYzIIYzII,OnlyDiagonal) 
+ YzIIadjYzIIYdadjYdYzII = Matmul2(YzII,adjYzIIYdadjYdYzII,OnlyDiagonal) 
+ YzIIadjYzIIYsIICYsIIYzII = Matmul2(YzII,adjYzIIYsIICYsIIYzII,OnlyDiagonal) 
+ YzIIadjYzIIYzIIadjYzIIYd = Matmul2(YzII,adjYzIIYzIIadjYzIIYd,OnlyDiagonal) 
+ YzIIadjYzIIYzIIadjYzIIYsII = Matmul2(YzII,adjYzIIYzIIadjYzIIYsII,OnlyDiagonal) 
+ YzIIadjYzIIYzIIadjYzIIYzII = Matmul2(YzII,adjYzIIYzIIadjYzIIYzII,OnlyDiagonal) 
+ YzIICYtIIYtIIadjYzIIYd = Matmul2(YzII,CYtIIYtIIadjYzIIYd,OnlyDiagonal) 
+ YzIICYtIIYtIIadjYzIIYsII = Matmul2(YzII,CYtIIYtIIadjYzIIYsII,OnlyDiagonal) 
+ YzIICYtIIYtIIadjYzIIYzII = Matmul2(YzII,CYtIIYtIIadjYzIIYzII,OnlyDiagonal) 
+ YzIICYtIIYtIICYtIIYtII = Matmul2(YzII,CYtIIYtIICYtIIYtII,OnlyDiagonal) 
+ YzIICYtIITpYeCYeYtII = Matmul2(YzII,CYtIITpYeCYeYtII,OnlyDiagonal) 
+ YzIICYtIITpYzIICYzIIYtII = Matmul2(YzII,CYtIITpYzIICYzIIYtII,OnlyDiagonal) 
+ TpYeCYeTpYeCYeYtII = Matmul2(Transpose(Ye),CYeTpYeCYeYtII,OnlyDiagonal) 
+ TpYzIICYdTpYdCYzIIYtII = Matmul2(Transpose(YzII),CYdTpYdCYzIIYtII,OnlyDiagonal) 
+ TpYzIICYsIIYsIICYzIIYtII = Matmul2(Transpose(YzII),CYsIIYsIICYzIIYtII,OnlyDiagonal) 
+ TpYzIICYzIITpYzIICYzIIYtII = Matmul2(Transpose(YzII),CYzIITpYzIICYzIIYtII,OnlyDiagonal) 
+ TrYdadjYdYdadjYd = cTrace(YdadjYdYdadjYd) 
+ TrYdadjYdYsIICYsII = cTrace(YdadjYdYsIICYsII) 
+ TrYdadjYdYzIIadjYzII = cTrace(YdadjYdYzIIadjYzII) 
+ TrYdadjYuYuadjYd = cTrace(YdadjYuYuadjYd) 
+ TrYeadjYeYeadjYe = cTrace(YeadjYeYeadjYe) 
+ TrYeadjYzIIYzIIadjYe = cTrace(YeadjYzIIYzIIadjYe) 
+ TrYeCYtIIYtIIadjYe = cTrace(YeCYtIIYtIIadjYe) 
+ TrYsIICYsIIYsIICYsII = cTrace(YsIICYsIIYsIICYsII) 
+ TrYsIICYsIIYzIIadjYzII = cTrace(YsIICYsIIYzIIadjYzII) 
+ TrYtIIadjYzIIYzIICYtII = cTrace(YtIIadjYzIIYzIICYtII) 
+ TrYtIICYtIIYtIICYtII = cTrace(YtIICYtIIYtIICYtII) 
+ TrYuadjYuYuadjYu = cTrace(YuadjYuYuadjYu) 
+ TrYzIIadjYzIIYzIIadjYzII = cTrace(YzIIadjYzIIYzIIadjYzII) 
+ g1p4 =g1**4 
+ g2p4 =g2**4 
+ g3p4 =g3**4 
+ CL1IIp2 =Conjg(L1II)**2 
+ CL2IIp2 =Conjg(L2II)**2 
+End If 
+ 
+ 
+!-------------------- 
+! g1 
+!-------------------- 
+ 
+betag11  = 68._dp*(g1p3)/5._dp
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betag12 = (g1p3*(-405._dp*(AbsL1II) - 405._dp*(AbsL2II) + 1502._dp*(g1p2) + 2610._dp*(g2p2) +   & 
+&  4600._dp*(g3p2) - 210._dp*(TrYdadjYd) - 270._dp*(TrYeadjYe) - 360._dp*(TrYsIICYsII) - & 
+&  405._dp*(TrYtIICYtII) - 390._dp*(TrYuadjYu) - 210._dp*(TrYzIIadjYzII)))/75._dp
+
+ 
+Dg1 = oo16pi2*( betag11 + oo16pi2 * betag12 ) 
+
+ 
+Else 
+Dg1 = oo16pi2* betag11 
+End If 
+ 
+ 
+!-------------------- 
+! g2 
+!-------------------- 
+ 
+betag21  = 8._dp*(g2p3)
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betag22 = (g2p3*(-35._dp*(AbsL1II) - 35._dp*(AbsL2II) + 58._dp*(g1p2) + 470._dp*(g2p2) +        & 
+&  200._dp*(g3p2) - 30._dp*(TrYdadjYd) - 10._dp*(TrYeadjYe) - 35._dp*(TrYtIICYtII) -     & 
+&  30._dp*(TrYuadjYu) - 30._dp*(TrYzIIadjYzII)))/5._dp
+
+ 
+Dg2 = oo16pi2*( betag21 + oo16pi2 * betag22 ) 
+
+ 
+Else 
+Dg2 = oo16pi2* betag21 
+End If 
+ 
+ 
+!-------------------- 
+! g3 
+!-------------------- 
+ 
+betag31  = 4._dp*(g3p3)
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betag32 = (g3p3*(23._dp*(g1p2) + 45._dp*(g2p2) + 400._dp*(g3p2) - 12._dp*(TrYdadjYd) -          & 
+&  27._dp*(TrYsIICYsII) - 12._dp*(TrYuadjYu) - 12._dp*(TrYzIIadjYzII)))/3._dp
+
+ 
+Dg3 = oo16pi2*( betag31 + oo16pi2 * betag32 ) 
+
+ 
+Else 
+Dg3 = oo16pi2* betag31 
+End If 
+ 
+ 
+!-------------------- 
+! Yu 
+!-------------------- 
+ 
+betaYu1  = (3._dp*(AbsL2II) - 13._dp*(g1p2)/15._dp - 3._dp*(g2p2) - 16._dp*(g3p2)     & 
+& /3._dp + 3._dp*(TrYuadjYu))*Yu + YuadjYdYd + 3._dp*(YuadjYuYu)
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betaYu2 = (5473._dp*(g1p4)/450._dp + g1p2*g2p2 + 57._dp*(g2p4)/2._dp + (136*g1p2*g3p2)/45._dp + & 
+&  8*g2p2*g3p2 + 320._dp*(g3p4)/9._dp - 12*CL2IIp2*L2IIp2 - 3._dp*(TrYdadjYuYuadjYd) +   & 
+&  (3*AbsL2II*(6._dp*(g1p2) + 20._dp*(g2p2) - 15._dp*(TrYuadjYu)))/5._dp +               & 
+&  (4*(g1p2 + 20._dp*(g3p2))*TrYuadjYu)/5._dp - 9._dp*(TrYuadjYuYuadjYu))*Yu +           & 
+&  (-3._dp*(AbsL1II) + 2._dp*(g1p2)/5._dp - 3._dp*(TrYdadjYd) - TrYeadjYe)*YuadjYdYd -   & 
+&  2._dp*(YuadjYdYdadjYdYd) - 2._dp*(YuadjYdYdadjYuYu) - 4._dp*(YuadjYdYsIICYsIIYd) -    & 
+&  2._dp*(YuadjYdYzIIadjYzIIYd) - 9*AbsL2II*YuadjYuYu + (2*g1p2*YuadjYuYu)/5._dp +       & 
+&  6*g2p2*YuadjYuYu - 9*TrYuadjYu*YuadjYuYu - 4._dp*(YuadjYuYuadjYuYu)
+
+ 
+DYu = oo16pi2*( betaYu1 + oo16pi2 * betaYu2 ) 
+
+ 
+Else 
+DYu = oo16pi2* betaYu1 
+End If 
+ 
+ 
+!-------------------- 
+! Yd 
+!-------------------- 
+ 
+betaYd1  = (3._dp*(AbsL1II) - 7._dp*(g1p2)/15._dp - 3._dp*(g2p2) - 16._dp*(g3p2)      & 
+& /3._dp + 3._dp*(TrYdadjYd) + TrYeadjYe)*Yd + 3._dp*(YdadjYdYd) + YdadjYuYu +           & 
+&  4._dp*(YsIICYsIIYd) + 2._dp*(YzIIadjYzIIYd)
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betaYd2 = (581._dp*(g1p4)/90._dp + g1p2*g2p2 + 57._dp*(g2p4)/2._dp + (8*g1p2*g3p2)/9._dp +      & 
+&  8*g2p2*g3p2 + 320._dp*(g3p4)/9._dp - 12*CL1IIp2*L1IIp2 - (2*(g1p2 - 40._dp*(g3p2))*TrYdadjYd)/5._dp -& 
+&  9._dp*(TrYdadjYdYdadjYd) - 12._dp*(TrYdadjYdYsIICYsII) - 6._dp*(TrYdadjYdYzIIadjYzII) -& 
+&  3._dp*(TrYdadjYuYuadjYd) + (6*g1p2*TrYeadjYe)/5._dp - 3._dp*(TrYeadjYeYeadjYe) -      & 
+&  3._dp*(TrYeadjYzIIYzIIadjYe) - 3._dp*(TrYeCYtIIYtIIadjYe) + (3*AbsL1II*(6._dp*(g1p2) +& 
+&  20._dp*(g2p2) - 15._dp*(TrYdadjYd) - 5._dp*(TrYeadjYe) - 5._dp*(TrYtIICYtII)))/5._dp)*Yd +& 
+&  (-9._dp*(AbsL1II) + 4._dp*(g1p2)/5._dp + 6._dp*(g2p2) - 9._dp*(TrYdadjYd) -           & 
+&  3._dp*(TrYeadjYe))*YdadjYdYd - 4._dp*(YdadjYdYdadjYdYd) - 4._dp*(YdadjYdYsIICYsIIYd) -& 
+&  2._dp*(YdadjYdYzIIadjYzIIYd) - 3*AbsL2II*YdadjYuYu + (4*g1p2*YdadjYuYu)/5._dp -       & 
+&  3*TrYuadjYu*YdadjYuYu - 2._dp*(YdadjYuYuadjYdYd) - 2._dp*(YdadjYuYuadjYuYu) -         & 
+&  8._dp*(YsIICYdTpYdCYsIIYd) + (32*g1p2*YsIICYsIIYd)/15._dp + (80*g3p2*YsIICYsIIYd)/3._dp -& 
+&  4*TrYsIICYsII*YsIICYsIIYd - 16._dp*(YsIICYsIIYsIICYsIIYd) - 8._dp*(YsIICYzIITpYzIICYsIIYd) -& 
+&  2._dp*(YzIIadjYeYeadjYzIIYd) + (2*g1p2*YzIIadjYzIIYd)/5._dp + 6*g2p2*YzIIadjYzIIYd -  & 
+&  2*TrYzIIadjYzII*YzIIadjYzIIYd - 6._dp*(YzIIadjYzIIYzIIadjYzIIYd) - 6._dp*(YzIICYtIIYtIIadjYzIIYd)
+
+ 
+DYd = oo16pi2*( betaYd1 + oo16pi2 * betaYd2 ) 
+
+ 
+Else 
+DYd = oo16pi2* betaYd1 
+End If 
+ 
+ 
+!-------------------- 
+! Ye 
+!-------------------- 
+ 
+betaYe1  = (3._dp*(AbsL1II) - 9._dp*(g1p2)/5._dp - 3._dp*(g2p2) + 3._dp*(TrYdadjYd)   & 
+&  + TrYeadjYe)*Ye + 3*(YeadjYeYe + YeadjYzIIYzII + YeCYtIIYtII)
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betaYe2 = -((120*CL1IIp2*L1IIp2 + 4*(g1p2 - 40._dp*(g3p2))*TrYdadjYd + 3*(-87._dp*(g1p4) -      & 
+&  6*g1p2*g2p2 - 95._dp*(g2p4) + 30._dp*(TrYdadjYdYdadjYd) + 40._dp*(TrYdadjYdYsIICYsII) +& 
+&  20._dp*(TrYdadjYdYzIIadjYzII) + 10._dp*(TrYdadjYuYuadjYd) - 4*g1p2*TrYeadjYe +        & 
+&  10._dp*(TrYeadjYeYeadjYe) + 10._dp*(TrYeadjYzIIYzIIadjYe) + 10._dp*(TrYeCYtIIYtIIadjYe)) -& 
+&  6*AbsL1II*(6._dp*(g1p2) + 20._dp*(g2p2) - 15._dp*(TrYdadjYd) - 5._dp*(TrYeadjYe) -    & 
+&  5._dp*(TrYtIICYtII)))*Ye)/10._dp + (-9._dp*(AbsL1II) + 6._dp*(g2p2) - 9._dp*(TrYdadjYd) -& 
+&  3._dp*(TrYeadjYe))*YeadjYeYe - 4._dp*(YeadjYeYeadjYeYe) - 6._dp*(YeadjYzIIYdadjYdYzII) -& 
+&  12._dp*(YeadjYzIIYsIICYsIIYzII) - (2*g1p2*YeadjYzIIYzII)/5._dp + 16*g3p2*YeadjYzIIYzII -& 
+&  3*TrYzIIadjYzII*YeadjYzIIYzII - 6._dp*(YeadjYzIIYzIIadjYeYe) - 6._dp*(YeadjYzIIYzIIadjYzIIYzII) -& 
+&  3._dp*(YeCYtIITpYeCYeYtII) - 9._dp*(YeCYtIITpYzIICYzIIYtII) - 3*AbsL1II*YeCYtIIYtII + & 
+&  (18*g1p2*YeCYtIIYtII)/5._dp + 12*g2p2*YeCYtIIYtII - 3*TrYtIICYtII*YeCYtIIYtII -       & 
+&  6._dp*(YeCYtIIYtIIadjYeYe) - 9._dp*(YeCYtIIYtIICYtIIYtII)
+
+ 
+DYe = oo16pi2*( betaYe1 + oo16pi2 * betaYe2 ) 
+
+ 
+Else 
+DYe = oo16pi2* betaYe1 
+End If 
+ 
+ 
+!-------------------- 
+! YtII 
+!-------------------- 
+ 
+betaYtII1  = TpYeCYeYtII + 3._dp*(TpYzIICYzIIYtII) + (AbsL1II - 9._dp*(g1p2)          & 
+& /5._dp - 7._dp*(g2p2) + TrYtIICYtII)*YtII + YtIIadjYeYe + 3._dp*(YtIIadjYzIIYzII)      & 
+&  + 6._dp*(YtIICYtIIYtII)
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betaYtII2 = ((261._dp*(g1p4) + 114*g1p2*g2p2 + 765._dp*(g2p4) - 60*CL1IIp2*L1IIp2 -               & 
+&  2*AbsL1II*(3._dp*(g1p2) + 5._dp*(g2p2) + 30._dp*(TrYdadjYd) + 10._dp*(TrYeadjYe)) -   & 
+&  20._dp*(TrYeCYtIIYtIIadjYe) - 60._dp*(TrYtIIadjYzIIYzIICYtII) - 2*(3._dp*(g1p2) +     & 
+&  5._dp*(g2p2))*TrYtIICYtII - 60._dp*(TrYtIICYtIIYtIICYtII))*YtII)/10._dp +             & 
+&  (-3._dp*(AbsL1II) + 6._dp*(g1p2)/5._dp - 3._dp*(TrYdadjYd) - TrYeadjYe)*YtIIadjYeYe + & 
+&  (-10._dp*(TpYeCYeTpYeCYeYtII) - 15*AbsL1II*TpYeCYeYtII + 6*g1p2*TpYeCYeYtII -         & 
+&  30._dp*(TpYzIICYdTpYdCYzIIYtII) - 60._dp*(TpYzIICYsIIYsIICYzIIYtII) - 30._dp*(TpYzIICYzIITpYzIICYzIIYtII) -& 
+&  2*g1p2*TpYzIICYzIIYtII + 80*g3p2*TpYzIICYzIIYtII - 15*TpYeCYeYtII*TrYdadjYd -         & 
+&  5*TpYeCYeYtII*TrYeadjYe - 15*TpYzIICYzIIYtII*TrYzIIadjYzII - 10._dp*(YtIIadjYeYeadjYeYe) -& 
+&  15._dp*(YtIIadjYeYeCYtIIYtII) - 30._dp*(YtIIadjYzIIYdadjYdYzII) - 60._dp*(YtIIadjYzIIYsIICYsIIYzII) +& 
+&  (-2._dp*(g1p2) + 80._dp*(g3p2) - 15._dp*(TrYzIIadjYzII))*YtIIadjYzIIYzII -            & 
+&  30._dp*(YtIIadjYzIIYzIIadjYzIIYzII) - 45._dp*(YtIIadjYzIIYzIICYtIIYtII) -             & 
+&  15._dp*(YtIICYtIITpYeCYeYtII) - 45._dp*(YtIICYtIITpYzIICYzIIYtII) + 6*(-              & 
+& 5._dp*(AbsL1II) + 6._dp*(g1p2) + 20._dp*(g2p2) - 5._dp*(TrYtIICYtII))*YtIICYtIIYtII -  & 
+&  90._dp*(YtIICYtIIYtIICYtIIYtII))/5._dp
+
+ 
+DYtII = oo16pi2*( betaYtII1 + oo16pi2 * betaYtII2 ) 
+
+ 
+Else 
+DYtII = oo16pi2* betaYtII1 
+End If 
+ 
+ 
+!-------------------- 
+! YsII 
+!-------------------- 
+ 
+betaYsII1  = ((-4*(g1p2 + 15._dp*(g3p2)))/5._dp + TrYsIICYsII)*YsII + 2*(YdadjYdYsII +& 
+&  YsIICYdTpYd + 4._dp*(YsIICYsIIYsII) + YsIICYzIITpYzII + YzIIadjYzIIYsII)
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betaYsII2 = -2._dp*(YdadjYdYdadjYdYsII) + (-6._dp*(AbsL1II) + 2._dp*(g1p2)/5._dp + 6._dp*(g2p2) - & 
+&  6._dp*(TrYdadjYd) - 2._dp*(TrYeadjYe))*YdadjYdYsII - 2._dp*(YdadjYuYuadjYdYsII) +     & 
+&  (4*(42._dp*(g1p4) + 32*g1p2*g3p2 + 400._dp*(g3p4) - 15._dp*(TrYdadjYdYsIICYsII) -     & 
+&  (g1p2 + 5._dp*(g3p2))*TrYsIICYsII - 30._dp*(TrYsIICYsIIYsIICYsII) - 15._dp*(TrYsIICYsIIYzIIadjYzII))*YsII)/15._dp -& 
+&  6*AbsL1II*YsIICYdTpYd + (2*g1p2*YsIICYdTpYd)/5._dp + 6*g2p2*YsIICYdTpYd -             & 
+&  6*TrYdadjYd*YsIICYdTpYd - 2*TrYeadjYe*YsIICYdTpYd - 2._dp*(YsIICYdTpYdCYdTpYd) -      & 
+&  8._dp*(YsIICYdTpYdCYsIIYsII) - 2._dp*(YsIICYdTpYuCYuTpYd) - 8._dp*(YsIICYsIIYdadjYdYsII) +& 
+&  (64*g1p2*YsIICYsIIYsII)/15._dp + (160*g3p2*YsIICYsIIYsII)/3._dp - 8*TrYsIICYsII*YsIICYsIIYsII -& 
+&  32._dp*(YsIICYsIIYsIICYsIIYsII) - 8._dp*(YsIICYsIIYzIIadjYzIIYsII) - 2._dp*(YsIICYzIITpYeCYeTpYzII) +& 
+&  (2*g1p2*YsIICYzIITpYzII)/5._dp + 6*g2p2*YsIICYzIITpYzII - 2*TrYzIIadjYzII*YsIICYzIITpYzII -& 
+&  8._dp*(YsIICYzIITpYzIICYsIIYsII) - 6._dp*(YsIICYzIITpYzIICYzIITpYzII) -               & 
+&  6._dp*(YsIICYzIIYtIICYtIITpYzII) - 2._dp*(YzIIadjYeYeadjYzIIYsII) + (2*g1p2*YzIIadjYzIIYsII)/5._dp +& 
+&  6*g2p2*YzIIadjYzIIYsII - 2*TrYzIIadjYzII*YzIIadjYzIIYsII - 6._dp*(YzIIadjYzIIYzIIadjYzIIYsII) -& 
+&  6._dp*(YzIICYtIIYtIIadjYzIIYsII)
+
+ 
+DYsII = oo16pi2*( betaYsII1 + oo16pi2 * betaYsII2 ) 
+
+ 
+Else 
+DYsII = oo16pi2* betaYsII1 
+End If 
+ 
+ 
+!-------------------- 
+! YzII 
+!-------------------- 
+ 
+betaYzII1  = 2._dp*(YdadjYdYzII) + 4._dp*(YsIICYsIIYzII) + (-7._dp*(g1p2)             & 
+& /15._dp - 3._dp*(g2p2) - 16._dp*(g3p2)/3._dp + TrYzIIadjYzII)*YzII + YzIIadjYeYe +     & 
+&  5._dp*(YzIIadjYzIIYzII) + 3._dp*(YzIICYtIIYtII)
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betaYzII2 = -2._dp*(YdadjYdYdadjYdYzII) + (-6._dp*(AbsL1II) + 2._dp*(g1p2)/5._dp + 6._dp*(g2p2) - & 
+&  6._dp*(TrYdadjYd) - 2._dp*(TrYeadjYe))*YdadjYdYzII - 2._dp*(YdadjYuYuadjYdYzII) -     & 
+&  8._dp*(YsIICYdTpYdCYsIIYzII) - 16._dp*(YsIICYsIIYsIICYsIIYzII) + (32*g1p2*YsIICYsIIYzII)/15._dp +& 
+&  (80*g3p2*YsIICYsIIYzII)/3._dp - 4*TrYsIICYsII*YsIICYsIIYzII - 8._dp*(YsIICYzIITpYzIICYsIIYzII) +& 
+&  (581._dp*(g1p4)/90._dp + g1p2*g2p2 + 57._dp*(g2p4)/2._dp + (8*g1p2*g3p2)/9._dp +      & 
+&  8*g2p2*g3p2 + 320._dp*(g3p4)/9._dp - 2._dp*(TrYdadjYdYzIIadjYzII) - TrYeadjYzIIYzIIadjYe -& 
+&  4._dp*(TrYsIICYsIIYzIIadjYzII) - 3._dp*(TrYtIIadjYzIIYzIICYtII) + (2*g1p2*TrYzIIadjYzII)/5._dp -& 
+&  5._dp*(TrYzIIadjYzIIYzIIadjYzII))*YzII - 3*AbsL1II*YzIIadjYeYe + (6*g1p2*YzIIadjYeYe)/5._dp -& 
+&  3*TrYdadjYd*YzIIadjYeYe - TrYeadjYe*YzIIadjYeYe - 2._dp*(YzIIadjYeYeadjYeYe) -        & 
+&  2._dp*(YzIIadjYeYeadjYzIIYzII) - 6._dp*(YzIIadjYzIIYdadjYdYzII) - 12._dp*(YzIIadjYzIIYsIICYsIIYzII) +& 
+&  6*g2p2*YzIIadjYzIIYzII + 16*g3p2*YzIIadjYzIIYzII - 5*TrYzIIadjYzII*YzIIadjYzIIYzII -  & 
+&  12._dp*(YzIIadjYzIIYzIIadjYzIIYzII) - 3._dp*(YzIICYtIITpYeCYeYtII) - 9._dp*(YzIICYtIITpYzIICYzIIYtII) -& 
+&  3*AbsL1II*YzIICYtIIYtII + (18*g1p2*YzIICYtIIYtII)/5._dp + 12*g2p2*YzIICYtIIYtII -     & 
+&  3*TrYtIICYtII*YzIICYtIIYtII - 6._dp*(YzIICYtIIYtIIadjYzIIYzII) - 9._dp*(YzIICYtIIYtIICYtIIYtII)
+
+ 
+DYzII = oo16pi2*( betaYzII1 + oo16pi2 * betaYzII2 ) 
+
+ 
+Else 
+DYzII = oo16pi2* betaYzII1 
+End If 
+ 
+ 
+!-------------------- 
+! L1II 
+!-------------------- 
+ 
+betaL1II1  = (-9*g1p2*L1II)/5._dp - 7*g2p2*L1II + 6*L1II*TrYdadjYd + 2*L1II*TrYeadjYe +& 
+&  L1II*TrYtIICYtII + 7*L1IIp2*Conjg(L1II)
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betaL1II2 = -(L1II*(-261._dp*(g1p4) - 114*g1p2*g2p2 - 765._dp*(g2p4) + 300*CL1IIp2*L1IIp2 +       & 
+&  8*(g1p2 - 40._dp*(g3p2))*TrYdadjYd + 180._dp*(TrYdadjYdYdadjYd) + 240._dp*(TrYdadjYdYsIICYsII) +& 
+&  120._dp*(TrYdadjYdYzIIadjYzII) + 60._dp*(TrYdadjYuYuadjYd) - 24*g1p2*TrYeadjYe +      & 
+&  60._dp*(TrYeadjYeYeadjYe) + 60._dp*(TrYeadjYzIIYzIIadjYe) + 80._dp*(TrYeCYtIIYtIIadjYe) +& 
+&  60._dp*(TrYtIIadjYzIIYzIICYtII) + 6*g1p2*TrYtIICYtII + 10*g2p2*TrYtIICYtII +          & 
+&  2*AbsL1II*(-33._dp*(g1p2) - 115._dp*(g2p2) + 120._dp*(TrYdadjYd) + 40._dp*(TrYeadjYe) +& 
+&  30._dp*(TrYtIICYtII)) + 60._dp*(TrYtIICYtIIYtIICYtII)))/10._dp
+
+ 
+DL1II = oo16pi2*( betaL1II1 + oo16pi2 * betaL1II2 ) 
+
+ 
+Else 
+DL1II = oo16pi2* betaL1II1 
+End If 
+ 
+ 
+!-------------------- 
+! L2II 
+!-------------------- 
+ 
+betaL2II1  = (-9*g1p2*L2II)/5._dp - 7*g2p2*L2II + 6*L2II*TrYuadjYu + 7*L2IIp2*Conjg(L2II)
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betaL2II2 = -(L2II*(300*CL2IIp2*L2IIp2 - 2*AbsL2II*(33._dp*(g1p2) + 115._dp*(g2p2) -              & 
+&  120._dp*(TrYuadjYu)) - 16*(g1p2 + 20._dp*(g3p2))*TrYuadjYu - 3*(87._dp*(g1p4) +       & 
+&  38*g1p2*g2p2 + 255._dp*(g2p4) - 20._dp*(TrYdadjYuYuadjYd) - 60._dp*(TrYuadjYuYuadjYu))))/10._dp
+
+ 
+DL2II = oo16pi2*( betaL2II1 + oo16pi2 * betaL2II2 ) 
+
+ 
+Else 
+DL2II = oo16pi2* betaL2II1 
+End If 
+ 
+ 
+Call ParametersToG115(Dg1,Dg2,Dg3,DYu,DYd,DYe,DYtII,DYsII,DYzII,DL1II,DL2II,f)
+
+Iname = Iname - 1 
+ 
+End Subroutine rge115  
+
+ Subroutine GToParameters365(g,g1,g2,g3,Yu,Yd,Ye,YtII,YsII,YzII,L1II,L2II,      & 
+ & Mu,MTII,MZII,MSII,Tu,Td,Te,TtII,TsII,TzII,TL1II,TL2II,Bmu,BMTII,BMZII,BMSII, &
+ & mq2,ml2,mHd2,mHu2,md2,mu2,me2,mt2,mtb2,ms2,msb2,mzz2,mzb2,M1,M2,M3,WOp)
+
+ Implicit None 
+  Real(dp), Intent(in) :: g(365) 
+  Real(dp),Intent(out) :: g1,g2,g3,mHd2,mHu2,mt2,mtb2,ms2,msb2,mzz2,mzb2
+
+  Complex(dp),Intent(out), Dimension(3,3) :: Yu,Yd,Ye,YtII,YsII,YzII,Tu,Td,Te &
+      & ,TtII,TsII,TzII,mq2,ml2,md2,mu2,me2,WOp
+  Complex(dp),Intent(out) :: L1II,L2II,Mu,MTII,MZII,MSII,TL1II,TL2II,Bmu,BMTII &
+      & ,BMZII,BMSII,M1,M2,M3
+
+  Integer :: i1, i2, SumI 
+
+  Iname = Iname +1 
+  NameOfUnit(Iname) = 'GToParameters365' 
+ 
+  g1= g(1) 
+  g2= g(2) 
+  g3= g(3) 
+  Do i1 = 1,3
+   Do i2 = 1,3
+    SumI = 2 * ((i2-1) + (i1-1)*3)
+    Yu(i1,i2) = Cmplx( g(SumI+4), g(SumI+5), dp) 
+    Yd(i1,i2) = Cmplx( g(SumI+22), g(SumI+23), dp) 
+    Ye(i1,i2) = Cmplx( g(SumI+40), g(SumI+41), dp) 
+    YtII(i1,i2) = Cmplx( g(SumI+58), g(SumI+59), dp) 
+    YsII(i1,i2) = Cmplx( g(SumI+76), g(SumI+77), dp) 
+    YzII(i1,i2) = Cmplx( g(SumI+94), g(SumI+95), dp) 
+    Tu(i1,i2) = Cmplx( g(SumI+124), g(SumI+125), dp) 
+    Td(i1,i2) = Cmplx( g(SumI+142), g(SumI+143), dp) 
+    Te(i1,i2) = Cmplx( g(SumI+160), g(SumI+161), dp) 
+    TtII(i1,i2) = Cmplx( g(SumI+178), g(SumI+179), dp) 
+    TsII(i1,i2) = Cmplx( g(SumI+196), g(SumI+197), dp) 
+    TzII(i1,i2) = Cmplx( g(SumI+214), g(SumI+215), dp) 
+    mq2(i1,i2) = Cmplx( g(SumI+244), g(SumI+245), dp) 
+    ml2(i1,i2) = Cmplx( g(SumI+262), g(SumI+263), dp) 
+    md2(i1,i2) = Cmplx( g(SumI+282), g(SumI+283), dp) 
+    mu2(i1,i2) = Cmplx( g(SumI+300), g(SumI+301), dp) 
+    me2(i1,i2) = Cmplx( g(SumI+318), g(SumI+319), dp) 
+    WOp(i1,i2) = Cmplx( g(SumI+348), g(SumI+349), dp) 
+   End Do 
+  End Do 
+ 
+  L1II= Cmplx(g(112),g(113),dp) 
+  L2II= Cmplx(g(114),g(115),dp) 
+  Mu= Cmplx(g(116),g(117),dp) 
+  MTII= Cmplx(g(118),g(119),dp) 
+  MZII= Cmplx(g(120),g(121),dp) 
+  MSII= Cmplx(g(122),g(123),dp)
+ 
+  TL1II= Cmplx(g(232),g(233),dp) 
+  TL2II= Cmplx(g(234),g(235),dp) 
+  Bmu= Cmplx(g(236),g(237),dp) 
+  BMTII= Cmplx(g(238),g(239),dp) 
+  BMZII= Cmplx(g(240),g(241),dp) 
+  BMSII= Cmplx(g(242),g(243),dp) 
+ 
+  mHd2= g(280) 
+  mHu2= g(281) 
+ 
+  mt2= g(336) 
+  mtb2= g(337) 
+  ms2= g(338) 
+  msb2= g(339) 
+  mzz2= g(340) 
+  mzb2= g(341) 
+  M1= Cmplx(g(342),g(343),dp) 
+  M2= Cmplx(g(344),g(345),dp) 
+  M3= Cmplx(g(346),g(347),dp) 
+ 
+  Do i1=1,365 
+  If (g(i1).ne.g(i1)) Then 
+   Write(*,*) "NaN appearing in ",NameOfUnit(Iname) 
+   Write(*,*) "At position ", i1 
+   Call TerminateProgram 
+  End if 
+  End do 
+
+  Iname = Iname - 1 
+ 
+ End Subroutine GToParameters365
+
+ Subroutine ParametersToG365(g1,g2,g3,Yu,Yd,Ye,YtII,YsII,YzII,L1II,L2II,Mu,MTII &
+   & ,MZII,MSII,Tu,Td,Te,TtII,TsII,TzII,TL1II,TL2II,Bmu,BMTII,BMZII,BMSII,mq2   &
+   & ,ml2,mHd2,mHu2,md2,mu2,me2,mt2,mtb2,ms2,msb2,mzz2,mzb2,M1,M2,M3,WOp,g)
+
+ Implicit None 
+ 
+  Real(dp), Intent(out) :: g(365) 
+  Real(dp), Intent(in) :: g1,g2,g3,mHd2,mHu2,mt2,mtb2,ms2,msb2,mzz2,mzb2
+
+  Complex(dp), Intent(in),Dimension(3,3) :: Yu,Yd,Ye,YtII,YsII,YzII,Tu,Td,Te  & 
+     & ,TtII,TsII,TzII,mq2,ml2,md2,mu2,me2,WOp
+  Complex(dp), Intent(in) :: L1II,L2II,Mu,MTII,MZII,MSII,TL1II,TL2II,Bmu,BMTII &
+     & ,BMZII,BMSII ,M1,M2,M3
+  
+  Integer i1, i2, SumI 
+
+  Iname = Iname +1 
+  NameOfUnit(Iname) = 'ParametersToG365' 
+
+  g(1) = g1  
+  g(2) = g2  
+  g(3) = g3  
+
+  Do i1 = 1,3
+   Do i2 = 1,3
+    SumI = 2*((i2-1) + (i1-1)*3)
+    g(SumI+4) = Real(Yu(i1,i2), dp) 
+    g(SumI+5) = Aimag(Yu(i1,i2)) 
+    g(SumI+22) = Real(Yd(i1,i2), dp) 
+    g(SumI+23) = Aimag(Yd(i1,i2)) 
+    g(SumI+40) = Real(Ye(i1,i2), dp) 
+    g(SumI+41) = Aimag(Ye(i1,i2)) 
+    g(SumI+58) = Real(YtII(i1,i2), dp) 
+    g(SumI+59) = Aimag(YtII(i1,i2)) 
+    g(SumI+76) = Real(YsII(i1,i2), dp) 
+    g(SumI+77) = Aimag(YsII(i1,i2)) 
+    g(SumI+94) = Real(YzII(i1,i2), dp) 
+    g(SumI+95) = Aimag(YzII(i1,i2)) 
+    g(SumI+124) = Real(Tu(i1,i2), dp) 
+    g(SumI+125) = Aimag(Tu(i1,i2)) 
+    g(SumI+142) = Real(Td(i1,i2), dp) 
+    g(SumI+143) = Aimag(Td(i1,i2)) 
+    g(SumI+160) = Real(Te(i1,i2), dp) 
+    g(SumI+161) = Aimag(Te(i1,i2)) 
+    g(SumI+178) = Real(TtII(i1,i2), dp) 
+    g(SumI+179) = Aimag(TtII(i1,i2)) 
+    g(SumI+196) = Real(TsII(i1,i2), dp) 
+    g(SumI+197) = Aimag(TsII(i1,i2)) 
+    g(SumI+214) = Real(TzII(i1,i2), dp) 
+    g(SumI+215) = Aimag(TzII(i1,i2)) 
+    g(SumI+244) = Real(mq2(i1,i2), dp) 
+    g(SumI+245) = Aimag(mq2(i1,i2)) 
+    g(SumI+262) = Real(ml2(i1,i2), dp) 
+    g(SumI+263) = Aimag(ml2(i1,i2)) 
+    g(SumI+282) = Real(md2(i1,i2), dp) 
+    g(SumI+283) = Aimag(md2(i1,i2)) 
+    g(SumI+300) = Real(mu2(i1,i2), dp) 
+    g(SumI+301) = Aimag(mu2(i1,i2)) 
+    g(SumI+318) = Real(me2(i1,i2), dp) 
+    g(SumI+319) = Aimag(me2(i1,i2)) 
+    g(SumI+348) = Real(WOp(i1,i2), dp) 
+    g(SumI+349) = Aimag(WOp(i1,i2)) 
+   End Do 
+  End Do 
+
+  g(112) = Real(L1II,dp)  
+  g(113) = Aimag(L1II)  
+  g(114) = Real(L2II,dp)  
+  g(115) = Aimag(L2II)  
+  g(116) = Real(Mu,dp)  
+  g(117) = Aimag(Mu)  
+  g(118) = Real(MTII,dp)  
+  g(119) = Aimag(MTII)  
+  g(120) = Real(MZII,dp)  
+  g(121) = Aimag(MZII)  
+  g(122) = Real(MSII,dp)  
+  g(123) = Aimag(MSII)  
+
+  g(232) = Real(TL1II,dp)  
+  g(233) = Aimag(TL1II)  
+  g(234) = Real(TL2II,dp)  
+  g(235) = Aimag(TL2II)  
+  g(236) = Real(Bmu,dp)  
+  g(237) = Aimag(Bmu)  
+  g(238) = Real(BMTII,dp)  
+  g(239) = Aimag(BMTII)  
+  g(240) = Real(BMZII,dp)  
+  g(241) = Aimag(BMZII)  
+  g(242) = Real(BMSII,dp)  
+  g(243) = Aimag(BMSII)
+
+  g(280) = mHd2  
+  g(281) = mHu2  
+
+  g(336) = mt2  
+  g(337) = mtb2  
+  g(338) = ms2  
+  g(339) = msb2  
+  g(340) = mzz2  
+  g(341) = mzb2  
+  g(342) = Real(M1,dp)  
+  g(343) = Aimag(M1)  
+  g(344) = Real(M2,dp)  
+  g(345) = Aimag(M2)  
+  g(346) = Real(M3,dp)  
+  g(347) = Aimag(M3)  
+
+  Iname = Iname - 1 
+ 
+ End Subroutine ParametersToG365
+
+Subroutine rge365(len, T, GY, F) 
+Implicit None 
+Integer, Intent(in) :: len 
+Real(dp), Intent(in) :: T, GY(len) 
+Real(dp), Intent(out) :: F(len) 
+Integer :: i1,i2
+Real(dp) :: q 
+Real(dp) :: g1,betag11,betag12,Dg1,g2,betag21,betag22,Dg2,g3,betag31,betag32,         & 
+& Dg3,mHd2,betamHd21,betamHd22,DmHd2,mHu2,betamHu21,betamHu22,DmHu2,mt2,betamt21,        & 
+& betamt22,Dmt2,mtb2,betamtb21,betamtb22,Dmtb2,ms2,betams21,betams22,Dms2,               & 
+& msb2,betamsb21,betamsb22,Dmsb2,mzz2,betamzz21,betamzz22,Dmzz2,mzb2,betamzb21,          & 
+& betamzb22,Dmzb2
+Complex(dp) :: Yu(3,3),betaYu1(3,3),betaYu2(3,3),DYu(3,3),adjYu(3,3),Yd(3,3)          & 
+& ,betaYd1(3,3),betaYd2(3,3),DYd(3,3),adjYd(3,3),Ye(3,3),betaYe1(3,3),betaYe2(3,3)       & 
+& ,DYe(3,3),adjYe(3,3),YtII(3,3),betaYtII1(3,3),betaYtII2(3,3),DYtII(3,3),               & 
+& adjYtII(3,3),YsII(3,3),betaYsII1(3,3),betaYsII2(3,3),DYsII(3,3),adjYsII(3,3)           & 
+& ,YzII(3,3),betaYzII1(3,3),betaYzII2(3,3),DYzII(3,3),adjYzII(3,3),L1II,betaL1II1,       & 
+& betaL1II2,DL1II,L2II,betaL2II1,betaL2II2,DL2II,Mu,betaMu1,betaMu2,DMu,MTII,            & 
+& betaMTII1,betaMTII2,DMTII,MZII,betaMZII1,betaMZII2,DMZII,MSII,betaMSII1,               & 
+& betaMSII2,DMSII,Tu(3,3),betaTu1(3,3),betaTu2(3,3),DTu(3,3),adjTu(3,3),Td(3,3)          & 
+& ,betaTd1(3,3),betaTd2(3,3),DTd(3,3),adjTd(3,3),Te(3,3),betaTe1(3,3),betaTe2(3,3)       & 
+& ,DTe(3,3),adjTe(3,3),TtII(3,3),betaTtII1(3,3),betaTtII2(3,3),DTtII(3,3),               & 
+& adjTtII(3,3),TsII(3,3),betaTsII1(3,3),betaTsII2(3,3),DTsII(3,3),adjTsII(3,3)           & 
+& ,TzII(3,3),betaTzII1(3,3),betaTzII2(3,3),DTzII(3,3),adjTzII(3,3),TL1II,betaTL1II1,     & 
+& betaTL1II2,DTL1II,TL2II,betaTL2II1,betaTL2II2,DTL2II,Bmu,betaBmu1,betaBmu2,            & 
+& DBmu,BMTII,betaBMTII1,betaBMTII2,DBMTII,BMZII,betaBMZII1,betaBMZII2,DBMZII,            & 
+& BMSII,betaBMSII1,betaBMSII2,DBMSII,mq2(3,3),betamq21(3,3),betamq22(3,3),               & 
+& Dmq2(3,3),ml2(3,3),betaml21(3,3),betaml22(3,3),Dml2(3,3),md2(3,3),betamd21(3,3)        & 
+& ,betamd22(3,3),Dmd2(3,3),mu2(3,3),betamu21(3,3),betamu22(3,3),Dmu2(3,3),               & 
+& me2(3,3),betame21(3,3),betame22(3,3),Dme2(3,3),M1,betaM11,betaM12,DM1,M2,              & 
+& betaM21,betaM22,DM2,M3,betaM31,betaM32,DM3,WOp(3,3),betaWOp1(3,3),betaWOp2(3,3)        & 
+& ,DWOp(3,3),adjWOp(3,3)
+Real(dp) :: Tr1(3),Tr2(3),Tr3(3) 
+Real(dp) :: Tr2U1(3,3) 
+Real(dp) :: AbsL1II,AbsL2II,AbsTL1II,AbsTL2II,AbsM1,AbsM2,AbsM3
+Complex(dp) :: md2Yd(3,3),md2YzII(3,3),me2Ye(3,3),ml2adjYe(3,3),ml2adjYzII(3,3),mq2adjYd(3,3),       & 
+& mq2adjYu(3,3),mu2Yu(3,3),Ydmq2(3,3),YdadjYd(3,3),Yeml2(3,3),YeadjYe(3,3),              & 
+& YsIICYsII(3,3),YtIIml2(3,3),YtIICYtII(3,3),Yumq2(3,3),YuadjYu(3,3),YzIIml2(3,3),       & 
+& YzIIadjYzII(3,3),adjYdmd2(3,3),adjYdYd(3,3),adjYdYsII(3,3),adjYdYzII(3,3),             & 
+& adjYdTd(3,3),adjYdTsII(3,3),adjYdTzII(3,3),adjYeme2(3,3),adjYeYe(3,3),adjYeTe(3,3),    & 
+& adjYumu2(3,3),adjYuYu(3,3),adjYuTu(3,3),adjYzIImd2(3,3),adjYzIIYd(3,3),adjYzIIYsII(3,3),& 
+& adjYzIIYzII(3,3),adjYzIITd(3,3),adjYzIITsII(3,3),adjYzIITzII(3,3),adjTdTd(3,3),        & 
+& adjTeTe(3,3),adjTuTu(3,3),adjTzIITzII(3,3),Cmd2CYsII(3,3),Cml2YtII(3,3),               & 
+& CYdTpYd(3,3),CYdTpTd(3,3),CYeWOp(3,3),CYeYtII(3,3),CYeTtII(3,3),CYsIImd2(3,3),         & 
+& CYsIIYd(3,3),CYsIIYsII(3,3),CYsIIYzII(3,3),CYsIITd(3,3),CYsIITsII(3,3),CYsIITzII(3,3), & 
+& CYtIIWOp(3,3),CYtIIYtII(3,3),CYtIITtII(3,3),CYzIIWOp(3,3),CYzIIYtII(3,3),              & 
+& CYzIITtII(3,3),CYzIITpYzII(3,3),CYzIITpTzII(3,3),CTdTpTd(3,3),CTeTpTe(3,3),            & 
+& CTsIITsII(3,3),CTtIITtII(3,3),CTuTpTu(3,3),CTzIITpTzII(3,3),TdadjTd(3,3),              & 
+& TeadjTe(3,3),TsIICTsII(3,3),TuadjTu(3,3),TzIIadjTzII(3,3),md2YdadjYd(3,3),             & 
+& md2YsIICYsII(3,3),md2YzIIadjYzII(3,3),me2YeadjYe(3,3),ml2adjYeYe(3,3),ml2adjYzIIYzII(3,3),& 
+& ml2CYtIIYtII(3,3),mq2adjYdYd(3,3),mq2adjYuYu(3,3),mu2YuadjYu(3,3),WOpadjYeYe(3,3),     & 
+& WOpadjYzIIYzII(3,3),WOpCYtIIYtII(3,3),Ydmq2adjYd(3,3),YdadjYdmd2(3,3),YdadjYdYd(3,3),  & 
+& YdadjYdYsII(3,3),YdadjYdYzII(3,3),YdadjYdTd(3,3),YdadjYdTsII(3,3),YdadjYdTzII(3,3),    & 
+& YdadjYuYu(3,3),YdadjYuTu(3,3),Yeml2adjYe(3,3),YeadjYeme2(3,3),YeadjYeYe(3,3),          & 
+& YeadjYeTe(3,3),YeadjYzIIYzII(3,3),YeadjYzIITzII(3,3),YeCYtIIYtII(3,3),YeCYtIITtII(3,3),& 
+& YsIICmd2CYsII(3,3),YsIICYdTpYd(3,3),YsIICYdTpTd(3,3),YsIICYsIImd2(3,3),YsIICYsIIYd(3,3),& 
+& YsIICYsIIYsII(3,3),YsIICYsIIYzII(3,3),YsIICYsIITd(3,3),YsIICYsIITsII(3,3),             & 
+& YsIICYsIITzII(3,3),YsIICYzIITpYzII(3,3),YsIICYzIITpTzII(3,3),YtIIadjYeYe(3,3),         & 
+& YtIIadjYeTe(3,3),YtIIadjYzIIYzII(3,3),YtIIadjYzIITzII(3,3),YtIICYtIIWOp(3,3),          & 
+& YtIICYtIIYtII(3,3),YtIICYtIITtII(3,3),Yumq2adjYu(3,3),YuadjYdYd(3,3),YuadjYdTd(3,3),   & 
+& YuadjYumu2(3,3),YuadjYuYu(3,3),YuadjYuTu(3,3),YzIIml2adjYzII(3,3),YzIIadjYeYe(3,3),    & 
+& YzIIadjYeTe(3,3),YzIIadjYzIImd2(3,3),YzIIadjYzIIYd(3,3),YzIIadjYzIIYsII(3,3),          & 
+& YzIIadjYzIIYzII(3,3),YzIIadjYzIITd(3,3),YzIIadjYzIITsII(3,3),YzIIadjYzIITzII(3,3),     & 
+& YzIICYtIIYtII(3,3),YzIICYtIITtII(3,3),adjYdmd2Yd(3,3),adjYdYdmq2(3,3),adjYeme2Ye(3,3), & 
+& adjYeYeml2(3,3),adjYumu2Yu(3,3),adjYuYumq2(3,3),adjYzIImd2YzII(3,3),adjYzIIYzIIml2(3,3),& 
+& CYtIIYtIIml2(3,3),CYtIICml2YtII(3,3),TdadjYdYd(3,3),TdadjYdYsII(3,3),TdadjYdYzII(3,3), & 
+& TdadjYuYu(3,3),TeadjYeYe(3,3),TeadjYzIIYzII(3,3),TeCYtIIYtII(3,3),TsIICYdTpYd(3,3),    & 
+& TsIICYsIIYd(3,3),TsIICYsIIYsII(3,3),TsIICYsIIYzII(3,3),TsIICYzIITpYzII(3,3),           & 
+& TtIIadjYeYe(3,3),TtIIadjYzIIYzII(3,3),TtIICYtIIYtII(3,3),TuadjYdYd(3,3),               & 
+& TuadjYuYu(3,3),TzIIadjYeYe(3,3),TzIIadjYzIIYd(3,3),TzIIadjYzIIYsII(3,3),               & 
+& TzIIadjYzIIYzII(3,3),TzIICYtIIYtII(3,3),TpYeCYeWOp(3,3),TpYeCYeYtII(3,3),              & 
+& TpYeCYeTtII(3,3),TpYzIICYzIIWOp(3,3),TpYzIICYzIIYtII(3,3),TpYzIICYzIITtII(3,3)
+
+Complex(dp) :: TpTeCYeYtII(3,3),TpTzIICYzIIYtII(3,3)
+
+Complex(dp) :: YdadjYu(3,3),YdadjTd(3,3),YdadjTu(3,3),YeadjYzII(3,3),YeadjTe(3,3),YeadjTzII(3,3),    & 
+& YsIICTsII(3,3),YtIIadjYe(3,3),YtIIadjYzII(3,3),YtIIadjTe(3,3),YtIIadjTzII(3,3),        & 
+& YtIICTtII(3,3),YuadjYd(3,3),YuadjTd(3,3),YuadjTu(3,3),YzIIadjYe(3,3),YzIIadjTe(3,3),   & 
+& YzIIadjTzII(3,3),YzIICYtII(3,3),adjYdCmd2(3,3),adjYdCTsII(3,3),adjYeCme2(3,3),         & 
+& adjYuCmu2(3,3),adjYzIICmd2(3,3),adjYzIICTsII(3,3),adjTdYd(3,3),adjTdYzII(3,3),         & 
+& adjTdCYsII(3,3),adjTdTzII(3,3),adjTeYe(3,3),adjTuYu(3,3),adjTzIIYd(3,3),               & 
+& adjTzIIYzII(3,3),adjTzIICYsII(3,3),adjTzIITd(3,3),Cml2adjYe(3,3),Cml2adjYzII(3,3),     & 
+& Cmq2adjYd(3,3),Cmq2adjYu(3,3),CYeTpYzII(3,3),CYeTpTzII(3,3),CYtIICml2(3,3),            & 
+& CYtIITpYzII(3,3),CYtIITpTzII(3,3),CYuTpYd(3,3),CYuTpTd(3,3),CTdTpYd(3,3),              & 
+& CTeYtII(3,3),CTeTtII(3,3),CTeTpYe(3,3),CTsIIYd(3,3),CTsIIYzII(3,3),CTsIITd(3,3),       & 
+& CTsIITzII(3,3),CTtIIYtII(3,3),CTuTpYu(3,3),CTzIIYtII(3,3),CTzIITtII(3,3),              & 
+& CTzIITpYzII(3,3),TdadjYd(3,3),TdadjYu(3,3),TdadjTu(3,3),TeadjYe(3,3),TeadjYzII(3,3),   & 
+& TeadjTzII(3,3),TeCYtII(3,3),TeCTtII(3,3),TsIICYsII(3,3),TtIIadjYe(3,3),TtIIadjYzII(3,3),& 
+& TtIIadjTe(3,3),TtIIadjTzII(3,3),TtIICYtII(3,3),TtIICTtII(3,3),TuadjYd(3,3),            & 
+& TuadjYu(3,3),TuadjTd(3,3),TzIIadjYe(3,3),TzIIadjYzII(3,3),TzIIadjTe(3,3),              & 
+& TzIICYtII(3,3),TzIICTtII(3,3),TpYdCYsII(3,3),TpYdCTsII(3,3),TpYzIICYsII(3,3),          & 
+& TpYzIICTsII(3,3),TpTdCYsII(3,3),TpTdCTsII(3,3),TpTeCTe(3,3),TpTzIICYsII(3,3),          & 
+& TpTzIICTsII(3,3),TpTzIICTzII(3,3),md2YdadjYu(3,3),md2YzIIadjYe(3,3),md2CYsIIYsII(3,3), & 
+& me2YeadjYzII(3,3),ml2YtIICYtII(3,3),ml2adjYzIIYd(3,3),mq2adjYdYzII(3,3),               & 
+& mu2YuadjYd(3,3),Ydmq2adjYu(3,3),YdadjYdCmd2(3,3),YdadjYumu2(3,3),YdadjTdCYsII(3,3),    & 
+& YdadjTdTd(3,3),YdadjTdTzII(3,3),YdCmq2adjYd(3,3),Yeml2adjYzII(3,3),YeadjYeCme2(3,3),   & 
+& YeadjYzIImd2(3,3),YeadjYzIIYd(3,3),YeadjYzIIYsII(3,3),YeadjYzIITd(3,3),YeadjYzIITsII(3,3),& 
+& YeadjTeTe(3,3),YeCml2adjYe(3,3),YeCYtIIWOp(3,3),YsIICYzIIWOp(3,3),YsIICYzIIYtII(3,3),  & 
+& YsIICYzIITtII(3,3),YsIICTsIITd(3,3),YsIICTsIITzII(3,3),YtIIml2adjYe(3,3),              & 
+& YtIIml2adjYzII(3,3),YtIIadjYeme2(3,3),YtIIadjYzIImd2(3,3),YtIIadjYzIIYd(3,3),          & 
+& YtIIadjYzIIYsII(3,3),YtIIadjYzIITd(3,3),YtIIadjYzIITsII(3,3),YtIICYtIITpYzII(3,3),     & 
+& YtIICYtIITpTzII(3,3),YtIICTtIITtII(3,3),Yumq2adjYd(3,3),YuadjYdmd2(3,3),               & 
+& YuadjYdYsII(3,3),YuadjYdYzII(3,3),YuadjYdTsII(3,3),YuadjYdTzII(3,3),YuadjYuCmu2(3,3),  & 
+& YuadjTuTu(3,3),YuCmq2adjYu(3,3),YzIIml2adjYe(3,3),YzIIadjYeme2(3,3),YzIIadjYzIICmd2(3,3),& 
+& YzIIadjTzIICYsII(3,3),YzIIadjTzIITd(3,3),YzIIadjTzIITzII(3,3),YzIICml2adjYzII(3,3),    & 
+& YzIICYtIIWOp(3,3),YzIICYtIICml2(3,3),adjYdmd2YzII(3,3),adjYdYdadjYd(3,3),              & 
+& adjYdYdadjYu(3,3),adjYdYdadjTd(3,3),adjYdYdadjTu(3,3),adjYdYsIICYsII(3,3),             & 
+& adjYdYsIICTsII(3,3),adjYdYzIIml2(3,3),adjYdYzIIadjYzII(3,3),adjYdCYsIIYd(3,3),         & 
+& adjYdCYsIIYzII(3,3),adjYdTdadjYd(3,3),adjYdTdadjYu(3,3),adjYdTdadjTd(3,3),             & 
+& adjYdTdadjTu(3,3),adjYdTsIICYsII(3,3),adjYdTsIICTsII(3,3),adjYdTzIIadjYzII(3,3),       & 
+& adjYdTzIIadjTzII(3,3),adjYeYeadjYe(3,3),adjYeYeadjYzII(3,3),adjYeYeadjTe(3,3),         & 
+& adjYeYeadjTzII(3,3),adjYeTeadjYe(3,3),adjYeTeadjYzII(3,3),adjYeTeadjTe(3,3)
+
+Complex(dp) :: adjYeTeadjTzII(3,3),adjYeTeCYtII(3,3),adjYeTeCTtII(3,3),adjYuYuadjYd(3,3),             & 
+& adjYuYuadjYu(3,3),adjYuYuadjTd(3,3),adjYuYuadjTu(3,3),adjYuTuadjYd(3,3),               & 
+& adjYuTuadjYu(3,3),adjYuTuadjTd(3,3),adjYuTuadjTu(3,3),adjYzIImd2Yd(3,3),               & 
+& adjYzIIYdmq2(3,3),adjYzIIYdadjYd(3,3),adjYzIIYsIICYsII(3,3),adjYzIIYsIICTsII(3,3),     & 
+& adjYzIIYzIIadjYe(3,3),adjYzIIYzIIadjYzII(3,3),adjYzIIYzIIadjTe(3,3),adjYzIIYzIIadjTzII(3,3),& 
+& adjYzIIYzIICYtII(3,3),adjYzIICYsIIYd(3,3),adjYzIICYsIIYzII(3,3),adjYzIITdadjYd(3,3),   & 
+& adjYzIITdadjTd(3,3),adjYzIITsIICYsII(3,3),adjYzIITsIICTsII(3,3),adjYzIITzIIadjYe(3,3), & 
+& adjYzIITzIIadjYzII(3,3),adjYzIITzIIadjTe(3,3),adjYzIITzIIadjTzII(3,3),adjYzIITzIICYtII(3,3),& 
+& adjYzIITzIICTtII(3,3),adjTdYdadjYd(3,3),adjTdYdadjYu(3,3),adjTdTdadjYd(3,3),           & 
+& adjTdTdadjYu(3,3),adjTdTsIICYsII(3,3),adjTdTzIIadjYzII(3,3),adjTeYeadjYe(3,3),         & 
+& adjTeYeadjYzII(3,3),adjTeTeadjYe(3,3),adjTeTeadjYzII(3,3),adjTeTeCYtII(3,3),           & 
+& adjTuYuadjYd(3,3),adjTuYuadjYu(3,3),adjTuTuadjYd(3,3),adjTuTuadjYu(3,3),               & 
+& adjTzIIYzIIadjYe(3,3),adjTzIIYzIIadjYzII(3,3),adjTzIITdadjYd(3,3),adjTzIITsIICYsII(3,3),& 
+& adjTzIITzIIadjYe(3,3),adjTzIITzIIadjYzII(3,3),adjTzIITzIICYtII(3,3),Cmd2CYsIIYd(3,3),  & 
+& Cmd2CYsIIYzII(3,3),Cmd2CYzIIYtII(3,3),Cme2CYeYtII(3,3),Cml2YtIIadjYe(3,3),             & 
+& Cml2YtIIadjYzII(3,3),Cml2TpYzIICYsII(3,3),Cmq2TpYdCYsII(3,3),CYdTpYdCYsII(3,3),        & 
+& CYdTpYdCTsII(3,3),CYdTpTdCTsII(3,3),CYeYtIIml2(3,3),CYeCml2YtII(3,3),CYsIImd2Yd(3,3),  & 
+& CYsIImd2YzII(3,3),CYsIIYdmq2(3,3),CYsIIYdadjYd(3,3),CYsIIYsIICYsII(3,3),               & 
+& CYsIIYsIICTsII(3,3),CYsIIYzIIml2(3,3),CYsIIYzIIadjYzII(3,3),CYsIITdadjYd(3,3),         & 
+& CYsIITdadjTd(3,3),CYsIITsIICYsII(3,3),CYsIITsIICTsII(3,3),CYsIITzIIadjYzII(3,3),       & 
+& CYsIITzIIadjTzII(3,3),CYtIIYtIIadjYe(3,3),CYtIIYtIIadjYzII(3,3),CYtIIYtIIadjTe(3,3),   & 
+& CYtIIYtIIadjTzII(3,3),CYtIIYtIICYtII(3,3),CYtIITtIIadjYe(3,3),CYtIITtIIadjYzII(3,3),   & 
+& CYtIITtIIadjTe(3,3),CYtIITtIIadjTzII(3,3),CYtIITtIICYtII(3,3),CYtIITtIICTtII(3,3),     & 
+& CYtIITpTeCTe(3,3),CYtIITpTzIICTzII(3,3),CYzIIYtIIml2(3,3),CYzIICml2YtII(3,3),          & 
+& CYzIITpYzIICYsII(3,3),CYzIITpYzIICTsII(3,3),CYzIITpTzIICTsII(3,3),CTdTpYdCYsII(3,3),   & 
+& CTdTpTdCYsII(3,3),CTsIIYsIICYsII(3,3),CTsIITdadjYd(3,3),CTsIITsIICYsII(3,3),           & 
+& CTsIITzIIadjYzII(3,3),CTtIIYtIIadjYe(3,3),CTtIIYtIIadjYzII(3,3),CTtIITtIIadjYe(3,3),   & 
+& CTtIITtIIadjYzII(3,3),CTtIITtIICYtII(3,3),CTzIITpYzIICYsII(3,3),CTzIITpTzIICYsII(3,3), & 
+& TdadjYdCTsII(3,3),TdadjTdYd(3,3),TdadjTdYzII(3,3),TeadjYzIIYd(3,3),TeadjYzIIYsII(3,3), & 
+& TeadjTeYe(3,3),TsIICYzIIYtII(3,3),TsIICTdTpYd(3,3),TsIICTsIIYd(3,3),TsIICTsIIYzII(3,3),& 
+& TsIICTzIITpYzII(3,3),TtIIadjYzIIYd(3,3),TtIIadjYzIIYsII(3,3),TtIICYtIITpYzII(3,3),     & 
+& TtIICTtIIYtII(3,3),TuadjYdYsII(3,3),TuadjYdYzII(3,3),TuadjTuYu(3,3),TzIIadjYzIICTsII(3,3),& 
+& TzIIadjTzIIYd(3,3),TzIIadjTzIIYzII(3,3),TpYdCmd2CYsII(3,3),TpYdCYdTpYd(3,3),           & 
+& TpYdCYdTpTd(3,3),TpYdCYsIImd2(3,3),TpYdCYsIIYd(3,3),TpYdCYsIIYsII(3,3),TpYdCYsIIYzII(3,3),& 
+& TpYdCYsIITd(3,3),TpYdCYsIITsII(3,3),TpYdCYsIITzII(3,3),TpYdCYzIIWOp(3,3),              & 
+& TpYdCYzIIYtII(3,3),TpYdCYzIITtII(3,3),TpYeCYeTpYzII(3,3),TpYeCYeTpTzII(3,3),           & 
+& TpYeCTeTtII(3,3),TpYuCYuTpYd(3,3),TpYuCYuTpTd(3,3),TpYzIICmd2CYsII(3,3)
+
+Complex(dp) :: TpYzIICYsIImd2(3,3),TpYzIICYsIIYd(3,3),TpYzIICYsIIYsII(3,3),TpYzIICYsIIYzII(3,3),      & 
+& TpYzIICYsIITd(3,3),TpYzIICYsIITsII(3,3),TpYzIICYsIITzII(3,3),TpYzIICYzIITpYzII(3,3),   & 
+& TpYzIICYzIITpTzII(3,3),TpYzIICTzIITtII(3,3),TpTdCYdTpYd(3,3),TpTdCYsIIYd(3,3),         & 
+& TpTdCYsIIYsII(3,3),TpTdCYsIIYzII(3,3),TpTdCYzIIYtII(3,3),TpTeCYeTpYzII(3,3),           & 
+& TpTeCTeYtII(3,3),TpTuCYuTpYd(3,3),TpTzIICYsIIYd(3,3),TpTzIICYsIIYsII(3,3),             & 
+& TpTzIICYsIIYzII(3,3),TpTzIICYzIITpYzII(3,3),TpTzIICTzIIYtII(3,3),md2YdadjYdYd(3,3),    & 
+& md2YdadjYdYzII(3,3),md2YsIICYsIIYd(3,3),md2YsIICYsIIYzII(3,3),md2YzIIadjYzIIYd(3,3),   & 
+& md2YzIIadjYzIIYzII(3,3),me2YeadjYeYe(3,3),ml2adjYeYeadjYe(3,3),ml2adjYeYeadjYzII(3,3), & 
+& ml2adjYzIIYzIIadjYe(3,3),ml2adjYzIIYzIIadjYzII(3,3),ml2CYtIIYtIIadjYe(3,3),            & 
+& ml2CYtIIYtIIadjYzII(3,3),mq2adjYdYdadjYd(3,3),mq2adjYdYdadjYu(3,3),mq2adjYuYuadjYd(3,3),& 
+& mq2adjYuYuadjYu(3,3),mu2YuadjYuYu(3,3),Ydmq2adjYdYd(3,3),Ydmq2adjYdYzII(3,3),          & 
+& YdadjYdmd2Yd(3,3),YdadjYdmd2YzII(3,3),YdadjYdYdmq2(3,3),YdadjYdYdadjYd(3,3),           & 
+& YdadjYdYsIICYsII(3,3),YdadjYdYzIIml2(3,3),YdadjYdYzIIadjYzII(3,3),YdadjYdTdadjYd(3,3), & 
+& YdadjYdTdadjTd(3,3),YdadjYdTsIICYsII(3,3),YdadjYdTsIICTsII(3,3),YdadjYdTzIIadjYzII(3,3),& 
+& YdadjYdTzIIadjTzII(3,3),YdadjYuYuadjYd(3,3),YdadjYuTuadjYd(3,3),YdadjYuTuadjTd(3,3),   & 
+& YdadjTdTdadjYd(3,3),YdadjTdTsIICYsII(3,3),YdadjTdTzIIadjYzII(3,3),YdadjTuTuadjYd(3,3), & 
+& Yeml2adjYeYe(3,3),YeadjYeme2Ye(3,3),YeadjYeYeml2(3,3),YeadjYeYeadjYe(3,3),             & 
+& YeadjYeTeadjYe(3,3),YeadjYeTeadjTe(3,3),YeadjYzIIYzIIadjYe(3,3),YeadjYzIITzIIadjYe(3,3),& 
+& YeadjYzIITzIIadjTe(3,3),YeadjTeTeadjYe(3,3),YeadjTzIITzIIadjYe(3,3),YeCYtIIYtIIadjYe(3,3),& 
+& YeCYtIITtIIadjYe(3,3),YeCYtIITtIIadjTe(3,3),YeCTtIITtIIadjYe(3,3),YsIICmd2CYsIIYd(3,3),& 
+& YsIICmd2CYsIIYzII(3,3),YsIICYdTpYdCYsII(3,3),YsIICYdTpTdCTsII(3,3),YsIICYsIImd2Yd(3,3),& 
+& YsIICYsIImd2YzII(3,3),YsIICYsIIYdmq2(3,3),YsIICYsIIYdadjYd(3,3),YsIICYsIIYsIICYsII(3,3),& 
+& YsIICYsIIYzIIml2(3,3),YsIICYsIIYzIIadjYzII(3,3),YsIICYsIITdadjYd(3,3),YsIICYsIITdadjTd(3,3),& 
+& YsIICYsIITsIICYsII(3,3),YsIICYsIITsIICTsII(3,3),YsIICYsIITzIIadjYzII(3,3),             & 
+& YsIICYsIITzIIadjTzII(3,3),YsIICYzIITpYzIICYsII(3,3),YsIICYzIITpTzIICTsII(3,3),         & 
+& YsIICTdTpTdCYsII(3,3),YsIICTsIITdadjYd(3,3),YsIICTsIITsIICYsII(3,3),YsIICTsIITzIIadjYzII(3,3),& 
+& YsIICTzIITpTzIICYsII(3,3),YsIITdadjYdCTsII(3,3),YsIITzIIadjYzIICTsII(3,3),             & 
+& YtIIml2CYtIIYtII(3,3),YtIIadjYeTeCYtII(3,3),YtIIadjYeTeCTtII(3,3),YtIIadjYzIIYzIICYtII(3,3),& 
+& YtIIadjYzIITzIICYtII(3,3),YtIIadjYzIITzIICTtII(3,3),YtIIadjTeTeCYtII(3,3),             & 
+& YtIIadjTzIITzIICYtII(3,3),YtIICYtIIYtIIml2(3,3),YtIICYtIIYtIICYtII(3,3),               & 
+& YtIICYtIICml2YtII(3,3),YtIICYtIITtIICYtII(3,3),YtIICYtIITtIICTtII(3,3),YtIICYtIITpTeCTe(3,3),& 
+& YtIICYtIITpTzIICTzII(3,3),YtIICTtIITtIICYtII(3,3),Yumq2adjYuYu(3,3),YuadjYdYdadjYu(3,3),& 
+& YuadjYdTdadjYu(3,3),YuadjYdTdadjTu(3,3),YuadjYumu2Yu(3,3),YuadjYuYumq2(3,3),           & 
+& YuadjYuYuadjYu(3,3),YuadjYuTuadjYu(3,3),YuadjYuTuadjTu(3,3),YuadjTdTdadjYu(3,3),       & 
+& YuadjTuTuadjYu(3,3),YzIIml2adjYzIIYd(3,3),YzIIml2adjYzIIYzII(3,3),YzIIadjYeYeadjYzII(3,3),& 
+& YzIIadjYeTeadjYzII(3,3),YzIIadjYeTeadjTzII(3,3),YzIIadjYzIImd2Yd(3,3),YzIIadjYzIImd2YzII(3,3),& 
+& YzIIadjYzIIYdmq2(3,3),YzIIadjYzIIYdadjYd(3,3),YzIIadjYzIIYsIICYsII(3,3)
+
+Complex(dp) :: YzIIadjYzIIYzIIml2(3,3),YzIIadjYzIIYzIIadjYzII(3,3),YzIIadjYzIITdadjYd(3,3),           & 
+& YzIIadjYzIITdadjTd(3,3),YzIIadjYzIITsIICYsII(3,3),YzIIadjYzIITsIICTsII(3,3),           & 
+& YzIIadjYzIITzIIadjYzII(3,3),YzIIadjYzIITzIIadjTzII(3,3),YzIIadjTeTeadjYzII(3,3),       & 
+& YzIIadjTzIITdadjYd(3,3),YzIIadjTzIITsIICYsII(3,3),YzIIadjTzIITzIIadjYzII(3,3),         & 
+& YzIICYtIIYtIIadjYzII(3,3),YzIICYtIITtIIadjYzII(3,3),YzIICYtIITtIIadjTzII(3,3),         & 
+& YzIICTtIITtIIadjYzII(3,3),adjYdmd2YdadjYd(3,3),adjYdmd2YdadjYu(3,3),adjYdYdmq2adjYd(3,3),& 
+& adjYdYdmq2adjYu(3,3),adjYdYdadjYdmd2(3,3),adjYdYdadjYdYd(3,3),adjYdYdadjYdYsII(3,3),   & 
+& adjYdYdadjYdYzII(3,3),adjYdYdadjYdTd(3,3),adjYdYdadjYdTsII(3,3),adjYdYdadjYdTzII(3,3), & 
+& adjYdYdadjYumu2(3,3),adjYdYdadjYuYu(3,3),adjYdYdadjYuTu(3,3),adjYdYdadjTdTd(3,3),      & 
+& adjYdYsIICmd2CYsII(3,3),adjYdYsIICYsIIYd(3,3),adjYdYsIICYsIITd(3,3),adjYdYsIICTsIITd(3,3),& 
+& adjYdYzIIadjYzIIYd(3,3),adjYdYzIIadjYzIITd(3,3),adjYdYzIIadjTzIITd(3,3),               & 
+& adjYdTdadjYdYd(3,3),adjYdTdadjYdYsII(3,3),adjYdTdadjYdYzII(3,3),adjYdTdadjYuYu(3,3),   & 
+& adjYdTdadjTdYd(3,3),adjYdTsIICYsIIYd(3,3),adjYdTsIICTsIIYd(3,3),adjYdTzIIadjYzIIYd(3,3),& 
+& adjYdTzIIadjTzIIYd(3,3),adjYeme2YeadjYe(3,3),adjYeme2YeadjYzII(3,3),adjYeYeml2adjYe(3,3),& 
+& adjYeYeml2adjYzII(3,3),adjYeYeadjYeme2(3,3),adjYeYeadjYeYe(3,3),adjYeYeadjYeTe(3,3),   & 
+& adjYeYeadjYzIImd2(3,3),adjYeYeadjYzIIYd(3,3),adjYeYeadjYzIIYsII(3,3),adjYeYeadjYzIIYzII(3,3),& 
+& adjYeYeadjYzIITd(3,3),adjYeYeadjYzIITsII(3,3),adjYeYeadjYzIITzII(3,3),adjYeYeadjTeTe(3,3),& 
+& adjYeYeCYtIIWOp(3,3),adjYeYeCYtIIYtII(3,3),adjYeYeCYtIITtII(3,3),adjYeTeadjYeYe(3,3),  & 
+& adjYeTeadjYzIIYd(3,3),adjYeTeadjYzIIYsII(3,3),adjYeTeadjYzIIYzII(3,3),adjYeTeadjTeYe(3,3),& 
+& adjYeTeCYtIIYtII(3,3),adjYumu2YuadjYd(3,3),adjYumu2YuadjYu(3,3),adjYuYumq2adjYd(3,3),  & 
+& adjYuYumq2adjYu(3,3),adjYuYuadjYdmd2(3,3),adjYuYuadjYdYd(3,3),adjYuYuadjYdYsII(3,3),   & 
+& adjYuYuadjYdYzII(3,3),adjYuYuadjYdTd(3,3),adjYuYuadjYdTsII(3,3),adjYuYuadjYdTzII(3,3), & 
+& adjYuYuadjYumu2(3,3),adjYuYuadjYuYu(3,3),adjYuYuadjYuTu(3,3),adjYuYuadjTuTu(3,3),      & 
+& adjYuTuadjYdYd(3,3),adjYuTuadjYdYsII(3,3),adjYuTuadjYdYzII(3,3),adjYuTuadjYuYu(3,3),   & 
+& adjYuTuadjTuYu(3,3),adjYzIImd2YzIIadjYe(3,3),adjYzIImd2YzIIadjYzII(3,3),               & 
+& adjYzIIYdadjYdYzII(3,3),adjYzIIYdadjYdTzII(3,3),adjYzIIYdadjTdTzII(3,3),               & 
+& adjYzIIYsIICYsIIYzII(3,3),adjYzIIYsIICYsIITzII(3,3),adjYzIIYsIICTsIITzII(3,3),         & 
+& adjYzIIYzIIml2adjYe(3,3),adjYzIIYzIIml2adjYzII(3,3),adjYzIIYzIIadjYeme2(3,3),          & 
+& adjYzIIYzIIadjYeYe(3,3),adjYzIIYzIIadjYeTe(3,3),adjYzIIYzIIadjYzIImd2(3,3),            & 
+& adjYzIIYzIIadjYzIIYd(3,3),adjYzIIYzIIadjYzIIYsII(3,3),adjYzIIYzIIadjYzIIYzII(3,3),     & 
+& adjYzIIYzIIadjYzIITd(3,3),adjYzIIYzIIadjYzIITsII(3,3),adjYzIIYzIIadjYzIITzII(3,3),     & 
+& adjYzIIYzIIadjTzIITzII(3,3),adjYzIIYzIICYtIIWOp(3,3),adjYzIIYzIICYtIIYtII(3,3),        & 
+& adjYzIIYzIICYtIICml2(3,3),adjYzIIYzIICYtIITtII(3,3),adjYzIITdadjYdYzII(3,3),           & 
+& adjYzIITdadjTdYzII(3,3),adjYzIITsIICYsIIYzII(3,3),adjYzIITsIICTsIIYzII(3,3),           & 
+& adjYzIITzIIadjYeYe(3,3),adjYzIITzIIadjYzIIYd(3,3),adjYzIITzIIadjYzIIYsII(3,3),         & 
+& adjYzIITzIIadjYzIIYzII(3,3),adjYzIITzIIadjTzIIYzII(3,3),adjYzIITzIICYtIIYtII(3,3),     & 
+& adjTdYdadjYdTd(3,3),adjTdYsIICYsIITd(3,3),adjTdYzIIadjYzIITd(3,3),adjTdTdadjYdYd(3,3)
+
+Complex(dp) :: adjTdTsIICYsIIYd(3,3),adjTdTzIIadjYzIIYd(3,3),adjTeYeadjYeTe(3,3),adjTeTeadjYeYe(3,3), & 
+& adjTuYuadjYuTu(3,3),adjTuTuadjYuYu(3,3),adjTzIIYdadjYdTzII(3,3),adjTzIIYsIICYsIITzII(3,3),& 
+& adjTzIIYzIIadjYzIITzII(3,3),adjTzIITdadjYdYzII(3,3),adjTzIITsIICYsIIYzII(3,3),         & 
+& adjTzIITzIIadjYzIIYzII(3,3),Cmd2CYdTpYdCYsII(3,3),Cmd2CYsIIYsIICYsII(3,3),             & 
+& Cmd2CYsIIYzIIadjYzII(3,3),Cmd2CYzIITpYzIICYsII(3,3),Cml2YtIICYtIIYtII(3,3),            & 
+& Cml2TpYeCYeYtII(3,3),Cml2TpYzIICYzIIYtII(3,3),CYdCmq2TpYdCYsII(3,3),CYdTpYdCmd2CYsII(3,3),& 
+& CYdTpYdCYdTpYd(3,3),CYdTpYdCYdTpTd(3,3),CYdTpYdCYsIImd2(3,3),CYdTpYdCYsIIYd(3,3),      & 
+& CYdTpYdCYsIIYsII(3,3),CYdTpYdCYsIIYzII(3,3),CYdTpYdCYsIITd(3,3),CYdTpYdCYsIITsII(3,3), & 
+& CYdTpYdCYsIITzII(3,3),CYdTpYdCYzIIWOp(3,3),CYdTpYdCYzIIYtII(3,3),CYdTpYdCYzIITtII(3,3),& 
+& CYdTpYuCYuTpYd(3,3),CYdTpYuCYuTpTd(3,3),CYdTpTdCYdTpYd(3,3),CYdTpTdCYsIIYd(3,3),       & 
+& CYdTpTdCYsIIYsII(3,3),CYdTpTdCYsIIYzII(3,3),CYdTpTdCYzIIYtII(3,3),CYdTpTuCYuTpYd(3,3), & 
+& CYeTpYeCYeWOp(3,3),CYeTpYeCYeYtII(3,3),CYeTpYeCYeTtII(3,3),CYeTpTeCYeYtII(3,3),        & 
+& CYsIImd2YsIICYsII(3,3),CYsIIYdadjYdYsII(3,3),CYsIIYdadjYdTsII(3,3),CYsIIYsIICmd2CYsII(3,3),& 
+& CYsIIYsIICYsIImd2(3,3),CYsIIYsIICYsIIYd(3,3),CYsIIYsIICYsIIYsII(3,3),CYsIIYsIICYsIIYzII(3,3),& 
+& CYsIIYsIICYsIITd(3,3),CYsIIYsIICYsIITsII(3,3),CYsIIYsIICYsIITzII(3,3),CYsIIYsIICYzIIWOp(3,3),& 
+& CYsIIYsIICYzIIYtII(3,3),CYsIIYsIICYzIITtII(3,3),CYsIIYzIIadjYzIIYsII(3,3),             & 
+& CYsIIYzIIadjYzIITsII(3,3),CYsIITdadjYdYsII(3,3),CYsIITsIICYsIIYd(3,3),CYsIITsIICYsIIYsII(3,3),& 
+& CYsIITsIICYsIIYzII(3,3),CYsIITsIICYzIIYtII(3,3),CYsIITsIICTdTpYd(3,3),CYsIITsIICTzIITpYzII(3,3),& 
+& CYsIITzIIadjYzIIYsII(3,3),CYtIIYtIIml2adjYe(3,3),CYtIIYtIIml2adjYzII(3,3),             & 
+& CYtIIYtIIadjYeme2(3,3),CYtIIYtIIadjYeYe(3,3),CYtIIYtIIadjYeTe(3,3),CYtIIYtIIadjYzIImd2(3,3),& 
+& CYtIIYtIIadjYzIIYd(3,3),CYtIIYtIIadjYzIIYsII(3,3),CYtIIYtIIadjYzIIYzII(3,3),           & 
+& CYtIIYtIIadjYzIITd(3,3),CYtIIYtIIadjYzIITsII(3,3),CYtIIYtIIadjYzIITzII(3,3),           & 
+& CYtIIYtIICYtIIWOp(3,3),CYtIIYtIICYtIIYtII(3,3),CYtIIYtIICYtIITtII(3,3),CYtIIYtIICTtIITtII(3,3),& 
+& CYtIICml2YtIIadjYe(3,3),CYtIICml2YtIIadjYzII(3,3),CYtIITtIIadjYeYe(3,3),               & 
+& CYtIITtIIadjYzIIYd(3,3),CYtIITtIIadjYzIIYsII(3,3),CYtIITtIIadjYzIIYzII(3,3),           & 
+& CYtIITtIICYtIIYtII(3,3),CYtIITtIICTtIIYtII(3,3),CYtIITpYeCYeYtII(3,3),CYtIITpYeCYeTtII(3,3),& 
+& CYtIITpYeCTeTtII(3,3),CYtIITpYzIICYzIIYtII(3,3),CYtIITpYzIICYzIITtII(3,3),             & 
+& CYtIITpYzIICTzIITtII(3,3),CYtIITpTeCYeYtII(3,3),CYtIITpTeCTeYtII(3,3),CYtIITpTzIICYzIIYtII(3,3),& 
+& CYtIITpTzIICTzIIYtII(3,3),CYzIIYtIICYtIITpYzII(3,3),CYzIIYtIICYtIITpTzII(3,3),         & 
+& CYzIICml2TpYzIICYsII(3,3),CYzIITtIICYtIITpYzII(3,3),CYzIITpYeCYeTpYzII(3,3),           & 
+& CYzIITpYeCYeTpTzII(3,3),CYzIITpYzIICmd2CYsII(3,3),CYzIITpYzIICYsIImd2(3,3),            & 
+& CYzIITpYzIICYsIIYd(3,3),CYzIITpYzIICYsIIYsII(3,3),CYzIITpYzIICYsIIYzII(3,3),           & 
+& CYzIITpYzIICYsIITd(3,3),CYzIITpYzIICYsIITsII(3,3),CYzIITpYzIICYsIITzII(3,3),           & 
+& CYzIITpYzIICYzIIWOp(3,3),CYzIITpYzIICYzIIYtII(3,3),CYzIITpYzIICYzIITtII(3,3),          & 
+& CYzIITpYzIICYzIITpYzII(3,3),CYzIITpYzIICYzIITpTzII(3,3),CYzIITpTeCYeTpYzII(3,3),       & 
+& CYzIITpTzIICYsIIYd(3,3),CYzIITpTzIICYsIIYsII(3,3),CYzIITpTzIICYsIIYzII(3,3),           & 
+& CYzIITpTzIICYzIIYtII(3,3),CYzIITpTzIICYzIITpYzII(3,3),CTtIIYtIICYtIITtII(3,3)
+
+Complex(dp) :: CTtIITtIICYtIIYtII(3,3),CTtIITpYeCYeTtII(3,3),CTtIITpYzIICYzIITtII(3,3),               & 
+& CTtIITpTeCYeYtII(3,3),CTtIITpTzIICYzIIYtII(3,3),TdadjYdYdadjTd(3,3),TdadjYdYsIICTsII(3,3),& 
+& TdadjYdCYsIIYd(3,3),TdadjYdCYsIIYzII(3,3),TdadjYuYuadjTd(3,3),TdadjTdYdadjYd(3,3),     & 
+& TdadjTuYuadjYd(3,3),TeadjYeYeadjTe(3,3),TeadjYzIIYzIIadjTe(3,3),TeadjTeYeadjYe(3,3),   & 
+& TeadjTzIIYzIIadjYe(3,3),TeCYtIIYtIIadjTe(3,3),TeCTtIIYtIIadjYe(3,3),TsIIYdadjTdCYsII(3,3),& 
+& TsIIYzIIadjTzIICYsII(3,3),TsIICYdTpYdCTsII(3,3),TsIICYsIIYsIICTsII(3,3),               & 
+& TsIICYzIITpYzIICTsII(3,3),TsIICTdTpYdCYsII(3,3),TsIICTsIIYsIICYsII(3,3),               & 
+& TsIICTzIITpYzIICYsII(3,3),TuadjYdYdadjTu(3,3),TuadjYuYuadjTu(3,3),TuadjTdYdadjYu(3,3), & 
+& TuadjTuYuadjYu(3,3),TzIIadjYeYeadjTzII(3,3),TzIIadjYzIIYsIICTsII(3,3),TzIIadjYzIIYzIIadjTzII(3,3),& 
+& TzIIadjYzIICYsIIYd(3,3),TzIIadjYzIICYsIIYzII(3,3),TzIIadjTeYeadjYzII(3,3),             & 
+& TzIIadjTzIIYzIIadjYzII(3,3),TzIICYtIIYtIIadjTzII(3,3),TzIICTtIIYtIIadjYzII(3,3),       & 
+& TpYeCme2CYeYtII(3,3),TpYeCYeYtIIml2(3,3),TpYeCYeCml2YtII(3,3),TpYzIICmd2CYzIIYtII(3,3),& 
+& TpYzIICYzIIYtIIml2(3,3),TpYzIICYzIICml2YtII(3,3),md2YdadjYdYdadjYd(3,3),               & 
+& md2YdadjYdYsIICYsII(3,3),md2YdadjYdYzIIadjYzII(3,3),md2YdadjYuYuadjYd(3,3),            & 
+& md2YsIICYdTpYdCYsII(3,3),md2YsIICYsIIYdadjYd(3,3),md2YsIICYsIIYsIICYsII(3,3),          & 
+& md2YsIICYsIIYzIIadjYzII(3,3),md2YsIICYzIITpYzIICYsII(3,3),md2YzIIadjYeYeadjYzII(3,3),  & 
+& md2YzIIadjYzIIYdadjYd(3,3),md2YzIIadjYzIIYsIICYsII(3,3),md2YzIIadjYzIIYzIIadjYzII(3,3),& 
+& md2YzIICYtIIYtIIadjYzII(3,3),me2YeadjYeYeadjYe(3,3),me2YeadjYzIIYzIIadjYe(3,3),        & 
+& me2YeCYtIIYtIIadjYe(3,3),ml2adjYeYeadjYeYe(3,3),ml2adjYeYeadjYzIIYzII(3,3),            & 
+& ml2adjYeYeCYtIIYtII(3,3),ml2adjYzIIYdadjYdYzII(3,3),ml2adjYzIIYsIICYsIIYzII(3,3),      & 
+& ml2adjYzIIYzIIadjYeYe(3,3),ml2adjYzIIYzIIadjYzIIYzII(3,3),ml2adjYzIIYzIICYtIIYtII(3,3),& 
+& ml2CYtIIYtIIadjYeYe(3,3),ml2CYtIIYtIIadjYzIIYzII(3,3),ml2CYtIIYtIICYtIIYtII(3,3),      & 
+& ml2CYtIITpYeCYeYtII(3,3),ml2CYtIITpYzIICYzIIYtII(3,3),mq2adjYdYdadjYdYd(3,3),          & 
+& mq2adjYdYdadjYuYu(3,3),mq2adjYdYsIICYsIIYd(3,3),mq2adjYdYzIIadjYzIIYd(3,3),            & 
+& mq2adjYuYuadjYdYd(3,3),mq2adjYuYuadjYuYu(3,3),mu2YuadjYdYdadjYu(3,3),mu2YuadjYuYuadjYu(3,3),& 
+& WOpadjYeYeadjYeYe(3,3),WOpadjYzIIYdadjYdYzII(3,3),WOpadjYzIIYsIICYsIIYzII(3,3),        & 
+& WOpadjYzIIYzIIadjYzIIYzII(3,3),WOpCYtIIYtIICYtIIYtII(3,3),WOpCYtIITpYeCYeYtII(3,3),    & 
+& WOpCYtIITpYzIICYzIIYtII(3,3),Ydmq2adjYdYdadjYd(3,3),Ydmq2adjYuYuadjYd(3,3),            & 
+& YdadjYdmd2YdadjYd(3,3),YdadjYdYdmq2adjYd(3,3),YdadjYdYdadjYdmd2(3,3),YdadjYdYdadjYdYd(3,3),& 
+& YdadjYdYdadjYdYsII(3,3),YdadjYdYdadjYdYzII(3,3),YdadjYdYdadjYdTd(3,3),YdadjYdYdadjYdTsII(3,3),& 
+& YdadjYdYdadjYdTzII(3,3),YdadjYdYsIICmd2CYsII(3,3),YdadjYdYsIICYsIIYd(3,3),             & 
+& YdadjYdYsIICYsIITd(3,3),YdadjYdYzIIadjYzIIYd(3,3),YdadjYdYzIIadjYzIITd(3,3),           & 
+& YdadjYdTdadjYdYd(3,3),YdadjYdTdadjYdYsII(3,3),YdadjYdTdadjYdYzII(3,3),YdadjYdTsIICYsIIYd(3,3),& 
+& YdadjYdTzIIadjYzIIYd(3,3),YdadjYumu2YuadjYd(3,3),YdadjYuYumq2adjYd(3,3),               & 
+& YdadjYuYuadjYdmd2(3,3),YdadjYuYuadjYdYd(3,3),YdadjYuYuadjYdYsII(3,3),YdadjYuYuadjYdYzII(3,3),& 
+& YdadjYuYuadjYdTd(3,3),YdadjYuYuadjYdTsII(3,3),YdadjYuYuadjYdTzII(3,3),YdadjYuYuadjYuYu(3,3),& 
+& YdadjYuYuadjYuTu(3,3),YdadjYuTuadjYdYd(3,3),YdadjYuTuadjYdYsII(3,3),YdadjYuTuadjYdYzII(3,3)
+
+Complex(dp) :: YdadjYuTuadjYuYu(3,3),Yeml2adjYeYeadjYe(3,3),Yeml2adjYzIIYzIIadjYe(3,3),               & 
+& Yeml2CYtIIYtIIadjYe(3,3),YeadjYeme2YeadjYe(3,3),YeadjYeYeml2adjYe(3,3),YeadjYeYeadjYeme2(3,3),& 
+& YeadjYeYeadjYeYe(3,3),YeadjYeYeadjYeTe(3,3),YeadjYeTeadjYeYe(3,3),YeadjYzIImd2YzIIadjYe(3,3),& 
+& YeadjYzIIYdadjYdYzII(3,3),YeadjYzIIYdadjYdTzII(3,3),YeadjYzIIYsIICYsIIYzII(3,3),       & 
+& YeadjYzIIYsIICYsIITzII(3,3),YeadjYzIIYzIIml2adjYe(3,3),YeadjYzIIYzIIadjYeme2(3,3),     & 
+& YeadjYzIIYzIIadjYeYe(3,3),YeadjYzIIYzIIadjYeTe(3,3),YeadjYzIIYzIIadjYzIIYzII(3,3),     & 
+& YeadjYzIIYzIIadjYzIITzII(3,3),YeadjYzIITdadjYdYzII(3,3),YeadjYzIITsIICYsIIYzII(3,3),   & 
+& YeadjYzIITzIIadjYeYe(3,3),YeadjYzIITzIIadjYzIIYzII(3,3),YeCYtIIYtIIml2adjYe(3,3),      & 
+& YeCYtIIYtIIadjYeme2(3,3),YeCYtIIYtIIadjYeYe(3,3),YeCYtIIYtIIadjYeTe(3,3),              & 
+& YeCYtIIYtIICYtIIYtII(3,3),YeCYtIIYtIICYtIITtII(3,3),YeCYtIICml2YtIIadjYe(3,3),         & 
+& YeCYtIITtIIadjYeYe(3,3),YeCYtIITtIICYtIIYtII(3,3),YeCYtIITpYeCYeYtII(3,3),             & 
+& YeCYtIITpYeCYeTtII(3,3),YeCYtIITpYzIICYzIIYtII(3,3),YeCYtIITpYzIICYzIITtII(3,3),       & 
+& YeCYtIITpTeCYeYtII(3,3),YeCYtIITpTzIICYzIIYtII(3,3),YsIICmd2CYdTpYdCYsII(3,3),         & 
+& YsIICmd2CYsIIYsIICYsII(3,3),YsIICmd2CYsIIYzIIadjYzII(3,3),YsIICmd2CYzIITpYzIICYsII(3,3),& 
+& YsIICYdCmq2TpYdCYsII(3,3),YsIICYdTpYdCmd2CYsII(3,3),YsIICYdTpYdCYdTpYd(3,3),           & 
+& YsIICYdTpYdCYdTpTd(3,3),YsIICYdTpYdCYsIImd2(3,3),YsIICYdTpYdCYsIIYd(3,3),              & 
+& YsIICYdTpYdCYsIIYsII(3,3),YsIICYdTpYdCYsIIYzII(3,3),YsIICYdTpYdCYsIITd(3,3),           & 
+& YsIICYdTpYdCYsIITsII(3,3),YsIICYdTpYdCYsIITzII(3,3),YsIICYdTpYuCYuTpYd(3,3),           & 
+& YsIICYdTpYuCYuTpTd(3,3),YsIICYdTpTdCYdTpYd(3,3),YsIICYdTpTdCYsIIYd(3,3),               & 
+& YsIICYdTpTdCYsIIYsII(3,3),YsIICYdTpTdCYsIIYzII(3,3),YsIICYdTpTuCYuTpYd(3,3),           & 
+& YsIICYsIImd2YsIICYsII(3,3),YsIICYsIIYdadjYdYsII(3,3),YsIICYsIIYdadjYdTsII(3,3),        & 
+& YsIICYsIIYsIICmd2CYsII(3,3),YsIICYsIIYsIICYsIImd2(3,3),YsIICYsIIYsIICYsIIYd(3,3),      & 
+& YsIICYsIIYsIICYsIIYsII(3,3),YsIICYsIIYsIICYsIIYzII(3,3),YsIICYsIIYsIICYsIITd(3,3),     & 
+& YsIICYsIIYsIICYsIITsII(3,3),YsIICYsIIYsIICYsIITzII(3,3),YsIICYsIIYzIIadjYzIIYsII(3,3), & 
+& YsIICYsIIYzIIadjYzIITsII(3,3),YsIICYsIITdadjYdYsII(3,3),YsIICYsIITsIICYsIIYd(3,3),     & 
+& YsIICYsIITsIICYsIIYsII(3,3),YsIICYsIITsIICYsIIYzII(3,3),YsIICYsIITzIIadjYzIIYsII(3,3), & 
+& YsIICYzIIYtIICYtIITpYzII(3,3),YsIICYzIIYtIICYtIITpTzII(3,3),YsIICYzIICml2TpYzIICYsII(3,3),& 
+& YsIICYzIITtIICYtIITpYzII(3,3),YsIICYzIITpYeCYeTpYzII(3,3),YsIICYzIITpYeCYeTpTzII(3,3), & 
+& YsIICYzIITpYzIICmd2CYsII(3,3),YsIICYzIITpYzIICYsIImd2(3,3),YsIICYzIITpYzIICYsIIYd(3,3),& 
+& YsIICYzIITpYzIICYsIIYsII(3,3),YsIICYzIITpYzIICYsIIYzII(3,3),YsIICYzIITpYzIICYsIITd(3,3),& 
+& YsIICYzIITpYzIICYsIITsII(3,3),YsIICYzIITpYzIICYsIITzII(3,3),YsIICYzIITpYzIICYzIITpYzII(3,3),& 
+& YsIICYzIITpYzIICYzIITpTzII(3,3),YsIICYzIITpTeCYeTpYzII(3,3),YsIICYzIITpTzIICYsIIYd(3,3),& 
+& YsIICYzIITpTzIICYsIIYsII(3,3),YsIICYzIITpTzIICYsIIYzII(3,3),YsIICYzIITpTzIICYzIITpYzII(3,3),& 
+& YsIITdadjYdCYsIIYd(3,3),YsIITdadjYdCYsIIYzII(3,3),YsIITzIIadjYzIICYsIIYd(3,3),         & 
+& YsIITzIIadjYzIICYsIIYzII(3,3),YtIIadjYeYeadjYeYe(3,3),YtIIadjYeYeadjYeTe(3,3),         & 
+& YtIIadjYeYeCYtIIWOp(3,3),YtIIadjYeYeCYtIIYtII(3,3),YtIIadjYeYeCYtIITtII(3,3),          & 
+& YtIIadjYeTeadjYeYe(3,3),YtIIadjYeTeCYtIIYtII(3,3),YtIIadjYzIIYdadjYdYzII(3,3)
+
+Complex(dp) :: YtIIadjYzIIYdadjYdTzII(3,3),YtIIadjYzIIYsIICYsIIYzII(3,3),YtIIadjYzIIYsIICYsIITzII(3,3),& 
+& YtIIadjYzIIYzIIadjYzIIYzII(3,3),YtIIadjYzIIYzIIadjYzIITzII(3,3),YtIIadjYzIIYzIICYtIIWOp(3,3),& 
+& YtIIadjYzIIYzIICYtIIYtII(3,3),YtIIadjYzIIYzIICYtIICml2(3,3),YtIIadjYzIIYzIICYtIITtII(3,3),& 
+& YtIIadjYzIITdadjYdYzII(3,3),YtIIadjYzIITsIICYsIIYzII(3,3),YtIIadjYzIITzIIadjYzIIYzII(3,3),& 
+& YtIIadjYzIITzIICYtIIYtII(3,3),YtIICYtIIYtIICYtIIWOp(3,3),YtIICYtIIYtIICYtIIYtII(3,3),  & 
+& YtIICYtIIYtIICYtIITtII(3,3),YtIICYtIITtIICYtIIYtII(3,3),YtIICYtIITpYeCYeYtII(3,3),     & 
+& YtIICYtIITpYeCYeTtII(3,3),YtIICYtIITpYzIICYzIIYtII(3,3),YtIICYtIITpYzIICYzIITtII(3,3), & 
+& YtIICYtIITpTeCYeYtII(3,3),YtIICYtIITpTzIICYzIIYtII(3,3),Yumq2adjYdYdadjYu(3,3),        & 
+& Yumq2adjYuYuadjYu(3,3),YuadjYdmd2YdadjYu(3,3),YuadjYdYdmq2adjYu(3,3),YuadjYdYdadjYdYd(3,3),& 
+& YuadjYdYdadjYdTd(3,3),YuadjYdYdadjYumu2(3,3),YuadjYdYdadjYuYu(3,3),YuadjYdYdadjYuTu(3,3),& 
+& YuadjYdYsIICYsIIYd(3,3),YuadjYdYsIICYsIITd(3,3),YuadjYdYzIIadjYzIIYd(3,3),             & 
+& YuadjYdYzIIadjYzIITd(3,3),YuadjYdTdadjYdYd(3,3),YuadjYdTdadjYuYu(3,3),YuadjYdTsIICYsIIYd(3,3),& 
+& YuadjYdTzIIadjYzIIYd(3,3),YuadjYumu2YuadjYu(3,3),YuadjYuYumq2adjYu(3,3),               & 
+& YuadjYuYuadjYumu2(3,3),YuadjYuYuadjYuYu(3,3),YuadjYuYuadjYuTu(3,3),YuadjYuTuadjYuYu(3,3),& 
+& YzIIml2adjYeYeadjYzII(3,3),YzIIml2adjYzIIYzIIadjYzII(3,3),YzIIml2CYtIIYtIIadjYzII(3,3),& 
+& YzIIadjYeme2YeadjYzII(3,3),YzIIadjYeYeml2adjYzII(3,3),YzIIadjYeYeadjYeYe(3,3),         & 
+& YzIIadjYeYeadjYeTe(3,3),YzIIadjYeYeadjYzIImd2(3,3),YzIIadjYeYeadjYzIIYd(3,3),          & 
+& YzIIadjYeYeadjYzIIYsII(3,3),YzIIadjYeYeadjYzIIYzII(3,3),YzIIadjYeYeadjYzIITd(3,3),     & 
+& YzIIadjYeYeadjYzIITsII(3,3),YzIIadjYeYeadjYzIITzII(3,3),YzIIadjYeTeadjYeYe(3,3),       & 
+& YzIIadjYeTeadjYzIIYd(3,3),YzIIadjYeTeadjYzIIYsII(3,3),YzIIadjYeTeadjYzIIYzII(3,3),     & 
+& YzIIadjYzIImd2YzIIadjYzII(3,3),YzIIadjYzIIYdadjYdYzII(3,3),YzIIadjYzIIYdadjYdTzII(3,3),& 
+& YzIIadjYzIIYsIICYsIIYzII(3,3),YzIIadjYzIIYsIICYsIITzII(3,3),YzIIadjYzIIYzIIml2adjYzII(3,3),& 
+& YzIIadjYzIIYzIIadjYzIImd2(3,3),YzIIadjYzIIYzIIadjYzIIYd(3,3),YzIIadjYzIIYzIIadjYzIIYsII(3,3),& 
+& YzIIadjYzIIYzIIadjYzIIYzII(3,3),YzIIadjYzIIYzIIadjYzIITd(3,3),YzIIadjYzIIYzIIadjYzIITsII(3,3),& 
+& YzIIadjYzIIYzIIadjYzIITzII(3,3),YzIIadjYzIITdadjYdYzII(3,3),YzIIadjYzIITsIICYsIIYzII(3,3),& 
+& YzIIadjYzIITzIIadjYzIIYd(3,3),YzIIadjYzIITzIIadjYzIIYsII(3,3),YzIIadjYzIITzIIadjYzIIYzII(3,3),& 
+& YzIICYtIIYtIIml2adjYzII(3,3),YzIICYtIIYtIIadjYzIImd2(3,3),YzIICYtIIYtIIadjYzIIYd(3,3), & 
+& YzIICYtIIYtIIadjYzIIYsII(3,3),YzIICYtIIYtIIadjYzIIYzII(3,3),YzIICYtIIYtIIadjYzIITd(3,3),& 
+& YzIICYtIIYtIIadjYzIITsII(3,3),YzIICYtIIYtIIadjYzIITzII(3,3),YzIICYtIIYtIICYtIIYtII(3,3),& 
+& YzIICYtIIYtIICYtIITtII(3,3),YzIICYtIICml2YtIIadjYzII(3,3),YzIICYtIITtIIadjYzIIYd(3,3), & 
+& YzIICYtIITtIIadjYzIIYsII(3,3),YzIICYtIITtIIadjYzIIYzII(3,3),YzIICYtIITtIICYtIIYtII(3,3),& 
+& YzIICYtIITpYeCYeYtII(3,3),YzIICYtIITpYeCYeTtII(3,3),YzIICYtIITpYzIICYzIIYtII(3,3),     & 
+& YzIICYtIITpYzIICYzIITtII(3,3),YzIICYtIITpTeCYeYtII(3,3),YzIICYtIITpTzIICYzIIYtII(3,3), & 
+& adjYdmd2YdadjYdYd(3,3),adjYdmd2YsIICYsIIYd(3,3),adjYdmd2YzIIadjYzIIYd(3,3),            & 
+& adjYdYdmq2adjYdYd(3,3),adjYdYdadjYdmd2Yd(3,3),adjYdYdadjYdYdmq2(3,3),adjYdYsIICmd2CYsIIYd(3,3),& 
+& adjYdYsIICYsIImd2Yd(3,3),adjYdYsIICYsIIYdmq2(3,3),adjYdYzIIml2adjYzIIYd(3,3),          & 
+& adjYdYzIIadjYzIImd2Yd(3,3),adjYdYzIIadjYzIIYdmq2(3,3),adjYeme2YeadjYeYe(3,3)
+
+Complex(dp) :: adjYeYeml2adjYeYe(3,3),adjYeYeadjYeme2Ye(3,3),adjYeYeadjYeYeml2(3,3),adjYumu2YuadjYuYu(3,3),& 
+& adjYuYumq2adjYuYu(3,3),adjYuYuadjYumu2Yu(3,3),adjYuYuadjYuYumq2(3,3),adjYzIImd2YdadjYdYzII(3,3),& 
+& adjYzIImd2YsIICYsIIYzII(3,3),adjYzIImd2YzIIadjYzIIYzII(3,3),adjYzIIYdmq2adjYdYzII(3,3),& 
+& adjYzIIYdadjYdmd2YzII(3,3),adjYzIIYdadjYdYzIIml2(3,3),adjYzIIYsIICmd2CYsIIYzII(3,3),   & 
+& adjYzIIYsIICYsIImd2YzII(3,3),adjYzIIYsIICYsIIYzIIml2(3,3),adjYzIIYzIIml2adjYzIIYzII(3,3),& 
+& adjYzIIYzIIadjYzIImd2YzII(3,3),adjYzIIYzIIadjYzIIYzIIml2(3,3),CYtIIYtIIml2CYtIIYtII(3,3),& 
+& CYtIIYtIICYtIIYtIIml2(3,3),CYtIIYtIICYtIICml2YtII(3,3),CYtIICml2YtIICYtIIYtII(3,3),    & 
+& CYtIICml2TpYeCYeYtII(3,3),CYtIICml2TpYzIICYzIIYtII(3,3),CYtIITpYeCme2CYeYtII(3,3),     & 
+& CYtIITpYeCYeYtIIml2(3,3),CYtIITpYeCYeCml2YtII(3,3),CYtIITpYzIICmd2CYzIIYtII(3,3),      & 
+& CYtIITpYzIICYzIIYtIIml2(3,3),CYtIITpYzIICYzIICml2YtII(3,3),TdadjYdYdadjYdYd(3,3),      & 
+& TdadjYdYdadjYdYsII(3,3),TdadjYdYdadjYdYzII(3,3),TdadjYdYsIICYsIIYd(3,3),               & 
+& TdadjYdYzIIadjYzIIYd(3,3),TdadjYuYuadjYdYd(3,3),TdadjYuYuadjYdYsII(3,3),               & 
+& TdadjYuYuadjYdYzII(3,3),TdadjYuYuadjYuYu(3,3),TeadjYeYeadjYeYe(3,3),TeadjYzIIYdadjYdYzII(3,3),& 
+& TeadjYzIIYsIICYsIIYzII(3,3),TeadjYzIIYzIIadjYeYe(3,3),TeadjYzIIYzIIadjYzIIYzII(3,3),   & 
+& TeCYtIIYtIIadjYeYe(3,3),TeCYtIIYtIICYtIIYtII(3,3),TeCYtIITpYeCYeYtII(3,3),             & 
+& TeCYtIITpYzIICYzIIYtII(3,3),TsIICYdTpYdCYdTpYd(3,3),TsIICYdTpYdCYsIIYd(3,3),           & 
+& TsIICYdTpYdCYsIIYsII(3,3),TsIICYdTpYdCYsIIYzII(3,3),TsIICYdTpYuCYuTpYd(3,3),           & 
+& TsIICYsIIYdadjYdYsII(3,3),TsIICYsIIYsIICYsIIYd(3,3),TsIICYsIIYsIICYsIIYsII(3,3),       & 
+& TsIICYsIIYsIICYsIIYzII(3,3),TsIICYsIIYzIIadjYzIIYsII(3,3),TsIICYzIIYtIICYtIITpYzII(3,3),& 
+& TsIICYzIITpYeCYeTpYzII(3,3),TsIICYzIITpYzIICYsIIYd(3,3),TsIICYzIITpYzIICYsIIYsII(3,3), & 
+& TsIICYzIITpYzIICYsIIYzII(3,3),TsIICYzIITpYzIICYzIITpYzII(3,3),TtIIadjYeYeadjYeYe(3,3), & 
+& TtIIadjYeYeCYtIIYtII(3,3),TtIIadjYzIIYdadjYdYzII(3,3),TtIIadjYzIIYsIICYsIIYzII(3,3),   & 
+& TtIIadjYzIIYzIIadjYzIIYzII(3,3),TtIIadjYzIIYzIICYtIIYtII(3,3),TtIICYtIIYtIICYtIIYtII(3,3),& 
+& TtIICYtIITpYeCYeYtII(3,3),TtIICYtIITpYzIICYzIIYtII(3,3),TuadjYdYdadjYdYd(3,3),         & 
+& TuadjYdYdadjYuYu(3,3),TuadjYdYsIICYsIIYd(3,3),TuadjYdYzIIadjYzIIYd(3,3),               & 
+& TuadjYuYuadjYuYu(3,3),TzIIadjYeYeadjYeYe(3,3),TzIIadjYeYeadjYzIIYd(3,3),               & 
+& TzIIadjYeYeadjYzIIYsII(3,3),TzIIadjYeYeadjYzIIYzII(3,3),TzIIadjYzIIYdadjYdYzII(3,3),   & 
+& TzIIadjYzIIYsIICYsIIYzII(3,3),TzIIadjYzIIYzIIadjYzIIYd(3,3),TzIIadjYzIIYzIIadjYzIIYsII(3,3),& 
+& TzIIadjYzIIYzIIadjYzIIYzII(3,3),TzIICYtIIYtIIadjYzIIYd(3,3),TzIICYtIIYtIIadjYzIIYsII(3,3),& 
+& TzIICYtIIYtIIadjYzIIYzII(3,3),TzIICYtIIYtIICYtIIYtII(3,3),TzIICYtIITpYeCYeYtII(3,3),   & 
+& TzIICYtIITpYzIICYzIIYtII(3,3),TpYeCYeTpYeCYeWOp(3,3),TpYeCYeTpYeCYeYtII(3,3),          & 
+& TpYeCYeTpYeCYeTtII(3,3),TpYeCYeTpTeCYeYtII(3,3),TpYzIICYdTpYdCYzIIWOp(3,3),            & 
+& TpYzIICYdTpYdCYzIIYtII(3,3),TpYzIICYdTpYdCYzIITtII(3,3),TpYzIICYdTpTdCYzIIYtII(3,3),   & 
+& TpYzIICYsIIYsIICYzIIWOp(3,3),TpYzIICYsIIYsIICYzIIYtII(3,3),TpYzIICYsIIYsIICYzIITtII(3,3),& 
+& TpYzIICYsIITsIICYzIIYtII(3,3),TpYzIICYzIITpYzIICYzIIWOp(3,3),TpYzIICYzIITpYzIICYzIIYtII(3,3),& 
+& TpYzIICYzIITpYzIICYzIITtII(3,3),TpYzIICYzIITpTzIICYzIIYtII(3,3),TpTeCYeTpYeCYeYtII(3,3),& 
+& TpTzIICYdTpYdCYzIIYtII(3,3),TpTzIICYsIIYsIICYzIIYtII(3,3),TpTzIICYzIITpYzIICYzIIYtII(3,3)
+
+Complex(dp) :: Trmd2,Trme2,Trml2,Trmq2,Trmu2,TrYdadjYd,TrYeadjYe,TrYsIICYsII,TrYtIICYtII,            & 
+& TrYuadjYu,TrYzIIadjYzII,TradjYdTd,TradjYeTe,TradjYuTu,TradjYzIITzII,TrCYsIITsII,       & 
+& TrCYtIITtII,TrCTdTpTd,TrCTeTpTe,TrCTsIITsII,TrCTtIITtII,TrCTuTpTu,TrCTzIITpTzII,       & 
+& Trmd2YdadjYd,Trmd2YsIICYsII,Trmd2YzIIadjYzII,Trme2YeadjYe,Trml2adjYeYe,Trml2adjYzIIYzII,& 
+& Trml2CYtIIYtII,Trmq2adjYdYd,Trmq2adjYuYu,Trmu2YuadjYu
+
+Complex(dp) :: TrYsIICTsII,TrYtIICTtII,TrCTdTpYd,TrCTeTpYe,TrCTuTpYu,TrCTzIITpYzII,Trmd2CYsIIYsII,   & 
+& Trml2YtIICYtII,TrYdadjYdCmd2,TrYdCmq2adjYd,TrYeadjYeCme2,TrYeCml2adjYe,TrYuadjYuCmu2,  & 
+& TrYuCmq2adjYu,TrYzIIadjYzIICmd2,TrYzIICml2adjYzII,TrYdadjYdYdadjYd,TrYdadjYdYsIICYsII, & 
+& TrYdadjYdYzIIadjYzII,TrYdadjYdTdadjYd,TrYdadjYdTdadjTd,TrYdadjYdTsIICYsII,             & 
+& TrYdadjYdTsIICTsII,TrYdadjYdTzIIadjYzII,TrYdadjYdTzIIadjTzII,TrYdadjYuYuadjYd,         & 
+& TrYdadjYuTuadjYd,TrYdadjYuTuadjTd,TrYdadjTdTdadjYd,TrYdadjTdTsIICYsII,TrYdadjTdTzIIadjYzII,& 
+& TrYdadjTuTuadjYd,TrYeadjYeYeadjYe,TrYeadjYeTeadjYe,TrYeadjYeTeadjTe,TrYeadjYzIIYzIIadjYe,& 
+& TrYeadjYzIITzIIadjYe,TrYeadjYzIITzIIadjTe,TrYeadjTeTeadjYe,TrYeadjTzIITzIIadjYe,       & 
+& TrYeCYtIIYtIIadjYe,TrYeCYtIITtIIadjYe,TrYeCYtIITtIIadjTe,TrYeCTtIITtIIadjYe,           & 
+& TrYsIICYsIIYsIICYsII,TrYsIICYsIIYzIIadjYzII,TrYsIICYsIITdadjYd,TrYsIICYsIITdadjTd,     & 
+& TrYsIICYsIITsIICYsII,TrYsIICYsIITsIICTsII,TrYsIICYsIITzIIadjYzII,TrYsIICYsIITzIIadjTzII,& 
+& TrYsIICTdTpTdCYsII,TrYsIICTsIITdadjYd,TrYsIICTsIITsIICYsII,TrYsIICTsIITzIIadjYzII,     & 
+& TrYsIICTzIITpTzIICYsII,TrYtIIadjYeTeCYtII,TrYtIIadjYeTeCTtII,TrYtIIadjYzIIYzIICYtII,   & 
+& TrYtIIadjYzIITzIICYtII,TrYtIIadjYzIITzIICTtII,TrYtIIadjTeTeCYtII,TrYtIIadjTzIITzIICYtII,& 
+& TrYtIICYtIIYtIICYtII,TrYtIICYtIITtIICYtII,TrYtIICYtIITtIICTtII,TrYtIICYtIITpTeCTe,     & 
+& TrYtIICYtIITpTzIICTzII,TrYtIICTtIITtIICYtII,TrYuadjYdTdadjYu,TrYuadjYdTdadjTu,         & 
+& TrYuadjYuYuadjYu,TrYuadjYuTuadjYu,TrYuadjYuTuadjTu,TrYuadjTdTdadjYu,TrYuadjTuTuadjYu,  & 
+& TrYzIIadjYeTeadjYzII,TrYzIIadjYeTeadjTzII,TrYzIIadjYzIIYzIIadjYzII,TrYzIIadjYzIITdadjYd,& 
+& TrYzIIadjYzIITdadjTd,TrYzIIadjYzIITsIICYsII,TrYzIIadjYzIITsIICTsII,TrYzIIadjYzIITzIIadjYzII,& 
+& TrYzIIadjYzIITzIIadjTzII,TrYzIIadjTeTeadjYzII,TrYzIIadjTzIITdadjYd,TrYzIIadjTzIITsIICYsII,& 
+& TrYzIIadjTzIITzIIadjYzII,TrYzIICYtIITtIIadjYzII,TrYzIICYtIITtIIadjTzII,TrYzIICTtIITtIIadjYzII,& 
+& TrCYsIITsIICTdTpYd,TrCYsIITsIICTzIITpYzII,TrCYtIITpYeCTeTtII,TrCYtIITpYzIICTzIITtII,   & 
+& Trmd2YdadjYdYdadjYd,Trmd2YdadjYdYsIICYsII,Trmd2YdadjYdYzIIadjYzII,Trmd2YdadjYuYuadjYd, & 
+& Trmd2YsIICYsIIYdadjYd,Trmd2YsIICYsIIYsIICYsII,Trmd2YsIICYsIIYzIIadjYzII,               & 
+& Trmd2YzIIadjYeYeadjYzII,Trmd2YzIIadjYzIIYdadjYd,Trmd2YzIIadjYzIIYsIICYsII,             & 
+& Trmd2YzIIadjYzIIYzIIadjYzII,Trmd2YzIICYtIIYtIIadjYzII,Trme2YeadjYeYeadjYe,             & 
+& Trme2YeadjYzIIYzIIadjYe,Trme2YeCYtIIYtIIadjYe,Trml2adjYeYeadjYeYe,Trml2adjYeYeadjYzIIYzII,& 
+& Trml2adjYeYeCYtIIYtII,Trml2adjYzIIYdadjYdYzII,Trml2adjYzIIYsIICYsIIYzII,               & 
+& Trml2adjYzIIYzIIadjYeYe,Trml2adjYzIIYzIIadjYzIIYzII,Trml2adjYzIIYzIICYtIIYtII,         & 
+& Trml2CYtIIYtIIadjYeYe,Trml2CYtIIYtIIadjYzIIYzII,Trml2CYtIIYtIICYtIIYtII,               & 
+& Trmq2adjYdYdadjYdYd,Trmq2adjYdYdadjYuYu,Trmq2adjYdYsIICYsIIYd,Trmq2adjYdYzIIadjYzIIYd, & 
+& Trmq2adjYuYuadjYdYd,Trmq2adjYuYuadjYuYu,Trmu2YuadjYdYdadjYu,Trmu2YuadjYuYuadjYu,       & 
+& TrYdadjYdYsIICmd2CYsII,TrYeCYtIICml2YtIIadjYe,TrYsIICmd2CYsIIYzIIadjYzII,              & 
+& TrYtIIadjYzIIYzIICYtIICml2
+
+Real(dp) :: g1p2,g1p3,g2p2,g2p3,g3p2,g3p3
+
+Complex(dp) :: sqrt3ov5,ooSqrt15,sqrt15,L1IIp2,L2IIp2
+
+Real(dp) :: g1p4,g2p4,g3p4
+
+Complex(dp) :: CL1IIp2,CL2IIp2
+
+Iname = Iname +1 
+NameOfUnit(Iname) = 'rge365' 
+ 
+OnlyDiagonal = .Not.GenerationMixing 
+q = t 
+ 
+Call GToParameters365(gy,g1,g2,g3,Yu,Yd,Ye,YtII,YsII,YzII,L1II,L2II,Mu,               & 
+& MTII,MZII,MSII,Tu,Td,Te,TtII,TsII,TzII,TL1II,TL2II,Bmu,BMTII,BMZII,BMSII,              & 
+& mq2,ml2,mHd2,mHu2,md2,mu2,me2,mt2,mtb2,ms2,msb2,mzz2,mzb2,M1,M2,M3,WOp)
+
+AbsL1II = Abs(L1II)**2
+AbsL2II = Abs(L2II)**2
+AbsTL1II = Abs(TL1II)**2
+AbsTL2II = Abs(TL2II)**2
+AbsM1 = Abs(M1)**2
+AbsM2 = Abs(M2)**2
+AbsM3 = Abs(M3)**2
+Call Adjungate(Yu,adjYu)
+Call Adjungate(Yd,adjYd)
+Call Adjungate(Ye,adjYe)
+Call Adjungate(YtII,adjYtII)
+Call Adjungate(YsII,adjYsII)
+Call Adjungate(YzII,adjYzII)
+Call Adjungate(Tu,adjTu)
+Call Adjungate(Td,adjTd)
+Call Adjungate(Te,adjTe)
+Call Adjungate(TtII,adjTtII)
+Call Adjungate(TsII,adjTsII)
+Call Adjungate(TzII,adjTzII)
+Call Adjungate(WOp,adjWOp)
+ md2Yd = Matmul2(md2,Yd,OnlyDiagonal) 
+ md2YzII = Matmul2(md2,YzII,OnlyDiagonal) 
+ me2Ye = Matmul2(me2,Ye,OnlyDiagonal) 
+ ml2adjYe = Matmul2(ml2,adjYe,OnlyDiagonal) 
+ ml2adjYzII = Matmul2(ml2,adjYzII,OnlyDiagonal) 
+ mq2adjYd = Matmul2(mq2,adjYd,OnlyDiagonal) 
+ mq2adjYu = Matmul2(mq2,adjYu,OnlyDiagonal) 
+ mu2Yu = Matmul2(mu2,Yu,OnlyDiagonal) 
+ Ydmq2 = Matmul2(Yd,mq2,OnlyDiagonal) 
+ YdadjYd = Matmul2(Yd,adjYd,OnlyDiagonal) 
+Forall(i2=1:3)  YdadjYd(i2,i2) =  Real(YdadjYd(i2,i2),dp) 
+ Yeml2 = Matmul2(Ye,ml2,OnlyDiagonal) 
+ YeadjYe = Matmul2(Ye,adjYe,OnlyDiagonal) 
+Forall(i2=1:3)  YeadjYe(i2,i2) =  Real(YeadjYe(i2,i2),dp) 
+ YsIICYsII = Matmul2(YsII,adjYsII,OnlyDiagonal) 
+ YtIIml2 = Matmul2(YtII,ml2,OnlyDiagonal) 
+ YtIICYtII = Matmul2(YtII,adjYtII,OnlyDiagonal) 
+ Yumq2 = Matmul2(Yu,mq2,OnlyDiagonal) 
+ YuadjYu = Matmul2(Yu,adjYu,OnlyDiagonal) 
+Forall(i2=1:3)  YuadjYu(i2,i2) =  Real(YuadjYu(i2,i2),dp) 
+ YzIIml2 = Matmul2(YzII,ml2,OnlyDiagonal) 
+ YzIIadjYzII = Matmul2(YzII,adjYzII,OnlyDiagonal) 
+Forall(i2=1:3)  YzIIadjYzII(i2,i2) =  Real(YzIIadjYzII(i2,i2),dp) 
+ adjYdmd2 = Matmul2(adjYd,md2,OnlyDiagonal) 
+ adjYdYd = Matmul2(adjYd,Yd,OnlyDiagonal) 
+Forall(i2=1:3)  adjYdYd(i2,i2) =  Real(adjYdYd(i2,i2),dp) 
+ adjYdYsII = Matmul2(adjYd,YsII,OnlyDiagonal) 
+ adjYdYzII = Matmul2(adjYd,YzII,OnlyDiagonal) 
+ adjYdTd = Matmul2(adjYd,Td,OnlyDiagonal) 
+ adjYdTsII = Matmul2(adjYd,TsII,OnlyDiagonal) 
+ adjYdTzII = Matmul2(adjYd,TzII,OnlyDiagonal) 
+ adjYeme2 = Matmul2(adjYe,me2,OnlyDiagonal) 
+ adjYeYe = Matmul2(adjYe,Ye,OnlyDiagonal) 
+Forall(i2=1:3)  adjYeYe(i2,i2) =  Real(adjYeYe(i2,i2),dp) 
+ adjYeTe = Matmul2(adjYe,Te,OnlyDiagonal) 
+ adjYumu2 = Matmul2(adjYu,mu2,OnlyDiagonal) 
+ adjYuYu = Matmul2(adjYu,Yu,OnlyDiagonal) 
+Forall(i2=1:3)  adjYuYu(i2,i2) =  Real(adjYuYu(i2,i2),dp) 
+ adjYuTu = Matmul2(adjYu,Tu,OnlyDiagonal) 
+ adjYzIImd2 = Matmul2(adjYzII,md2,OnlyDiagonal) 
+ adjYzIIYd = Matmul2(adjYzII,Yd,OnlyDiagonal) 
+ adjYzIIYsII = Matmul2(adjYzII,YsII,OnlyDiagonal) 
+ adjYzIIYzII = Matmul2(adjYzII,YzII,OnlyDiagonal) 
+Forall(i2=1:3)  adjYzIIYzII(i2,i2) =  Real(adjYzIIYzII(i2,i2),dp) 
+ adjYzIITd = Matmul2(adjYzII,Td,OnlyDiagonal) 
+ adjYzIITsII = Matmul2(adjYzII,TsII,OnlyDiagonal) 
+ adjYzIITzII = Matmul2(adjYzII,TzII,OnlyDiagonal) 
+ adjTdTd = Matmul2(adjTd,Td,OnlyDiagonal) 
+ adjTeTe = Matmul2(adjTe,Te,OnlyDiagonal) 
+ adjTuTu = Matmul2(adjTu,Tu,OnlyDiagonal) 
+ adjTzIITzII = Matmul2(adjTzII,TzII,OnlyDiagonal) 
+ Cmd2CYsII = Matmul2(Conjg(md2),adjYsII,OnlyDiagonal) 
+ Cml2YtII = Matmul2(Conjg(ml2),YtII,OnlyDiagonal) 
+ CYdTpYd = Matmul2(Conjg(Yd),Transpose(Yd),OnlyDiagonal) 
+Forall(i2=1:3)  CYdTpYd(i2,i2) =  Real(CYdTpYd(i2,i2),dp) 
+ CYdTpTd = Matmul2(Conjg(Yd),Transpose(Td),OnlyDiagonal) 
+ CYeWOp = Matmul2(Conjg(Ye),WOp,OnlyDiagonal) 
+ CYeYtII = Matmul2(Conjg(Ye),YtII,OnlyDiagonal) 
+ CYeTtII = Matmul2(Conjg(Ye),TtII,OnlyDiagonal) 
+ CYsIImd2 = Matmul2(adjYsII,md2,OnlyDiagonal) 
+ CYsIIYd = Matmul2(adjYsII,Yd,OnlyDiagonal) 
+ CYsIIYsII = Matmul2(adjYsII,YsII,OnlyDiagonal) 
+ CYsIIYzII = Matmul2(adjYsII,YzII,OnlyDiagonal) 
+ CYsIITd = Matmul2(adjYsII,Td,OnlyDiagonal) 
+ CYsIITsII = Matmul2(adjYsII,TsII,OnlyDiagonal) 
+ CYsIITzII = Matmul2(adjYsII,TzII,OnlyDiagonal) 
+ CYtIIWOp = Matmul2(adjYtII,WOp,OnlyDiagonal) 
+ CYtIIYtII = Matmul2(adjYtII,YtII,OnlyDiagonal) 
+ CYtIITtII = Matmul2(adjYtII,TtII,OnlyDiagonal) 
+ CYzIIWOp = Matmul2(Conjg(YzII),WOp,OnlyDiagonal) 
+ CYzIIYtII = Matmul2(Conjg(YzII),YtII,OnlyDiagonal) 
+ CYzIITtII = Matmul2(Conjg(YzII),TtII,OnlyDiagonal) 
+ CYzIITpYzII = Matmul2(Conjg(YzII),Transpose(YzII),OnlyDiagonal) 
+Forall(i2=1:3)  CYzIITpYzII(i2,i2) =  Real(CYzIITpYzII(i2,i2),dp) 
+ CYzIITpTzII = Matmul2(Conjg(YzII),Transpose(TzII),OnlyDiagonal) 
+ CTdTpTd = Matmul2(Conjg(Td),Transpose(Td),OnlyDiagonal) 
+ CTeTpTe = Matmul2(Conjg(Te),Transpose(Te),OnlyDiagonal) 
+ CTsIITsII = Matmul2(adjTsII,TsII,OnlyDiagonal) 
+ CTtIITtII = Matmul2(adjTtII,TtII,OnlyDiagonal) 
+ CTuTpTu = Matmul2(Conjg(Tu),Transpose(Tu),OnlyDiagonal) 
+ CTzIITpTzII = Matmul2(Conjg(TzII),Transpose(TzII),OnlyDiagonal) 
+ TdadjTd = Matmul2(Td,adjTd,OnlyDiagonal) 
+ TeadjTe = Matmul2(Te,adjTe,OnlyDiagonal) 
+ TsIICTsII = Matmul2(TsII,adjTsII,OnlyDiagonal) 
+ TuadjTu = Matmul2(Tu,adjTu,OnlyDiagonal) 
+ TzIIadjTzII = Matmul2(TzII,adjTzII,OnlyDiagonal) 
+ md2YdadjYd = Matmul2(md2,YdadjYd,OnlyDiagonal) 
+ md2YsIICYsII = Matmul2(md2,YsIICYsII,OnlyDiagonal) 
+ md2YzIIadjYzII = Matmul2(md2,YzIIadjYzII,OnlyDiagonal) 
+ me2YeadjYe = Matmul2(me2,YeadjYe,OnlyDiagonal) 
+ ml2adjYeYe = Matmul2(ml2,adjYeYe,OnlyDiagonal) 
+ ml2adjYzIIYzII = Matmul2(ml2,adjYzIIYzII,OnlyDiagonal) 
+ ml2CYtIIYtII = Matmul2(ml2,CYtIIYtII,OnlyDiagonal) 
+ mq2adjYdYd = Matmul2(mq2,adjYdYd,OnlyDiagonal) 
+ mq2adjYuYu = Matmul2(mq2,adjYuYu,OnlyDiagonal) 
+ mu2YuadjYu = Matmul2(mu2,YuadjYu,OnlyDiagonal) 
+ WOpadjYeYe = Matmul2(WOp,adjYeYe,OnlyDiagonal) 
+ WOpadjYzIIYzII = Matmul2(WOp,adjYzIIYzII,OnlyDiagonal) 
+ WOpCYtIIYtII = Matmul2(WOp,CYtIIYtII,OnlyDiagonal) 
+ Ydmq2adjYd = Matmul2(Yd,mq2adjYd,OnlyDiagonal) 
+Forall(i2=1:3)  Ydmq2adjYd(i2,i2) =  Real(Ydmq2adjYd(i2,i2),dp) 
+ YdadjYdmd2 = Matmul2(Yd,adjYdmd2,OnlyDiagonal) 
+ YdadjYdYd = Matmul2(Yd,adjYdYd,OnlyDiagonal) 
+ YdadjYdYsII = Matmul2(Yd,adjYdYsII,OnlyDiagonal) 
+ YdadjYdYzII = Matmul2(Yd,adjYdYzII,OnlyDiagonal) 
+ YdadjYdTd = Matmul2(Yd,adjYdTd,OnlyDiagonal) 
+ YdadjYdTsII = Matmul2(Yd,adjYdTsII,OnlyDiagonal) 
+ YdadjYdTzII = Matmul2(Yd,adjYdTzII,OnlyDiagonal) 
+ YdadjYuYu = Matmul2(Yd,adjYuYu,OnlyDiagonal) 
+ YdadjYuTu = Matmul2(Yd,adjYuTu,OnlyDiagonal) 
+ Yeml2adjYe = Matmul2(Ye,ml2adjYe,OnlyDiagonal) 
+Forall(i2=1:3)  Yeml2adjYe(i2,i2) =  Real(Yeml2adjYe(i2,i2),dp) 
+ YeadjYeme2 = Matmul2(Ye,adjYeme2,OnlyDiagonal) 
+ YeadjYeYe = Matmul2(Ye,adjYeYe,OnlyDiagonal) 
+ YeadjYeTe = Matmul2(Ye,adjYeTe,OnlyDiagonal) 
+ YeadjYzIIYzII = Matmul2(Ye,adjYzIIYzII,OnlyDiagonal) 
+ YeadjYzIITzII = Matmul2(Ye,adjYzIITzII,OnlyDiagonal) 
+ YeCYtIIYtII = Matmul2(Ye,CYtIIYtII,OnlyDiagonal) 
+ YeCYtIITtII = Matmul2(Ye,CYtIITtII,OnlyDiagonal) 
+ YsIICmd2CYsII = Matmul2(YsII,Cmd2CYsII,OnlyDiagonal) 
+ YsIICYdTpYd = Matmul2(YsII,CYdTpYd,OnlyDiagonal) 
+ YsIICYdTpTd = Matmul2(YsII,CYdTpTd,OnlyDiagonal) 
+ YsIICYsIImd2 = Matmul2(YsII,CYsIImd2,OnlyDiagonal) 
+ YsIICYsIIYd = Matmul2(YsII,CYsIIYd,OnlyDiagonal) 
+ YsIICYsIIYsII = Matmul2(YsII,CYsIIYsII,OnlyDiagonal) 
+ YsIICYsIIYzII = Matmul2(YsII,CYsIIYzII,OnlyDiagonal) 
+ YsIICYsIITd = Matmul2(YsII,CYsIITd,OnlyDiagonal) 
+ YsIICYsIITsII = Matmul2(YsII,CYsIITsII,OnlyDiagonal) 
+ YsIICYsIITzII = Matmul2(YsII,CYsIITzII,OnlyDiagonal) 
+ YsIICYzIITpYzII = Matmul2(YsII,CYzIITpYzII,OnlyDiagonal) 
+ YsIICYzIITpTzII = Matmul2(YsII,CYzIITpTzII,OnlyDiagonal) 
+ YtIIadjYeYe = Matmul2(YtII,adjYeYe,OnlyDiagonal) 
+ YtIIadjYeTe = Matmul2(YtII,adjYeTe,OnlyDiagonal) 
+ YtIIadjYzIIYzII = Matmul2(YtII,adjYzIIYzII,OnlyDiagonal) 
+ YtIIadjYzIITzII = Matmul2(YtII,adjYzIITzII,OnlyDiagonal) 
+ YtIICYtIIWOp = Matmul2(YtII,CYtIIWOp,OnlyDiagonal) 
+ YtIICYtIIYtII = Matmul2(YtII,CYtIIYtII,OnlyDiagonal) 
+ YtIICYtIITtII = Matmul2(YtII,CYtIITtII,OnlyDiagonal) 
+ Yumq2adjYu = Matmul2(Yu,mq2adjYu,OnlyDiagonal) 
+Forall(i2=1:3)  Yumq2adjYu(i2,i2) =  Real(Yumq2adjYu(i2,i2),dp) 
+ YuadjYdYd = Matmul2(Yu,adjYdYd,OnlyDiagonal) 
+ YuadjYdTd = Matmul2(Yu,adjYdTd,OnlyDiagonal) 
+ YuadjYumu2 = Matmul2(Yu,adjYumu2,OnlyDiagonal) 
+ YuadjYuYu = Matmul2(Yu,adjYuYu,OnlyDiagonal) 
+ YuadjYuTu = Matmul2(Yu,adjYuTu,OnlyDiagonal) 
+ YzIIml2adjYzII = Matmul2(YzII,ml2adjYzII,OnlyDiagonal) 
+Forall(i2=1:3)  YzIIml2adjYzII(i2,i2) =  Real(YzIIml2adjYzII(i2,i2),dp) 
+ YzIIadjYeYe = Matmul2(YzII,adjYeYe,OnlyDiagonal) 
+ YzIIadjYeTe = Matmul2(YzII,adjYeTe,OnlyDiagonal) 
+ YzIIadjYzIImd2 = Matmul2(YzII,adjYzIImd2,OnlyDiagonal) 
+ YzIIadjYzIIYd = Matmul2(YzII,adjYzIIYd,OnlyDiagonal) 
+ YzIIadjYzIIYsII = Matmul2(YzII,adjYzIIYsII,OnlyDiagonal) 
+ YzIIadjYzIIYzII = Matmul2(YzII,adjYzIIYzII,OnlyDiagonal) 
+ YzIIadjYzIITd = Matmul2(YzII,adjYzIITd,OnlyDiagonal) 
+ YzIIadjYzIITsII = Matmul2(YzII,adjYzIITsII,OnlyDiagonal) 
+ YzIIadjYzIITzII = Matmul2(YzII,adjYzIITzII,OnlyDiagonal) 
+ YzIICYtIIYtII = Matmul2(YzII,CYtIIYtII,OnlyDiagonal) 
+ YzIICYtIITtII = Matmul2(YzII,CYtIITtII,OnlyDiagonal) 
+ adjYdmd2Yd = Matmul2(adjYd,md2Yd,OnlyDiagonal) 
+Forall(i2=1:3)  adjYdmd2Yd(i2,i2) =  Real(adjYdmd2Yd(i2,i2),dp) 
+ adjYdYdmq2 = Matmul2(adjYd,Ydmq2,OnlyDiagonal) 
+ adjYeme2Ye = Matmul2(adjYe,me2Ye,OnlyDiagonal) 
+Forall(i2=1:3)  adjYeme2Ye(i2,i2) =  Real(adjYeme2Ye(i2,i2),dp) 
+ adjYeYeml2 = Matmul2(adjYe,Yeml2,OnlyDiagonal) 
+ adjYumu2Yu = Matmul2(adjYu,mu2Yu,OnlyDiagonal) 
+Forall(i2=1:3)  adjYumu2Yu(i2,i2) =  Real(adjYumu2Yu(i2,i2),dp) 
+ adjYuYumq2 = Matmul2(adjYu,Yumq2,OnlyDiagonal) 
+ adjYzIImd2YzII = Matmul2(adjYzII,md2YzII,OnlyDiagonal) 
+Forall(i2=1:3)  adjYzIImd2YzII(i2,i2) =  Real(adjYzIImd2YzII(i2,i2),dp) 
+ adjYzIIYzIIml2 = Matmul2(adjYzII,YzIIml2,OnlyDiagonal) 
+ CYtIIYtIIml2 = Matmul2(adjYtII,YtIIml2,OnlyDiagonal) 
+ CYtIICml2YtII = Matmul2(adjYtII,Cml2YtII,OnlyDiagonal) 
+ TdadjYdYd = Matmul2(Td,adjYdYd,OnlyDiagonal) 
+ TdadjYdYsII = Matmul2(Td,adjYdYsII,OnlyDiagonal) 
+ TdadjYdYzII = Matmul2(Td,adjYdYzII,OnlyDiagonal) 
+ TdadjYuYu = Matmul2(Td,adjYuYu,OnlyDiagonal) 
+ TeadjYeYe = Matmul2(Te,adjYeYe,OnlyDiagonal) 
+ TeadjYzIIYzII = Matmul2(Te,adjYzIIYzII,OnlyDiagonal) 
+ TeCYtIIYtII = Matmul2(Te,CYtIIYtII,OnlyDiagonal) 
+ TsIICYdTpYd = Matmul2(TsII,CYdTpYd,OnlyDiagonal) 
+ TsIICYsIIYd = Matmul2(TsII,CYsIIYd,OnlyDiagonal) 
+ TsIICYsIIYsII = Matmul2(TsII,CYsIIYsII,OnlyDiagonal) 
+ TsIICYsIIYzII = Matmul2(TsII,CYsIIYzII,OnlyDiagonal) 
+ TsIICYzIITpYzII = Matmul2(TsII,CYzIITpYzII,OnlyDiagonal) 
+ TtIIadjYeYe = Matmul2(TtII,adjYeYe,OnlyDiagonal) 
+ TtIIadjYzIIYzII = Matmul2(TtII,adjYzIIYzII,OnlyDiagonal) 
+ TtIICYtIIYtII = Matmul2(TtII,CYtIIYtII,OnlyDiagonal) 
+ TuadjYdYd = Matmul2(Tu,adjYdYd,OnlyDiagonal) 
+ TuadjYuYu = Matmul2(Tu,adjYuYu,OnlyDiagonal) 
+ TzIIadjYeYe = Matmul2(TzII,adjYeYe,OnlyDiagonal) 
+ TzIIadjYzIIYd = Matmul2(TzII,adjYzIIYd,OnlyDiagonal) 
+ TzIIadjYzIIYsII = Matmul2(TzII,adjYzIIYsII,OnlyDiagonal) 
+ TzIIadjYzIIYzII = Matmul2(TzII,adjYzIIYzII,OnlyDiagonal) 
+ TzIICYtIIYtII = Matmul2(TzII,CYtIIYtII,OnlyDiagonal) 
+ TpYeCYeWOp = Matmul2(Transpose(Ye),CYeWOp,OnlyDiagonal) 
+ TpYeCYeYtII = Matmul2(Transpose(Ye),CYeYtII,OnlyDiagonal) 
+ TpYeCYeTtII = Matmul2(Transpose(Ye),CYeTtII,OnlyDiagonal) 
+ TpYzIICYzIIWOp = Matmul2(Transpose(YzII),CYzIIWOp,OnlyDiagonal) 
+ TpYzIICYzIIYtII = Matmul2(Transpose(YzII),CYzIIYtII,OnlyDiagonal) 
+ TpYzIICYzIITtII = Matmul2(Transpose(YzII),CYzIITtII,OnlyDiagonal) 
+ TpTeCYeYtII = Matmul2(Transpose(Te),CYeYtII,OnlyDiagonal) 
+ TpTzIICYzIIYtII = Matmul2(Transpose(TzII),CYzIIYtII,OnlyDiagonal) 
+ Trmd2 = Real(cTrace(md2),dp) 
+ Trme2 = Real(cTrace(me2),dp) 
+ Trml2 = Real(cTrace(ml2),dp) 
+ Trmq2 = Real(cTrace(mq2),dp) 
+ Trmu2 = Real(cTrace(mu2),dp) 
+ TrYdadjYd = Real(cTrace(YdadjYd),dp) 
+ TrYeadjYe = Real(cTrace(YeadjYe),dp) 
+ TrYsIICYsII = Real(cTrace(YsIICYsII),dp) 
+ TrYtIICYtII = Real(cTrace(YtIICYtII),dp) 
+ TrYuadjYu = Real(cTrace(YuadjYu),dp) 
+ TrYzIIadjYzII = Real(cTrace(YzIIadjYzII),dp) 
+ TradjYdTd = Real(cTrace(adjYdTd),dp) 
+ TradjYeTe = Real(cTrace(adjYeTe),dp) 
+ TradjYuTu = Real(cTrace(adjYuTu),dp) 
+ TradjYzIITzII = Real(cTrace(adjYzIITzII),dp) 
+ TrCYsIITsII = Real(cTrace(CYsIITsII),dp) 
+ TrCYtIITtII = Real(cTrace(CYtIITtII),dp) 
+ TrCTdTpTd = Real(cTrace(CTdTpTd),dp) 
+ TrCTeTpTe = Real(cTrace(CTeTpTe),dp) 
+ TrCTsIITsII = Real(cTrace(CTsIITsII),dp) 
+ TrCTtIITtII = Real(cTrace(CTtIITtII),dp) 
+ TrCTuTpTu = Real(cTrace(CTuTpTu),dp) 
+ TrCTzIITpTzII = Real(cTrace(CTzIITpTzII),dp) 
+ Trmd2YdadjYd = Real(cTrace(md2YdadjYd),dp) 
+ Trmd2YsIICYsII = Real(cTrace(md2YsIICYsII),dp) 
+ Trmd2YzIIadjYzII = Real(cTrace(md2YzIIadjYzII),dp) 
+ Trme2YeadjYe = Real(cTrace(me2YeadjYe),dp) 
+ Trml2adjYeYe = Real(cTrace(ml2adjYeYe),dp) 
+ Trml2adjYzIIYzII = Real(cTrace(ml2adjYzIIYzII),dp) 
+ Trml2CYtIIYtII = Real(cTrace(ml2CYtIIYtII),dp) 
+ Trmq2adjYdYd = Real(cTrace(mq2adjYdYd),dp) 
+ Trmq2adjYuYu = Real(cTrace(mq2adjYuYu),dp) 
+ Trmu2YuadjYu = Real(cTrace(mu2YuadjYu),dp) 
+ sqrt3ov5 =Sqrt(3._dp/5._dp) 
+ ooSqrt15 =1._dp/sqrt(15._dp) 
+ sqrt15 =sqrt(15._dp) 
+ g1p2 =g1**2 
+ g1p3 =g1**3 
+ g2p2 =g2**2 
+ g2p3 =g2**3 
+ g3p2 =g3**2 
+ g3p3 =g3**3 
+ L1IIp2 =L1II**2 
+ L2IIp2 =L2II**2 
+ g1p4 =g1**4 
+ g2p4 =g2**4 
+ g3p4 =g3**4 
+ CL1IIp2 =Conjg(L1II)**2 
+ CL2IIp2 =Conjg(L2II)**2 
+
+
+If (TwoLoopRGE) Then 
+ YdadjYu = Matmul2(Yd,adjYu,OnlyDiagonal) 
+ YdadjTd = Matmul2(Yd,adjTd,OnlyDiagonal) 
+ YdadjTu = Matmul2(Yd,adjTu,OnlyDiagonal) 
+ YeadjYzII = Matmul2(Ye,adjYzII,OnlyDiagonal) 
+ YeadjTe = Matmul2(Ye,adjTe,OnlyDiagonal) 
+ YeadjTzII = Matmul2(Ye,adjTzII,OnlyDiagonal) 
+ YsIICTsII = Matmul2(YsII,adjTsII,OnlyDiagonal) 
+ YtIIadjYe = Matmul2(YtII,adjYe,OnlyDiagonal) 
+ YtIIadjYzII = Matmul2(YtII,adjYzII,OnlyDiagonal) 
+ YtIIadjTe = Matmul2(YtII,adjTe,OnlyDiagonal) 
+ YtIIadjTzII = Matmul2(YtII,adjTzII,OnlyDiagonal) 
+ YtIICTtII = Matmul2(YtII,adjTtII,OnlyDiagonal) 
+ YuadjYd = Matmul2(Yu,adjYd,OnlyDiagonal) 
+ YuadjTd = Matmul2(Yu,adjTd,OnlyDiagonal) 
+ YuadjTu = Matmul2(Yu,adjTu,OnlyDiagonal) 
+ YzIIadjYe = Matmul2(YzII,adjYe,OnlyDiagonal) 
+ YzIIadjTe = Matmul2(YzII,adjTe,OnlyDiagonal) 
+ YzIIadjTzII = Matmul2(YzII,adjTzII,OnlyDiagonal) 
+ YzIICYtII = Matmul2(YzII,adjYtII,OnlyDiagonal) 
+ adjYdCmd2 = Matmul2(adjYd,Conjg(md2),OnlyDiagonal) 
+ adjYdCTsII = Matmul2(adjYd,adjTsII,OnlyDiagonal) 
+ adjYeCme2 = Matmul2(adjYe,Conjg(me2),OnlyDiagonal) 
+ adjYuCmu2 = Matmul2(adjYu,Conjg(mu2),OnlyDiagonal) 
+ adjYzIICmd2 = Matmul2(adjYzII,Conjg(md2),OnlyDiagonal) 
+ adjYzIICTsII = Matmul2(adjYzII,adjTsII,OnlyDiagonal) 
+ adjTdYd = Matmul2(adjTd,Yd,OnlyDiagonal) 
+ adjTdYzII = Matmul2(adjTd,YzII,OnlyDiagonal) 
+ adjTdCYsII = Matmul2(adjTd,adjYsII,OnlyDiagonal) 
+ adjTdTzII = Matmul2(adjTd,TzII,OnlyDiagonal) 
+ adjTeYe = Matmul2(adjTe,Ye,OnlyDiagonal) 
+ adjTuYu = Matmul2(adjTu,Yu,OnlyDiagonal) 
+ adjTzIIYd = Matmul2(adjTzII,Yd,OnlyDiagonal) 
+ adjTzIIYzII = Matmul2(adjTzII,YzII,OnlyDiagonal) 
+ adjTzIICYsII = Matmul2(adjTzII,adjYsII,OnlyDiagonal) 
+ adjTzIITd = Matmul2(adjTzII,Td,OnlyDiagonal) 
+ Cml2adjYe = Matmul2(Conjg(ml2),adjYe,OnlyDiagonal) 
+ Cml2adjYzII = Matmul2(Conjg(ml2),adjYzII,OnlyDiagonal) 
+ Cmq2adjYd = Matmul2(Conjg(mq2),adjYd,OnlyDiagonal) 
+ Cmq2adjYu = Matmul2(Conjg(mq2),adjYu,OnlyDiagonal) 
+ CYeTpYzII = Matmul2(Conjg(Ye),Transpose(YzII),OnlyDiagonal) 
+ CYeTpTzII = Matmul2(Conjg(Ye),Transpose(TzII),OnlyDiagonal) 
+ CYtIICml2 = Matmul2(adjYtII,Conjg(ml2),OnlyDiagonal) 
+ CYtIITpYzII = Matmul2(adjYtII,Transpose(YzII),OnlyDiagonal) 
+ CYtIITpTzII = Matmul2(adjYtII,Transpose(TzII),OnlyDiagonal) 
+ CYuTpYd = Matmul2(Conjg(Yu),Transpose(Yd),OnlyDiagonal) 
+ CYuTpTd = Matmul2(Conjg(Yu),Transpose(Td),OnlyDiagonal) 
+ CTdTpYd = Matmul2(Conjg(Td),Transpose(Yd),OnlyDiagonal) 
+ CTeYtII = Matmul2(Conjg(Te),YtII,OnlyDiagonal) 
+ CTeTtII = Matmul2(Conjg(Te),TtII,OnlyDiagonal) 
+ CTeTpYe = Matmul2(Conjg(Te),Transpose(Ye),OnlyDiagonal) 
+ CTsIIYd = Matmul2(adjTsII,Yd,OnlyDiagonal) 
+ CTsIIYzII = Matmul2(adjTsII,YzII,OnlyDiagonal) 
+ CTsIITd = Matmul2(adjTsII,Td,OnlyDiagonal) 
+ CTsIITzII = Matmul2(adjTsII,TzII,OnlyDiagonal) 
+ CTtIIYtII = Matmul2(adjTtII,YtII,OnlyDiagonal) 
+ CTuTpYu = Matmul2(Conjg(Tu),Transpose(Yu),OnlyDiagonal) 
+ CTzIIYtII = Matmul2(Conjg(TzII),YtII,OnlyDiagonal) 
+ CTzIITtII = Matmul2(Conjg(TzII),TtII,OnlyDiagonal) 
+ CTzIITpYzII = Matmul2(Conjg(TzII),Transpose(YzII),OnlyDiagonal) 
+ TdadjYd = Matmul2(Td,adjYd,OnlyDiagonal) 
+ TdadjYu = Matmul2(Td,adjYu,OnlyDiagonal) 
+ TdadjTu = Matmul2(Td,adjTu,OnlyDiagonal) 
+ TeadjYe = Matmul2(Te,adjYe,OnlyDiagonal) 
+ TeadjYzII = Matmul2(Te,adjYzII,OnlyDiagonal) 
+ TeadjTzII = Matmul2(Te,adjTzII,OnlyDiagonal) 
+ TeCYtII = Matmul2(Te,adjYtII,OnlyDiagonal) 
+ TeCTtII = Matmul2(Te,adjTtII,OnlyDiagonal) 
+ TsIICYsII = Matmul2(TsII,adjYsII,OnlyDiagonal) 
+ TtIIadjYe = Matmul2(TtII,adjYe,OnlyDiagonal) 
+ TtIIadjYzII = Matmul2(TtII,adjYzII,OnlyDiagonal) 
+ TtIIadjTe = Matmul2(TtII,adjTe,OnlyDiagonal) 
+ TtIIadjTzII = Matmul2(TtII,adjTzII,OnlyDiagonal) 
+ TtIICYtII = Matmul2(TtII,adjYtII,OnlyDiagonal) 
+ TtIICTtII = Matmul2(TtII,adjTtII,OnlyDiagonal) 
+ TuadjYd = Matmul2(Tu,adjYd,OnlyDiagonal) 
+ TuadjYu = Matmul2(Tu,adjYu,OnlyDiagonal) 
+ TuadjTd = Matmul2(Tu,adjTd,OnlyDiagonal) 
+ TzIIadjYe = Matmul2(TzII,adjYe,OnlyDiagonal) 
+ TzIIadjYzII = Matmul2(TzII,adjYzII,OnlyDiagonal) 
+ TzIIadjTe = Matmul2(TzII,adjTe,OnlyDiagonal) 
+ TzIICYtII = Matmul2(TzII,adjYtII,OnlyDiagonal) 
+ TzIICTtII = Matmul2(TzII,adjTtII,OnlyDiagonal) 
+ TpYdCYsII = Matmul2(Transpose(Yd),adjYsII,OnlyDiagonal) 
+ TpYdCTsII = Matmul2(Transpose(Yd),adjTsII,OnlyDiagonal) 
+ TpYzIICYsII = Matmul2(Transpose(YzII),adjYsII,OnlyDiagonal) 
+ TpYzIICTsII = Matmul2(Transpose(YzII),adjTsII,OnlyDiagonal) 
+ TpTdCYsII = Matmul2(Transpose(Td),adjYsII,OnlyDiagonal) 
+ TpTdCTsII = Matmul2(Transpose(Td),adjTsII,OnlyDiagonal) 
+ TpTeCTe = Matmul2(Transpose(Te),Conjg(Te),OnlyDiagonal) 
+ TpTzIICYsII = Matmul2(Transpose(TzII),adjYsII,OnlyDiagonal) 
+ TpTzIICTsII = Matmul2(Transpose(TzII),adjTsII,OnlyDiagonal) 
+ TpTzIICTzII = Matmul2(Transpose(TzII),Conjg(TzII),OnlyDiagonal) 
+ md2YdadjYu = Matmul2(md2,YdadjYu,OnlyDiagonal) 
+ md2YzIIadjYe = Matmul2(md2,YzIIadjYe,OnlyDiagonal) 
+ md2CYsIIYsII = Matmul2(md2,CYsIIYsII,OnlyDiagonal) 
+ me2YeadjYzII = Matmul2(me2,YeadjYzII,OnlyDiagonal) 
+ ml2YtIICYtII = Matmul2(ml2,YtIICYtII,OnlyDiagonal) 
+ ml2adjYzIIYd = Matmul2(ml2,adjYzIIYd,OnlyDiagonal) 
+ mq2adjYdYzII = Matmul2(mq2,adjYdYzII,OnlyDiagonal) 
+ mu2YuadjYd = Matmul2(mu2,YuadjYd,OnlyDiagonal) 
+ Ydmq2adjYu = Matmul2(Yd,mq2adjYu,OnlyDiagonal) 
+ YdadjYdCmd2 = Matmul2(Yd,adjYdCmd2,OnlyDiagonal) 
+ YdadjYumu2 = Matmul2(Yd,adjYumu2,OnlyDiagonal) 
+ YdadjTdCYsII = Matmul2(Yd,adjTdCYsII,OnlyDiagonal) 
+ YdadjTdTd = Matmul2(Yd,adjTdTd,OnlyDiagonal) 
+ YdadjTdTzII = Matmul2(Yd,adjTdTzII,OnlyDiagonal) 
+ YdCmq2adjYd = Matmul2(Yd,Cmq2adjYd,OnlyDiagonal) 
+Forall(i2=1:3)  YdCmq2adjYd(i2,i2) =  Real(YdCmq2adjYd(i2,i2),dp) 
+ Yeml2adjYzII = Matmul2(Ye,ml2adjYzII,OnlyDiagonal) 
+ YeadjYeCme2 = Matmul2(Ye,adjYeCme2,OnlyDiagonal) 
+ YeadjYzIImd2 = Matmul2(Ye,adjYzIImd2,OnlyDiagonal) 
+ YeadjYzIIYd = Matmul2(Ye,adjYzIIYd,OnlyDiagonal) 
+ YeadjYzIIYsII = Matmul2(Ye,adjYzIIYsII,OnlyDiagonal) 
+ YeadjYzIITd = Matmul2(Ye,adjYzIITd,OnlyDiagonal) 
+ YeadjYzIITsII = Matmul2(Ye,adjYzIITsII,OnlyDiagonal) 
+ YeadjTeTe = Matmul2(Ye,adjTeTe,OnlyDiagonal) 
+ YeCml2adjYe = Matmul2(Ye,Cml2adjYe,OnlyDiagonal) 
+Forall(i2=1:3)  YeCml2adjYe(i2,i2) =  Real(YeCml2adjYe(i2,i2),dp) 
+ YeCYtIIWOp = Matmul2(Ye,CYtIIWOp,OnlyDiagonal) 
+ YsIICYzIIWOp = Matmul2(YsII,CYzIIWOp,OnlyDiagonal) 
+ YsIICYzIIYtII = Matmul2(YsII,CYzIIYtII,OnlyDiagonal) 
+ YsIICYzIITtII = Matmul2(YsII,CYzIITtII,OnlyDiagonal) 
+ YsIICTsIITd = Matmul2(YsII,CTsIITd,OnlyDiagonal) 
+ YsIICTsIITzII = Matmul2(YsII,CTsIITzII,OnlyDiagonal) 
+ YtIIml2adjYe = Matmul2(YtII,ml2adjYe,OnlyDiagonal) 
+ YtIIml2adjYzII = Matmul2(YtII,ml2adjYzII,OnlyDiagonal) 
+ YtIIadjYeme2 = Matmul2(YtII,adjYeme2,OnlyDiagonal) 
+ YtIIadjYzIImd2 = Matmul2(YtII,adjYzIImd2,OnlyDiagonal) 
+ YtIIadjYzIIYd = Matmul2(YtII,adjYzIIYd,OnlyDiagonal) 
+ YtIIadjYzIIYsII = Matmul2(YtII,adjYzIIYsII,OnlyDiagonal) 
+ YtIIadjYzIITd = Matmul2(YtII,adjYzIITd,OnlyDiagonal) 
+ YtIIadjYzIITsII = Matmul2(YtII,adjYzIITsII,OnlyDiagonal) 
+ YtIICYtIITpYzII = Matmul2(YtII,CYtIITpYzII,OnlyDiagonal) 
+ YtIICYtIITpTzII = Matmul2(YtII,CYtIITpTzII,OnlyDiagonal) 
+ YtIICTtIITtII = Matmul2(YtII,CTtIITtII,OnlyDiagonal) 
+ Yumq2adjYd = Matmul2(Yu,mq2adjYd,OnlyDiagonal) 
+ YuadjYdmd2 = Matmul2(Yu,adjYdmd2,OnlyDiagonal) 
+ YuadjYdYsII = Matmul2(Yu,adjYdYsII,OnlyDiagonal) 
+ YuadjYdYzII = Matmul2(Yu,adjYdYzII,OnlyDiagonal) 
+ YuadjYdTsII = Matmul2(Yu,adjYdTsII,OnlyDiagonal) 
+ YuadjYdTzII = Matmul2(Yu,adjYdTzII,OnlyDiagonal) 
+ YuadjYuCmu2 = Matmul2(Yu,adjYuCmu2,OnlyDiagonal) 
+ YuadjTuTu = Matmul2(Yu,adjTuTu,OnlyDiagonal) 
+ YuCmq2adjYu = Matmul2(Yu,Cmq2adjYu,OnlyDiagonal) 
+Forall(i2=1:3)  YuCmq2adjYu(i2,i2) =  Real(YuCmq2adjYu(i2,i2),dp) 
+ YzIIml2adjYe = Matmul2(YzII,ml2adjYe,OnlyDiagonal) 
+ YzIIadjYeme2 = Matmul2(YzII,adjYeme2,OnlyDiagonal) 
+ YzIIadjYzIICmd2 = Matmul2(YzII,adjYzIICmd2,OnlyDiagonal) 
+ YzIIadjTzIICYsII = Matmul2(YzII,adjTzIICYsII,OnlyDiagonal) 
+ YzIIadjTzIITd = Matmul2(YzII,adjTzIITd,OnlyDiagonal) 
+ YzIIadjTzIITzII = Matmul2(YzII,adjTzIITzII,OnlyDiagonal) 
+ YzIICml2adjYzII = Matmul2(YzII,Cml2adjYzII,OnlyDiagonal) 
+Forall(i2=1:3)  YzIICml2adjYzII(i2,i2) =  Real(YzIICml2adjYzII(i2,i2),dp) 
+ YzIICYtIIWOp = Matmul2(YzII,CYtIIWOp,OnlyDiagonal) 
+ YzIICYtIICml2 = Matmul2(YzII,CYtIICml2,OnlyDiagonal) 
+ adjYdmd2YzII = Matmul2(adjYd,md2YzII,OnlyDiagonal) 
+ adjYdYdadjYd = Matmul2(adjYd,YdadjYd,OnlyDiagonal) 
+ adjYdYdadjYu = Matmul2(adjYd,YdadjYu,OnlyDiagonal) 
+ adjYdYdadjTd = Matmul2(adjYd,YdadjTd,OnlyDiagonal) 
+ adjYdYdadjTu = Matmul2(adjYd,YdadjTu,OnlyDiagonal) 
+ adjYdYsIICYsII = Matmul2(adjYd,YsIICYsII,OnlyDiagonal) 
+ adjYdYsIICTsII = Matmul2(adjYd,YsIICTsII,OnlyDiagonal) 
+ adjYdYzIIml2 = Matmul2(adjYd,YzIIml2,OnlyDiagonal) 
+ adjYdYzIIadjYzII = Matmul2(adjYd,YzIIadjYzII,OnlyDiagonal) 
+ adjYdCYsIIYd = Matmul2(adjYd,CYsIIYd,OnlyDiagonal) 
+ adjYdCYsIIYzII = Matmul2(adjYd,CYsIIYzII,OnlyDiagonal) 
+ adjYdTdadjYd = Matmul2(adjYd,TdadjYd,OnlyDiagonal) 
+ adjYdTdadjYu = Matmul2(adjYd,TdadjYu,OnlyDiagonal) 
+ adjYdTdadjTd = Matmul2(adjYd,TdadjTd,OnlyDiagonal) 
+ adjYdTdadjTu = Matmul2(adjYd,TdadjTu,OnlyDiagonal) 
+ adjYdTsIICYsII = Matmul2(adjYd,TsIICYsII,OnlyDiagonal) 
+ adjYdTsIICTsII = Matmul2(adjYd,TsIICTsII,OnlyDiagonal) 
+ adjYdTzIIadjYzII = Matmul2(adjYd,TzIIadjYzII,OnlyDiagonal) 
+ adjYdTzIIadjTzII = Matmul2(adjYd,TzIIadjTzII,OnlyDiagonal) 
+ adjYeYeadjYe = Matmul2(adjYe,YeadjYe,OnlyDiagonal) 
+ adjYeYeadjYzII = Matmul2(adjYe,YeadjYzII,OnlyDiagonal) 
+ adjYeYeadjTe = Matmul2(adjYe,YeadjTe,OnlyDiagonal) 
+ adjYeYeadjTzII = Matmul2(adjYe,YeadjTzII,OnlyDiagonal) 
+ adjYeTeadjYe = Matmul2(adjYe,TeadjYe,OnlyDiagonal) 
+ adjYeTeadjYzII = Matmul2(adjYe,TeadjYzII,OnlyDiagonal) 
+ adjYeTeadjTe = Matmul2(adjYe,TeadjTe,OnlyDiagonal) 
+ adjYeTeadjTzII = Matmul2(adjYe,TeadjTzII,OnlyDiagonal) 
+ adjYeTeCYtII = Matmul2(adjYe,TeCYtII,OnlyDiagonal) 
+ adjYeTeCTtII = Matmul2(adjYe,TeCTtII,OnlyDiagonal) 
+ adjYuYuadjYd = Matmul2(adjYu,YuadjYd,OnlyDiagonal) 
+ adjYuYuadjYu = Matmul2(adjYu,YuadjYu,OnlyDiagonal) 
+ adjYuYuadjTd = Matmul2(adjYu,YuadjTd,OnlyDiagonal) 
+ adjYuYuadjTu = Matmul2(adjYu,YuadjTu,OnlyDiagonal) 
+ adjYuTuadjYd = Matmul2(adjYu,TuadjYd,OnlyDiagonal) 
+ adjYuTuadjYu = Matmul2(adjYu,TuadjYu,OnlyDiagonal) 
+ adjYuTuadjTd = Matmul2(adjYu,TuadjTd,OnlyDiagonal) 
+ adjYuTuadjTu = Matmul2(adjYu,TuadjTu,OnlyDiagonal) 
+ adjYzIImd2Yd = Matmul2(adjYzII,md2Yd,OnlyDiagonal) 
+ adjYzIIYdmq2 = Matmul2(adjYzII,Ydmq2,OnlyDiagonal) 
+ adjYzIIYdadjYd = Matmul2(adjYzII,YdadjYd,OnlyDiagonal) 
+ adjYzIIYsIICYsII = Matmul2(adjYzII,YsIICYsII,OnlyDiagonal) 
+ adjYzIIYsIICTsII = Matmul2(adjYzII,YsIICTsII,OnlyDiagonal) 
+ adjYzIIYzIIadjYe = Matmul2(adjYzII,YzIIadjYe,OnlyDiagonal) 
+ adjYzIIYzIIadjYzII = Matmul2(adjYzII,YzIIadjYzII,OnlyDiagonal) 
+ adjYzIIYzIIadjTe = Matmul2(adjYzII,YzIIadjTe,OnlyDiagonal) 
+ adjYzIIYzIIadjTzII = Matmul2(adjYzII,YzIIadjTzII,OnlyDiagonal) 
+ adjYzIIYzIICYtII = Matmul2(adjYzII,YzIICYtII,OnlyDiagonal) 
+ adjYzIICYsIIYd = Matmul2(adjYzII,CYsIIYd,OnlyDiagonal) 
+ adjYzIICYsIIYzII = Matmul2(adjYzII,CYsIIYzII,OnlyDiagonal) 
+ adjYzIITdadjYd = Matmul2(adjYzII,TdadjYd,OnlyDiagonal) 
+ adjYzIITdadjTd = Matmul2(adjYzII,TdadjTd,OnlyDiagonal) 
+ adjYzIITsIICYsII = Matmul2(adjYzII,TsIICYsII,OnlyDiagonal) 
+ adjYzIITsIICTsII = Matmul2(adjYzII,TsIICTsII,OnlyDiagonal) 
+ adjYzIITzIIadjYe = Matmul2(adjYzII,TzIIadjYe,OnlyDiagonal) 
+ adjYzIITzIIadjYzII = Matmul2(adjYzII,TzIIadjYzII,OnlyDiagonal) 
+ adjYzIITzIIadjTe = Matmul2(adjYzII,TzIIadjTe,OnlyDiagonal) 
+ adjYzIITzIIadjTzII = Matmul2(adjYzII,TzIIadjTzII,OnlyDiagonal) 
+ adjYzIITzIICYtII = Matmul2(adjYzII,TzIICYtII,OnlyDiagonal) 
+ adjYzIITzIICTtII = Matmul2(adjYzII,TzIICTtII,OnlyDiagonal) 
+ adjTdYdadjYd = Matmul2(adjTd,YdadjYd,OnlyDiagonal) 
+ adjTdYdadjYu = Matmul2(adjTd,YdadjYu,OnlyDiagonal) 
+ adjTdTdadjYd = Matmul2(adjTd,TdadjYd,OnlyDiagonal) 
+ adjTdTdadjYu = Matmul2(adjTd,TdadjYu,OnlyDiagonal) 
+ adjTdTsIICYsII = Matmul2(adjTd,TsIICYsII,OnlyDiagonal) 
+ adjTdTzIIadjYzII = Matmul2(adjTd,TzIIadjYzII,OnlyDiagonal) 
+ adjTeYeadjYe = Matmul2(adjTe,YeadjYe,OnlyDiagonal) 
+ adjTeYeadjYzII = Matmul2(adjTe,YeadjYzII,OnlyDiagonal) 
+ adjTeTeadjYe = Matmul2(adjTe,TeadjYe,OnlyDiagonal) 
+ adjTeTeadjYzII = Matmul2(adjTe,TeadjYzII,OnlyDiagonal) 
+ adjTeTeCYtII = Matmul2(adjTe,TeCYtII,OnlyDiagonal) 
+ adjTuYuadjYd = Matmul2(adjTu,YuadjYd,OnlyDiagonal) 
+ adjTuYuadjYu = Matmul2(adjTu,YuadjYu,OnlyDiagonal) 
+ adjTuTuadjYd = Matmul2(adjTu,TuadjYd,OnlyDiagonal) 
+ adjTuTuadjYu = Matmul2(adjTu,TuadjYu,OnlyDiagonal) 
+ adjTzIIYzIIadjYe = Matmul2(adjTzII,YzIIadjYe,OnlyDiagonal) 
+ adjTzIIYzIIadjYzII = Matmul2(adjTzII,YzIIadjYzII,OnlyDiagonal) 
+ adjTzIITdadjYd = Matmul2(adjTzII,TdadjYd,OnlyDiagonal) 
+ adjTzIITsIICYsII = Matmul2(adjTzII,TsIICYsII,OnlyDiagonal) 
+ adjTzIITzIIadjYe = Matmul2(adjTzII,TzIIadjYe,OnlyDiagonal) 
+ adjTzIITzIIadjYzII = Matmul2(adjTzII,TzIIadjYzII,OnlyDiagonal) 
+ adjTzIITzIICYtII = Matmul2(adjTzII,TzIICYtII,OnlyDiagonal) 
+ Cmd2CYsIIYd = Matmul2(Conjg(md2),CYsIIYd,OnlyDiagonal) 
+ Cmd2CYsIIYzII = Matmul2(Conjg(md2),CYsIIYzII,OnlyDiagonal) 
+ Cmd2CYzIIYtII = Matmul2(Conjg(md2),CYzIIYtII,OnlyDiagonal) 
+ Cme2CYeYtII = Matmul2(Conjg(me2),CYeYtII,OnlyDiagonal) 
+ Cml2YtIIadjYe = Matmul2(Conjg(ml2),YtIIadjYe,OnlyDiagonal) 
+ Cml2YtIIadjYzII = Matmul2(Conjg(ml2),YtIIadjYzII,OnlyDiagonal) 
+ Cml2TpYzIICYsII = Matmul2(Conjg(ml2),TpYzIICYsII,OnlyDiagonal) 
+ Cmq2TpYdCYsII = Matmul2(Conjg(mq2),TpYdCYsII,OnlyDiagonal) 
+ CYdTpYdCYsII = Matmul2(Conjg(Yd),TpYdCYsII,OnlyDiagonal) 
+ CYdTpYdCTsII = Matmul2(Conjg(Yd),TpYdCTsII,OnlyDiagonal) 
+ CYdTpTdCTsII = Matmul2(Conjg(Yd),TpTdCTsII,OnlyDiagonal) 
+ CYeYtIIml2 = Matmul2(Conjg(Ye),YtIIml2,OnlyDiagonal) 
+ CYeCml2YtII = Matmul2(Conjg(Ye),Cml2YtII,OnlyDiagonal) 
+ CYsIImd2Yd = Matmul2(adjYsII,md2Yd,OnlyDiagonal) 
+ CYsIImd2YzII = Matmul2(adjYsII,md2YzII,OnlyDiagonal) 
+ CYsIIYdmq2 = Matmul2(adjYsII,Ydmq2,OnlyDiagonal) 
+ CYsIIYdadjYd = Matmul2(adjYsII,YdadjYd,OnlyDiagonal) 
+ CYsIIYsIICYsII = Matmul2(adjYsII,YsIICYsII,OnlyDiagonal) 
+ CYsIIYsIICTsII = Matmul2(adjYsII,YsIICTsII,OnlyDiagonal) 
+ CYsIIYzIIml2 = Matmul2(adjYsII,YzIIml2,OnlyDiagonal) 
+ CYsIIYzIIadjYzII = Matmul2(adjYsII,YzIIadjYzII,OnlyDiagonal) 
+ CYsIITdadjYd = Matmul2(adjYsII,TdadjYd,OnlyDiagonal) 
+ CYsIITdadjTd = Matmul2(adjYsII,TdadjTd,OnlyDiagonal) 
+ CYsIITsIICYsII = Matmul2(adjYsII,TsIICYsII,OnlyDiagonal) 
+ CYsIITsIICTsII = Matmul2(adjYsII,TsIICTsII,OnlyDiagonal) 
+ CYsIITzIIadjYzII = Matmul2(adjYsII,TzIIadjYzII,OnlyDiagonal) 
+ CYsIITzIIadjTzII = Matmul2(adjYsII,TzIIadjTzII,OnlyDiagonal) 
+ CYtIIYtIIadjYe = Matmul2(adjYtII,YtIIadjYe,OnlyDiagonal) 
+ CYtIIYtIIadjYzII = Matmul2(adjYtII,YtIIadjYzII,OnlyDiagonal) 
+ CYtIIYtIIadjTe = Matmul2(adjYtII,YtIIadjTe,OnlyDiagonal) 
+ CYtIIYtIIadjTzII = Matmul2(adjYtII,YtIIadjTzII,OnlyDiagonal) 
+ CYtIIYtIICYtII = Matmul2(adjYtII,YtIICYtII,OnlyDiagonal) 
+ CYtIITtIIadjYe = Matmul2(adjYtII,TtIIadjYe,OnlyDiagonal) 
+ CYtIITtIIadjYzII = Matmul2(adjYtII,TtIIadjYzII,OnlyDiagonal) 
+ CYtIITtIIadjTe = Matmul2(adjYtII,TtIIadjTe,OnlyDiagonal) 
+ CYtIITtIIadjTzII = Matmul2(adjYtII,TtIIadjTzII,OnlyDiagonal) 
+ CYtIITtIICYtII = Matmul2(adjYtII,TtIICYtII,OnlyDiagonal) 
+ CYtIITtIICTtII = Matmul2(adjYtII,TtIICTtII,OnlyDiagonal) 
+ CYtIITpTeCTe = Matmul2(adjYtII,TpTeCTe,OnlyDiagonal) 
+ CYtIITpTzIICTzII = Matmul2(adjYtII,TpTzIICTzII,OnlyDiagonal) 
+ CYzIIYtIIml2 = Matmul2(Conjg(YzII),YtIIml2,OnlyDiagonal) 
+ CYzIICml2YtII = Matmul2(Conjg(YzII),Cml2YtII,OnlyDiagonal) 
+ CYzIITpYzIICYsII = Matmul2(Conjg(YzII),TpYzIICYsII,OnlyDiagonal) 
+ CYzIITpYzIICTsII = Matmul2(Conjg(YzII),TpYzIICTsII,OnlyDiagonal) 
+ CYzIITpTzIICTsII = Matmul2(Conjg(YzII),TpTzIICTsII,OnlyDiagonal) 
+ CTdTpYdCYsII = Matmul2(Conjg(Td),TpYdCYsII,OnlyDiagonal) 
+ CTdTpTdCYsII = Matmul2(Conjg(Td),TpTdCYsII,OnlyDiagonal) 
+ CTsIIYsIICYsII = Matmul2(adjTsII,YsIICYsII,OnlyDiagonal) 
+ CTsIITdadjYd = Matmul2(adjTsII,TdadjYd,OnlyDiagonal) 
+ CTsIITsIICYsII = Matmul2(adjTsII,TsIICYsII,OnlyDiagonal) 
+ CTsIITzIIadjYzII = Matmul2(adjTsII,TzIIadjYzII,OnlyDiagonal) 
+ CTtIIYtIIadjYe = Matmul2(adjTtII,YtIIadjYe,OnlyDiagonal) 
+ CTtIIYtIIadjYzII = Matmul2(adjTtII,YtIIadjYzII,OnlyDiagonal) 
+ CTtIITtIIadjYe = Matmul2(adjTtII,TtIIadjYe,OnlyDiagonal) 
+ CTtIITtIIadjYzII = Matmul2(adjTtII,TtIIadjYzII,OnlyDiagonal) 
+ CTtIITtIICYtII = Matmul2(adjTtII,TtIICYtII,OnlyDiagonal) 
+ CTzIITpYzIICYsII = Matmul2(Conjg(TzII),TpYzIICYsII,OnlyDiagonal) 
+ CTzIITpTzIICYsII = Matmul2(Conjg(TzII),TpTzIICYsII,OnlyDiagonal) 
+ TdadjYdCTsII = Matmul2(Td,adjYdCTsII,OnlyDiagonal) 
+ TdadjTdYd = Matmul2(Td,adjTdYd,OnlyDiagonal) 
+ TdadjTdYzII = Matmul2(Td,adjTdYzII,OnlyDiagonal) 
+ TeadjYzIIYd = Matmul2(Te,adjYzIIYd,OnlyDiagonal) 
+ TeadjYzIIYsII = Matmul2(Te,adjYzIIYsII,OnlyDiagonal) 
+ TeadjTeYe = Matmul2(Te,adjTeYe,OnlyDiagonal) 
+ TsIICYzIIYtII = Matmul2(TsII,CYzIIYtII,OnlyDiagonal) 
+ TsIICTdTpYd = Matmul2(TsII,CTdTpYd,OnlyDiagonal) 
+ TsIICTsIIYd = Matmul2(TsII,CTsIIYd,OnlyDiagonal) 
+ TsIICTsIIYzII = Matmul2(TsII,CTsIIYzII,OnlyDiagonal) 
+ TsIICTzIITpYzII = Matmul2(TsII,CTzIITpYzII,OnlyDiagonal) 
+ TtIIadjYzIIYd = Matmul2(TtII,adjYzIIYd,OnlyDiagonal) 
+ TtIIadjYzIIYsII = Matmul2(TtII,adjYzIIYsII,OnlyDiagonal) 
+ TtIICYtIITpYzII = Matmul2(TtII,CYtIITpYzII,OnlyDiagonal) 
+ TtIICTtIIYtII = Matmul2(TtII,CTtIIYtII,OnlyDiagonal) 
+ TuadjYdYsII = Matmul2(Tu,adjYdYsII,OnlyDiagonal) 
+ TuadjYdYzII = Matmul2(Tu,adjYdYzII,OnlyDiagonal) 
+ TuadjTuYu = Matmul2(Tu,adjTuYu,OnlyDiagonal) 
+ TzIIadjYzIICTsII = Matmul2(TzII,adjYzIICTsII,OnlyDiagonal) 
+ TzIIadjTzIIYd = Matmul2(TzII,adjTzIIYd,OnlyDiagonal) 
+ TzIIadjTzIIYzII = Matmul2(TzII,adjTzIIYzII,OnlyDiagonal) 
+ TpYdCmd2CYsII = Matmul2(Transpose(Yd),Cmd2CYsII,OnlyDiagonal) 
+ TpYdCYdTpYd = Matmul2(Transpose(Yd),CYdTpYd,OnlyDiagonal) 
+ TpYdCYdTpTd = Matmul2(Transpose(Yd),CYdTpTd,OnlyDiagonal) 
+ TpYdCYsIImd2 = Matmul2(Transpose(Yd),CYsIImd2,OnlyDiagonal) 
+ TpYdCYsIIYd = Matmul2(Transpose(Yd),CYsIIYd,OnlyDiagonal) 
+ TpYdCYsIIYsII = Matmul2(Transpose(Yd),CYsIIYsII,OnlyDiagonal) 
+ TpYdCYsIIYzII = Matmul2(Transpose(Yd),CYsIIYzII,OnlyDiagonal) 
+ TpYdCYsIITd = Matmul2(Transpose(Yd),CYsIITd,OnlyDiagonal) 
+ TpYdCYsIITsII = Matmul2(Transpose(Yd),CYsIITsII,OnlyDiagonal) 
+ TpYdCYsIITzII = Matmul2(Transpose(Yd),CYsIITzII,OnlyDiagonal) 
+ TpYdCYzIIWOp = Matmul2(Transpose(Yd),CYzIIWOp,OnlyDiagonal) 
+ TpYdCYzIIYtII = Matmul2(Transpose(Yd),CYzIIYtII,OnlyDiagonal) 
+ TpYdCYzIITtII = Matmul2(Transpose(Yd),CYzIITtII,OnlyDiagonal) 
+ TpYeCYeTpYzII = Matmul2(Transpose(Ye),CYeTpYzII,OnlyDiagonal) 
+ TpYeCYeTpTzII = Matmul2(Transpose(Ye),CYeTpTzII,OnlyDiagonal) 
+ TpYeCTeTtII = Matmul2(Transpose(Ye),CTeTtII,OnlyDiagonal) 
+ TpYuCYuTpYd = Matmul2(Transpose(Yu),CYuTpYd,OnlyDiagonal) 
+ TpYuCYuTpTd = Matmul2(Transpose(Yu),CYuTpTd,OnlyDiagonal) 
+ TpYzIICmd2CYsII = Matmul2(Transpose(YzII),Cmd2CYsII,OnlyDiagonal) 
+ TpYzIICYsIImd2 = Matmul2(Transpose(YzII),CYsIImd2,OnlyDiagonal) 
+ TpYzIICYsIIYd = Matmul2(Transpose(YzII),CYsIIYd,OnlyDiagonal) 
+ TpYzIICYsIIYsII = Matmul2(Transpose(YzII),CYsIIYsII,OnlyDiagonal) 
+ TpYzIICYsIIYzII = Matmul2(Transpose(YzII),CYsIIYzII,OnlyDiagonal) 
+ TpYzIICYsIITd = Matmul2(Transpose(YzII),CYsIITd,OnlyDiagonal) 
+ TpYzIICYsIITsII = Matmul2(Transpose(YzII),CYsIITsII,OnlyDiagonal) 
+ TpYzIICYsIITzII = Matmul2(Transpose(YzII),CYsIITzII,OnlyDiagonal) 
+ TpYzIICYzIITpYzII = Matmul2(Transpose(YzII),CYzIITpYzII,OnlyDiagonal) 
+ TpYzIICYzIITpTzII = Matmul2(Transpose(YzII),CYzIITpTzII,OnlyDiagonal) 
+ TpYzIICTzIITtII = Matmul2(Transpose(YzII),CTzIITtII,OnlyDiagonal) 
+ TpTdCYdTpYd = Matmul2(Transpose(Td),CYdTpYd,OnlyDiagonal) 
+ TpTdCYsIIYd = Matmul2(Transpose(Td),CYsIIYd,OnlyDiagonal) 
+ TpTdCYsIIYsII = Matmul2(Transpose(Td),CYsIIYsII,OnlyDiagonal) 
+ TpTdCYsIIYzII = Matmul2(Transpose(Td),CYsIIYzII,OnlyDiagonal) 
+ TpTdCYzIIYtII = Matmul2(Transpose(Td),CYzIIYtII,OnlyDiagonal) 
+ TpTeCYeTpYzII = Matmul2(Transpose(Te),CYeTpYzII,OnlyDiagonal) 
+ TpTeCTeYtII = Matmul2(Transpose(Te),CTeYtII,OnlyDiagonal) 
+ TpTuCYuTpYd = Matmul2(Transpose(Tu),CYuTpYd,OnlyDiagonal) 
+ TpTzIICYsIIYd = Matmul2(Transpose(TzII),CYsIIYd,OnlyDiagonal) 
+ TpTzIICYsIIYsII = Matmul2(Transpose(TzII),CYsIIYsII,OnlyDiagonal) 
+ TpTzIICYsIIYzII = Matmul2(Transpose(TzII),CYsIIYzII,OnlyDiagonal) 
+ TpTzIICYzIITpYzII = Matmul2(Transpose(TzII),CYzIITpYzII,OnlyDiagonal) 
+ TpTzIICTzIIYtII = Matmul2(Transpose(TzII),CTzIIYtII,OnlyDiagonal) 
+ md2YdadjYdYd = Matmul2(md2,YdadjYdYd,OnlyDiagonal) 
+ md2YdadjYdYzII = Matmul2(md2,YdadjYdYzII,OnlyDiagonal) 
+ md2YsIICYsIIYd = Matmul2(md2,YsIICYsIIYd,OnlyDiagonal) 
+ md2YsIICYsIIYzII = Matmul2(md2,YsIICYsIIYzII,OnlyDiagonal) 
+ md2YzIIadjYzIIYd = Matmul2(md2,YzIIadjYzIIYd,OnlyDiagonal) 
+ md2YzIIadjYzIIYzII = Matmul2(md2,YzIIadjYzIIYzII,OnlyDiagonal) 
+ me2YeadjYeYe = Matmul2(me2,YeadjYeYe,OnlyDiagonal) 
+ ml2adjYeYeadjYe = Matmul2(ml2,adjYeYeadjYe,OnlyDiagonal) 
+ ml2adjYeYeadjYzII = Matmul2(ml2,adjYeYeadjYzII,OnlyDiagonal) 
+ ml2adjYzIIYzIIadjYe = Matmul2(ml2,adjYzIIYzIIadjYe,OnlyDiagonal) 
+ ml2adjYzIIYzIIadjYzII = Matmul2(ml2,adjYzIIYzIIadjYzII,OnlyDiagonal) 
+ ml2CYtIIYtIIadjYe = Matmul2(ml2,CYtIIYtIIadjYe,OnlyDiagonal) 
+ ml2CYtIIYtIIadjYzII = Matmul2(ml2,CYtIIYtIIadjYzII,OnlyDiagonal) 
+ mq2adjYdYdadjYd = Matmul2(mq2,adjYdYdadjYd,OnlyDiagonal) 
+ mq2adjYdYdadjYu = Matmul2(mq2,adjYdYdadjYu,OnlyDiagonal) 
+ mq2adjYuYuadjYd = Matmul2(mq2,adjYuYuadjYd,OnlyDiagonal) 
+ mq2adjYuYuadjYu = Matmul2(mq2,adjYuYuadjYu,OnlyDiagonal) 
+ mu2YuadjYuYu = Matmul2(mu2,YuadjYuYu,OnlyDiagonal) 
+ Ydmq2adjYdYd = Matmul2(Yd,mq2adjYdYd,OnlyDiagonal) 
+ Ydmq2adjYdYzII = Matmul2(Yd,mq2adjYdYzII,OnlyDiagonal) 
+ YdadjYdmd2Yd = Matmul2(Yd,adjYdmd2Yd,OnlyDiagonal) 
+ YdadjYdmd2YzII = Matmul2(Yd,adjYdmd2YzII,OnlyDiagonal) 
+ YdadjYdYdmq2 = Matmul2(Yd,adjYdYdmq2,OnlyDiagonal) 
+ YdadjYdYdadjYd = Matmul2(Yd,adjYdYdadjYd,OnlyDiagonal) 
+Forall(i2=1:3)  YdadjYdYdadjYd(i2,i2) =  Real(YdadjYdYdadjYd(i2,i2),dp) 
+ YdadjYdYsIICYsII = Matmul2(Yd,adjYdYsIICYsII,OnlyDiagonal) 
+ YdadjYdYzIIml2 = Matmul2(Yd,adjYdYzIIml2,OnlyDiagonal) 
+ YdadjYdYzIIadjYzII = Matmul2(Yd,adjYdYzIIadjYzII,OnlyDiagonal) 
+ YdadjYdTdadjYd = Matmul2(Yd,adjYdTdadjYd,OnlyDiagonal) 
+ YdadjYdTdadjTd = Matmul2(Yd,adjYdTdadjTd,OnlyDiagonal) 
+ YdadjYdTsIICYsII = Matmul2(Yd,adjYdTsIICYsII,OnlyDiagonal) 
+ YdadjYdTsIICTsII = Matmul2(Yd,adjYdTsIICTsII,OnlyDiagonal) 
+ YdadjYdTzIIadjYzII = Matmul2(Yd,adjYdTzIIadjYzII,OnlyDiagonal) 
+ YdadjYdTzIIadjTzII = Matmul2(Yd,adjYdTzIIadjTzII,OnlyDiagonal) 
+ YdadjYuYuadjYd = Matmul2(Yd,adjYuYuadjYd,OnlyDiagonal) 
+Forall(i2=1:3)  YdadjYuYuadjYd(i2,i2) =  Real(YdadjYuYuadjYd(i2,i2),dp) 
+ YdadjYuTuadjYd = Matmul2(Yd,adjYuTuadjYd,OnlyDiagonal) 
+ YdadjYuTuadjTd = Matmul2(Yd,adjYuTuadjTd,OnlyDiagonal) 
+ YdadjTdTdadjYd = Matmul2(Yd,adjTdTdadjYd,OnlyDiagonal) 
+ YdadjTdTsIICYsII = Matmul2(Yd,adjTdTsIICYsII,OnlyDiagonal) 
+ YdadjTdTzIIadjYzII = Matmul2(Yd,adjTdTzIIadjYzII,OnlyDiagonal) 
+ YdadjTuTuadjYd = Matmul2(Yd,adjTuTuadjYd,OnlyDiagonal) 
+ Yeml2adjYeYe = Matmul2(Ye,ml2adjYeYe,OnlyDiagonal) 
+ YeadjYeme2Ye = Matmul2(Ye,adjYeme2Ye,OnlyDiagonal) 
+ YeadjYeYeml2 = Matmul2(Ye,adjYeYeml2,OnlyDiagonal) 
+ YeadjYeYeadjYe = Matmul2(Ye,adjYeYeadjYe,OnlyDiagonal) 
+Forall(i2=1:3)  YeadjYeYeadjYe(i2,i2) =  Real(YeadjYeYeadjYe(i2,i2),dp) 
+ YeadjYeTeadjYe = Matmul2(Ye,adjYeTeadjYe,OnlyDiagonal) 
+ YeadjYeTeadjTe = Matmul2(Ye,adjYeTeadjTe,OnlyDiagonal) 
+ YeadjYzIIYzIIadjYe = Matmul2(Ye,adjYzIIYzIIadjYe,OnlyDiagonal) 
+Forall(i2=1:3)  YeadjYzIIYzIIadjYe(i2,i2) =  Real(YeadjYzIIYzIIadjYe(i2,i2),dp) 
+ YeadjYzIITzIIadjYe = Matmul2(Ye,adjYzIITzIIadjYe,OnlyDiagonal) 
+ YeadjYzIITzIIadjTe = Matmul2(Ye,adjYzIITzIIadjTe,OnlyDiagonal) 
+ YeadjTeTeadjYe = Matmul2(Ye,adjTeTeadjYe,OnlyDiagonal) 
+ YeadjTzIITzIIadjYe = Matmul2(Ye,adjTzIITzIIadjYe,OnlyDiagonal) 
+ YeCYtIIYtIIadjYe = Matmul2(Ye,CYtIIYtIIadjYe,OnlyDiagonal) 
+ YeCYtIITtIIadjYe = Matmul2(Ye,CYtIITtIIadjYe,OnlyDiagonal) 
+ YeCYtIITtIIadjTe = Matmul2(Ye,CYtIITtIIadjTe,OnlyDiagonal) 
+ YeCTtIITtIIadjYe = Matmul2(Ye,CTtIITtIIadjYe,OnlyDiagonal) 
+ YsIICmd2CYsIIYd = Matmul2(YsII,Cmd2CYsIIYd,OnlyDiagonal) 
+ YsIICmd2CYsIIYzII = Matmul2(YsII,Cmd2CYsIIYzII,OnlyDiagonal) 
+ YsIICYdTpYdCYsII = Matmul2(YsII,CYdTpYdCYsII,OnlyDiagonal) 
+ YsIICYdTpTdCTsII = Matmul2(YsII,CYdTpTdCTsII,OnlyDiagonal) 
+ YsIICYsIImd2Yd = Matmul2(YsII,CYsIImd2Yd,OnlyDiagonal) 
+ YsIICYsIImd2YzII = Matmul2(YsII,CYsIImd2YzII,OnlyDiagonal) 
+ YsIICYsIIYdmq2 = Matmul2(YsII,CYsIIYdmq2,OnlyDiagonal) 
+ YsIICYsIIYdadjYd = Matmul2(YsII,CYsIIYdadjYd,OnlyDiagonal) 
+ YsIICYsIIYsIICYsII = Matmul2(YsII,CYsIIYsIICYsII,OnlyDiagonal) 
+ YsIICYsIIYzIIml2 = Matmul2(YsII,CYsIIYzIIml2,OnlyDiagonal) 
+ YsIICYsIIYzIIadjYzII = Matmul2(YsII,CYsIIYzIIadjYzII,OnlyDiagonal) 
+ YsIICYsIITdadjYd = Matmul2(YsII,CYsIITdadjYd,OnlyDiagonal) 
+ YsIICYsIITdadjTd = Matmul2(YsII,CYsIITdadjTd,OnlyDiagonal) 
+ YsIICYsIITsIICYsII = Matmul2(YsII,CYsIITsIICYsII,OnlyDiagonal) 
+ YsIICYsIITsIICTsII = Matmul2(YsII,CYsIITsIICTsII,OnlyDiagonal) 
+ YsIICYsIITzIIadjYzII = Matmul2(YsII,CYsIITzIIadjYzII,OnlyDiagonal) 
+ YsIICYsIITzIIadjTzII = Matmul2(YsII,CYsIITzIIadjTzII,OnlyDiagonal) 
+ YsIICYzIITpYzIICYsII = Matmul2(YsII,CYzIITpYzIICYsII,OnlyDiagonal) 
+ YsIICYzIITpTzIICTsII = Matmul2(YsII,CYzIITpTzIICTsII,OnlyDiagonal) 
+ YsIICTdTpTdCYsII = Matmul2(YsII,CTdTpTdCYsII,OnlyDiagonal) 
+ YsIICTsIITdadjYd = Matmul2(YsII,CTsIITdadjYd,OnlyDiagonal) 
+ YsIICTsIITsIICYsII = Matmul2(YsII,CTsIITsIICYsII,OnlyDiagonal) 
+ YsIICTsIITzIIadjYzII = Matmul2(YsII,CTsIITzIIadjYzII,OnlyDiagonal) 
+ YsIICTzIITpTzIICYsII = Matmul2(YsII,CTzIITpTzIICYsII,OnlyDiagonal) 
+ YsIITdadjYdCTsII = Matmul2(YsII,TdadjYdCTsII,OnlyDiagonal) 
+ YsIITzIIadjYzIICTsII = Matmul2(YsII,TzIIadjYzIICTsII,OnlyDiagonal) 
+ YtIIml2CYtIIYtII = Matmul2(YtII,ml2CYtIIYtII,OnlyDiagonal) 
+ YtIIadjYeTeCYtII = Matmul2(YtII,adjYeTeCYtII,OnlyDiagonal) 
+ YtIIadjYeTeCTtII = Matmul2(YtII,adjYeTeCTtII,OnlyDiagonal) 
+ YtIIadjYzIIYzIICYtII = Matmul2(YtII,adjYzIIYzIICYtII,OnlyDiagonal) 
+ YtIIadjYzIITzIICYtII = Matmul2(YtII,adjYzIITzIICYtII,OnlyDiagonal) 
+ YtIIadjYzIITzIICTtII = Matmul2(YtII,adjYzIITzIICTtII,OnlyDiagonal) 
+ YtIIadjTeTeCYtII = Matmul2(YtII,adjTeTeCYtII,OnlyDiagonal) 
+ YtIIadjTzIITzIICYtII = Matmul2(YtII,adjTzIITzIICYtII,OnlyDiagonal) 
+ YtIICYtIIYtIIml2 = Matmul2(YtII,CYtIIYtIIml2,OnlyDiagonal) 
+ YtIICYtIIYtIICYtII = Matmul2(YtII,CYtIIYtIICYtII,OnlyDiagonal) 
+ YtIICYtIICml2YtII = Matmul2(YtII,CYtIICml2YtII,OnlyDiagonal) 
+ YtIICYtIITtIICYtII = Matmul2(YtII,CYtIITtIICYtII,OnlyDiagonal) 
+ YtIICYtIITtIICTtII = Matmul2(YtII,CYtIITtIICTtII,OnlyDiagonal) 
+ YtIICYtIITpTeCTe = Matmul2(YtII,CYtIITpTeCTe,OnlyDiagonal) 
+ YtIICYtIITpTzIICTzII = Matmul2(YtII,CYtIITpTzIICTzII,OnlyDiagonal) 
+ YtIICTtIITtIICYtII = Matmul2(YtII,CTtIITtIICYtII,OnlyDiagonal) 
+ Yumq2adjYuYu = Matmul2(Yu,mq2adjYuYu,OnlyDiagonal) 
+ YuadjYdYdadjYu = Matmul2(Yu,adjYdYdadjYu,OnlyDiagonal) 
+Forall(i2=1:3)  YuadjYdYdadjYu(i2,i2) =  Real(YuadjYdYdadjYu(i2,i2),dp) 
+ YuadjYdTdadjYu = Matmul2(Yu,adjYdTdadjYu,OnlyDiagonal) 
+ YuadjYdTdadjTu = Matmul2(Yu,adjYdTdadjTu,OnlyDiagonal) 
+ YuadjYumu2Yu = Matmul2(Yu,adjYumu2Yu,OnlyDiagonal) 
+ YuadjYuYumq2 = Matmul2(Yu,adjYuYumq2,OnlyDiagonal) 
+ YuadjYuYuadjYu = Matmul2(Yu,adjYuYuadjYu,OnlyDiagonal) 
+Forall(i2=1:3)  YuadjYuYuadjYu(i2,i2) =  Real(YuadjYuYuadjYu(i2,i2),dp) 
+ YuadjYuTuadjYu = Matmul2(Yu,adjYuTuadjYu,OnlyDiagonal) 
+ YuadjYuTuadjTu = Matmul2(Yu,adjYuTuadjTu,OnlyDiagonal) 
+ YuadjTdTdadjYu = Matmul2(Yu,adjTdTdadjYu,OnlyDiagonal) 
+ YuadjTuTuadjYu = Matmul2(Yu,adjTuTuadjYu,OnlyDiagonal) 
+ YzIIml2adjYzIIYd = Matmul2(YzII,ml2adjYzIIYd,OnlyDiagonal) 
+ YzIIml2adjYzIIYzII = Matmul2(YzII,ml2adjYzIIYzII,OnlyDiagonal) 
+ YzIIadjYeYeadjYzII = Matmul2(YzII,adjYeYeadjYzII,OnlyDiagonal) 
+Forall(i2=1:3)  YzIIadjYeYeadjYzII(i2,i2) =  Real(YzIIadjYeYeadjYzII(i2,i2),dp) 
+ YzIIadjYeTeadjYzII = Matmul2(YzII,adjYeTeadjYzII,OnlyDiagonal) 
+ YzIIadjYeTeadjTzII = Matmul2(YzII,adjYeTeadjTzII,OnlyDiagonal) 
+ YzIIadjYzIImd2Yd = Matmul2(YzII,adjYzIImd2Yd,OnlyDiagonal) 
+ YzIIadjYzIImd2YzII = Matmul2(YzII,adjYzIImd2YzII,OnlyDiagonal) 
+ YzIIadjYzIIYdmq2 = Matmul2(YzII,adjYzIIYdmq2,OnlyDiagonal) 
+ YzIIadjYzIIYdadjYd = Matmul2(YzII,adjYzIIYdadjYd,OnlyDiagonal) 
+ YzIIadjYzIIYsIICYsII = Matmul2(YzII,adjYzIIYsIICYsII,OnlyDiagonal) 
+ YzIIadjYzIIYzIIml2 = Matmul2(YzII,adjYzIIYzIIml2,OnlyDiagonal) 
+ YzIIadjYzIIYzIIadjYzII = Matmul2(YzII,adjYzIIYzIIadjYzII,OnlyDiagonal) 
+Forall(i2=1:3)  YzIIadjYzIIYzIIadjYzII(i2,i2) =  Real(YzIIadjYzIIYzIIadjYzII(i2,i2),dp) 
+ YzIIadjYzIITdadjYd = Matmul2(YzII,adjYzIITdadjYd,OnlyDiagonal) 
+ YzIIadjYzIITdadjTd = Matmul2(YzII,adjYzIITdadjTd,OnlyDiagonal) 
+ YzIIadjYzIITsIICYsII = Matmul2(YzII,adjYzIITsIICYsII,OnlyDiagonal) 
+ YzIIadjYzIITsIICTsII = Matmul2(YzII,adjYzIITsIICTsII,OnlyDiagonal) 
+ YzIIadjYzIITzIIadjYzII = Matmul2(YzII,adjYzIITzIIadjYzII,OnlyDiagonal) 
+ YzIIadjYzIITzIIadjTzII = Matmul2(YzII,adjYzIITzIIadjTzII,OnlyDiagonal) 
+ YzIIadjTeTeadjYzII = Matmul2(YzII,adjTeTeadjYzII,OnlyDiagonal) 
+ YzIIadjTzIITdadjYd = Matmul2(YzII,adjTzIITdadjYd,OnlyDiagonal) 
+ YzIIadjTzIITsIICYsII = Matmul2(YzII,adjTzIITsIICYsII,OnlyDiagonal) 
+ YzIIadjTzIITzIIadjYzII = Matmul2(YzII,adjTzIITzIIadjYzII,OnlyDiagonal) 
+ YzIICYtIIYtIIadjYzII = Matmul2(YzII,CYtIIYtIIadjYzII,OnlyDiagonal) 
+ YzIICYtIITtIIadjYzII = Matmul2(YzII,CYtIITtIIadjYzII,OnlyDiagonal) 
+ YzIICYtIITtIIadjTzII = Matmul2(YzII,CYtIITtIIadjTzII,OnlyDiagonal) 
+ YzIICTtIITtIIadjYzII = Matmul2(YzII,CTtIITtIIadjYzII,OnlyDiagonal) 
+ adjYdmd2YdadjYd = Matmul2(adjYd,md2YdadjYd,OnlyDiagonal) 
+ adjYdmd2YdadjYu = Matmul2(adjYd,md2YdadjYu,OnlyDiagonal) 
+ adjYdYdmq2adjYd = Matmul2(adjYd,Ydmq2adjYd,OnlyDiagonal) 
+ adjYdYdmq2adjYu = Matmul2(adjYd,Ydmq2adjYu,OnlyDiagonal) 
+ adjYdYdadjYdmd2 = Matmul2(adjYd,YdadjYdmd2,OnlyDiagonal) 
+ adjYdYdadjYdYd = Matmul2(adjYd,YdadjYdYd,OnlyDiagonal) 
+Forall(i2=1:3)  adjYdYdadjYdYd(i2,i2) =  Real(adjYdYdadjYdYd(i2,i2),dp) 
+ adjYdYdadjYdYsII = Matmul2(adjYd,YdadjYdYsII,OnlyDiagonal) 
+ adjYdYdadjYdYzII = Matmul2(adjYd,YdadjYdYzII,OnlyDiagonal) 
+ adjYdYdadjYdTd = Matmul2(adjYd,YdadjYdTd,OnlyDiagonal) 
+ adjYdYdadjYdTsII = Matmul2(adjYd,YdadjYdTsII,OnlyDiagonal) 
+ adjYdYdadjYdTzII = Matmul2(adjYd,YdadjYdTzII,OnlyDiagonal) 
+ adjYdYdadjYumu2 = Matmul2(adjYd,YdadjYumu2,OnlyDiagonal) 
+ adjYdYdadjYuYu = Matmul2(adjYd,YdadjYuYu,OnlyDiagonal) 
+ adjYdYdadjYuTu = Matmul2(adjYd,YdadjYuTu,OnlyDiagonal) 
+ adjYdYdadjTdTd = Matmul2(adjYd,YdadjTdTd,OnlyDiagonal) 
+ adjYdYsIICmd2CYsII = Matmul2(adjYd,YsIICmd2CYsII,OnlyDiagonal) 
+ adjYdYsIICYsIIYd = Matmul2(adjYd,YsIICYsIIYd,OnlyDiagonal) 
+ adjYdYsIICYsIITd = Matmul2(adjYd,YsIICYsIITd,OnlyDiagonal) 
+ adjYdYsIICTsIITd = Matmul2(adjYd,YsIICTsIITd,OnlyDiagonal) 
+ adjYdYzIIadjYzIIYd = Matmul2(adjYd,YzIIadjYzIIYd,OnlyDiagonal) 
+Forall(i2=1:3)  adjYdYzIIadjYzIIYd(i2,i2) =  Real(adjYdYzIIadjYzIIYd(i2,i2),dp) 
+ adjYdYzIIadjYzIITd = Matmul2(adjYd,YzIIadjYzIITd,OnlyDiagonal) 
+ adjYdYzIIadjTzIITd = Matmul2(adjYd,YzIIadjTzIITd,OnlyDiagonal) 
+ adjYdTdadjYdYd = Matmul2(adjYd,TdadjYdYd,OnlyDiagonal) 
+ adjYdTdadjYdYsII = Matmul2(adjYd,TdadjYdYsII,OnlyDiagonal) 
+ adjYdTdadjYdYzII = Matmul2(adjYd,TdadjYdYzII,OnlyDiagonal) 
+ adjYdTdadjYuYu = Matmul2(adjYd,TdadjYuYu,OnlyDiagonal) 
+ adjYdTdadjTdYd = Matmul2(adjYd,TdadjTdYd,OnlyDiagonal) 
+ adjYdTsIICYsIIYd = Matmul2(adjYd,TsIICYsIIYd,OnlyDiagonal) 
+ adjYdTsIICTsIIYd = Matmul2(adjYd,TsIICTsIIYd,OnlyDiagonal) 
+ adjYdTzIIadjYzIIYd = Matmul2(adjYd,TzIIadjYzIIYd,OnlyDiagonal) 
+ adjYdTzIIadjTzIIYd = Matmul2(adjYd,TzIIadjTzIIYd,OnlyDiagonal) 
+ adjYeme2YeadjYe = Matmul2(adjYe,me2YeadjYe,OnlyDiagonal) 
+ adjYeme2YeadjYzII = Matmul2(adjYe,me2YeadjYzII,OnlyDiagonal) 
+ adjYeYeml2adjYe = Matmul2(adjYe,Yeml2adjYe,OnlyDiagonal) 
+ adjYeYeml2adjYzII = Matmul2(adjYe,Yeml2adjYzII,OnlyDiagonal) 
+ adjYeYeadjYeme2 = Matmul2(adjYe,YeadjYeme2,OnlyDiagonal) 
+ adjYeYeadjYeYe = Matmul2(adjYe,YeadjYeYe,OnlyDiagonal) 
+Forall(i2=1:3)  adjYeYeadjYeYe(i2,i2) =  Real(adjYeYeadjYeYe(i2,i2),dp) 
+ adjYeYeadjYeTe = Matmul2(adjYe,YeadjYeTe,OnlyDiagonal) 
+ adjYeYeadjYzIImd2 = Matmul2(adjYe,YeadjYzIImd2,OnlyDiagonal) 
+ adjYeYeadjYzIIYd = Matmul2(adjYe,YeadjYzIIYd,OnlyDiagonal) 
+ adjYeYeadjYzIIYsII = Matmul2(adjYe,YeadjYzIIYsII,OnlyDiagonal) 
+ adjYeYeadjYzIIYzII = Matmul2(adjYe,YeadjYzIIYzII,OnlyDiagonal) 
+ adjYeYeadjYzIITd = Matmul2(adjYe,YeadjYzIITd,OnlyDiagonal) 
+ adjYeYeadjYzIITsII = Matmul2(adjYe,YeadjYzIITsII,OnlyDiagonal) 
+ adjYeYeadjYzIITzII = Matmul2(adjYe,YeadjYzIITzII,OnlyDiagonal) 
+ adjYeYeadjTeTe = Matmul2(adjYe,YeadjTeTe,OnlyDiagonal) 
+ adjYeYeCYtIIWOp = Matmul2(adjYe,YeCYtIIWOp,OnlyDiagonal) 
+ adjYeYeCYtIIYtII = Matmul2(adjYe,YeCYtIIYtII,OnlyDiagonal) 
+ adjYeYeCYtIITtII = Matmul2(adjYe,YeCYtIITtII,OnlyDiagonal) 
+ adjYeTeadjYeYe = Matmul2(adjYe,TeadjYeYe,OnlyDiagonal) 
+ adjYeTeadjYzIIYd = Matmul2(adjYe,TeadjYzIIYd,OnlyDiagonal) 
+ adjYeTeadjYzIIYsII = Matmul2(adjYe,TeadjYzIIYsII,OnlyDiagonal) 
+ adjYeTeadjYzIIYzII = Matmul2(adjYe,TeadjYzIIYzII,OnlyDiagonal) 
+ adjYeTeadjTeYe = Matmul2(adjYe,TeadjTeYe,OnlyDiagonal) 
+ adjYeTeCYtIIYtII = Matmul2(adjYe,TeCYtIIYtII,OnlyDiagonal) 
+ adjYumu2YuadjYd = Matmul2(adjYu,mu2YuadjYd,OnlyDiagonal) 
+ adjYumu2YuadjYu = Matmul2(adjYu,mu2YuadjYu,OnlyDiagonal) 
+ adjYuYumq2adjYd = Matmul2(adjYu,Yumq2adjYd,OnlyDiagonal) 
+ adjYuYumq2adjYu = Matmul2(adjYu,Yumq2adjYu,OnlyDiagonal) 
+ adjYuYuadjYdmd2 = Matmul2(adjYu,YuadjYdmd2,OnlyDiagonal) 
+ adjYuYuadjYdYd = Matmul2(adjYu,YuadjYdYd,OnlyDiagonal) 
+ adjYuYuadjYdYsII = Matmul2(adjYu,YuadjYdYsII,OnlyDiagonal) 
+ adjYuYuadjYdYzII = Matmul2(adjYu,YuadjYdYzII,OnlyDiagonal) 
+ adjYuYuadjYdTd = Matmul2(adjYu,YuadjYdTd,OnlyDiagonal) 
+ adjYuYuadjYdTsII = Matmul2(adjYu,YuadjYdTsII,OnlyDiagonal) 
+ adjYuYuadjYdTzII = Matmul2(adjYu,YuadjYdTzII,OnlyDiagonal) 
+ adjYuYuadjYumu2 = Matmul2(adjYu,YuadjYumu2,OnlyDiagonal) 
+ adjYuYuadjYuYu = Matmul2(adjYu,YuadjYuYu,OnlyDiagonal) 
+Forall(i2=1:3)  adjYuYuadjYuYu(i2,i2) =  Real(adjYuYuadjYuYu(i2,i2),dp) 
+ adjYuYuadjYuTu = Matmul2(adjYu,YuadjYuTu,OnlyDiagonal) 
+ adjYuYuadjTuTu = Matmul2(adjYu,YuadjTuTu,OnlyDiagonal) 
+ adjYuTuadjYdYd = Matmul2(adjYu,TuadjYdYd,OnlyDiagonal) 
+ adjYuTuadjYdYsII = Matmul2(adjYu,TuadjYdYsII,OnlyDiagonal) 
+ adjYuTuadjYdYzII = Matmul2(adjYu,TuadjYdYzII,OnlyDiagonal) 
+ adjYuTuadjYuYu = Matmul2(adjYu,TuadjYuYu,OnlyDiagonal) 
+ adjYuTuadjTuYu = Matmul2(adjYu,TuadjTuYu,OnlyDiagonal) 
+ adjYzIImd2YzIIadjYe = Matmul2(adjYzII,md2YzIIadjYe,OnlyDiagonal) 
+ adjYzIImd2YzIIadjYzII = Matmul2(adjYzII,md2YzIIadjYzII,OnlyDiagonal) 
+ adjYzIIYdadjYdYzII = Matmul2(adjYzII,YdadjYdYzII,OnlyDiagonal) 
+Forall(i2=1:3)  adjYzIIYdadjYdYzII(i2,i2) =  Real(adjYzIIYdadjYdYzII(i2,i2),dp) 
+ adjYzIIYdadjYdTzII = Matmul2(adjYzII,YdadjYdTzII,OnlyDiagonal) 
+ adjYzIIYdadjTdTzII = Matmul2(adjYzII,YdadjTdTzII,OnlyDiagonal) 
+ adjYzIIYsIICYsIIYzII = Matmul2(adjYzII,YsIICYsIIYzII,OnlyDiagonal) 
+ adjYzIIYsIICYsIITzII = Matmul2(adjYzII,YsIICYsIITzII,OnlyDiagonal) 
+ adjYzIIYsIICTsIITzII = Matmul2(adjYzII,YsIICTsIITzII,OnlyDiagonal) 
+ adjYzIIYzIIml2adjYe = Matmul2(adjYzII,YzIIml2adjYe,OnlyDiagonal) 
+ adjYzIIYzIIml2adjYzII = Matmul2(adjYzII,YzIIml2adjYzII,OnlyDiagonal) 
+ adjYzIIYzIIadjYeme2 = Matmul2(adjYzII,YzIIadjYeme2,OnlyDiagonal) 
+ adjYzIIYzIIadjYeYe = Matmul2(adjYzII,YzIIadjYeYe,OnlyDiagonal) 
+ adjYzIIYzIIadjYeTe = Matmul2(adjYzII,YzIIadjYeTe,OnlyDiagonal) 
+ adjYzIIYzIIadjYzIImd2 = Matmul2(adjYzII,YzIIadjYzIImd2,OnlyDiagonal) 
+ adjYzIIYzIIadjYzIIYd = Matmul2(adjYzII,YzIIadjYzIIYd,OnlyDiagonal) 
+ adjYzIIYzIIadjYzIIYsII = Matmul2(adjYzII,YzIIadjYzIIYsII,OnlyDiagonal) 
+ adjYzIIYzIIadjYzIIYzII = Matmul2(adjYzII,YzIIadjYzIIYzII,OnlyDiagonal) 
+Forall(i2=1:3)  adjYzIIYzIIadjYzIIYzII(i2,i2) =  Real(adjYzIIYzIIadjYzIIYzII(i2,i2),dp) 
+ adjYzIIYzIIadjYzIITd = Matmul2(adjYzII,YzIIadjYzIITd,OnlyDiagonal) 
+ adjYzIIYzIIadjYzIITsII = Matmul2(adjYzII,YzIIadjYzIITsII,OnlyDiagonal) 
+ adjYzIIYzIIadjYzIITzII = Matmul2(adjYzII,YzIIadjYzIITzII,OnlyDiagonal) 
+ adjYzIIYzIIadjTzIITzII = Matmul2(adjYzII,YzIIadjTzIITzII,OnlyDiagonal) 
+ adjYzIIYzIICYtIIWOp = Matmul2(adjYzII,YzIICYtIIWOp,OnlyDiagonal) 
+ adjYzIIYzIICYtIIYtII = Matmul2(adjYzII,YzIICYtIIYtII,OnlyDiagonal) 
+ adjYzIIYzIICYtIICml2 = Matmul2(adjYzII,YzIICYtIICml2,OnlyDiagonal) 
+ adjYzIIYzIICYtIITtII = Matmul2(adjYzII,YzIICYtIITtII,OnlyDiagonal) 
+ adjYzIITdadjYdYzII = Matmul2(adjYzII,TdadjYdYzII,OnlyDiagonal) 
+ adjYzIITdadjTdYzII = Matmul2(adjYzII,TdadjTdYzII,OnlyDiagonal) 
+ adjYzIITsIICYsIIYzII = Matmul2(adjYzII,TsIICYsIIYzII,OnlyDiagonal) 
+ adjYzIITsIICTsIIYzII = Matmul2(adjYzII,TsIICTsIIYzII,OnlyDiagonal) 
+ adjYzIITzIIadjYeYe = Matmul2(adjYzII,TzIIadjYeYe,OnlyDiagonal) 
+ adjYzIITzIIadjYzIIYd = Matmul2(adjYzII,TzIIadjYzIIYd,OnlyDiagonal) 
+ adjYzIITzIIadjYzIIYsII = Matmul2(adjYzII,TzIIadjYzIIYsII,OnlyDiagonal) 
+ adjYzIITzIIadjYzIIYzII = Matmul2(adjYzII,TzIIadjYzIIYzII,OnlyDiagonal) 
+ adjYzIITzIIadjTzIIYzII = Matmul2(adjYzII,TzIIadjTzIIYzII,OnlyDiagonal) 
+ adjYzIITzIICYtIIYtII = Matmul2(adjYzII,TzIICYtIIYtII,OnlyDiagonal) 
+ adjTdYdadjYdTd = Matmul2(adjTd,YdadjYdTd,OnlyDiagonal) 
+ adjTdYsIICYsIITd = Matmul2(adjTd,YsIICYsIITd,OnlyDiagonal) 
+ adjTdYzIIadjYzIITd = Matmul2(adjTd,YzIIadjYzIITd,OnlyDiagonal) 
+ adjTdTdadjYdYd = Matmul2(adjTd,TdadjYdYd,OnlyDiagonal) 
+ adjTdTsIICYsIIYd = Matmul2(adjTd,TsIICYsIIYd,OnlyDiagonal) 
+ adjTdTzIIadjYzIIYd = Matmul2(adjTd,TzIIadjYzIIYd,OnlyDiagonal) 
+ adjTeYeadjYeTe = Matmul2(adjTe,YeadjYeTe,OnlyDiagonal) 
+ adjTeTeadjYeYe = Matmul2(adjTe,TeadjYeYe,OnlyDiagonal) 
+ adjTuYuadjYuTu = Matmul2(adjTu,YuadjYuTu,OnlyDiagonal) 
+ adjTuTuadjYuYu = Matmul2(adjTu,TuadjYuYu,OnlyDiagonal) 
+ adjTzIIYdadjYdTzII = Matmul2(adjTzII,YdadjYdTzII,OnlyDiagonal) 
+ adjTzIIYsIICYsIITzII = Matmul2(adjTzII,YsIICYsIITzII,OnlyDiagonal) 
+ adjTzIIYzIIadjYzIITzII = Matmul2(adjTzII,YzIIadjYzIITzII,OnlyDiagonal) 
+ adjTzIITdadjYdYzII = Matmul2(adjTzII,TdadjYdYzII,OnlyDiagonal) 
+ adjTzIITsIICYsIIYzII = Matmul2(adjTzII,TsIICYsIIYzII,OnlyDiagonal) 
+ adjTzIITzIIadjYzIIYzII = Matmul2(adjTzII,TzIIadjYzIIYzII,OnlyDiagonal) 
+ Cmd2CYdTpYdCYsII = Matmul2(Conjg(md2),CYdTpYdCYsII,OnlyDiagonal) 
+ Cmd2CYsIIYsIICYsII = Matmul2(Conjg(md2),CYsIIYsIICYsII,OnlyDiagonal) 
+ Cmd2CYsIIYzIIadjYzII = Matmul2(Conjg(md2),CYsIIYzIIadjYzII,OnlyDiagonal) 
+ Cmd2CYzIITpYzIICYsII = Matmul2(Conjg(md2),CYzIITpYzIICYsII,OnlyDiagonal) 
+ Cml2YtIICYtIIYtII = Matmul2(Conjg(ml2),YtIICYtIIYtII,OnlyDiagonal) 
+ Cml2TpYeCYeYtII = Matmul2(Conjg(ml2),TpYeCYeYtII,OnlyDiagonal) 
+ Cml2TpYzIICYzIIYtII = Matmul2(Conjg(ml2),TpYzIICYzIIYtII,OnlyDiagonal) 
+ CYdCmq2TpYdCYsII = Matmul2(Conjg(Yd),Cmq2TpYdCYsII,OnlyDiagonal) 
+ CYdTpYdCmd2CYsII = Matmul2(Conjg(Yd),TpYdCmd2CYsII,OnlyDiagonal) 
+ CYdTpYdCYdTpYd = Matmul2(Conjg(Yd),TpYdCYdTpYd,OnlyDiagonal) 
+Forall(i2=1:3)  CYdTpYdCYdTpYd(i2,i2) =  Real(CYdTpYdCYdTpYd(i2,i2),dp) 
+ CYdTpYdCYdTpTd = Matmul2(Conjg(Yd),TpYdCYdTpTd,OnlyDiagonal) 
+ CYdTpYdCYsIImd2 = Matmul2(Conjg(Yd),TpYdCYsIImd2,OnlyDiagonal) 
+ CYdTpYdCYsIIYd = Matmul2(Conjg(Yd),TpYdCYsIIYd,OnlyDiagonal) 
+ CYdTpYdCYsIIYsII = Matmul2(Conjg(Yd),TpYdCYsIIYsII,OnlyDiagonal) 
+ CYdTpYdCYsIIYzII = Matmul2(Conjg(Yd),TpYdCYsIIYzII,OnlyDiagonal) 
+ CYdTpYdCYsIITd = Matmul2(Conjg(Yd),TpYdCYsIITd,OnlyDiagonal) 
+ CYdTpYdCYsIITsII = Matmul2(Conjg(Yd),TpYdCYsIITsII,OnlyDiagonal) 
+ CYdTpYdCYsIITzII = Matmul2(Conjg(Yd),TpYdCYsIITzII,OnlyDiagonal) 
+ CYdTpYdCYzIIWOp = Matmul2(Conjg(Yd),TpYdCYzIIWOp,OnlyDiagonal) 
+ CYdTpYdCYzIIYtII = Matmul2(Conjg(Yd),TpYdCYzIIYtII,OnlyDiagonal) 
+ CYdTpYdCYzIITtII = Matmul2(Conjg(Yd),TpYdCYzIITtII,OnlyDiagonal) 
+ CYdTpYuCYuTpYd = Matmul2(Conjg(Yd),TpYuCYuTpYd,OnlyDiagonal) 
+Forall(i2=1:3)  CYdTpYuCYuTpYd(i2,i2) =  Real(CYdTpYuCYuTpYd(i2,i2),dp) 
+ CYdTpYuCYuTpTd = Matmul2(Conjg(Yd),TpYuCYuTpTd,OnlyDiagonal) 
+ CYdTpTdCYdTpYd = Matmul2(Conjg(Yd),TpTdCYdTpYd,OnlyDiagonal) 
+ CYdTpTdCYsIIYd = Matmul2(Conjg(Yd),TpTdCYsIIYd,OnlyDiagonal) 
+ CYdTpTdCYsIIYsII = Matmul2(Conjg(Yd),TpTdCYsIIYsII,OnlyDiagonal) 
+ CYdTpTdCYsIIYzII = Matmul2(Conjg(Yd),TpTdCYsIIYzII,OnlyDiagonal) 
+ CYdTpTdCYzIIYtII = Matmul2(Conjg(Yd),TpTdCYzIIYtII,OnlyDiagonal) 
+ CYdTpTuCYuTpYd = Matmul2(Conjg(Yd),TpTuCYuTpYd,OnlyDiagonal) 
+ CYeTpYeCYeWOp = Matmul2(Conjg(Ye),TpYeCYeWOp,OnlyDiagonal) 
+ CYeTpYeCYeYtII = Matmul2(Conjg(Ye),TpYeCYeYtII,OnlyDiagonal) 
+ CYeTpYeCYeTtII = Matmul2(Conjg(Ye),TpYeCYeTtII,OnlyDiagonal) 
+ CYeTpTeCYeYtII = Matmul2(Conjg(Ye),TpTeCYeYtII,OnlyDiagonal) 
+ CYsIImd2YsIICYsII = Matmul2(adjYsII,md2YsIICYsII,OnlyDiagonal) 
+ CYsIIYdadjYdYsII = Matmul2(adjYsII,YdadjYdYsII,OnlyDiagonal) 
+ CYsIIYdadjYdTsII = Matmul2(adjYsII,YdadjYdTsII,OnlyDiagonal) 
+ CYsIIYsIICmd2CYsII = Matmul2(adjYsII,YsIICmd2CYsII,OnlyDiagonal) 
+ CYsIIYsIICYsIImd2 = Matmul2(adjYsII,YsIICYsIImd2,OnlyDiagonal) 
+ CYsIIYsIICYsIIYd = Matmul2(adjYsII,YsIICYsIIYd,OnlyDiagonal) 
+ CYsIIYsIICYsIIYsII = Matmul2(adjYsII,YsIICYsIIYsII,OnlyDiagonal) 
+ CYsIIYsIICYsIIYzII = Matmul2(adjYsII,YsIICYsIIYzII,OnlyDiagonal) 
+ CYsIIYsIICYsIITd = Matmul2(adjYsII,YsIICYsIITd,OnlyDiagonal) 
+ CYsIIYsIICYsIITsII = Matmul2(adjYsII,YsIICYsIITsII,OnlyDiagonal) 
+ CYsIIYsIICYsIITzII = Matmul2(adjYsII,YsIICYsIITzII,OnlyDiagonal) 
+ CYsIIYsIICYzIIWOp = Matmul2(adjYsII,YsIICYzIIWOp,OnlyDiagonal) 
+ CYsIIYsIICYzIIYtII = Matmul2(adjYsII,YsIICYzIIYtII,OnlyDiagonal) 
+ CYsIIYsIICYzIITtII = Matmul2(adjYsII,YsIICYzIITtII,OnlyDiagonal) 
+ CYsIIYzIIadjYzIIYsII = Matmul2(adjYsII,YzIIadjYzIIYsII,OnlyDiagonal) 
+ CYsIIYzIIadjYzIITsII = Matmul2(adjYsII,YzIIadjYzIITsII,OnlyDiagonal) 
+ CYsIITdadjYdYsII = Matmul2(adjYsII,TdadjYdYsII,OnlyDiagonal) 
+ CYsIITsIICYsIIYd = Matmul2(adjYsII,TsIICYsIIYd,OnlyDiagonal) 
+ CYsIITsIICYsIIYsII = Matmul2(adjYsII,TsIICYsIIYsII,OnlyDiagonal) 
+ CYsIITsIICYsIIYzII = Matmul2(adjYsII,TsIICYsIIYzII,OnlyDiagonal) 
+ CYsIITsIICYzIIYtII = Matmul2(adjYsII,TsIICYzIIYtII,OnlyDiagonal) 
+ CYsIITsIICTdTpYd = Matmul2(adjYsII,TsIICTdTpYd,OnlyDiagonal) 
+ CYsIITsIICTzIITpYzII = Matmul2(adjYsII,TsIICTzIITpYzII,OnlyDiagonal) 
+ CYsIITzIIadjYzIIYsII = Matmul2(adjYsII,TzIIadjYzIIYsII,OnlyDiagonal) 
+ CYtIIYtIIml2adjYe = Matmul2(adjYtII,YtIIml2adjYe,OnlyDiagonal) 
+ CYtIIYtIIml2adjYzII = Matmul2(adjYtII,YtIIml2adjYzII,OnlyDiagonal) 
+ CYtIIYtIIadjYeme2 = Matmul2(adjYtII,YtIIadjYeme2,OnlyDiagonal) 
+ CYtIIYtIIadjYeYe = Matmul2(adjYtII,YtIIadjYeYe,OnlyDiagonal) 
+ CYtIIYtIIadjYeTe = Matmul2(adjYtII,YtIIadjYeTe,OnlyDiagonal) 
+ CYtIIYtIIadjYzIImd2 = Matmul2(adjYtII,YtIIadjYzIImd2,OnlyDiagonal) 
+ CYtIIYtIIadjYzIIYd = Matmul2(adjYtII,YtIIadjYzIIYd,OnlyDiagonal) 
+ CYtIIYtIIadjYzIIYsII = Matmul2(adjYtII,YtIIadjYzIIYsII,OnlyDiagonal) 
+ CYtIIYtIIadjYzIIYzII = Matmul2(adjYtII,YtIIadjYzIIYzII,OnlyDiagonal) 
+ CYtIIYtIIadjYzIITd = Matmul2(adjYtII,YtIIadjYzIITd,OnlyDiagonal) 
+ CYtIIYtIIadjYzIITsII = Matmul2(adjYtII,YtIIadjYzIITsII,OnlyDiagonal) 
+ CYtIIYtIIadjYzIITzII = Matmul2(adjYtII,YtIIadjYzIITzII,OnlyDiagonal) 
+ CYtIIYtIICYtIIWOp = Matmul2(adjYtII,YtIICYtIIWOp,OnlyDiagonal) 
+ CYtIIYtIICYtIIYtII = Matmul2(adjYtII,YtIICYtIIYtII,OnlyDiagonal) 
+ CYtIIYtIICYtIITtII = Matmul2(adjYtII,YtIICYtIITtII,OnlyDiagonal) 
+ CYtIIYtIICTtIITtII = Matmul2(adjYtII,YtIICTtIITtII,OnlyDiagonal) 
+ CYtIICml2YtIIadjYe = Matmul2(adjYtII,Cml2YtIIadjYe,OnlyDiagonal) 
+ CYtIICml2YtIIadjYzII = Matmul2(adjYtII,Cml2YtIIadjYzII,OnlyDiagonal) 
+ CYtIITtIIadjYeYe = Matmul2(adjYtII,TtIIadjYeYe,OnlyDiagonal) 
+ CYtIITtIIadjYzIIYd = Matmul2(adjYtII,TtIIadjYzIIYd,OnlyDiagonal) 
+ CYtIITtIIadjYzIIYsII = Matmul2(adjYtII,TtIIadjYzIIYsII,OnlyDiagonal) 
+ CYtIITtIIadjYzIIYzII = Matmul2(adjYtII,TtIIadjYzIIYzII,OnlyDiagonal) 
+ CYtIITtIICYtIIYtII = Matmul2(adjYtII,TtIICYtIIYtII,OnlyDiagonal) 
+ CYtIITtIICTtIIYtII = Matmul2(adjYtII,TtIICTtIIYtII,OnlyDiagonal) 
+ CYtIITpYeCYeYtII = Matmul2(adjYtII,TpYeCYeYtII,OnlyDiagonal) 
+ CYtIITpYeCYeTtII = Matmul2(adjYtII,TpYeCYeTtII,OnlyDiagonal) 
+ CYtIITpYeCTeTtII = Matmul2(adjYtII,TpYeCTeTtII,OnlyDiagonal) 
+ CYtIITpYzIICYzIIYtII = Matmul2(adjYtII,TpYzIICYzIIYtII,OnlyDiagonal) 
+ CYtIITpYzIICYzIITtII = Matmul2(adjYtII,TpYzIICYzIITtII,OnlyDiagonal) 
+ CYtIITpYzIICTzIITtII = Matmul2(adjYtII,TpYzIICTzIITtII,OnlyDiagonal) 
+ CYtIITpTeCYeYtII = Matmul2(adjYtII,TpTeCYeYtII,OnlyDiagonal) 
+ CYtIITpTeCTeYtII = Matmul2(adjYtII,TpTeCTeYtII,OnlyDiagonal) 
+ CYtIITpTzIICYzIIYtII = Matmul2(adjYtII,TpTzIICYzIIYtII,OnlyDiagonal) 
+ CYtIITpTzIICTzIIYtII = Matmul2(adjYtII,TpTzIICTzIIYtII,OnlyDiagonal) 
+ CYzIIYtIICYtIITpYzII = Matmul2(Conjg(YzII),YtIICYtIITpYzII,OnlyDiagonal) 
+ CYzIIYtIICYtIITpTzII = Matmul2(Conjg(YzII),YtIICYtIITpTzII,OnlyDiagonal) 
+ CYzIICml2TpYzIICYsII = Matmul2(Conjg(YzII),Cml2TpYzIICYsII,OnlyDiagonal) 
+ CYzIITtIICYtIITpYzII = Matmul2(Conjg(YzII),TtIICYtIITpYzII,OnlyDiagonal) 
+ CYzIITpYeCYeTpYzII = Matmul2(Conjg(YzII),TpYeCYeTpYzII,OnlyDiagonal) 
+Forall(i2=1:3)  CYzIITpYeCYeTpYzII(i2,i2) =  Real(CYzIITpYeCYeTpYzII(i2,i2),dp) 
+ CYzIITpYeCYeTpTzII = Matmul2(Conjg(YzII),TpYeCYeTpTzII,OnlyDiagonal) 
+ CYzIITpYzIICmd2CYsII = Matmul2(Conjg(YzII),TpYzIICmd2CYsII,OnlyDiagonal) 
+ CYzIITpYzIICYsIImd2 = Matmul2(Conjg(YzII),TpYzIICYsIImd2,OnlyDiagonal) 
+ CYzIITpYzIICYsIIYd = Matmul2(Conjg(YzII),TpYzIICYsIIYd,OnlyDiagonal) 
+ CYzIITpYzIICYsIIYsII = Matmul2(Conjg(YzII),TpYzIICYsIIYsII,OnlyDiagonal) 
+ CYzIITpYzIICYsIIYzII = Matmul2(Conjg(YzII),TpYzIICYsIIYzII,OnlyDiagonal) 
+ CYzIITpYzIICYsIITd = Matmul2(Conjg(YzII),TpYzIICYsIITd,OnlyDiagonal) 
+ CYzIITpYzIICYsIITsII = Matmul2(Conjg(YzII),TpYzIICYsIITsII,OnlyDiagonal) 
+ CYzIITpYzIICYsIITzII = Matmul2(Conjg(YzII),TpYzIICYsIITzII,OnlyDiagonal) 
+ CYzIITpYzIICYzIIWOp = Matmul2(Conjg(YzII),TpYzIICYzIIWOp,OnlyDiagonal) 
+ CYzIITpYzIICYzIIYtII = Matmul2(Conjg(YzII),TpYzIICYzIIYtII,OnlyDiagonal) 
+ CYzIITpYzIICYzIITtII = Matmul2(Conjg(YzII),TpYzIICYzIITtII,OnlyDiagonal) 
+ CYzIITpYzIICYzIITpYzII = Matmul2(Conjg(YzII),TpYzIICYzIITpYzII,OnlyDiagonal) 
+Forall(i2=1:3)  CYzIITpYzIICYzIITpYzII(i2,i2) =  Real(CYzIITpYzIICYzIITpYzII(i2,i2),dp) 
+ CYzIITpYzIICYzIITpTzII = Matmul2(Conjg(YzII),TpYzIICYzIITpTzII,OnlyDiagonal) 
+ CYzIITpTeCYeTpYzII = Matmul2(Conjg(YzII),TpTeCYeTpYzII,OnlyDiagonal) 
+ CYzIITpTzIICYsIIYd = Matmul2(Conjg(YzII),TpTzIICYsIIYd,OnlyDiagonal) 
+ CYzIITpTzIICYsIIYsII = Matmul2(Conjg(YzII),TpTzIICYsIIYsII,OnlyDiagonal) 
+ CYzIITpTzIICYsIIYzII = Matmul2(Conjg(YzII),TpTzIICYsIIYzII,OnlyDiagonal) 
+ CYzIITpTzIICYzIIYtII = Matmul2(Conjg(YzII),TpTzIICYzIIYtII,OnlyDiagonal) 
+ CYzIITpTzIICYzIITpYzII = Matmul2(Conjg(YzII),TpTzIICYzIITpYzII,OnlyDiagonal) 
+ CTtIIYtIICYtIITtII = Matmul2(adjTtII,YtIICYtIITtII,OnlyDiagonal) 
+ CTtIITtIICYtIIYtII = Matmul2(adjTtII,TtIICYtIIYtII,OnlyDiagonal) 
+ CTtIITpYeCYeTtII = Matmul2(adjTtII,TpYeCYeTtII,OnlyDiagonal) 
+ CTtIITpYzIICYzIITtII = Matmul2(adjTtII,TpYzIICYzIITtII,OnlyDiagonal) 
+ CTtIITpTeCYeYtII = Matmul2(adjTtII,TpTeCYeYtII,OnlyDiagonal) 
+ CTtIITpTzIICYzIIYtII = Matmul2(adjTtII,TpTzIICYzIIYtII,OnlyDiagonal) 
+ TdadjYdYdadjTd = Matmul2(Td,adjYdYdadjTd,OnlyDiagonal) 
+ TdadjYdYsIICTsII = Matmul2(Td,adjYdYsIICTsII,OnlyDiagonal) 
+ TdadjYdCYsIIYd = Matmul2(Td,adjYdCYsIIYd,OnlyDiagonal) 
+ TdadjYdCYsIIYzII = Matmul2(Td,adjYdCYsIIYzII,OnlyDiagonal) 
+ TdadjYuYuadjTd = Matmul2(Td,adjYuYuadjTd,OnlyDiagonal) 
+ TdadjTdYdadjYd = Matmul2(Td,adjTdYdadjYd,OnlyDiagonal) 
+ TdadjTuYuadjYd = Matmul2(Td,adjTuYuadjYd,OnlyDiagonal) 
+ TeadjYeYeadjTe = Matmul2(Te,adjYeYeadjTe,OnlyDiagonal) 
+ TeadjYzIIYzIIadjTe = Matmul2(Te,adjYzIIYzIIadjTe,OnlyDiagonal) 
+ TeadjTeYeadjYe = Matmul2(Te,adjTeYeadjYe,OnlyDiagonal) 
+ TeadjTzIIYzIIadjYe = Matmul2(Te,adjTzIIYzIIadjYe,OnlyDiagonal) 
+ TeCYtIIYtIIadjTe = Matmul2(Te,CYtIIYtIIadjTe,OnlyDiagonal) 
+ TeCTtIIYtIIadjYe = Matmul2(Te,CTtIIYtIIadjYe,OnlyDiagonal) 
+ TsIIYdadjTdCYsII = Matmul2(TsII,YdadjTdCYsII,OnlyDiagonal) 
+ TsIIYzIIadjTzIICYsII = Matmul2(TsII,YzIIadjTzIICYsII,OnlyDiagonal) 
+ TsIICYdTpYdCTsII = Matmul2(TsII,CYdTpYdCTsII,OnlyDiagonal) 
+ TsIICYsIIYsIICTsII = Matmul2(TsII,CYsIIYsIICTsII,OnlyDiagonal) 
+ TsIICYzIITpYzIICTsII = Matmul2(TsII,CYzIITpYzIICTsII,OnlyDiagonal) 
+ TsIICTdTpYdCYsII = Matmul2(TsII,CTdTpYdCYsII,OnlyDiagonal) 
+ TsIICTsIIYsIICYsII = Matmul2(TsII,CTsIIYsIICYsII,OnlyDiagonal) 
+ TsIICTzIITpYzIICYsII = Matmul2(TsII,CTzIITpYzIICYsII,OnlyDiagonal) 
+ TuadjYdYdadjTu = Matmul2(Tu,adjYdYdadjTu,OnlyDiagonal) 
+ TuadjYuYuadjTu = Matmul2(Tu,adjYuYuadjTu,OnlyDiagonal) 
+ TuadjTdYdadjYu = Matmul2(Tu,adjTdYdadjYu,OnlyDiagonal) 
+ TuadjTuYuadjYu = Matmul2(Tu,adjTuYuadjYu,OnlyDiagonal) 
+ TzIIadjYeYeadjTzII = Matmul2(TzII,adjYeYeadjTzII,OnlyDiagonal) 
+ TzIIadjYzIIYsIICTsII = Matmul2(TzII,adjYzIIYsIICTsII,OnlyDiagonal) 
+ TzIIadjYzIIYzIIadjTzII = Matmul2(TzII,adjYzIIYzIIadjTzII,OnlyDiagonal) 
+ TzIIadjYzIICYsIIYd = Matmul2(TzII,adjYzIICYsIIYd,OnlyDiagonal) 
+ TzIIadjYzIICYsIIYzII = Matmul2(TzII,adjYzIICYsIIYzII,OnlyDiagonal) 
+ TzIIadjTeYeadjYzII = Matmul2(TzII,adjTeYeadjYzII,OnlyDiagonal) 
+ TzIIadjTzIIYzIIadjYzII = Matmul2(TzII,adjTzIIYzIIadjYzII,OnlyDiagonal) 
+ TzIICYtIIYtIIadjTzII = Matmul2(TzII,CYtIIYtIIadjTzII,OnlyDiagonal) 
+ TzIICTtIIYtIIadjYzII = Matmul2(TzII,CTtIIYtIIadjYzII,OnlyDiagonal) 
+ TpYeCme2CYeYtII = Matmul2(Transpose(Ye),Cme2CYeYtII,OnlyDiagonal) 
+ TpYeCYeYtIIml2 = Matmul2(Transpose(Ye),CYeYtIIml2,OnlyDiagonal) 
+ TpYeCYeCml2YtII = Matmul2(Transpose(Ye),CYeCml2YtII,OnlyDiagonal) 
+ TpYzIICmd2CYzIIYtII = Matmul2(Transpose(YzII),Cmd2CYzIIYtII,OnlyDiagonal) 
+ TpYzIICYzIIYtIIml2 = Matmul2(Transpose(YzII),CYzIIYtIIml2,OnlyDiagonal) 
+ TpYzIICYzIICml2YtII = Matmul2(Transpose(YzII),CYzIICml2YtII,OnlyDiagonal) 
+ md2YdadjYdYdadjYd = Matmul2(md2,YdadjYdYdadjYd,OnlyDiagonal) 
+ md2YdadjYdYsIICYsII = Matmul2(md2,YdadjYdYsIICYsII,OnlyDiagonal) 
+ md2YdadjYdYzIIadjYzII = Matmul2(md2,YdadjYdYzIIadjYzII,OnlyDiagonal) 
+ md2YdadjYuYuadjYd = Matmul2(md2,YdadjYuYuadjYd,OnlyDiagonal) 
+ md2YsIICYdTpYdCYsII = Matmul2(md2,YsIICYdTpYdCYsII,OnlyDiagonal) 
+ md2YsIICYsIIYdadjYd = Matmul2(md2,YsIICYsIIYdadjYd,OnlyDiagonal) 
+ md2YsIICYsIIYsIICYsII = Matmul2(md2,YsIICYsIIYsIICYsII,OnlyDiagonal) 
+ md2YsIICYsIIYzIIadjYzII = Matmul2(md2,YsIICYsIIYzIIadjYzII,OnlyDiagonal) 
+ md2YsIICYzIITpYzIICYsII = Matmul2(md2,YsIICYzIITpYzIICYsII,OnlyDiagonal) 
+ md2YzIIadjYeYeadjYzII = Matmul2(md2,YzIIadjYeYeadjYzII,OnlyDiagonal) 
+ md2YzIIadjYzIIYdadjYd = Matmul2(md2,YzIIadjYzIIYdadjYd,OnlyDiagonal) 
+ md2YzIIadjYzIIYsIICYsII = Matmul2(md2,YzIIadjYzIIYsIICYsII,OnlyDiagonal) 
+ md2YzIIadjYzIIYzIIadjYzII = Matmul2(md2,YzIIadjYzIIYzIIadjYzII,OnlyDiagonal) 
+ md2YzIICYtIIYtIIadjYzII = Matmul2(md2,YzIICYtIIYtIIadjYzII,OnlyDiagonal) 
+ me2YeadjYeYeadjYe = Matmul2(me2,YeadjYeYeadjYe,OnlyDiagonal) 
+ me2YeadjYzIIYzIIadjYe = Matmul2(me2,YeadjYzIIYzIIadjYe,OnlyDiagonal) 
+ me2YeCYtIIYtIIadjYe = Matmul2(me2,YeCYtIIYtIIadjYe,OnlyDiagonal) 
+ ml2adjYeYeadjYeYe = Matmul2(ml2,adjYeYeadjYeYe,OnlyDiagonal) 
+ ml2adjYeYeadjYzIIYzII = Matmul2(ml2,adjYeYeadjYzIIYzII,OnlyDiagonal) 
+ ml2adjYeYeCYtIIYtII = Matmul2(ml2,adjYeYeCYtIIYtII,OnlyDiagonal) 
+ ml2adjYzIIYdadjYdYzII = Matmul2(ml2,adjYzIIYdadjYdYzII,OnlyDiagonal) 
+ ml2adjYzIIYsIICYsIIYzII = Matmul2(ml2,adjYzIIYsIICYsIIYzII,OnlyDiagonal) 
+ ml2adjYzIIYzIIadjYeYe = Matmul2(ml2,adjYzIIYzIIadjYeYe,OnlyDiagonal) 
+ ml2adjYzIIYzIIadjYzIIYzII = Matmul2(ml2,adjYzIIYzIIadjYzIIYzII,OnlyDiagonal) 
+ ml2adjYzIIYzIICYtIIYtII = Matmul2(ml2,adjYzIIYzIICYtIIYtII,OnlyDiagonal) 
+ ml2CYtIIYtIIadjYeYe = Matmul2(ml2,CYtIIYtIIadjYeYe,OnlyDiagonal) 
+ ml2CYtIIYtIIadjYzIIYzII = Matmul2(ml2,CYtIIYtIIadjYzIIYzII,OnlyDiagonal) 
+ ml2CYtIIYtIICYtIIYtII = Matmul2(ml2,CYtIIYtIICYtIIYtII,OnlyDiagonal) 
+ ml2CYtIITpYeCYeYtII = Matmul2(ml2,CYtIITpYeCYeYtII,OnlyDiagonal) 
+ ml2CYtIITpYzIICYzIIYtII = Matmul2(ml2,CYtIITpYzIICYzIIYtII,OnlyDiagonal) 
+ mq2adjYdYdadjYdYd = Matmul2(mq2,adjYdYdadjYdYd,OnlyDiagonal) 
+ mq2adjYdYdadjYuYu = Matmul2(mq2,adjYdYdadjYuYu,OnlyDiagonal) 
+ mq2adjYdYsIICYsIIYd = Matmul2(mq2,adjYdYsIICYsIIYd,OnlyDiagonal) 
+ mq2adjYdYzIIadjYzIIYd = Matmul2(mq2,adjYdYzIIadjYzIIYd,OnlyDiagonal) 
+ mq2adjYuYuadjYdYd = Matmul2(mq2,adjYuYuadjYdYd,OnlyDiagonal) 
+ mq2adjYuYuadjYuYu = Matmul2(mq2,adjYuYuadjYuYu,OnlyDiagonal) 
+ mu2YuadjYdYdadjYu = Matmul2(mu2,YuadjYdYdadjYu,OnlyDiagonal) 
+ mu2YuadjYuYuadjYu = Matmul2(mu2,YuadjYuYuadjYu,OnlyDiagonal) 
+ WOpadjYeYeadjYeYe = Matmul2(WOp,adjYeYeadjYeYe,OnlyDiagonal) 
+ WOpadjYzIIYdadjYdYzII = Matmul2(WOp,adjYzIIYdadjYdYzII,OnlyDiagonal) 
+ WOpadjYzIIYsIICYsIIYzII = Matmul2(WOp,adjYzIIYsIICYsIIYzII,OnlyDiagonal) 
+ WOpadjYzIIYzIIadjYzIIYzII = Matmul2(WOp,adjYzIIYzIIadjYzIIYzII,OnlyDiagonal) 
+ WOpCYtIIYtIICYtIIYtII = Matmul2(WOp,CYtIIYtIICYtIIYtII,OnlyDiagonal) 
+ WOpCYtIITpYeCYeYtII = Matmul2(WOp,CYtIITpYeCYeYtII,OnlyDiagonal) 
+ WOpCYtIITpYzIICYzIIYtII = Matmul2(WOp,CYtIITpYzIICYzIIYtII,OnlyDiagonal) 
+ Ydmq2adjYdYdadjYd = Matmul2(Yd,mq2adjYdYdadjYd,OnlyDiagonal) 
+ Ydmq2adjYuYuadjYd = Matmul2(Yd,mq2adjYuYuadjYd,OnlyDiagonal) 
+ YdadjYdmd2YdadjYd = Matmul2(Yd,adjYdmd2YdadjYd,OnlyDiagonal) 
+Forall(i2=1:3)  YdadjYdmd2YdadjYd(i2,i2) =  Real(YdadjYdmd2YdadjYd(i2,i2),dp) 
+ YdadjYdYdmq2adjYd = Matmul2(Yd,adjYdYdmq2adjYd,OnlyDiagonal) 
+ YdadjYdYdadjYdmd2 = Matmul2(Yd,adjYdYdadjYdmd2,OnlyDiagonal) 
+ YdadjYdYdadjYdYd = Matmul2(Yd,adjYdYdadjYdYd,OnlyDiagonal) 
+ YdadjYdYdadjYdYsII = Matmul2(Yd,adjYdYdadjYdYsII,OnlyDiagonal) 
+ YdadjYdYdadjYdYzII = Matmul2(Yd,adjYdYdadjYdYzII,OnlyDiagonal) 
+ YdadjYdYdadjYdTd = Matmul2(Yd,adjYdYdadjYdTd,OnlyDiagonal) 
+ YdadjYdYdadjYdTsII = Matmul2(Yd,adjYdYdadjYdTsII,OnlyDiagonal) 
+ YdadjYdYdadjYdTzII = Matmul2(Yd,adjYdYdadjYdTzII,OnlyDiagonal) 
+ YdadjYdYsIICmd2CYsII = Matmul2(Yd,adjYdYsIICmd2CYsII,OnlyDiagonal) 
+ YdadjYdYsIICYsIIYd = Matmul2(Yd,adjYdYsIICYsIIYd,OnlyDiagonal) 
+ YdadjYdYsIICYsIITd = Matmul2(Yd,adjYdYsIICYsIITd,OnlyDiagonal) 
+ YdadjYdYzIIadjYzIIYd = Matmul2(Yd,adjYdYzIIadjYzIIYd,OnlyDiagonal) 
+ YdadjYdYzIIadjYzIITd = Matmul2(Yd,adjYdYzIIadjYzIITd,OnlyDiagonal) 
+ YdadjYdTdadjYdYd = Matmul2(Yd,adjYdTdadjYdYd,OnlyDiagonal) 
+ YdadjYdTdadjYdYsII = Matmul2(Yd,adjYdTdadjYdYsII,OnlyDiagonal) 
+ YdadjYdTdadjYdYzII = Matmul2(Yd,adjYdTdadjYdYzII,OnlyDiagonal) 
+ YdadjYdTsIICYsIIYd = Matmul2(Yd,adjYdTsIICYsIIYd,OnlyDiagonal) 
+ YdadjYdTzIIadjYzIIYd = Matmul2(Yd,adjYdTzIIadjYzIIYd,OnlyDiagonal) 
+ YdadjYumu2YuadjYd = Matmul2(Yd,adjYumu2YuadjYd,OnlyDiagonal) 
+Forall(i2=1:3)  YdadjYumu2YuadjYd(i2,i2) =  Real(YdadjYumu2YuadjYd(i2,i2),dp) 
+ YdadjYuYumq2adjYd = Matmul2(Yd,adjYuYumq2adjYd,OnlyDiagonal) 
+ YdadjYuYuadjYdmd2 = Matmul2(Yd,adjYuYuadjYdmd2,OnlyDiagonal) 
+ YdadjYuYuadjYdYd = Matmul2(Yd,adjYuYuadjYdYd,OnlyDiagonal) 
+ YdadjYuYuadjYdYsII = Matmul2(Yd,adjYuYuadjYdYsII,OnlyDiagonal) 
+ YdadjYuYuadjYdYzII = Matmul2(Yd,adjYuYuadjYdYzII,OnlyDiagonal) 
+ YdadjYuYuadjYdTd = Matmul2(Yd,adjYuYuadjYdTd,OnlyDiagonal) 
+ YdadjYuYuadjYdTsII = Matmul2(Yd,adjYuYuadjYdTsII,OnlyDiagonal) 
+ YdadjYuYuadjYdTzII = Matmul2(Yd,adjYuYuadjYdTzII,OnlyDiagonal) 
+ YdadjYuYuadjYuYu = Matmul2(Yd,adjYuYuadjYuYu,OnlyDiagonal) 
+ YdadjYuYuadjYuTu = Matmul2(Yd,adjYuYuadjYuTu,OnlyDiagonal) 
+ YdadjYuTuadjYdYd = Matmul2(Yd,adjYuTuadjYdYd,OnlyDiagonal) 
+ YdadjYuTuadjYdYsII = Matmul2(Yd,adjYuTuadjYdYsII,OnlyDiagonal) 
+ YdadjYuTuadjYdYzII = Matmul2(Yd,adjYuTuadjYdYzII,OnlyDiagonal) 
+ YdadjYuTuadjYuYu = Matmul2(Yd,adjYuTuadjYuYu,OnlyDiagonal) 
+ Yeml2adjYeYeadjYe = Matmul2(Ye,ml2adjYeYeadjYe,OnlyDiagonal) 
+ Yeml2adjYzIIYzIIadjYe = Matmul2(Ye,ml2adjYzIIYzIIadjYe,OnlyDiagonal) 
+ Yeml2CYtIIYtIIadjYe = Matmul2(Ye,ml2CYtIIYtIIadjYe,OnlyDiagonal) 
+ YeadjYeme2YeadjYe = Matmul2(Ye,adjYeme2YeadjYe,OnlyDiagonal) 
+Forall(i2=1:3)  YeadjYeme2YeadjYe(i2,i2) =  Real(YeadjYeme2YeadjYe(i2,i2),dp) 
+ YeadjYeYeml2adjYe = Matmul2(Ye,adjYeYeml2adjYe,OnlyDiagonal) 
+ YeadjYeYeadjYeme2 = Matmul2(Ye,adjYeYeadjYeme2,OnlyDiagonal) 
+ YeadjYeYeadjYeYe = Matmul2(Ye,adjYeYeadjYeYe,OnlyDiagonal) 
+ YeadjYeYeadjYeTe = Matmul2(Ye,adjYeYeadjYeTe,OnlyDiagonal) 
+ YeadjYeTeadjYeYe = Matmul2(Ye,adjYeTeadjYeYe,OnlyDiagonal) 
+ YeadjYzIImd2YzIIadjYe = Matmul2(Ye,adjYzIImd2YzIIadjYe,OnlyDiagonal) 
+Forall(i2=1:3)  YeadjYzIImd2YzIIadjYe(i2,i2) =  Real(YeadjYzIImd2YzIIadjYe(i2,i2),dp) 
+ YeadjYzIIYdadjYdYzII = Matmul2(Ye,adjYzIIYdadjYdYzII,OnlyDiagonal) 
+ YeadjYzIIYdadjYdTzII = Matmul2(Ye,adjYzIIYdadjYdTzII,OnlyDiagonal) 
+ YeadjYzIIYsIICYsIIYzII = Matmul2(Ye,adjYzIIYsIICYsIIYzII,OnlyDiagonal) 
+ YeadjYzIIYsIICYsIITzII = Matmul2(Ye,adjYzIIYsIICYsIITzII,OnlyDiagonal) 
+ YeadjYzIIYzIIml2adjYe = Matmul2(Ye,adjYzIIYzIIml2adjYe,OnlyDiagonal) 
+ YeadjYzIIYzIIadjYeme2 = Matmul2(Ye,adjYzIIYzIIadjYeme2,OnlyDiagonal) 
+ YeadjYzIIYzIIadjYeYe = Matmul2(Ye,adjYzIIYzIIadjYeYe,OnlyDiagonal) 
+ YeadjYzIIYzIIadjYeTe = Matmul2(Ye,adjYzIIYzIIadjYeTe,OnlyDiagonal) 
+ YeadjYzIIYzIIadjYzIIYzII = Matmul2(Ye,adjYzIIYzIIadjYzIIYzII,OnlyDiagonal) 
+ YeadjYzIIYzIIadjYzIITzII = Matmul2(Ye,adjYzIIYzIIadjYzIITzII,OnlyDiagonal) 
+ YeadjYzIITdadjYdYzII = Matmul2(Ye,adjYzIITdadjYdYzII,OnlyDiagonal) 
+ YeadjYzIITsIICYsIIYzII = Matmul2(Ye,adjYzIITsIICYsIIYzII,OnlyDiagonal) 
+ YeadjYzIITzIIadjYeYe = Matmul2(Ye,adjYzIITzIIadjYeYe,OnlyDiagonal) 
+ YeadjYzIITzIIadjYzIIYzII = Matmul2(Ye,adjYzIITzIIadjYzIIYzII,OnlyDiagonal) 
+ YeCYtIIYtIIml2adjYe = Matmul2(Ye,CYtIIYtIIml2adjYe,OnlyDiagonal) 
+ YeCYtIIYtIIadjYeme2 = Matmul2(Ye,CYtIIYtIIadjYeme2,OnlyDiagonal) 
+ YeCYtIIYtIIadjYeYe = Matmul2(Ye,CYtIIYtIIadjYeYe,OnlyDiagonal) 
+ YeCYtIIYtIIadjYeTe = Matmul2(Ye,CYtIIYtIIadjYeTe,OnlyDiagonal) 
+ YeCYtIIYtIICYtIIYtII = Matmul2(Ye,CYtIIYtIICYtIIYtII,OnlyDiagonal) 
+ YeCYtIIYtIICYtIITtII = Matmul2(Ye,CYtIIYtIICYtIITtII,OnlyDiagonal) 
+ YeCYtIICml2YtIIadjYe = Matmul2(Ye,CYtIICml2YtIIadjYe,OnlyDiagonal) 
+ YeCYtIITtIIadjYeYe = Matmul2(Ye,CYtIITtIIadjYeYe,OnlyDiagonal) 
+ YeCYtIITtIICYtIIYtII = Matmul2(Ye,CYtIITtIICYtIIYtII,OnlyDiagonal) 
+ YeCYtIITpYeCYeYtII = Matmul2(Ye,CYtIITpYeCYeYtII,OnlyDiagonal) 
+ YeCYtIITpYeCYeTtII = Matmul2(Ye,CYtIITpYeCYeTtII,OnlyDiagonal) 
+ YeCYtIITpYzIICYzIIYtII = Matmul2(Ye,CYtIITpYzIICYzIIYtII,OnlyDiagonal) 
+ YeCYtIITpYzIICYzIITtII = Matmul2(Ye,CYtIITpYzIICYzIITtII,OnlyDiagonal) 
+ YeCYtIITpTeCYeYtII = Matmul2(Ye,CYtIITpTeCYeYtII,OnlyDiagonal) 
+ YeCYtIITpTzIICYzIIYtII = Matmul2(Ye,CYtIITpTzIICYzIIYtII,OnlyDiagonal) 
+ YsIICmd2CYdTpYdCYsII = Matmul2(YsII,Cmd2CYdTpYdCYsII,OnlyDiagonal) 
+ YsIICmd2CYsIIYsIICYsII = Matmul2(YsII,Cmd2CYsIIYsIICYsII,OnlyDiagonal) 
+ YsIICmd2CYsIIYzIIadjYzII = Matmul2(YsII,Cmd2CYsIIYzIIadjYzII,OnlyDiagonal) 
+ YsIICmd2CYzIITpYzIICYsII = Matmul2(YsII,Cmd2CYzIITpYzIICYsII,OnlyDiagonal) 
+ YsIICYdCmq2TpYdCYsII = Matmul2(YsII,CYdCmq2TpYdCYsII,OnlyDiagonal) 
+ YsIICYdTpYdCmd2CYsII = Matmul2(YsII,CYdTpYdCmd2CYsII,OnlyDiagonal) 
+ YsIICYdTpYdCYdTpYd = Matmul2(YsII,CYdTpYdCYdTpYd,OnlyDiagonal) 
+ YsIICYdTpYdCYdTpTd = Matmul2(YsII,CYdTpYdCYdTpTd,OnlyDiagonal) 
+ YsIICYdTpYdCYsIImd2 = Matmul2(YsII,CYdTpYdCYsIImd2,OnlyDiagonal) 
+ YsIICYdTpYdCYsIIYd = Matmul2(YsII,CYdTpYdCYsIIYd,OnlyDiagonal) 
+ YsIICYdTpYdCYsIIYsII = Matmul2(YsII,CYdTpYdCYsIIYsII,OnlyDiagonal) 
+ YsIICYdTpYdCYsIIYzII = Matmul2(YsII,CYdTpYdCYsIIYzII,OnlyDiagonal) 
+ YsIICYdTpYdCYsIITd = Matmul2(YsII,CYdTpYdCYsIITd,OnlyDiagonal) 
+ YsIICYdTpYdCYsIITsII = Matmul2(YsII,CYdTpYdCYsIITsII,OnlyDiagonal) 
+ YsIICYdTpYdCYsIITzII = Matmul2(YsII,CYdTpYdCYsIITzII,OnlyDiagonal) 
+ YsIICYdTpYuCYuTpYd = Matmul2(YsII,CYdTpYuCYuTpYd,OnlyDiagonal) 
+ YsIICYdTpYuCYuTpTd = Matmul2(YsII,CYdTpYuCYuTpTd,OnlyDiagonal) 
+ YsIICYdTpTdCYdTpYd = Matmul2(YsII,CYdTpTdCYdTpYd,OnlyDiagonal) 
+ YsIICYdTpTdCYsIIYd = Matmul2(YsII,CYdTpTdCYsIIYd,OnlyDiagonal) 
+ YsIICYdTpTdCYsIIYsII = Matmul2(YsII,CYdTpTdCYsIIYsII,OnlyDiagonal) 
+ YsIICYdTpTdCYsIIYzII = Matmul2(YsII,CYdTpTdCYsIIYzII,OnlyDiagonal) 
+ YsIICYdTpTuCYuTpYd = Matmul2(YsII,CYdTpTuCYuTpYd,OnlyDiagonal) 
+ YsIICYsIImd2YsIICYsII = Matmul2(YsII,CYsIImd2YsIICYsII,OnlyDiagonal) 
+ YsIICYsIIYdadjYdYsII = Matmul2(YsII,CYsIIYdadjYdYsII,OnlyDiagonal) 
+ YsIICYsIIYdadjYdTsII = Matmul2(YsII,CYsIIYdadjYdTsII,OnlyDiagonal) 
+ YsIICYsIIYsIICmd2CYsII = Matmul2(YsII,CYsIIYsIICmd2CYsII,OnlyDiagonal) 
+ YsIICYsIIYsIICYsIImd2 = Matmul2(YsII,CYsIIYsIICYsIImd2,OnlyDiagonal) 
+ YsIICYsIIYsIICYsIIYd = Matmul2(YsII,CYsIIYsIICYsIIYd,OnlyDiagonal) 
+ YsIICYsIIYsIICYsIIYsII = Matmul2(YsII,CYsIIYsIICYsIIYsII,OnlyDiagonal) 
+ YsIICYsIIYsIICYsIIYzII = Matmul2(YsII,CYsIIYsIICYsIIYzII,OnlyDiagonal) 
+ YsIICYsIIYsIICYsIITd = Matmul2(YsII,CYsIIYsIICYsIITd,OnlyDiagonal) 
+ YsIICYsIIYsIICYsIITsII = Matmul2(YsII,CYsIIYsIICYsIITsII,OnlyDiagonal) 
+ YsIICYsIIYsIICYsIITzII = Matmul2(YsII,CYsIIYsIICYsIITzII,OnlyDiagonal) 
+ YsIICYsIIYzIIadjYzIIYsII = Matmul2(YsII,CYsIIYzIIadjYzIIYsII,OnlyDiagonal) 
+ YsIICYsIIYzIIadjYzIITsII = Matmul2(YsII,CYsIIYzIIadjYzIITsII,OnlyDiagonal) 
+ YsIICYsIITdadjYdYsII = Matmul2(YsII,CYsIITdadjYdYsII,OnlyDiagonal) 
+ YsIICYsIITsIICYsIIYd = Matmul2(YsII,CYsIITsIICYsIIYd,OnlyDiagonal) 
+ YsIICYsIITsIICYsIIYsII = Matmul2(YsII,CYsIITsIICYsIIYsII,OnlyDiagonal) 
+ YsIICYsIITsIICYsIIYzII = Matmul2(YsII,CYsIITsIICYsIIYzII,OnlyDiagonal) 
+ YsIICYsIITzIIadjYzIIYsII = Matmul2(YsII,CYsIITzIIadjYzIIYsII,OnlyDiagonal) 
+ YsIICYzIIYtIICYtIITpYzII = Matmul2(YsII,CYzIIYtIICYtIITpYzII,OnlyDiagonal) 
+ YsIICYzIIYtIICYtIITpTzII = Matmul2(YsII,CYzIIYtIICYtIITpTzII,OnlyDiagonal) 
+ YsIICYzIICml2TpYzIICYsII = Matmul2(YsII,CYzIICml2TpYzIICYsII,OnlyDiagonal) 
+ YsIICYzIITtIICYtIITpYzII = Matmul2(YsII,CYzIITtIICYtIITpYzII,OnlyDiagonal) 
+ YsIICYzIITpYeCYeTpYzII = Matmul2(YsII,CYzIITpYeCYeTpYzII,OnlyDiagonal) 
+ YsIICYzIITpYeCYeTpTzII = Matmul2(YsII,CYzIITpYeCYeTpTzII,OnlyDiagonal) 
+ YsIICYzIITpYzIICmd2CYsII = Matmul2(YsII,CYzIITpYzIICmd2CYsII,OnlyDiagonal) 
+ YsIICYzIITpYzIICYsIImd2 = Matmul2(YsII,CYzIITpYzIICYsIImd2,OnlyDiagonal) 
+ YsIICYzIITpYzIICYsIIYd = Matmul2(YsII,CYzIITpYzIICYsIIYd,OnlyDiagonal) 
+ YsIICYzIITpYzIICYsIIYsII = Matmul2(YsII,CYzIITpYzIICYsIIYsII,OnlyDiagonal) 
+ YsIICYzIITpYzIICYsIIYzII = Matmul2(YsII,CYzIITpYzIICYsIIYzII,OnlyDiagonal) 
+ YsIICYzIITpYzIICYsIITd = Matmul2(YsII,CYzIITpYzIICYsIITd,OnlyDiagonal) 
+ YsIICYzIITpYzIICYsIITsII = Matmul2(YsII,CYzIITpYzIICYsIITsII,OnlyDiagonal) 
+ YsIICYzIITpYzIICYsIITzII = Matmul2(YsII,CYzIITpYzIICYsIITzII,OnlyDiagonal) 
+ YsIICYzIITpYzIICYzIITpYzII = Matmul2(YsII,CYzIITpYzIICYzIITpYzII,OnlyDiagonal) 
+ YsIICYzIITpYzIICYzIITpTzII = Matmul2(YsII,CYzIITpYzIICYzIITpTzII,OnlyDiagonal) 
+ YsIICYzIITpTeCYeTpYzII = Matmul2(YsII,CYzIITpTeCYeTpYzII,OnlyDiagonal) 
+ YsIICYzIITpTzIICYsIIYd = Matmul2(YsII,CYzIITpTzIICYsIIYd,OnlyDiagonal) 
+ YsIICYzIITpTzIICYsIIYsII = Matmul2(YsII,CYzIITpTzIICYsIIYsII,OnlyDiagonal) 
+ YsIICYzIITpTzIICYsIIYzII = Matmul2(YsII,CYzIITpTzIICYsIIYzII,OnlyDiagonal) 
+ YsIICYzIITpTzIICYzIITpYzII = Matmul2(YsII,CYzIITpTzIICYzIITpYzII,OnlyDiagonal) 
+ YsIITdadjYdCYsIIYd = Matmul2(YsII,TdadjYdCYsIIYd,OnlyDiagonal) 
+ YsIITdadjYdCYsIIYzII = Matmul2(YsII,TdadjYdCYsIIYzII,OnlyDiagonal) 
+ YsIITzIIadjYzIICYsIIYd = Matmul2(YsII,TzIIadjYzIICYsIIYd,OnlyDiagonal) 
+ YsIITzIIadjYzIICYsIIYzII = Matmul2(YsII,TzIIadjYzIICYsIIYzII,OnlyDiagonal) 
+ YtIIadjYeYeadjYeYe = Matmul2(YtII,adjYeYeadjYeYe,OnlyDiagonal) 
+ YtIIadjYeYeadjYeTe = Matmul2(YtII,adjYeYeadjYeTe,OnlyDiagonal) 
+ YtIIadjYeYeCYtIIWOp = Matmul2(YtII,adjYeYeCYtIIWOp,OnlyDiagonal) 
+ YtIIadjYeYeCYtIIYtII = Matmul2(YtII,adjYeYeCYtIIYtII,OnlyDiagonal) 
+ YtIIadjYeYeCYtIITtII = Matmul2(YtII,adjYeYeCYtIITtII,OnlyDiagonal) 
+ YtIIadjYeTeadjYeYe = Matmul2(YtII,adjYeTeadjYeYe,OnlyDiagonal) 
+ YtIIadjYeTeCYtIIYtII = Matmul2(YtII,adjYeTeCYtIIYtII,OnlyDiagonal) 
+ YtIIadjYzIIYdadjYdYzII = Matmul2(YtII,adjYzIIYdadjYdYzII,OnlyDiagonal) 
+ YtIIadjYzIIYdadjYdTzII = Matmul2(YtII,adjYzIIYdadjYdTzII,OnlyDiagonal) 
+ YtIIadjYzIIYsIICYsIIYzII = Matmul2(YtII,adjYzIIYsIICYsIIYzII,OnlyDiagonal) 
+ YtIIadjYzIIYsIICYsIITzII = Matmul2(YtII,adjYzIIYsIICYsIITzII,OnlyDiagonal) 
+ YtIIadjYzIIYzIIadjYzIIYzII = Matmul2(YtII,adjYzIIYzIIadjYzIIYzII,OnlyDiagonal) 
+ YtIIadjYzIIYzIIadjYzIITzII = Matmul2(YtII,adjYzIIYzIIadjYzIITzII,OnlyDiagonal) 
+ YtIIadjYzIIYzIICYtIIWOp = Matmul2(YtII,adjYzIIYzIICYtIIWOp,OnlyDiagonal) 
+ YtIIadjYzIIYzIICYtIIYtII = Matmul2(YtII,adjYzIIYzIICYtIIYtII,OnlyDiagonal) 
+ YtIIadjYzIIYzIICYtIICml2 = Matmul2(YtII,adjYzIIYzIICYtIICml2,OnlyDiagonal) 
+ YtIIadjYzIIYzIICYtIITtII = Matmul2(YtII,adjYzIIYzIICYtIITtII,OnlyDiagonal) 
+ YtIIadjYzIITdadjYdYzII = Matmul2(YtII,adjYzIITdadjYdYzII,OnlyDiagonal) 
+ YtIIadjYzIITsIICYsIIYzII = Matmul2(YtII,adjYzIITsIICYsIIYzII,OnlyDiagonal) 
+ YtIIadjYzIITzIIadjYzIIYzII = Matmul2(YtII,adjYzIITzIIadjYzIIYzII,OnlyDiagonal) 
+ YtIIadjYzIITzIICYtIIYtII = Matmul2(YtII,adjYzIITzIICYtIIYtII,OnlyDiagonal) 
+ YtIICYtIIYtIICYtIIWOp = Matmul2(YtII,CYtIIYtIICYtIIWOp,OnlyDiagonal) 
+ YtIICYtIIYtIICYtIIYtII = Matmul2(YtII,CYtIIYtIICYtIIYtII,OnlyDiagonal) 
+ YtIICYtIIYtIICYtIITtII = Matmul2(YtII,CYtIIYtIICYtIITtII,OnlyDiagonal) 
+ YtIICYtIITtIICYtIIYtII = Matmul2(YtII,CYtIITtIICYtIIYtII,OnlyDiagonal) 
+ YtIICYtIITpYeCYeYtII = Matmul2(YtII,CYtIITpYeCYeYtII,OnlyDiagonal) 
+ YtIICYtIITpYeCYeTtII = Matmul2(YtII,CYtIITpYeCYeTtII,OnlyDiagonal) 
+ YtIICYtIITpYzIICYzIIYtII = Matmul2(YtII,CYtIITpYzIICYzIIYtII,OnlyDiagonal) 
+ YtIICYtIITpYzIICYzIITtII = Matmul2(YtII,CYtIITpYzIICYzIITtII,OnlyDiagonal) 
+ YtIICYtIITpTeCYeYtII = Matmul2(YtII,CYtIITpTeCYeYtII,OnlyDiagonal) 
+ YtIICYtIITpTzIICYzIIYtII = Matmul2(YtII,CYtIITpTzIICYzIIYtII,OnlyDiagonal) 
+ Yumq2adjYdYdadjYu = Matmul2(Yu,mq2adjYdYdadjYu,OnlyDiagonal) 
+ Yumq2adjYuYuadjYu = Matmul2(Yu,mq2adjYuYuadjYu,OnlyDiagonal) 
+ YuadjYdmd2YdadjYu = Matmul2(Yu,adjYdmd2YdadjYu,OnlyDiagonal) 
+Forall(i2=1:3)  YuadjYdmd2YdadjYu(i2,i2) =  Real(YuadjYdmd2YdadjYu(i2,i2),dp) 
+ YuadjYdYdmq2adjYu = Matmul2(Yu,adjYdYdmq2adjYu,OnlyDiagonal) 
+ YuadjYdYdadjYdYd = Matmul2(Yu,adjYdYdadjYdYd,OnlyDiagonal) 
+ YuadjYdYdadjYdTd = Matmul2(Yu,adjYdYdadjYdTd,OnlyDiagonal) 
+ YuadjYdYdadjYumu2 = Matmul2(Yu,adjYdYdadjYumu2,OnlyDiagonal) 
+ YuadjYdYdadjYuYu = Matmul2(Yu,adjYdYdadjYuYu,OnlyDiagonal) 
+ YuadjYdYdadjYuTu = Matmul2(Yu,adjYdYdadjYuTu,OnlyDiagonal) 
+ YuadjYdYsIICYsIIYd = Matmul2(Yu,adjYdYsIICYsIIYd,OnlyDiagonal) 
+ YuadjYdYsIICYsIITd = Matmul2(Yu,adjYdYsIICYsIITd,OnlyDiagonal) 
+ YuadjYdYzIIadjYzIIYd = Matmul2(Yu,adjYdYzIIadjYzIIYd,OnlyDiagonal) 
+ YuadjYdYzIIadjYzIITd = Matmul2(Yu,adjYdYzIIadjYzIITd,OnlyDiagonal) 
+ YuadjYdTdadjYdYd = Matmul2(Yu,adjYdTdadjYdYd,OnlyDiagonal) 
+ YuadjYdTdadjYuYu = Matmul2(Yu,adjYdTdadjYuYu,OnlyDiagonal) 
+ YuadjYdTsIICYsIIYd = Matmul2(Yu,adjYdTsIICYsIIYd,OnlyDiagonal) 
+ YuadjYdTzIIadjYzIIYd = Matmul2(Yu,adjYdTzIIadjYzIIYd,OnlyDiagonal) 
+ YuadjYumu2YuadjYu = Matmul2(Yu,adjYumu2YuadjYu,OnlyDiagonal) 
+Forall(i2=1:3)  YuadjYumu2YuadjYu(i2,i2) =  Real(YuadjYumu2YuadjYu(i2,i2),dp) 
+ YuadjYuYumq2adjYu = Matmul2(Yu,adjYuYumq2adjYu,OnlyDiagonal) 
+ YuadjYuYuadjYumu2 = Matmul2(Yu,adjYuYuadjYumu2,OnlyDiagonal) 
+ YuadjYuYuadjYuYu = Matmul2(Yu,adjYuYuadjYuYu,OnlyDiagonal) 
+ YuadjYuYuadjYuTu = Matmul2(Yu,adjYuYuadjYuTu,OnlyDiagonal) 
+ YuadjYuTuadjYuYu = Matmul2(Yu,adjYuTuadjYuYu,OnlyDiagonal) 
+ YzIIml2adjYeYeadjYzII = Matmul2(YzII,ml2adjYeYeadjYzII,OnlyDiagonal) 
+ YzIIml2adjYzIIYzIIadjYzII = Matmul2(YzII,ml2adjYzIIYzIIadjYzII,OnlyDiagonal) 
+ YzIIml2CYtIIYtIIadjYzII = Matmul2(YzII,ml2CYtIIYtIIadjYzII,OnlyDiagonal) 
+ YzIIadjYeme2YeadjYzII = Matmul2(YzII,adjYeme2YeadjYzII,OnlyDiagonal) 
+Forall(i2=1:3)  YzIIadjYeme2YeadjYzII(i2,i2) =  Real(YzIIadjYeme2YeadjYzII(i2,i2),dp) 
+ YzIIadjYeYeml2adjYzII = Matmul2(YzII,adjYeYeml2adjYzII,OnlyDiagonal) 
+ YzIIadjYeYeadjYeYe = Matmul2(YzII,adjYeYeadjYeYe,OnlyDiagonal) 
+ YzIIadjYeYeadjYeTe = Matmul2(YzII,adjYeYeadjYeTe,OnlyDiagonal) 
+ YzIIadjYeYeadjYzIImd2 = Matmul2(YzII,adjYeYeadjYzIImd2,OnlyDiagonal) 
+ YzIIadjYeYeadjYzIIYd = Matmul2(YzII,adjYeYeadjYzIIYd,OnlyDiagonal) 
+ YzIIadjYeYeadjYzIIYsII = Matmul2(YzII,adjYeYeadjYzIIYsII,OnlyDiagonal) 
+ YzIIadjYeYeadjYzIIYzII = Matmul2(YzII,adjYeYeadjYzIIYzII,OnlyDiagonal) 
+ YzIIadjYeYeadjYzIITd = Matmul2(YzII,adjYeYeadjYzIITd,OnlyDiagonal) 
+ YzIIadjYeYeadjYzIITsII = Matmul2(YzII,adjYeYeadjYzIITsII,OnlyDiagonal) 
+ YzIIadjYeYeadjYzIITzII = Matmul2(YzII,adjYeYeadjYzIITzII,OnlyDiagonal) 
+ YzIIadjYeTeadjYeYe = Matmul2(YzII,adjYeTeadjYeYe,OnlyDiagonal) 
+ YzIIadjYeTeadjYzIIYd = Matmul2(YzII,adjYeTeadjYzIIYd,OnlyDiagonal) 
+ YzIIadjYeTeadjYzIIYsII = Matmul2(YzII,adjYeTeadjYzIIYsII,OnlyDiagonal) 
+ YzIIadjYeTeadjYzIIYzII = Matmul2(YzII,adjYeTeadjYzIIYzII,OnlyDiagonal) 
+ YzIIadjYzIImd2YzIIadjYzII = Matmul2(YzII,adjYzIImd2YzIIadjYzII,OnlyDiagonal) 
+Forall(i2=1:3)  YzIIadjYzIImd2YzIIadjYzII(i2,i2) =  Real(YzIIadjYzIImd2YzIIadjYzII(i2,i2),dp) 
+ YzIIadjYzIIYdadjYdYzII = Matmul2(YzII,adjYzIIYdadjYdYzII,OnlyDiagonal) 
+ YzIIadjYzIIYdadjYdTzII = Matmul2(YzII,adjYzIIYdadjYdTzII,OnlyDiagonal) 
+ YzIIadjYzIIYsIICYsIIYzII = Matmul2(YzII,adjYzIIYsIICYsIIYzII,OnlyDiagonal) 
+ YzIIadjYzIIYsIICYsIITzII = Matmul2(YzII,adjYzIIYsIICYsIITzII,OnlyDiagonal) 
+ YzIIadjYzIIYzIIml2adjYzII = Matmul2(YzII,adjYzIIYzIIml2adjYzII,OnlyDiagonal) 
+ YzIIadjYzIIYzIIadjYzIImd2 = Matmul2(YzII,adjYzIIYzIIadjYzIImd2,OnlyDiagonal) 
+ YzIIadjYzIIYzIIadjYzIIYd = Matmul2(YzII,adjYzIIYzIIadjYzIIYd,OnlyDiagonal) 
+ YzIIadjYzIIYzIIadjYzIIYsII = Matmul2(YzII,adjYzIIYzIIadjYzIIYsII,OnlyDiagonal) 
+ YzIIadjYzIIYzIIadjYzIIYzII = Matmul2(YzII,adjYzIIYzIIadjYzIIYzII,OnlyDiagonal) 
+ YzIIadjYzIIYzIIadjYzIITd = Matmul2(YzII,adjYzIIYzIIadjYzIITd,OnlyDiagonal) 
+ YzIIadjYzIIYzIIadjYzIITsII = Matmul2(YzII,adjYzIIYzIIadjYzIITsII,OnlyDiagonal) 
+ YzIIadjYzIIYzIIadjYzIITzII = Matmul2(YzII,adjYzIIYzIIadjYzIITzII,OnlyDiagonal) 
+ YzIIadjYzIITdadjYdYzII = Matmul2(YzII,adjYzIITdadjYdYzII,OnlyDiagonal) 
+ YzIIadjYzIITsIICYsIIYzII = Matmul2(YzII,adjYzIITsIICYsIIYzII,OnlyDiagonal) 
+ YzIIadjYzIITzIIadjYzIIYd = Matmul2(YzII,adjYzIITzIIadjYzIIYd,OnlyDiagonal) 
+ YzIIadjYzIITzIIadjYzIIYsII = Matmul2(YzII,adjYzIITzIIadjYzIIYsII,OnlyDiagonal) 
+ YzIIadjYzIITzIIadjYzIIYzII = Matmul2(YzII,adjYzIITzIIadjYzIIYzII,OnlyDiagonal) 
+ YzIICYtIIYtIIml2adjYzII = Matmul2(YzII,CYtIIYtIIml2adjYzII,OnlyDiagonal) 
+ YzIICYtIIYtIIadjYzIImd2 = Matmul2(YzII,CYtIIYtIIadjYzIImd2,OnlyDiagonal) 
+ YzIICYtIIYtIIadjYzIIYd = Matmul2(YzII,CYtIIYtIIadjYzIIYd,OnlyDiagonal) 
+ YzIICYtIIYtIIadjYzIIYsII = Matmul2(YzII,CYtIIYtIIadjYzIIYsII,OnlyDiagonal) 
+ YzIICYtIIYtIIadjYzIIYzII = Matmul2(YzII,CYtIIYtIIadjYzIIYzII,OnlyDiagonal) 
+ YzIICYtIIYtIIadjYzIITd = Matmul2(YzII,CYtIIYtIIadjYzIITd,OnlyDiagonal) 
+ YzIICYtIIYtIIadjYzIITsII = Matmul2(YzII,CYtIIYtIIadjYzIITsII,OnlyDiagonal) 
+ YzIICYtIIYtIIadjYzIITzII = Matmul2(YzII,CYtIIYtIIadjYzIITzII,OnlyDiagonal) 
+ YzIICYtIIYtIICYtIIYtII = Matmul2(YzII,CYtIIYtIICYtIIYtII,OnlyDiagonal) 
+ YzIICYtIIYtIICYtIITtII = Matmul2(YzII,CYtIIYtIICYtIITtII,OnlyDiagonal) 
+ YzIICYtIICml2YtIIadjYzII = Matmul2(YzII,CYtIICml2YtIIadjYzII,OnlyDiagonal) 
+ YzIICYtIITtIIadjYzIIYd = Matmul2(YzII,CYtIITtIIadjYzIIYd,OnlyDiagonal) 
+ YzIICYtIITtIIadjYzIIYsII = Matmul2(YzII,CYtIITtIIadjYzIIYsII,OnlyDiagonal) 
+ YzIICYtIITtIIadjYzIIYzII = Matmul2(YzII,CYtIITtIIadjYzIIYzII,OnlyDiagonal) 
+ YzIICYtIITtIICYtIIYtII = Matmul2(YzII,CYtIITtIICYtIIYtII,OnlyDiagonal) 
+ YzIICYtIITpYeCYeYtII = Matmul2(YzII,CYtIITpYeCYeYtII,OnlyDiagonal) 
+ YzIICYtIITpYeCYeTtII = Matmul2(YzII,CYtIITpYeCYeTtII,OnlyDiagonal) 
+ YzIICYtIITpYzIICYzIIYtII = Matmul2(YzII,CYtIITpYzIICYzIIYtII,OnlyDiagonal) 
+ YzIICYtIITpYzIICYzIITtII = Matmul2(YzII,CYtIITpYzIICYzIITtII,OnlyDiagonal) 
+ YzIICYtIITpTeCYeYtII = Matmul2(YzII,CYtIITpTeCYeYtII,OnlyDiagonal) 
+ YzIICYtIITpTzIICYzIIYtII = Matmul2(YzII,CYtIITpTzIICYzIIYtII,OnlyDiagonal) 
+ adjYdmd2YdadjYdYd = Matmul2(adjYd,md2YdadjYdYd,OnlyDiagonal) 
+ adjYdmd2YsIICYsIIYd = Matmul2(adjYd,md2YsIICYsIIYd,OnlyDiagonal) 
+ adjYdmd2YzIIadjYzIIYd = Matmul2(adjYd,md2YzIIadjYzIIYd,OnlyDiagonal) 
+ adjYdYdmq2adjYdYd = Matmul2(adjYd,Ydmq2adjYdYd,OnlyDiagonal) 
+Forall(i2=1:3)  adjYdYdmq2adjYdYd(i2,i2) =  Real(adjYdYdmq2adjYdYd(i2,i2),dp) 
+ adjYdYdadjYdmd2Yd = Matmul2(adjYd,YdadjYdmd2Yd,OnlyDiagonal) 
+ adjYdYdadjYdYdmq2 = Matmul2(adjYd,YdadjYdYdmq2,OnlyDiagonal) 
+ adjYdYsIICmd2CYsIIYd = Matmul2(adjYd,YsIICmd2CYsIIYd,OnlyDiagonal) 
+ adjYdYsIICYsIImd2Yd = Matmul2(adjYd,YsIICYsIImd2Yd,OnlyDiagonal) 
+ adjYdYsIICYsIIYdmq2 = Matmul2(adjYd,YsIICYsIIYdmq2,OnlyDiagonal) 
+ adjYdYzIIml2adjYzIIYd = Matmul2(adjYd,YzIIml2adjYzIIYd,OnlyDiagonal) 
+Forall(i2=1:3)  adjYdYzIIml2adjYzIIYd(i2,i2) =  Real(adjYdYzIIml2adjYzIIYd(i2,i2),dp) 
+ adjYdYzIIadjYzIImd2Yd = Matmul2(adjYd,YzIIadjYzIImd2Yd,OnlyDiagonal) 
+ adjYdYzIIadjYzIIYdmq2 = Matmul2(adjYd,YzIIadjYzIIYdmq2,OnlyDiagonal) 
+ adjYeme2YeadjYeYe = Matmul2(adjYe,me2YeadjYeYe,OnlyDiagonal) 
+ adjYeYeml2adjYeYe = Matmul2(adjYe,Yeml2adjYeYe,OnlyDiagonal) 
+Forall(i2=1:3)  adjYeYeml2adjYeYe(i2,i2) =  Real(adjYeYeml2adjYeYe(i2,i2),dp) 
+ adjYeYeadjYeme2Ye = Matmul2(adjYe,YeadjYeme2Ye,OnlyDiagonal) 
+ adjYeYeadjYeYeml2 = Matmul2(adjYe,YeadjYeYeml2,OnlyDiagonal) 
+ adjYumu2YuadjYuYu = Matmul2(adjYu,mu2YuadjYuYu,OnlyDiagonal) 
+ adjYuYumq2adjYuYu = Matmul2(adjYu,Yumq2adjYuYu,OnlyDiagonal) 
+Forall(i2=1:3)  adjYuYumq2adjYuYu(i2,i2) =  Real(adjYuYumq2adjYuYu(i2,i2),dp) 
+ adjYuYuadjYumu2Yu = Matmul2(adjYu,YuadjYumu2Yu,OnlyDiagonal) 
+ adjYuYuadjYuYumq2 = Matmul2(adjYu,YuadjYuYumq2,OnlyDiagonal) 
+ adjYzIImd2YdadjYdYzII = Matmul2(adjYzII,md2YdadjYdYzII,OnlyDiagonal) 
+ adjYzIImd2YsIICYsIIYzII = Matmul2(adjYzII,md2YsIICYsIIYzII,OnlyDiagonal) 
+ adjYzIImd2YzIIadjYzIIYzII = Matmul2(adjYzII,md2YzIIadjYzIIYzII,OnlyDiagonal) 
+ adjYzIIYdmq2adjYdYzII = Matmul2(adjYzII,Ydmq2adjYdYzII,OnlyDiagonal) 
+Forall(i2=1:3)  adjYzIIYdmq2adjYdYzII(i2,i2) =  Real(adjYzIIYdmq2adjYdYzII(i2,i2),dp) 
+ adjYzIIYdadjYdmd2YzII = Matmul2(adjYzII,YdadjYdmd2YzII,OnlyDiagonal) 
+ adjYzIIYdadjYdYzIIml2 = Matmul2(adjYzII,YdadjYdYzIIml2,OnlyDiagonal) 
+ adjYzIIYsIICmd2CYsIIYzII = Matmul2(adjYzII,YsIICmd2CYsIIYzII,OnlyDiagonal) 
+ adjYzIIYsIICYsIImd2YzII = Matmul2(adjYzII,YsIICYsIImd2YzII,OnlyDiagonal) 
+ adjYzIIYsIICYsIIYzIIml2 = Matmul2(adjYzII,YsIICYsIIYzIIml2,OnlyDiagonal) 
+ adjYzIIYzIIml2adjYzIIYzII = Matmul2(adjYzII,YzIIml2adjYzIIYzII,OnlyDiagonal) 
+Forall(i2=1:3)  adjYzIIYzIIml2adjYzIIYzII(i2,i2) =  Real(adjYzIIYzIIml2adjYzIIYzII(i2,i2),dp) 
+ adjYzIIYzIIadjYzIImd2YzII = Matmul2(adjYzII,YzIIadjYzIImd2YzII,OnlyDiagonal) 
+ adjYzIIYzIIadjYzIIYzIIml2 = Matmul2(adjYzII,YzIIadjYzIIYzIIml2,OnlyDiagonal) 
+ CYtIIYtIIml2CYtIIYtII = Matmul2(adjYtII,YtIIml2CYtIIYtII,OnlyDiagonal) 
+ CYtIIYtIICYtIIYtIIml2 = Matmul2(adjYtII,YtIICYtIIYtIIml2,OnlyDiagonal) 
+ CYtIIYtIICYtIICml2YtII = Matmul2(adjYtII,YtIICYtIICml2YtII,OnlyDiagonal) 
+ CYtIICml2YtIICYtIIYtII = Matmul2(adjYtII,Cml2YtIICYtIIYtII,OnlyDiagonal) 
+ CYtIICml2TpYeCYeYtII = Matmul2(adjYtII,Cml2TpYeCYeYtII,OnlyDiagonal) 
+ CYtIICml2TpYzIICYzIIYtII = Matmul2(adjYtII,Cml2TpYzIICYzIIYtII,OnlyDiagonal) 
+ CYtIITpYeCme2CYeYtII = Matmul2(adjYtII,TpYeCme2CYeYtII,OnlyDiagonal) 
+ CYtIITpYeCYeYtIIml2 = Matmul2(adjYtII,TpYeCYeYtIIml2,OnlyDiagonal) 
+ CYtIITpYeCYeCml2YtII = Matmul2(adjYtII,TpYeCYeCml2YtII,OnlyDiagonal) 
+ CYtIITpYzIICmd2CYzIIYtII = Matmul2(adjYtII,TpYzIICmd2CYzIIYtII,OnlyDiagonal) 
+ CYtIITpYzIICYzIIYtIIml2 = Matmul2(adjYtII,TpYzIICYzIIYtIIml2,OnlyDiagonal) 
+ CYtIITpYzIICYzIICml2YtII = Matmul2(adjYtII,TpYzIICYzIICml2YtII,OnlyDiagonal) 
+ TdadjYdYdadjYdYd = Matmul2(Td,adjYdYdadjYdYd,OnlyDiagonal) 
+ TdadjYdYdadjYdYsII = Matmul2(Td,adjYdYdadjYdYsII,OnlyDiagonal) 
+ TdadjYdYdadjYdYzII = Matmul2(Td,adjYdYdadjYdYzII,OnlyDiagonal) 
+ TdadjYdYsIICYsIIYd = Matmul2(Td,adjYdYsIICYsIIYd,OnlyDiagonal) 
+ TdadjYdYzIIadjYzIIYd = Matmul2(Td,adjYdYzIIadjYzIIYd,OnlyDiagonal) 
+ TdadjYuYuadjYdYd = Matmul2(Td,adjYuYuadjYdYd,OnlyDiagonal) 
+ TdadjYuYuadjYdYsII = Matmul2(Td,adjYuYuadjYdYsII,OnlyDiagonal) 
+ TdadjYuYuadjYdYzII = Matmul2(Td,adjYuYuadjYdYzII,OnlyDiagonal) 
+ TdadjYuYuadjYuYu = Matmul2(Td,adjYuYuadjYuYu,OnlyDiagonal) 
+ TeadjYeYeadjYeYe = Matmul2(Te,adjYeYeadjYeYe,OnlyDiagonal) 
+ TeadjYzIIYdadjYdYzII = Matmul2(Te,adjYzIIYdadjYdYzII,OnlyDiagonal) 
+ TeadjYzIIYsIICYsIIYzII = Matmul2(Te,adjYzIIYsIICYsIIYzII,OnlyDiagonal) 
+ TeadjYzIIYzIIadjYeYe = Matmul2(Te,adjYzIIYzIIadjYeYe,OnlyDiagonal) 
+ TeadjYzIIYzIIadjYzIIYzII = Matmul2(Te,adjYzIIYzIIadjYzIIYzII,OnlyDiagonal) 
+ TeCYtIIYtIIadjYeYe = Matmul2(Te,CYtIIYtIIadjYeYe,OnlyDiagonal) 
+ TeCYtIIYtIICYtIIYtII = Matmul2(Te,CYtIIYtIICYtIIYtII,OnlyDiagonal) 
+ TeCYtIITpYeCYeYtII = Matmul2(Te,CYtIITpYeCYeYtII,OnlyDiagonal) 
+ TeCYtIITpYzIICYzIIYtII = Matmul2(Te,CYtIITpYzIICYzIIYtII,OnlyDiagonal) 
+ TsIICYdTpYdCYdTpYd = Matmul2(TsII,CYdTpYdCYdTpYd,OnlyDiagonal) 
+ TsIICYdTpYdCYsIIYd = Matmul2(TsII,CYdTpYdCYsIIYd,OnlyDiagonal) 
+ TsIICYdTpYdCYsIIYsII = Matmul2(TsII,CYdTpYdCYsIIYsII,OnlyDiagonal) 
+ TsIICYdTpYdCYsIIYzII = Matmul2(TsII,CYdTpYdCYsIIYzII,OnlyDiagonal) 
+ TsIICYdTpYuCYuTpYd = Matmul2(TsII,CYdTpYuCYuTpYd,OnlyDiagonal) 
+ TsIICYsIIYdadjYdYsII = Matmul2(TsII,CYsIIYdadjYdYsII,OnlyDiagonal) 
+ TsIICYsIIYsIICYsIIYd = Matmul2(TsII,CYsIIYsIICYsIIYd,OnlyDiagonal) 
+ TsIICYsIIYsIICYsIIYsII = Matmul2(TsII,CYsIIYsIICYsIIYsII,OnlyDiagonal) 
+ TsIICYsIIYsIICYsIIYzII = Matmul2(TsII,CYsIIYsIICYsIIYzII,OnlyDiagonal) 
+ TsIICYsIIYzIIadjYzIIYsII = Matmul2(TsII,CYsIIYzIIadjYzIIYsII,OnlyDiagonal) 
+ TsIICYzIIYtIICYtIITpYzII = Matmul2(TsII,CYzIIYtIICYtIITpYzII,OnlyDiagonal) 
+ TsIICYzIITpYeCYeTpYzII = Matmul2(TsII,CYzIITpYeCYeTpYzII,OnlyDiagonal) 
+ TsIICYzIITpYzIICYsIIYd = Matmul2(TsII,CYzIITpYzIICYsIIYd,OnlyDiagonal) 
+ TsIICYzIITpYzIICYsIIYsII = Matmul2(TsII,CYzIITpYzIICYsIIYsII,OnlyDiagonal) 
+ TsIICYzIITpYzIICYsIIYzII = Matmul2(TsII,CYzIITpYzIICYsIIYzII,OnlyDiagonal) 
+ TsIICYzIITpYzIICYzIITpYzII = Matmul2(TsII,CYzIITpYzIICYzIITpYzII,OnlyDiagonal) 
+ TtIIadjYeYeadjYeYe = Matmul2(TtII,adjYeYeadjYeYe,OnlyDiagonal) 
+ TtIIadjYeYeCYtIIYtII = Matmul2(TtII,adjYeYeCYtIIYtII,OnlyDiagonal) 
+ TtIIadjYzIIYdadjYdYzII = Matmul2(TtII,adjYzIIYdadjYdYzII,OnlyDiagonal) 
+ TtIIadjYzIIYsIICYsIIYzII = Matmul2(TtII,adjYzIIYsIICYsIIYzII,OnlyDiagonal) 
+ TtIIadjYzIIYzIIadjYzIIYzII = Matmul2(TtII,adjYzIIYzIIadjYzIIYzII,OnlyDiagonal) 
+ TtIIadjYzIIYzIICYtIIYtII = Matmul2(TtII,adjYzIIYzIICYtIIYtII,OnlyDiagonal) 
+ TtIICYtIIYtIICYtIIYtII = Matmul2(TtII,CYtIIYtIICYtIIYtII,OnlyDiagonal) 
+ TtIICYtIITpYeCYeYtII = Matmul2(TtII,CYtIITpYeCYeYtII,OnlyDiagonal) 
+ TtIICYtIITpYzIICYzIIYtII = Matmul2(TtII,CYtIITpYzIICYzIIYtII,OnlyDiagonal) 
+ TuadjYdYdadjYdYd = Matmul2(Tu,adjYdYdadjYdYd,OnlyDiagonal) 
+ TuadjYdYdadjYuYu = Matmul2(Tu,adjYdYdadjYuYu,OnlyDiagonal) 
+ TuadjYdYsIICYsIIYd = Matmul2(Tu,adjYdYsIICYsIIYd,OnlyDiagonal) 
+ TuadjYdYzIIadjYzIIYd = Matmul2(Tu,adjYdYzIIadjYzIIYd,OnlyDiagonal) 
+ TuadjYuYuadjYuYu = Matmul2(Tu,adjYuYuadjYuYu,OnlyDiagonal) 
+ TzIIadjYeYeadjYeYe = Matmul2(TzII,adjYeYeadjYeYe,OnlyDiagonal) 
+ TzIIadjYeYeadjYzIIYd = Matmul2(TzII,adjYeYeadjYzIIYd,OnlyDiagonal) 
+ TzIIadjYeYeadjYzIIYsII = Matmul2(TzII,adjYeYeadjYzIIYsII,OnlyDiagonal) 
+ TzIIadjYeYeadjYzIIYzII = Matmul2(TzII,adjYeYeadjYzIIYzII,OnlyDiagonal) 
+ TzIIadjYzIIYdadjYdYzII = Matmul2(TzII,adjYzIIYdadjYdYzII,OnlyDiagonal) 
+ TzIIadjYzIIYsIICYsIIYzII = Matmul2(TzII,adjYzIIYsIICYsIIYzII,OnlyDiagonal) 
+ TzIIadjYzIIYzIIadjYzIIYd = Matmul2(TzII,adjYzIIYzIIadjYzIIYd,OnlyDiagonal) 
+ TzIIadjYzIIYzIIadjYzIIYsII = Matmul2(TzII,adjYzIIYzIIadjYzIIYsII,OnlyDiagonal) 
+ TzIIadjYzIIYzIIadjYzIIYzII = Matmul2(TzII,adjYzIIYzIIadjYzIIYzII,OnlyDiagonal) 
+ TzIICYtIIYtIIadjYzIIYd = Matmul2(TzII,CYtIIYtIIadjYzIIYd,OnlyDiagonal) 
+ TzIICYtIIYtIIadjYzIIYsII = Matmul2(TzII,CYtIIYtIIadjYzIIYsII,OnlyDiagonal) 
+ TzIICYtIIYtIIadjYzIIYzII = Matmul2(TzII,CYtIIYtIIadjYzIIYzII,OnlyDiagonal) 
+ TzIICYtIIYtIICYtIIYtII = Matmul2(TzII,CYtIIYtIICYtIIYtII,OnlyDiagonal) 
+ TzIICYtIITpYeCYeYtII = Matmul2(TzII,CYtIITpYeCYeYtII,OnlyDiagonal) 
+ TzIICYtIITpYzIICYzIIYtII = Matmul2(TzII,CYtIITpYzIICYzIIYtII,OnlyDiagonal) 
+ TpYeCYeTpYeCYeWOp = Matmul2(Transpose(Ye),CYeTpYeCYeWOp,OnlyDiagonal) 
+ TpYeCYeTpYeCYeYtII = Matmul2(Transpose(Ye),CYeTpYeCYeYtII,OnlyDiagonal) 
+ TpYeCYeTpYeCYeTtII = Matmul2(Transpose(Ye),CYeTpYeCYeTtII,OnlyDiagonal) 
+ TpYeCYeTpTeCYeYtII = Matmul2(Transpose(Ye),CYeTpTeCYeYtII,OnlyDiagonal) 
+ TpYzIICYdTpYdCYzIIWOp = Matmul2(Transpose(YzII),CYdTpYdCYzIIWOp,OnlyDiagonal) 
+ TpYzIICYdTpYdCYzIIYtII = Matmul2(Transpose(YzII),CYdTpYdCYzIIYtII,OnlyDiagonal) 
+ TpYzIICYdTpYdCYzIITtII = Matmul2(Transpose(YzII),CYdTpYdCYzIITtII,OnlyDiagonal) 
+ TpYzIICYdTpTdCYzIIYtII = Matmul2(Transpose(YzII),CYdTpTdCYzIIYtII,OnlyDiagonal) 
+ TpYzIICYsIIYsIICYzIIWOp = Matmul2(Transpose(YzII),CYsIIYsIICYzIIWOp,OnlyDiagonal) 
+ TpYzIICYsIIYsIICYzIIYtII = Matmul2(Transpose(YzII),CYsIIYsIICYzIIYtII,OnlyDiagonal) 
+ TpYzIICYsIIYsIICYzIITtII = Matmul2(Transpose(YzII),CYsIIYsIICYzIITtII,OnlyDiagonal) 
+ TpYzIICYsIITsIICYzIIYtII = Matmul2(Transpose(YzII),CYsIITsIICYzIIYtII,OnlyDiagonal) 
+ TpYzIICYzIITpYzIICYzIIWOp = Matmul2(Transpose(YzII),CYzIITpYzIICYzIIWOp,OnlyDiagonal) 
+ TpYzIICYzIITpYzIICYzIIYtII = Matmul2(Transpose(YzII),CYzIITpYzIICYzIIYtII,OnlyDiagonal) 
+ TpYzIICYzIITpYzIICYzIITtII = Matmul2(Transpose(YzII),CYzIITpYzIICYzIITtII,OnlyDiagonal) 
+ TpYzIICYzIITpTzIICYzIIYtII = Matmul2(Transpose(YzII),CYzIITpTzIICYzIIYtII,OnlyDiagonal) 
+ TpTeCYeTpYeCYeYtII = Matmul2(Transpose(Te),CYeTpYeCYeYtII,OnlyDiagonal) 
+ TpTzIICYdTpYdCYzIIYtII = Matmul2(Transpose(TzII),CYdTpYdCYzIIYtII,OnlyDiagonal) 
+ TpTzIICYsIIYsIICYzIIYtII = Matmul2(Transpose(TzII),CYsIIYsIICYzIIYtII,OnlyDiagonal) 
+ TpTzIICYzIITpYzIICYzIIYtII = Matmul2(Transpose(TzII),CYzIITpYzIICYzIIYtII,OnlyDiagonal) 
+ TrYsIICTsII = cTrace(YsIICTsII) 
+ TrYtIICTtII = cTrace(YtIICTtII) 
+ TrCTdTpYd = cTrace(CTdTpYd) 
+ TrCTeTpYe = cTrace(CTeTpYe) 
+ TrCTuTpYu = cTrace(CTuTpYu) 
+ TrCTzIITpYzII = cTrace(CTzIITpYzII) 
+ Trmd2CYsIIYsII = cTrace(md2CYsIIYsII) 
+ Trml2YtIICYtII = cTrace(ml2YtIICYtII) 
+ TrYdadjYdCmd2 = cTrace(YdadjYdCmd2) 
+ TrYdCmq2adjYd = cTrace(YdCmq2adjYd) 
+ TrYeadjYeCme2 = cTrace(YeadjYeCme2) 
+ TrYeCml2adjYe = cTrace(YeCml2adjYe) 
+ TrYuadjYuCmu2 = cTrace(YuadjYuCmu2) 
+ TrYuCmq2adjYu = cTrace(YuCmq2adjYu) 
+ TrYzIIadjYzIICmd2 = cTrace(YzIIadjYzIICmd2) 
+ TrYzIICml2adjYzII = cTrace(YzIICml2adjYzII) 
+ TrYdadjYdYdadjYd = cTrace(YdadjYdYdadjYd) 
+ TrYdadjYdYsIICYsII = cTrace(YdadjYdYsIICYsII) 
+ TrYdadjYdYzIIadjYzII = cTrace(YdadjYdYzIIadjYzII) 
+ TrYdadjYdTdadjYd = cTrace(YdadjYdTdadjYd) 
+ TrYdadjYdTdadjTd = cTrace(YdadjYdTdadjTd) 
+ TrYdadjYdTsIICYsII = cTrace(YdadjYdTsIICYsII) 
+ TrYdadjYdTsIICTsII = cTrace(YdadjYdTsIICTsII) 
+ TrYdadjYdTzIIadjYzII = cTrace(YdadjYdTzIIadjYzII) 
+ TrYdadjYdTzIIadjTzII = cTrace(YdadjYdTzIIadjTzII) 
+ TrYdadjYuYuadjYd = cTrace(YdadjYuYuadjYd) 
+ TrYdadjYuTuadjYd = cTrace(YdadjYuTuadjYd) 
+ TrYdadjYuTuadjTd = cTrace(YdadjYuTuadjTd) 
+ TrYdadjTdTdadjYd = cTrace(YdadjTdTdadjYd) 
+ TrYdadjTdTsIICYsII = cTrace(YdadjTdTsIICYsII) 
+ TrYdadjTdTzIIadjYzII = cTrace(YdadjTdTzIIadjYzII) 
+ TrYdadjTuTuadjYd = cTrace(YdadjTuTuadjYd) 
+ TrYeadjYeYeadjYe = cTrace(YeadjYeYeadjYe) 
+ TrYeadjYeTeadjYe = cTrace(YeadjYeTeadjYe) 
+ TrYeadjYeTeadjTe = cTrace(YeadjYeTeadjTe) 
+ TrYeadjYzIIYzIIadjYe = cTrace(YeadjYzIIYzIIadjYe) 
+ TrYeadjYzIITzIIadjYe = cTrace(YeadjYzIITzIIadjYe) 
+ TrYeadjYzIITzIIadjTe = cTrace(YeadjYzIITzIIadjTe) 
+ TrYeadjTeTeadjYe = cTrace(YeadjTeTeadjYe) 
+ TrYeadjTzIITzIIadjYe = cTrace(YeadjTzIITzIIadjYe) 
+ TrYeCYtIIYtIIadjYe = cTrace(YeCYtIIYtIIadjYe) 
+ TrYeCYtIITtIIadjYe = cTrace(YeCYtIITtIIadjYe) 
+ TrYeCYtIITtIIadjTe = cTrace(YeCYtIITtIIadjTe) 
+ TrYeCTtIITtIIadjYe = cTrace(YeCTtIITtIIadjYe) 
+ TrYsIICYsIIYsIICYsII = cTrace(YsIICYsIIYsIICYsII) 
+ TrYsIICYsIIYzIIadjYzII = cTrace(YsIICYsIIYzIIadjYzII) 
+ TrYsIICYsIITdadjYd = cTrace(YsIICYsIITdadjYd) 
+ TrYsIICYsIITdadjTd = cTrace(YsIICYsIITdadjTd) 
+ TrYsIICYsIITsIICYsII = cTrace(YsIICYsIITsIICYsII) 
+ TrYsIICYsIITsIICTsII = cTrace(YsIICYsIITsIICTsII) 
+ TrYsIICYsIITzIIadjYzII = cTrace(YsIICYsIITzIIadjYzII) 
+ TrYsIICYsIITzIIadjTzII = cTrace(YsIICYsIITzIIadjTzII) 
+ TrYsIICTdTpTdCYsII = cTrace(YsIICTdTpTdCYsII) 
+ TrYsIICTsIITdadjYd = cTrace(YsIICTsIITdadjYd) 
+ TrYsIICTsIITsIICYsII = cTrace(YsIICTsIITsIICYsII) 
+ TrYsIICTsIITzIIadjYzII = cTrace(YsIICTsIITzIIadjYzII) 
+ TrYsIICTzIITpTzIICYsII = cTrace(YsIICTzIITpTzIICYsII) 
+ TrYtIIadjYeTeCYtII = cTrace(YtIIadjYeTeCYtII) 
+ TrYtIIadjYeTeCTtII = cTrace(YtIIadjYeTeCTtII) 
+ TrYtIIadjYzIIYzIICYtII = cTrace(YtIIadjYzIIYzIICYtII) 
+ TrYtIIadjYzIITzIICYtII = cTrace(YtIIadjYzIITzIICYtII) 
+ TrYtIIadjYzIITzIICTtII = cTrace(YtIIadjYzIITzIICTtII) 
+ TrYtIIadjTeTeCYtII = cTrace(YtIIadjTeTeCYtII) 
+ TrYtIIadjTzIITzIICYtII = cTrace(YtIIadjTzIITzIICYtII) 
+ TrYtIICYtIIYtIICYtII = cTrace(YtIICYtIIYtIICYtII) 
+ TrYtIICYtIITtIICYtII = cTrace(YtIICYtIITtIICYtII) 
+ TrYtIICYtIITtIICTtII = cTrace(YtIICYtIITtIICTtII) 
+ TrYtIICYtIITpTeCTe = cTrace(YtIICYtIITpTeCTe) 
+ TrYtIICYtIITpTzIICTzII = cTrace(YtIICYtIITpTzIICTzII) 
+ TrYtIICTtIITtIICYtII = cTrace(YtIICTtIITtIICYtII) 
+ TrYuadjYdTdadjYu = cTrace(YuadjYdTdadjYu) 
+ TrYuadjYdTdadjTu = cTrace(YuadjYdTdadjTu) 
+ TrYuadjYuYuadjYu = cTrace(YuadjYuYuadjYu) 
+ TrYuadjYuTuadjYu = cTrace(YuadjYuTuadjYu) 
+ TrYuadjYuTuadjTu = cTrace(YuadjYuTuadjTu) 
+ TrYuadjTdTdadjYu = cTrace(YuadjTdTdadjYu) 
+ TrYuadjTuTuadjYu = cTrace(YuadjTuTuadjYu) 
+ TrYzIIadjYeTeadjYzII = cTrace(YzIIadjYeTeadjYzII) 
+ TrYzIIadjYeTeadjTzII = cTrace(YzIIadjYeTeadjTzII) 
+ TrYzIIadjYzIIYzIIadjYzII = cTrace(YzIIadjYzIIYzIIadjYzII) 
+ TrYzIIadjYzIITdadjYd = cTrace(YzIIadjYzIITdadjYd) 
+ TrYzIIadjYzIITdadjTd = cTrace(YzIIadjYzIITdadjTd) 
+ TrYzIIadjYzIITsIICYsII = cTrace(YzIIadjYzIITsIICYsII) 
+ TrYzIIadjYzIITsIICTsII = cTrace(YzIIadjYzIITsIICTsII) 
+ TrYzIIadjYzIITzIIadjYzII = cTrace(YzIIadjYzIITzIIadjYzII) 
+ TrYzIIadjYzIITzIIadjTzII = cTrace(YzIIadjYzIITzIIadjTzII) 
+ TrYzIIadjTeTeadjYzII = cTrace(YzIIadjTeTeadjYzII) 
+ TrYzIIadjTzIITdadjYd = cTrace(YzIIadjTzIITdadjYd) 
+ TrYzIIadjTzIITsIICYsII = cTrace(YzIIadjTzIITsIICYsII) 
+ TrYzIIadjTzIITzIIadjYzII = cTrace(YzIIadjTzIITzIIadjYzII) 
+ TrYzIICYtIITtIIadjYzII = cTrace(YzIICYtIITtIIadjYzII) 
+ TrYzIICYtIITtIIadjTzII = cTrace(YzIICYtIITtIIadjTzII) 
+ TrYzIICTtIITtIIadjYzII = cTrace(YzIICTtIITtIIadjYzII) 
+ TrCYsIITsIICTdTpYd = cTrace(CYsIITsIICTdTpYd) 
+ TrCYsIITsIICTzIITpYzII = cTrace(CYsIITsIICTzIITpYzII) 
+ TrCYtIITpYeCTeTtII = cTrace(CYtIITpYeCTeTtII) 
+ TrCYtIITpYzIICTzIITtII = cTrace(CYtIITpYzIICTzIITtII) 
+ Trmd2YdadjYdYdadjYd = cTrace(md2YdadjYdYdadjYd) 
+ Trmd2YdadjYdYsIICYsII = cTrace(md2YdadjYdYsIICYsII) 
+ Trmd2YdadjYdYzIIadjYzII = cTrace(md2YdadjYdYzIIadjYzII) 
+ Trmd2YdadjYuYuadjYd = cTrace(md2YdadjYuYuadjYd) 
+ Trmd2YsIICYsIIYdadjYd = cTrace(md2YsIICYsIIYdadjYd) 
+ Trmd2YsIICYsIIYsIICYsII = cTrace(md2YsIICYsIIYsIICYsII) 
+ Trmd2YsIICYsIIYzIIadjYzII = cTrace(md2YsIICYsIIYzIIadjYzII) 
+ Trmd2YzIIadjYeYeadjYzII = cTrace(md2YzIIadjYeYeadjYzII) 
+ Trmd2YzIIadjYzIIYdadjYd = cTrace(md2YzIIadjYzIIYdadjYd) 
+ Trmd2YzIIadjYzIIYsIICYsII = cTrace(md2YzIIadjYzIIYsIICYsII) 
+ Trmd2YzIIadjYzIIYzIIadjYzII = cTrace(md2YzIIadjYzIIYzIIadjYzII) 
+ Trmd2YzIICYtIIYtIIadjYzII = cTrace(md2YzIICYtIIYtIIadjYzII) 
+ Trme2YeadjYeYeadjYe = cTrace(me2YeadjYeYeadjYe) 
+ Trme2YeadjYzIIYzIIadjYe = cTrace(me2YeadjYzIIYzIIadjYe) 
+ Trme2YeCYtIIYtIIadjYe = cTrace(me2YeCYtIIYtIIadjYe) 
+ Trml2adjYeYeadjYeYe = cTrace(ml2adjYeYeadjYeYe) 
+ Trml2adjYeYeadjYzIIYzII = cTrace(ml2adjYeYeadjYzIIYzII) 
+ Trml2adjYeYeCYtIIYtII = cTrace(ml2adjYeYeCYtIIYtII) 
+ Trml2adjYzIIYdadjYdYzII = cTrace(ml2adjYzIIYdadjYdYzII) 
+ Trml2adjYzIIYsIICYsIIYzII = cTrace(ml2adjYzIIYsIICYsIIYzII) 
+ Trml2adjYzIIYzIIadjYeYe = cTrace(ml2adjYzIIYzIIadjYeYe) 
+ Trml2adjYzIIYzIIadjYzIIYzII = cTrace(ml2adjYzIIYzIIadjYzIIYzII) 
+ Trml2adjYzIIYzIICYtIIYtII = cTrace(ml2adjYzIIYzIICYtIIYtII) 
+ Trml2CYtIIYtIIadjYeYe = cTrace(ml2CYtIIYtIIadjYeYe) 
+ Trml2CYtIIYtIIadjYzIIYzII = cTrace(ml2CYtIIYtIIadjYzIIYzII) 
+ Trml2CYtIIYtIICYtIIYtII = cTrace(ml2CYtIIYtIICYtIIYtII) 
+ Trmq2adjYdYdadjYdYd = cTrace(mq2adjYdYdadjYdYd) 
+ Trmq2adjYdYdadjYuYu = cTrace(mq2adjYdYdadjYuYu) 
+ Trmq2adjYdYsIICYsIIYd = cTrace(mq2adjYdYsIICYsIIYd) 
+ Trmq2adjYdYzIIadjYzIIYd = cTrace(mq2adjYdYzIIadjYzIIYd) 
+ Trmq2adjYuYuadjYdYd = cTrace(mq2adjYuYuadjYdYd) 
+ Trmq2adjYuYuadjYuYu = cTrace(mq2adjYuYuadjYuYu) 
+ Trmu2YuadjYdYdadjYu = cTrace(mu2YuadjYdYdadjYu) 
+ Trmu2YuadjYuYuadjYu = cTrace(mu2YuadjYuYuadjYu) 
+ TrYdadjYdYsIICmd2CYsII = cTrace(YdadjYdYsIICmd2CYsII) 
+ TrYeCYtIICml2YtIIadjYe = cTrace(YeCYtIICml2YtIIadjYe) 
+ TrYsIICmd2CYsIIYzIIadjYzII = cTrace(YsIICmd2CYsIIYzIIadjYzII) 
+ TrYtIIadjYzIIYzIICYtIICml2 = cTrace(YtIIadjYzIIYzIICYtIICml2) 
+ g1p4 =g1**4 
+ g2p4 =g2**4 
+ g3p4 =g3**4 
+ CL1IIp2 =Conjg(L1II)**2 
+ CL2IIp2 =Conjg(L2II)**2 
+End If 
+ 
+ 
+Tr1(1) = g1*sqrt3ov5*(-1._dp*(mHd2) + mHu2 - 4._dp*(ms2) + 4._dp*(msb2)               & 
+&  + 3._dp*(mt2) - 3._dp*(mtb2) + mzz2 - mzb2 + Trmd2 + Trme2 - 2._dp*(Trmu2)            & 
+&  - Conjg(Trml2) + Conjg(Trmq2))
+
+If (TwoLoopRGE) Then 
+Tr2U1(1, 1) = (g1p2*(3._dp*(mHd2) + 3._dp*(mHu2) + 16._dp*(ms2) + 16._dp*(msb2)       & 
+&  + 18._dp*(mt2) + 18._dp*(mtb2) + mzz2 + mzb2 + 2._dp*(Trmd2) + 6._dp*(Trme2)          & 
+&  + 8._dp*(Trmu2) + 3*Conjg(Trml2) + Conjg(Trmq2)))/10._dp
+
+Tr3(1) = (g1*ooSqrt15*(-9*g1p2*mHd2 - 45*g2p2*mHd2 + 9*g1p2*mHu2 + 45*g2p2*mHu2 -     & 
+&  64*g1p2*ms2 - 800*g3p2*ms2 + 64*g1p2*msb2 + 800*g3p2*msb2 + 90*AbsL1II*(mHd2 -        & 
+&  mt2) + 108*g1p2*mt2 + 360*g2p2*mt2 - 90*AbsL2II*(mHu2 - mtb2) - 108*g1p2*mtb2 -       & 
+&  360*g2p2*mtb2 + g1p2*mzz2 + 45*g2p2*mzz2 + 80*g3p2*mzz2 - g1p2*mzb2 - 45*g2p2*mzb2 -  & 
+&  80*g3p2*mzb2 + 4*g1p2*Trmd2 + 80*g3p2*Trmd2 - 120._dp*(Trmd2CYsIIYsII) +              & 
+&  36*g1p2*Trme2 + 90._dp*(Trml2YtIICYtII) - 32*g1p2*Trmu2 - 160*g3p2*Trmu2 +            & 
+&  90*mHd2*TrYdadjYd - 60._dp*(TrYdadjYdCmd2) - 30._dp*(TrYdCmq2adjYd) + 30*mHd2*TrYeadjYe -& 
+&  60._dp*(TrYeadjYeCme2) + 30._dp*(TrYeCml2adjYe) + 120*ms2*TrYsIICYsII -               & 
+&  90*mt2*TrYtIICYtII - 90*mHu2*TrYuadjYu + 120._dp*(TrYuadjYuCmu2) - 30._dp*(TrYuCmq2adjYu)& 
+&  - 30*mzz2*TrYzIIadjYzII - 60._dp*(TrYzIIadjYzIICmd2) + 90._dp*(TrYzIICml2adjYzII)     & 
+&  - 9*g1p2*Conjg(Trml2) - 45*g2p2*Conjg(Trml2) + g1p2*Conjg(Trmq2) + 45*g2p2*Conjg(Trmq2)& 
+&  + 80*g3p2*Conjg(Trmq2)))/20._dp
+
+Tr2(2) = (mHd2 + mHu2 + 6._dp*(mt2) + 6._dp*(mtb2) + 3._dp*(mzz2) + 3._dp*(mzb2)      & 
+&  + Conjg(Trml2) + 3*Conjg(Trmq2))/2._dp
+
+Tr2(3) = 5._dp*(ms2) + 5._dp*(msb2) + mzz2 + mzb2 + Trmd2/2._dp + Trmu2/2._dp +       & 
+&  Conjg(Trmq2)
+
+End If 
+ 
+ 
+!-------------------- 
+! g1 
+!-------------------- 
+ 
+betag11  = 68._dp*(g1p3)/5._dp
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betag12 = (g1p3*(-405._dp*(AbsL1II) - 405._dp*(AbsL2II) + 1502._dp*(g1p2) + 2610._dp*(g2p2) +   & 
+&  4600._dp*(g3p2) - 210._dp*(TrYdadjYd) - 270._dp*(TrYeadjYe) - 360._dp*(TrYsIICYsII) - & 
+&  405._dp*(TrYtIICYtII) - 390._dp*(TrYuadjYu) - 210._dp*(TrYzIIadjYzII)))/75._dp
+
+ 
+Dg1 = oo16pi2*( betag11 + oo16pi2 * betag12 ) 
+
+ 
+Else 
+Dg1 = oo16pi2* betag11 
+End If 
+ 
+ 
+!-------------------- 
+! g2 
+!-------------------- 
+ 
+betag21  = 8._dp*(g2p3)
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betag22 = (g2p3*(-35._dp*(AbsL1II) - 35._dp*(AbsL2II) + 58._dp*(g1p2) + 470._dp*(g2p2) +        & 
+&  200._dp*(g3p2) - 30._dp*(TrYdadjYd) - 10._dp*(TrYeadjYe) - 35._dp*(TrYtIICYtII) -     & 
+&  30._dp*(TrYuadjYu) - 30._dp*(TrYzIIadjYzII)))/5._dp
+
+ 
+Dg2 = oo16pi2*( betag21 + oo16pi2 * betag22 ) 
+
+ 
+Else 
+Dg2 = oo16pi2* betag21 
+End If 
+ 
+ 
+!-------------------- 
+! g3 
+!-------------------- 
+ 
+betag31  = 4._dp*(g3p3)
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betag32 = (g3p3*(23._dp*(g1p2) + 45._dp*(g2p2) + 400._dp*(g3p2) - 12._dp*(TrYdadjYd) -          & 
+&  27._dp*(TrYsIICYsII) - 12._dp*(TrYuadjYu) - 12._dp*(TrYzIIadjYzII)))/3._dp
+
+ 
+Dg3 = oo16pi2*( betag31 + oo16pi2 * betag32 ) 
+
+ 
+Else 
+Dg3 = oo16pi2* betag31 
+End If 
+ 
+ 
+!-------------------- 
+! Yu 
+!-------------------- 
+ 
+betaYu1  = (3._dp*(AbsL2II) - 13._dp*(g1p2)/15._dp - 3._dp*(g2p2) - 16._dp*(g3p2)     & 
+& /3._dp + 3._dp*(TrYuadjYu))*Yu + YuadjYdYd + 3._dp*(YuadjYuYu)
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betaYu2 = (5473._dp*(g1p4)/450._dp + g1p2*g2p2 + 57._dp*(g2p4)/2._dp + (136*g1p2*g3p2)/45._dp + & 
+&  8*g2p2*g3p2 + 320._dp*(g3p4)/9._dp - 12*CL2IIp2*L2IIp2 - 3._dp*(TrYdadjYuYuadjYd) +   & 
+&  (3*AbsL2II*(6._dp*(g1p2) + 20._dp*(g2p2) - 15._dp*(TrYuadjYu)))/5._dp +               & 
+&  (4*(g1p2 + 20._dp*(g3p2))*TrYuadjYu)/5._dp - 9._dp*(TrYuadjYuYuadjYu))*Yu +           & 
+&  (-3._dp*(AbsL1II) + 2._dp*(g1p2)/5._dp - 3._dp*(TrYdadjYd) - TrYeadjYe)*YuadjYdYd -   & 
+&  2._dp*(YuadjYdYdadjYdYd) - 2._dp*(YuadjYdYdadjYuYu) - 4._dp*(YuadjYdYsIICYsIIYd) -    & 
+&  2._dp*(YuadjYdYzIIadjYzIIYd) - 9*AbsL2II*YuadjYuYu + (2*g1p2*YuadjYuYu)/5._dp +       & 
+&  6*g2p2*YuadjYuYu - 9*TrYuadjYu*YuadjYuYu - 4._dp*(YuadjYuYuadjYuYu)
+
+ 
+DYu = oo16pi2*( betaYu1 + oo16pi2 * betaYu2 ) 
+
+ 
+Else 
+DYu = oo16pi2* betaYu1 
+End If 
+ 
+ 
+!-------------------- 
+! Yd 
+!-------------------- 
+ 
+betaYd1  = (3._dp*(AbsL1II) - 7._dp*(g1p2)/15._dp - 3._dp*(g2p2) - 16._dp*(g3p2)      & 
+& /3._dp + 3._dp*(TrYdadjYd) + TrYeadjYe)*Yd + 3._dp*(YdadjYdYd) + YdadjYuYu +           & 
+&  4._dp*(YsIICYsIIYd) + 2._dp*(YzIIadjYzIIYd)
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betaYd2 = (581._dp*(g1p4)/90._dp + g1p2*g2p2 + 57._dp*(g2p4)/2._dp + (8*g1p2*g3p2)/9._dp +      & 
+&  8*g2p2*g3p2 + 320._dp*(g3p4)/9._dp - 12*CL1IIp2*L1IIp2 - (2*(g1p2 - 40._dp*(g3p2))*TrYdadjYd)/5._dp -& 
+&  9._dp*(TrYdadjYdYdadjYd) - 12._dp*(TrYdadjYdYsIICYsII) - 6._dp*(TrYdadjYdYzIIadjYzII) -& 
+&  3._dp*(TrYdadjYuYuadjYd) + (6*g1p2*TrYeadjYe)/5._dp - 3._dp*(TrYeadjYeYeadjYe) -      & 
+&  3._dp*(TrYeadjYzIIYzIIadjYe) - 3._dp*(TrYeCYtIIYtIIadjYe) + (3*AbsL1II*(6._dp*(g1p2) +& 
+&  20._dp*(g2p2) - 15._dp*(TrYdadjYd) - 5._dp*(TrYeadjYe) - 5._dp*(TrYtIICYtII)))/5._dp)*Yd +& 
+&  (-9._dp*(AbsL1II) + 4._dp*(g1p2)/5._dp + 6._dp*(g2p2) - 9._dp*(TrYdadjYd) -           & 
+&  3._dp*(TrYeadjYe))*YdadjYdYd - 4._dp*(YdadjYdYdadjYdYd) - 4._dp*(YdadjYdYsIICYsIIYd) -& 
+&  2._dp*(YdadjYdYzIIadjYzIIYd) - 3*AbsL2II*YdadjYuYu + (4*g1p2*YdadjYuYu)/5._dp -       & 
+&  3*TrYuadjYu*YdadjYuYu - 2._dp*(YdadjYuYuadjYdYd) - 2._dp*(YdadjYuYuadjYuYu) -         & 
+&  8._dp*(YsIICYdTpYdCYsIIYd) + (32*g1p2*YsIICYsIIYd)/15._dp + (80*g3p2*YsIICYsIIYd)/3._dp -& 
+&  4*TrYsIICYsII*YsIICYsIIYd - 16._dp*(YsIICYsIIYsIICYsIIYd) - 8._dp*(YsIICYzIITpYzIICYsIIYd) -& 
+&  2._dp*(YzIIadjYeYeadjYzIIYd) + (2*g1p2*YzIIadjYzIIYd)/5._dp + 6*g2p2*YzIIadjYzIIYd -  & 
+&  2*TrYzIIadjYzII*YzIIadjYzIIYd - 6._dp*(YzIIadjYzIIYzIIadjYzIIYd) - 6._dp*(YzIICYtIIYtIIadjYzIIYd)
+
+ 
+DYd = oo16pi2*( betaYd1 + oo16pi2 * betaYd2 ) 
+
+ 
+Else 
+DYd = oo16pi2* betaYd1 
+End If 
+ 
+ 
+!-------------------- 
+! Ye 
+!-------------------- 
+ 
+betaYe1  = (3._dp*(AbsL1II) - 9._dp*(g1p2)/5._dp - 3._dp*(g2p2) + 3._dp*(TrYdadjYd)   & 
+&  + TrYeadjYe)*Ye + 3*(YeadjYeYe + YeadjYzIIYzII + YeCYtIIYtII)
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betaYe2 = -((120*CL1IIp2*L1IIp2 + 4*(g1p2 - 40._dp*(g3p2))*TrYdadjYd + 3*(-87._dp*(g1p4) -      & 
+&  6*g1p2*g2p2 - 95._dp*(g2p4) + 30._dp*(TrYdadjYdYdadjYd) + 40._dp*(TrYdadjYdYsIICYsII) +& 
+&  20._dp*(TrYdadjYdYzIIadjYzII) + 10._dp*(TrYdadjYuYuadjYd) - 4*g1p2*TrYeadjYe +        & 
+&  10._dp*(TrYeadjYeYeadjYe) + 10._dp*(TrYeadjYzIIYzIIadjYe) + 10._dp*(TrYeCYtIIYtIIadjYe)) -& 
+&  6*AbsL1II*(6._dp*(g1p2) + 20._dp*(g2p2) - 15._dp*(TrYdadjYd) - 5._dp*(TrYeadjYe) -    & 
+&  5._dp*(TrYtIICYtII)))*Ye)/10._dp + (-9._dp*(AbsL1II) + 6._dp*(g2p2) - 9._dp*(TrYdadjYd) -& 
+&  3._dp*(TrYeadjYe))*YeadjYeYe - 4._dp*(YeadjYeYeadjYeYe) - 6._dp*(YeadjYzIIYdadjYdYzII) -& 
+&  12._dp*(YeadjYzIIYsIICYsIIYzII) - (2*g1p2*YeadjYzIIYzII)/5._dp + 16*g3p2*YeadjYzIIYzII -& 
+&  3*TrYzIIadjYzII*YeadjYzIIYzII - 6._dp*(YeadjYzIIYzIIadjYeYe) - 6._dp*(YeadjYzIIYzIIadjYzIIYzII) -& 
+&  3._dp*(YeCYtIITpYeCYeYtII) - 9._dp*(YeCYtIITpYzIICYzIIYtII) - 3*AbsL1II*YeCYtIIYtII + & 
+&  (18*g1p2*YeCYtIIYtII)/5._dp + 12*g2p2*YeCYtIIYtII - 3*TrYtIICYtII*YeCYtIIYtII -       & 
+&  6._dp*(YeCYtIIYtIIadjYeYe) - 9._dp*(YeCYtIIYtIICYtIIYtII)
+
+ 
+DYe = oo16pi2*( betaYe1 + oo16pi2 * betaYe2 ) 
+
+ 
+Else 
+DYe = oo16pi2* betaYe1 
+End If 
+ 
+ 
+!-------------------- 
+! YtII 
+!-------------------- 
+ 
+betaYtII1  = TpYeCYeYtII + 3._dp*(TpYzIICYzIIYtII) + (AbsL1II - 9._dp*(g1p2)          & 
+& /5._dp - 7._dp*(g2p2) + TrYtIICYtII)*YtII + YtIIadjYeYe + 3._dp*(YtIIadjYzIIYzII)      & 
+&  + 6._dp*(YtIICYtIIYtII)
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betaYtII2 = ((261._dp*(g1p4) + 114*g1p2*g2p2 + 765._dp*(g2p4) - 60*CL1IIp2*L1IIp2 -               & 
+&  2*AbsL1II*(3._dp*(g1p2) + 5._dp*(g2p2) + 30._dp*(TrYdadjYd) + 10._dp*(TrYeadjYe)) -   & 
+&  20._dp*(TrYeCYtIIYtIIadjYe) - 60._dp*(TrYtIIadjYzIIYzIICYtII) - 2*(3._dp*(g1p2) +     & 
+&  5._dp*(g2p2))*TrYtIICYtII - 60._dp*(TrYtIICYtIIYtIICYtII))*YtII)/10._dp +             & 
+&  (-3._dp*(AbsL1II) + 6._dp*(g1p2)/5._dp - 3._dp*(TrYdadjYd) - TrYeadjYe)*YtIIadjYeYe + & 
+&  (-10._dp*(TpYeCYeTpYeCYeYtII) - 15*AbsL1II*TpYeCYeYtII + 6*g1p2*TpYeCYeYtII -         & 
+&  30._dp*(TpYzIICYdTpYdCYzIIYtII) - 60._dp*(TpYzIICYsIIYsIICYzIIYtII) - 30._dp*(TpYzIICYzIITpYzIICYzIIYtII) -& 
+&  2*g1p2*TpYzIICYzIIYtII + 80*g3p2*TpYzIICYzIIYtII - 15*TpYeCYeYtII*TrYdadjYd -         & 
+&  5*TpYeCYeYtII*TrYeadjYe - 15*TpYzIICYzIIYtII*TrYzIIadjYzII - 10._dp*(YtIIadjYeYeadjYeYe) -& 
+&  15._dp*(YtIIadjYeYeCYtIIYtII) - 30._dp*(YtIIadjYzIIYdadjYdYzII) - 60._dp*(YtIIadjYzIIYsIICYsIIYzII) +& 
+&  (-2._dp*(g1p2) + 80._dp*(g3p2) - 15._dp*(TrYzIIadjYzII))*YtIIadjYzIIYzII -            & 
+&  30._dp*(YtIIadjYzIIYzIIadjYzIIYzII) - 45._dp*(YtIIadjYzIIYzIICYtIIYtII) -             & 
+&  15._dp*(YtIICYtIITpYeCYeYtII) - 45._dp*(YtIICYtIITpYzIICYzIIYtII) + 6*(-              & 
+& 5._dp*(AbsL1II) + 6._dp*(g1p2) + 20._dp*(g2p2) - 5._dp*(TrYtIICYtII))*YtIICYtIIYtII -  & 
+&  90._dp*(YtIICYtIIYtIICYtIIYtII))/5._dp
+
+ 
+DYtII = oo16pi2*( betaYtII1 + oo16pi2 * betaYtII2 ) 
+
+ 
+Else 
+DYtII = oo16pi2* betaYtII1 
+End If 
+ 
+ 
+!-------------------- 
+! YsII 
+!-------------------- 
+ 
+betaYsII1  = ((-4*(g1p2 + 15._dp*(g3p2)))/5._dp + TrYsIICYsII)*YsII + 2*(YdadjYdYsII +& 
+&  YsIICYdTpYd + 4._dp*(YsIICYsIIYsII) + YsIICYzIITpYzII + YzIIadjYzIIYsII)
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betaYsII2 = -2._dp*(YdadjYdYdadjYdYsII) + (-6._dp*(AbsL1II) + 2._dp*(g1p2)/5._dp + 6._dp*(g2p2) - & 
+&  6._dp*(TrYdadjYd) - 2._dp*(TrYeadjYe))*YdadjYdYsII - 2._dp*(YdadjYuYuadjYdYsII) +     & 
+&  (4*(42._dp*(g1p4) + 32*g1p2*g3p2 + 400._dp*(g3p4) - 15._dp*(TrYdadjYdYsIICYsII) -     & 
+&  (g1p2 + 5._dp*(g3p2))*TrYsIICYsII - 30._dp*(TrYsIICYsIIYsIICYsII) - 15._dp*(TrYsIICYsIIYzIIadjYzII))*YsII)/15._dp -& 
+&  6*AbsL1II*YsIICYdTpYd + (2*g1p2*YsIICYdTpYd)/5._dp + 6*g2p2*YsIICYdTpYd -             & 
+&  6*TrYdadjYd*YsIICYdTpYd - 2*TrYeadjYe*YsIICYdTpYd - 2._dp*(YsIICYdTpYdCYdTpYd) -      & 
+&  8._dp*(YsIICYdTpYdCYsIIYsII) - 2._dp*(YsIICYdTpYuCYuTpYd) - 8._dp*(YsIICYsIIYdadjYdYsII) +& 
+&  (64*g1p2*YsIICYsIIYsII)/15._dp + (160*g3p2*YsIICYsIIYsII)/3._dp - 8*TrYsIICYsII*YsIICYsIIYsII -& 
+&  32._dp*(YsIICYsIIYsIICYsIIYsII) - 8._dp*(YsIICYsIIYzIIadjYzIIYsII) - 2._dp*(YsIICYzIITpYeCYeTpYzII) +& 
+&  (2*g1p2*YsIICYzIITpYzII)/5._dp + 6*g2p2*YsIICYzIITpYzII - 2*TrYzIIadjYzII*YsIICYzIITpYzII -& 
+&  8._dp*(YsIICYzIITpYzIICYsIIYsII) - 6._dp*(YsIICYzIITpYzIICYzIITpYzII) -               & 
+&  6._dp*(YsIICYzIIYtIICYtIITpYzII) - 2._dp*(YzIIadjYeYeadjYzIIYsII) + (2*g1p2*YzIIadjYzIIYsII)/5._dp +& 
+&  6*g2p2*YzIIadjYzIIYsII - 2*TrYzIIadjYzII*YzIIadjYzIIYsII - 6._dp*(YzIIadjYzIIYzIIadjYzIIYsII) -& 
+&  6._dp*(YzIICYtIIYtIIadjYzIIYsII)
+
+ 
+DYsII = oo16pi2*( betaYsII1 + oo16pi2 * betaYsII2 ) 
+
+ 
+Else 
+DYsII = oo16pi2* betaYsII1 
+End If 
+ 
+ 
+!-------------------- 
+! YzII 
+!-------------------- 
+ 
+betaYzII1  = 2._dp*(YdadjYdYzII) + 4._dp*(YsIICYsIIYzII) + (-7._dp*(g1p2)             & 
+& /15._dp - 3._dp*(g2p2) - 16._dp*(g3p2)/3._dp + TrYzIIadjYzII)*YzII + YzIIadjYeYe +     & 
+&  5._dp*(YzIIadjYzIIYzII) + 3._dp*(YzIICYtIIYtII)
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betaYzII2 = -2._dp*(YdadjYdYdadjYdYzII) + (-6._dp*(AbsL1II) + 2._dp*(g1p2)/5._dp + 6._dp*(g2p2) - & 
+&  6._dp*(TrYdadjYd) - 2._dp*(TrYeadjYe))*YdadjYdYzII - 2._dp*(YdadjYuYuadjYdYzII) -     & 
+&  8._dp*(YsIICYdTpYdCYsIIYzII) - 16._dp*(YsIICYsIIYsIICYsIIYzII) + (32*g1p2*YsIICYsIIYzII)/15._dp +& 
+&  (80*g3p2*YsIICYsIIYzII)/3._dp - 4*TrYsIICYsII*YsIICYsIIYzII - 8._dp*(YsIICYzIITpYzIICYsIIYzII) +& 
+&  (581._dp*(g1p4)/90._dp + g1p2*g2p2 + 57._dp*(g2p4)/2._dp + (8*g1p2*g3p2)/9._dp +      & 
+&  8*g2p2*g3p2 + 320._dp*(g3p4)/9._dp - 2._dp*(TrYdadjYdYzIIadjYzII) - TrYeadjYzIIYzIIadjYe -& 
+&  4._dp*(TrYsIICYsIIYzIIadjYzII) - 3._dp*(TrYtIIadjYzIIYzIICYtII) + (2*g1p2*TrYzIIadjYzII)/5._dp -& 
+&  5._dp*(TrYzIIadjYzIIYzIIadjYzII))*YzII - 3*AbsL1II*YzIIadjYeYe + (6*g1p2*YzIIadjYeYe)/5._dp -& 
+&  3*TrYdadjYd*YzIIadjYeYe - TrYeadjYe*YzIIadjYeYe - 2._dp*(YzIIadjYeYeadjYeYe) -        & 
+&  2._dp*(YzIIadjYeYeadjYzIIYzII) - 6._dp*(YzIIadjYzIIYdadjYdYzII) - 12._dp*(YzIIadjYzIIYsIICYsIIYzII) +& 
+&  6*g2p2*YzIIadjYzIIYzII + 16*g3p2*YzIIadjYzIIYzII - 5*TrYzIIadjYzII*YzIIadjYzIIYzII -  & 
+&  12._dp*(YzIIadjYzIIYzIIadjYzIIYzII) - 3._dp*(YzIICYtIITpYeCYeYtII) - 9._dp*(YzIICYtIITpYzIICYzIIYtII) -& 
+&  3*AbsL1II*YzIICYtIIYtII + (18*g1p2*YzIICYtIIYtII)/5._dp + 12*g2p2*YzIICYtIIYtII -     & 
+&  3*TrYtIICYtII*YzIICYtIIYtII - 6._dp*(YzIICYtIIYtIIadjYzIIYzII) - 9._dp*(YzIICYtIIYtIICYtIIYtII)
+
+ 
+DYzII = oo16pi2*( betaYzII1 + oo16pi2 * betaYzII2 ) 
+
+ 
+Else 
+DYzII = oo16pi2* betaYzII1 
+End If 
+ 
+ 
+!-------------------- 
+! L1II 
+!-------------------- 
+ 
+betaL1II1  = (-9*g1p2*L1II)/5._dp - 7*g2p2*L1II + 6*L1II*TrYdadjYd + 2*L1II*TrYeadjYe +& 
+&  L1II*TrYtIICYtII + 7*L1IIp2*Conjg(L1II)
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betaL1II2 = -(L1II*(-261._dp*(g1p4) - 114*g1p2*g2p2 - 765._dp*(g2p4) + 300*CL1IIp2*L1IIp2 +       & 
+&  8*(g1p2 - 40._dp*(g3p2))*TrYdadjYd + 180._dp*(TrYdadjYdYdadjYd) + 240._dp*(TrYdadjYdYsIICYsII) +& 
+&  120._dp*(TrYdadjYdYzIIadjYzII) + 60._dp*(TrYdadjYuYuadjYd) - 24*g1p2*TrYeadjYe +      & 
+&  60._dp*(TrYeadjYeYeadjYe) + 60._dp*(TrYeadjYzIIYzIIadjYe) + 80._dp*(TrYeCYtIIYtIIadjYe) +& 
+&  60._dp*(TrYtIIadjYzIIYzIICYtII) + 6*g1p2*TrYtIICYtII + 10*g2p2*TrYtIICYtII +          & 
+&  2*AbsL1II*(-33._dp*(g1p2) - 115._dp*(g2p2) + 120._dp*(TrYdadjYd) + 40._dp*(TrYeadjYe) +& 
+&  30._dp*(TrYtIICYtII)) + 60._dp*(TrYtIICYtIIYtIICYtII)))/10._dp
+
+ 
+DL1II = oo16pi2*( betaL1II1 + oo16pi2 * betaL1II2 ) 
+
+ 
+Else 
+DL1II = oo16pi2* betaL1II1 
+End If 
+ 
+ 
+!-------------------- 
+! L2II 
+!-------------------- 
+ 
+betaL2II1  = (-9*g1p2*L2II)/5._dp - 7*g2p2*L2II + 6*L2II*TrYuadjYu + 7*L2IIp2*Conjg(L2II)
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betaL2II2 = -(L2II*(300*CL2IIp2*L2IIp2 - 2*AbsL2II*(33._dp*(g1p2) + 115._dp*(g2p2) -              & 
+&  120._dp*(TrYuadjYu)) - 16*(g1p2 + 20._dp*(g3p2))*TrYuadjYu - 3*(87._dp*(g1p4) +       & 
+&  38*g1p2*g2p2 + 255._dp*(g2p4) - 20._dp*(TrYdadjYuYuadjYd) - 60._dp*(TrYuadjYuYuadjYu))))/10._dp
+
+ 
+DL2II = oo16pi2*( betaL2II1 + oo16pi2 * betaL2II2 ) 
+
+ 
+Else 
+DL2II = oo16pi2* betaL2II1 
+End If 
+ 
+ 
+!-------------------- 
+! Mu 
+!-------------------- 
+ 
+betaMu1  = 3*AbsL1II*Mu + 3*AbsL2II*Mu - (3*g1p2*Mu)/5._dp - 3*g2p2*Mu +              & 
+&  3*TrYdadjYd*Mu + TrYeadjYe*Mu + 3*TrYuadjYu*Mu
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betaMu2 = ((417._dp*(g1p4) + 90*g1p2*g2p2 + 1425._dp*(g2p4) - 600*CL1IIp2*L1IIp2 -              & 
+&  600*CL2IIp2*L2IIp2 - 20*g1p2*TrYdadjYd + 800*g3p2*TrYdadjYd - 450._dp*(TrYdadjYdYdadjYd) -& 
+&  600._dp*(TrYdadjYdYsIICYsII) - 300._dp*(TrYdadjYdYzIIadjYzII) - 300._dp*(TrYdadjYuYuadjYd) +& 
+&  60*g1p2*TrYeadjYe - 150._dp*(TrYeadjYeYeadjYe) - 150._dp*(TrYeadjYzIIYzIIadjYe) -     & 
+&  150._dp*(TrYeCYtIIYtIIadjYe) + 30*AbsL1II*(6._dp*(g1p2) + 20._dp*(g2p2) -             & 
+&  15._dp*(TrYdadjYd) - 5._dp*(TrYeadjYe) - 5._dp*(TrYtIICYtII)) + 30*AbsL2II*(6._dp*(g1p2) +& 
+&  20._dp*(g2p2) - 15._dp*(TrYuadjYu)) + 40*g1p2*TrYuadjYu + 800*g3p2*TrYuadjYu -        & 
+&  450._dp*(TrYuadjYuYuadjYu))*Mu)/50._dp
+
+ 
+DMu = oo16pi2*( betaMu1 + oo16pi2 * betaMu2 ) 
+
+ 
+Else 
+DMu = oo16pi2* betaMu1 
+End If 
+ 
+ 
+!-------------------- 
+! MTII 
+!-------------------- 
+ 
+betaMTII1  = AbsL1II*MTII + AbsL2II*MTII - (12*g1p2*MTII)/5._dp - 8*g2p2*MTII +       & 
+&  MTII*TrYtIICYtII
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betaMTII2 = (MTII*(888._dp*(g1p4) + 480*g1p2*g2p2 + 2400._dp*(g2p4) - 150*CL1IIp2*L1IIp2 -        & 
+&  150*CL2IIp2*L2IIp2 - 5*AbsL1II*(3._dp*(g1p2) + 5._dp*(g2p2) + 30._dp*(TrYdadjYd) +    & 
+&  10._dp*(TrYeadjYe)) - 50._dp*(TrYeCYtIIYtIIadjYe) - 150._dp*(TrYtIIadjYzIIYzIICYtII) -& 
+&  15*g1p2*TrYtIICYtII - 25*g2p2*TrYtIICYtII - 150._dp*(TrYtIICYtIIYtIICYtII) -          & 
+&  5*AbsL2II*(3._dp*(g1p2) + 5._dp*(g2p2) + 30._dp*(TrYuadjYu))))/25._dp
+
+ 
+DMTII = oo16pi2*( betaMTII1 + oo16pi2 * betaMTII2 ) 
+
+ 
+Else 
+DMTII = oo16pi2* betaMTII1 
+End If 
+ 
+ 
+!-------------------- 
+! MZII 
+!-------------------- 
+ 
+betaMZII1  = -(MZII*(g1p2 + 45._dp*(g2p2) + 80._dp*(g3p2) - 15._dp*(TrYzIIadjYzII)))/15._dp
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betaMZII2 = (409*g1p4*MZII)/450._dp + (g1p2*g2p2*MZII)/5._dp + (57*g2p4*MZII)/2._dp +             & 
+&  (16*g1p2*g3p2*MZII)/45._dp + 16*g2p2*g3p2*MZII + (320*g3p4*MZII)/9._dp -              & 
+&  2*MZII*TrYdadjYdYzIIadjYzII - MZII*TrYeadjYzIIYzIIadjYe - 4*MZII*TrYsIICYsIIYzIIadjYzII -& 
+&  3*MZII*TrYtIIadjYzIIYzIICYtII + (2*g1p2*MZII*TrYzIIadjYzII)/5._dp - 5*MZII*TrYzIIadjYzIIYzIIadjYzII
+
+ 
+DMZII = oo16pi2*( betaMZII1 + oo16pi2 * betaMZII2 ) 
+
+ 
+Else 
+DMZII = oo16pi2* betaMZII1 
+End If 
+ 
+ 
+!-------------------- 
+! MSII 
+!-------------------- 
+ 
+betaMSII1  = (-8*(2._dp*(g1p2) + 25._dp*(g3p2))*MSII)/15._dp + MSII*TrYsIICYsII
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betaMSII2 = (4*MSII*(848._dp*(g1p4) + 800*g1p2*g3p2 + 8000._dp*(g3p4) - 225._dp*(TrYdadjYdYsIICYsII) -& 
+&  15*(g1p2 + 5._dp*(g3p2))*TrYsIICYsII - 450._dp*(TrYsIICYsIIYsIICYsII) -               & 
+&  225._dp*(TrYsIICYsIIYzIIadjYzII)))/225._dp
+
+ 
+DMSII = oo16pi2*( betaMSII1 + oo16pi2 * betaMSII2 ) 
+
+ 
+Else 
+DMSII = oo16pi2* betaMSII1 
+End If 
+ 
+ 
+!-------------------- 
+! Tu 
+!-------------------- 
+ 
+betaTu1  = TuadjYdYd + 5._dp*(TuadjYuYu) + 2._dp*(YuadjYdTd) + 4._dp*(YuadjYuTu)      & 
+&  + Yu*((26*g1p2*M1)/15._dp + (32*g3p2*M3)/3._dp + 6*g2p2*M2 + 6._dp*(TradjYuTu)        & 
+&  + 6*Conjg(L2II)*TL2II) + 3*AbsL2II*Tu - (13*g1p2*Tu)/15._dp - 3*g2p2*Tu -             & 
+&  (16*g3p2*Tu)/3._dp + 3*TrYuadjYu*Tu
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betaTu2 = -3*AbsL1II*TuadjYdYd + (2*g1p2*TuadjYdYd)/5._dp - 3*TrYdadjYd*TuadjYdYd -             & 
+&  TrYeadjYe*TuadjYdYd - 2._dp*(TuadjYdYdadjYdYd) - 4._dp*(TuadjYdYdadjYuYu) -           & 
+&  4._dp*(TuadjYdYsIICYsIIYd) - 2._dp*(TuadjYdYzIIadjYzIIYd) - 15*AbsL2II*TuadjYuYu +    & 
+&  12*g2p2*TuadjYuYu - 15*TrYuadjYu*TuadjYuYu - 6._dp*(TuadjYuYuadjYuYu) -               & 
+&  6*AbsL1II*YuadjYdTd + (4*g1p2*YuadjYdTd)/5._dp - 6*TrYdadjYd*YuadjYdTd -              & 
+&  2*TrYeadjYe*YuadjYdTd - 4._dp*(YuadjYdTdadjYdYd) - 4._dp*(YuadjYdTdadjYuYu) -         & 
+&  8._dp*(YuadjYdTsIICYsIIYd) - 4._dp*(YuadjYdTzIIadjYzIIYd) - 4._dp*(YuadjYdYdadjYdTd) -& 
+&  2._dp*(YuadjYdYdadjYuTu) - 8._dp*(YuadjYdYsIICYsIITd) - 4._dp*(YuadjYdYzIIadjYzIITd) -& 
+&  12*AbsL2II*YuadjYuTu + (6*g1p2*YuadjYuTu)/5._dp + 6*g2p2*YuadjYuTu - 12*TrYuadjYu*YuadjYuTu -& 
+&  8._dp*(YuadjYuTuadjYuYu) - (4*g1p2*M1*YuadjYuYu)/5._dp - 12*g2p2*M2*YuadjYuYu -       & 
+&  18*TradjYuTu*YuadjYuYu - 6._dp*(YuadjYuYuadjYuTu) - (2*YuadjYdYd*(2*g1p2*M1 +         & 
+&  15._dp*(TradjYdTd) + 5._dp*(TradjYeTe) + 15*Conjg(L1II)*TL1II))/5._dp -               & 
+&  18*YuadjYuYu*Conjg(L2II)*TL2II - (2*Yu*(5473*g1p4*M1 + 225*g1p2*g2p2*M1 +             & 
+&  680*g1p2*g3p2*M1 + 680*g1p2*g3p2*M3 + 1800*g2p2*g3p2*M3 + 16000*g3p4*M3 +             & 
+&  225*g1p2*g2p2*M2 + 12825*g2p4*M2 + 1800*g2p2*g3p2*M2 - 180*g1p2*TradjYuTu -           & 
+&  3600*g3p2*TradjYuTu + 675._dp*(TrYdadjYuTuadjYd) + 675._dp*(TrYuadjYdTdadjYu) +       & 
+&  180*(g1p2*M1 + 20*g3p2*M3)*TrYuadjYu + 4050._dp*(TrYuadjYuTuadjYu) + 5400*CL2IIp2*L2II*TL2II +& 
+&  135*Conjg(L2II)*(L2II*(6*g1p2*M1 + 20*g2p2*M2 + 15._dp*(TradjYuTu)) + (-              & 
+& 6._dp*(g1p2) - 20._dp*(g2p2) + 15._dp*(TrYuadjYu))*TL2II)))/225._dp + (18*AbsL2II*g1p2*Tu)/5._dp +& 
+&  (5473*g1p4*Tu)/450._dp + 12*AbsL2II*g2p2*Tu + g1p2*g2p2*Tu + (57*g2p4*Tu)/2._dp +     & 
+&  (136*g1p2*g3p2*Tu)/45._dp + 8*g2p2*g3p2*Tu + (320*g3p4*Tu)/9._dp - 12*CL2IIp2*L2IIp2*Tu  
+betaTu2 =  betaTu2- 3*TrYdadjYuYuadjYd*Tu - 9*AbsL2II*TrYuadjYu*Tu + (4*g1p2*TrYuadjYu*Tu)/5._dp +        & 
+&  16*g3p2*TrYuadjYu*Tu - 9*TrYuadjYuYuadjYu*Tu
+
+ 
+DTu = oo16pi2*( betaTu1 + oo16pi2 * betaTu2 ) 
+
+ 
+Else 
+DTu = oo16pi2* betaTu1 
+End If 
+ 
+ 
+!-------------------- 
+! Td 
+!-------------------- 
+ 
+betaTd1  = 5._dp*(TdadjYdYd) + TdadjYuYu + 8._dp*(TsIICYsIIYd) + 4._dp*(TzIIadjYzIIYd)& 
+&  + 4._dp*(YdadjYdTd) + 2._dp*(YdadjYuTu) + 4._dp*(YsIICYsIITd) + 2._dp*(YzIIadjYzIITd) & 
+&  + Yd*((14*g1p2*M1)/15._dp + (32*g3p2*M3)/3._dp + 6*g2p2*M2 + 6._dp*(TradjYdTd)        & 
+&  + 2._dp*(TradjYeTe) + 6*Conjg(L1II)*TL1II) + 3*AbsL1II*Td - (7*g1p2*Td)               & 
+& /15._dp - 3*g2p2*Td - (16*g3p2*Td)/3._dp + 3*TrYdadjYd*Td + TrYeadjYe*Td
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betaTd2 = -15*AbsL1II*TdadjYdYd + (6*g1p2*TdadjYdYd)/5._dp + 12*g2p2*TdadjYdYd - 6._dp*(TdadjYdYdadjYdYd) -& 
+&  4._dp*(TdadjYdYsIICYsIIYd) - 2._dp*(TdadjYdYzIIadjYzIIYd) - 3*AbsL2II*TdadjYuYu +     & 
+&  (4*g1p2*TdadjYuYu)/5._dp - 4._dp*(TdadjYuYuadjYdYd) - 2._dp*(TdadjYuYuadjYuYu) -      & 
+&  15*TdadjYdYd*TrYdadjYd - 5*TdadjYdYd*TrYeadjYe - 3*TdadjYuYu*TrYuadjYu -              & 
+&  16._dp*(TsIICYdTpYdCYsIIYd) + (64*g1p2*TsIICYsIIYd)/15._dp + (160*g3p2*TsIICYsIIYd)/3._dp -& 
+&  8*TrYsIICYsII*TsIICYsIIYd - 32._dp*(TsIICYsIIYsIICYsIIYd) - 16._dp*(TsIICYzIITpYzIICYsIIYd) -& 
+&  4._dp*(TzIIadjYeYeadjYzIIYd) + (4*g1p2*TzIIadjYzIIYd)/5._dp + 12*g2p2*TzIIadjYzIIYd - & 
+&  4*TrYzIIadjYzII*TzIIadjYzIIYd - 12._dp*(TzIIadjYzIIYzIIadjYzIIYd) - 12._dp*(TzIICYtIIYtIIadjYzIIYd) -& 
+&  12*AbsL1II*YdadjYdTd + (6*g1p2*YdadjYdTd)/5._dp + 6*g2p2*YdadjYdTd - 12*TrYdadjYd*YdadjYdTd -& 
+&  4*TrYeadjYe*YdadjYdTd - 8._dp*(YdadjYdTdadjYdYd) - 8._dp*(YdadjYdTsIICYsIIYd) -       & 
+&  4._dp*(YdadjYdTzIIadjYzIIYd) - 6._dp*(YdadjYdYdadjYdTd) - 8._dp*(YdadjYdYsIICYsIITd) -& 
+&  4._dp*(YdadjYdYzIIadjYzIITd) - 6*AbsL2II*YdadjYuTu + (8*g1p2*YdadjYuTu)/5._dp -       & 
+&  6*TrYuadjYu*YdadjYuTu - 4._dp*(YdadjYuTuadjYdYd) - 4._dp*(YdadjYuTuadjYuYu) -         & 
+&  (8*g1p2*M1*YdadjYuYu)/5._dp - 6*TradjYuTu*YdadjYuYu - 2._dp*(YdadjYuYuadjYdTd) -      & 
+&  4._dp*(YdadjYuYuadjYuTu) - 12._dp*(YsIICYdTpTdCYsIIYd) - 8._dp*(YsIICYdTpYdCYsIITd) + & 
+&  (32*g1p2*YsIICYsIITd)/15._dp + (80*g3p2*YsIICYsIITd)/3._dp - 4*TrYsIICYsII*YsIICYsIITd -& 
+&  32._dp*(YsIICYsIITsIICYsIIYd) - (64*g1p2*M1*YsIICYsIIYd)/15._dp - (160*g3p2*M3*YsIICYsIIYd)/3._dp -& 
+&  8*TrCYsIITsII*YsIICYsIIYd - 16._dp*(YsIICYsIIYsIICYsIITd) - 12._dp*(YsIICYzIITpTzIICYsIIYd) -& 
+&  8._dp*(YsIICYzIITpYzIICYsIITd) - 4._dp*(YsIITdadjYdCYsIIYd) - 4._dp*(YsIITzIIadjYzIICYsIIYd) -& 
+&  4._dp*(YzIIadjYeTeadjYzIIYd) - 2._dp*(YzIIadjYeYeadjYzIITd) + (2*g1p2*YzIIadjYzIITd)/5._dp +& 
+&  6*g2p2*YzIIadjYzIITd - 2*TrYzIIadjYzII*YzIIadjYzIITd - 12._dp*(YzIIadjYzIITzIIadjYzIIYd)  
+betaTd2 =  betaTd2- (4*g1p2*M1*YzIIadjYzIIYd)/5._dp - 12*g2p2*M2*YzIIadjYzIIYd - 4*TradjYzIITzII*YzIIadjYzIIYd -& 
+&  6._dp*(YzIIadjYzIIYzIIadjYzIITd) - 12._dp*(YzIICYtIITtIIadjYzIIYd) - 6._dp*(YzIICYtIIYtIIadjYzIITd) -& 
+&  (2*YdadjYdYd*(4*g1p2*M1 + 30*g2p2*M2 + 45._dp*(TradjYdTd) + 15._dp*(TradjYeTe) +      & 
+&  45*Conjg(L1II)*TL1II))/5._dp - (2*Yd*(581*g1p4*M1 + 45*g1p2*g2p2*M1 + 40*g1p2*g3p2*M1 +& 
+&  40*g1p2*g3p2*M3 + 360*g2p2*g3p2*M3 + 3200*g3p4*M3 + 45*g1p2*g2p2*M2 + 2565*g2p4*M2 +  & 
+&  360*g2p2*g3p2*M2 + 18*g1p2*TradjYdTd - 720*g3p2*TradjYdTd - 54*g1p2*TradjYeTe -       & 
+&  18*(g1p2*M1 - 40*g3p2*M3)*TrYdadjYd + 810._dp*(TrYdadjYdTdadjYd) + 540._dp*(TrYdadjYdTsIICYsII) +& 
+&  270._dp*(TrYdadjYdTzIIadjYzII) + 135._dp*(TrYdadjYuTuadjYd) + 54*g1p2*M1*TrYeadjYe +  & 
+&  270._dp*(TrYeadjYeTeadjYe) + 135._dp*(TrYeadjYzIITzIIadjYe) + 135._dp*(TrYeCYtIITtIIadjYe) +& 
+&  540._dp*(TrYsIICYsIITdadjYd) + 135._dp*(TrYtIIadjYeTeCYtII) + 135._dp*(TrYuadjYdTdadjYu) +& 
+&  135._dp*(TrYzIIadjYeTeadjYzII) + 270._dp*(TrYzIIadjYzIITdadjYd) + 1080*CL1IIp2*L1II*TL1II +& 
+&  27*Conjg(L1II)*(L1II*(6*g1p2*M1 + 20*g2p2*M2 + 15._dp*(TradjYdTd) + 5._dp*(TradjYeTe) +& 
+&  5._dp*(TrCYtIITtII)) + (-6._dp*(g1p2) - 20._dp*(g2p2) + 15._dp*(TrYdadjYd) +          & 
+&  5._dp*(TrYeadjYe) + 5._dp*(TrYtIICYtII))*TL1II)))/45._dp - 6*YdadjYuYu*Conjg(L2II)*TL2II +& 
+&  (18*AbsL1II*g1p2*Td)/5._dp + (581*g1p4*Td)/90._dp + 12*AbsL1II*g2p2*Td +              & 
+&  g1p2*g2p2*Td + (57*g2p4*Td)/2._dp + (8*g1p2*g3p2*Td)/9._dp + 8*g2p2*g3p2*Td +         & 
+&  (320*g3p4*Td)/9._dp - 12*CL1IIp2*L1IIp2*Td - 9*AbsL1II*TrYdadjYd*Td - (2*g1p2*TrYdadjYd*Td)/5._dp +& 
+&  16*g3p2*TrYdadjYd*Td - 9*TrYdadjYdYdadjYd*Td - 12*TrYdadjYdYsIICYsII*Td -             & 
+&  6*TrYdadjYdYzIIadjYzII*Td - 3*TrYdadjYuYuadjYd*Td - 3*AbsL1II*TrYeadjYe*Td +          & 
+&  (6*g1p2*TrYeadjYe*Td)/5._dp - 3*TrYeadjYeYeadjYe*Td - 3*TrYeadjYzIIYzIIadjYe*Td -     & 
+&  3*TrYeCYtIIYtIIadjYe*Td - 3*AbsL1II*TrYtIICYtII*Td
+
+ 
+DTd = oo16pi2*( betaTd1 + oo16pi2 * betaTd2 ) 
+
+ 
+Else 
+DTd = oo16pi2* betaTd1 
+End If 
+ 
+ 
+!-------------------- 
+! Te 
+!-------------------- 
+ 
+betaTe1  = 5._dp*(TeadjYeYe) + 3._dp*(TeadjYzIIYzII) + 3._dp*(TeCYtIIYtII)            & 
+&  + 4._dp*(YeadjYeTe) + 6._dp*(YeadjYzIITzII) + 6._dp*(YeCYtIITtII) + Ye*((18*g1p2*M1)  & 
+& /5._dp + 6*g2p2*M2 + 6._dp*(TradjYdTd) + 2._dp*(TradjYeTe) + 6*Conjg(L1II)             & 
+& *TL1II) + 3*AbsL1II*Te - (9*g1p2*Te)/5._dp - 3*g2p2*Te + 3*TrYdadjYd*Te +              & 
+&  TrYeadjYe*Te
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betaTe2 = (-150*AbsL1II*TeadjYeYe - 12*g1p2*TeadjYeYe + 120*g2p2*TeadjYeYe - 60._dp*(TeadjYeYeadjYeYe) -& 
+&  60._dp*(TeadjYzIIYdadjYdYzII) - 120._dp*(TeadjYzIIYsIICYsIIYzII) - 4*g1p2*TeadjYzIIYzII +& 
+&  160*g3p2*TeadjYzIIYzII - 120._dp*(TeadjYzIIYzIIadjYeYe) - 60._dp*(TeadjYzIIYzIIadjYzIIYzII) -& 
+&  30._dp*(TeCYtIITpYeCYeYtII) - 90._dp*(TeCYtIITpYzIICYzIIYtII) - 30*AbsL1II*TeCYtIIYtII +& 
+&  36*g1p2*TeCYtIIYtII + 120*g2p2*TeCYtIIYtII - 120._dp*(TeCYtIIYtIIadjYeYe) -           & 
+&  90._dp*(TeCYtIIYtIICYtIIYtII) - 150*TeadjYeYe*TrYdadjYd - 50*TeadjYeYe*TrYeadjYe -    & 
+&  30*TeCYtIIYtII*TrYtIICYtII - 30*TeadjYzIIYzII*TrYzIIadjYzII - 120*AbsL1II*YeadjYeTe + & 
+&  12*g1p2*YeadjYeTe + 60*g2p2*YeadjYeTe - 120*TrYdadjYd*YeadjYeTe - 40*TrYeadjYe*YeadjYeTe -& 
+&  80._dp*(YeadjYeTeadjYeYe) - 60._dp*(YeadjYeYeadjYeTe) - 120._dp*(YeadjYzIITdadjYdYzII) -& 
+&  240._dp*(YeadjYzIITsIICYsIIYzII) - 8*g1p2*YeadjYzIITzII + 320*g3p2*YeadjYzIITzII -    & 
+&  60*TrYzIIadjYzII*YeadjYzIITzII - 120._dp*(YeadjYzIITzIIadjYeYe) - 120._dp*(YeadjYzIITzIIadjYzIIYzII) -& 
+&  120._dp*(YeadjYzIIYdadjYdTzII) - 240._dp*(YeadjYzIIYsIICYsIITzII) + 8*g1p2*M1*YeadjYzIIYzII -& 
+&  320*g3p2*M3*YeadjYzIIYzII - 60*TradjYzIITzII*YeadjYzIIYzII - 60._dp*(YeadjYzIIYzIIadjYeTe) -& 
+&  120._dp*(YeadjYzIIYzIIadjYzIITzII) - 60._dp*(YeCYtIITpTeCYeYtII) - 180._dp*(YeCYtIITpTzIICYzIIYtII) -& 
+&  60._dp*(YeCYtIITpYeCYeTtII) - 180._dp*(YeCYtIITpYzIICYzIITtII) - 60*AbsL1II*YeCYtIITtII +& 
+&  72*g1p2*YeCYtIITtII + 240*g2p2*YeCYtIITtII - 60*TrYtIICYtII*YeCYtIITtII -             & 
+&  120._dp*(YeCYtIITtIIadjYeYe) - 180._dp*(YeCYtIITtIICYtIIYtII) - 72*g1p2*M1*YeCYtIIYtII -& 
+&  240*g2p2*M2*YeCYtIIYtII - 60*TrCYtIITtII*YeCYtIIYtII - 60._dp*(YeCYtIIYtIIadjYeTe) -  & 
+&  180._dp*(YeCYtIIYtIICYtIITtII) - 60*YeCYtIIYtII*Conjg(L1II)*TL1II - 60*YeadjYeYe*(2*g2p2*M2 +& 
+&  3._dp*(TradjYdTd) + TradjYeTe + 3*Conjg(L1II)*TL1II) - 4*Ye*(261*g1p4*M1 +            & 
+&  9*g1p2*g2p2*M1 + 9*g1p2*g2p2*M2 + 285*g2p4*M2 + 2*g1p2*TradjYdTd - 80*g3p2*TradjYdTd -& 
+&  6*g1p2*TradjYeTe + (-2*g1p2*M1 + 80*g3p2*M3)*TrYdadjYd + 90._dp*(TrYdadjYdTdadjYd) +  & 
+&  60._dp*(TrYdadjYdTsIICYsII) + 30._dp*(TrYdadjYdTzIIadjYzII) + 15._dp*(TrYdadjYuTuadjYd) +& 
+&  6*g1p2*M1*TrYeadjYe + 30._dp*(TrYeadjYeTeadjYe) + 15._dp*(TrYeadjYzIITzIIadjYe) +     & 
+&  15._dp*(TrYeCYtIITtIIadjYe) + 60._dp*(TrYsIICYsIITdadjYd) + 15._dp*(TrYtIIadjYeTeCYtII) +& 
+&  15._dp*(TrYuadjYdTdadjYu) + 15._dp*(TrYzIIadjYeTeadjYzII) + 30._dp*(TrYzIIadjYzIITdadjYd) +& 
+&  120*CL1IIp2*L1II*TL1II + 3*Conjg(L1II)*(L1II*(6*g1p2*M1 + 20*g2p2*M2 + 15._dp*(TradjYdTd) +& 
+&  5._dp*(TradjYeTe) + 5._dp*(TrCYtIITtII)) + (-6._dp*(g1p2) - 20._dp*(g2p2) +           & 
+&  15._dp*(TrYdadjYd) + 5._dp*(TrYeadjYe) + 5._dp*(TrYtIICYtII))*TL1II)) +               & 
+&  36*AbsL1II*g1p2*Te + 261*g1p4*Te + 120*AbsL1II*g2p2*Te + 18*g1p2*g2p2*Te +            & 
+&  285*g2p4*Te - 120*CL1IIp2*L1IIp2*Te - 90*AbsL1II*TrYdadjYd*Te - 4*g1p2*TrYdadjYd*Te + & 
+&  160*g3p2*TrYdadjYd*Te - 90*TrYdadjYdYdadjYd*Te - 120*TrYdadjYdYsIICYsII*Te -          & 
+&  60*TrYdadjYdYzIIadjYzII*Te - 30*TrYdadjYuYuadjYd*Te - 30*AbsL1II*TrYeadjYe*Te +       & 
+&  12*g1p2*TrYeadjYe*Te - 30*TrYeadjYeYeadjYe*Te - 30*TrYeadjYzIIYzIIadjYe*Te -          & 
+&  30*TrYeCYtIIYtIIadjYe*Te - 30*AbsL1II*TrYtIICYtII*Te)/10._dp
+
+ 
+DTe = oo16pi2*( betaTe1 + oo16pi2 * betaTe2 ) 
+
+ 
+Else 
+DTe = oo16pi2* betaTe1 
+End If 
+ 
+ 
+!-------------------- 
+! TtII 
+!-------------------- 
+ 
+betaTtII1  = 2._dp*(TpTeCYeYtII) + 6._dp*(TpTzIICYzIIYtII) + TpYeCYeTtII +            & 
+&  3._dp*(TpYzIICYzIITtII) + TtIIadjYeYe + 3._dp*(TtIIadjYzIIYzII) + 9._dp*(TtIICYtIIYtII)& 
+&  + 2._dp*(YtIIadjYeTe) + 6._dp*(YtIIadjYzIITzII) + 9._dp*(YtIICYtIITtII)               & 
+&  + (2*YtII*(9*g1p2*M1 + 35*g2p2*M2 + 5._dp*(TrCYtIITtII) + 5*Conjg(L1II)               & 
+& *TL1II))/5._dp + AbsL1II*TtII - (9*g1p2*TtII)/5._dp - 7*g2p2*TtII + TrYtIICYtII*TtII
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betaTtII2 = (-40._dp*(TpTeCYeTpYeCYeYtII) - 60*AbsL1II*TpTeCYeYtII + 24*g1p2*TpTeCYeYtII -        & 
+&  120._dp*(TpTzIICYdTpYdCYzIIYtII) - 240._dp*(TpTzIICYsIIYsIICYzIIYtII) -               & 
+&  120._dp*(TpTzIICYzIITpYzIICYzIIYtII) - 8*g1p2*TpTzIICYzIIYtII + 320*g3p2*TpTzIICYzIIYtII -& 
+&  40._dp*(TpYeCYeTpTeCYeYtII) - 20._dp*(TpYeCYeTpYeCYeTtII) - 30*AbsL1II*TpYeCYeTtII +  & 
+&  12*g1p2*TpYeCYeTtII - 24*g1p2*M1*TpYeCYeYtII - 120._dp*(TpYzIICYdTpTdCYzIIYtII) -     & 
+&  60._dp*(TpYzIICYdTpYdCYzIITtII) - 240._dp*(TpYzIICYsIITsIICYzIIYtII) - 120._dp*(TpYzIICYsIIYsIICYzIITtII) -& 
+&  120._dp*(TpYzIICYzIITpTzIICYzIIYtII) - 60._dp*(TpYzIICYzIITpYzIICYzIITtII) -          & 
+&  4*g1p2*TpYzIICYzIITtII + 160*g3p2*TpYzIICYzIITtII + 8*g1p2*M1*TpYzIICYzIIYtII -       & 
+&  320*g3p2*M3*TpYzIICYzIIYtII - 60*TpYeCYeYtII*TradjYdTd - 20*TpYeCYeYtII*TradjYeTe -   & 
+&  60*TpYzIICYzIIYtII*TradjYzIITzII - 60*TpTeCYeYtII*TrYdadjYd - 30*TpYeCYeTtII*TrYdadjYd -& 
+&  20*TpTeCYeYtII*TrYeadjYe - 10*TpYeCYeTtII*TrYeadjYe - 60*TpTzIICYzIIYtII*TrYzIIadjYzII -& 
+&  30*TpYzIICYzIITtII*TrYzIIadjYzII - 30*AbsL1II*TtIIadjYeYe + 12*g1p2*TtIIadjYeYe -     & 
+&  30*TrYdadjYd*TtIIadjYeYe - 10*TrYeadjYe*TtIIadjYeYe - 20._dp*(TtIIadjYeYeadjYeYe) -   & 
+&  60._dp*(TtIIadjYeYeCYtIIYtII) - 60._dp*(TtIIadjYzIIYdadjYdYzII) - 120._dp*(TtIIadjYzIIYsIICYsIIYzII) -& 
+&  4*g1p2*TtIIadjYzIIYzII + 160*g3p2*TtIIadjYzIIYzII - 30*TrYzIIadjYzII*TtIIadjYzIIYzII -& 
+&  60._dp*(TtIIadjYzIIYzIIadjYzIIYzII) - 180._dp*(TtIIadjYzIIYzIICYtIIYtII) -            & 
+&  30._dp*(TtIICYtIITpYeCYeYtII) - 90._dp*(TtIICYtIITpYzIICYzIIYtII) - 90*AbsL1II*TtIICYtIIYtII +& 
+&  108*g1p2*TtIICYtIIYtII + 360*g2p2*TtIICYtIIYtII - 90*TrYtIICYtII*TtIICYtIIYtII -      & 
+&  270._dp*(TtIICYtIIYtIICYtIIYtII) - 60*AbsL1II*YtIIadjYeTe + 24*g1p2*YtIIadjYeTe -     & 
+&  60*TrYdadjYd*YtIIadjYeTe - 20*TrYeadjYe*YtIIadjYeTe - 40._dp*(YtIIadjYeTeadjYeYe) -   & 
+&  60._dp*(YtIIadjYeTeCYtIIYtII) - 40._dp*(YtIIadjYeYeadjYeTe) - 30._dp*(YtIIadjYeYeCYtIITtII) -& 
+&  120._dp*(YtIIadjYzIITdadjYdYzII) - 240._dp*(YtIIadjYzIITsIICYsIIYzII) -               & 
+&  8*g1p2*YtIIadjYzIITzII + 320*g3p2*YtIIadjYzIITzII - 60*TrYzIIadjYzII*YtIIadjYzIITzII -& 
+&  120._dp*(YtIIadjYzIITzIIadjYzIIYzII) - 180._dp*(YtIIadjYzIITzIICYtIIYtII) -           & 
+&  120._dp*(YtIIadjYzIIYdadjYdTzII) - 240._dp*(YtIIadjYzIIYsIICYsIITzII) +               & 
+&  8*g1p2*M1*YtIIadjYzIIYzII - 320*g3p2*M3*YtIIadjYzIIYzII - 60*TradjYzIITzII*YtIIadjYzIIYzII -& 
+&  120._dp*(YtIIadjYzIIYzIIadjYzIITzII) - 90._dp*(YtIIadjYzIIYzIICYtIITtII) -            & 
+&  60._dp*(YtIICYtIITpTeCYeYtII) - 180._dp*(YtIICYtIITpTzIICYzIIYtII) - 60._dp*(YtIICYtIITpYeCYeTtII) -& 
+&  180._dp*(YtIICYtIITpYzIICYzIITtII) - 90*AbsL1II*YtIICYtIITtII + 108*g1p2*YtIICYtIITtII +& 
+&  360*g2p2*YtIICYtIITtII - 90*TrYtIICYtII*YtIICYtIITtII - 360._dp*(YtIICYtIITtIICYtIIYtII) -& 
+&  144*g1p2*M1*YtIICYtIIYtII - 480*g2p2*M2*YtIICYtIIYtII - 120*TrCYtIITtII*YtIICYtIIYtII -& 
+&  270._dp*(YtIICYtIIYtIICYtIITtII) - 60*TpYeCYeYtII*Conjg(L1II)*TL1II - 120*YtIICYtIIYtII*Conjg(L1II)*TL1II -& 
+&  4*YtIIadjYeYe*(6*g1p2*M1 + 15._dp*(TradjYdTd) + 5._dp*(TradjYeTe) + 15*Conjg(L1II)*TL1II) -& 
+&  4*YtII*(261*g1p4*M1 + 57*g1p2*g2p2*M1 + 57*g1p2*g2p2*M2 + 765*g2p4*M2 +               & 
+&  3*g1p2*TrCYtIITtII + 5*g2p2*TrCYtIITtII + 10._dp*(TrYeCYtIITtIIadjYe) +               & 
+&  10._dp*(TrYtIIadjYeTeCYtII) + 30._dp*(TrYtIIadjYzIITzIICYtII) - (3*g1p2*M1 +          & 
+&  5*g2p2*M2)*TrYtIICYtII + 60._dp*(TrYtIICYtIITtIICYtII) + 30._dp*(TrYzIICYtIITtIIadjYzII) +& 
+&  60*CL1IIp2*L1II*TL1II + Conjg(L1II)*(L1II*(-3*g1p2*M1 - 5*g2p2*M2 + 30._dp*(TradjYdTd) +& 
+&  10._dp*(TradjYeTe)) + (3._dp*(g1p2) + 5._dp*(g2p2) + 30._dp*(TrYdadjYd) +             & 
+&  10._dp*(TrYeadjYe))*TL1II)) - 6*AbsL1II*g1p2*TtII + 261*g1p4*TtII - 10*AbsL1II*g2p2*TtII +& 
+&  114*g1p2*g2p2*TtII + 765*g2p4*TtII - 60*CL1IIp2*L1IIp2*TtII - 60*AbsL1II*TrYdadjYd*TtII -& 
+&  20*AbsL1II*TrYeadjYe*TtII - 20*TrYeCYtIIYtIIadjYe*TtII - 60*TrYtIIadjYzIIYzIICYtII*TtII -& 
+&  6*g1p2*TrYtIICYtII*TtII - 10*g2p2*TrYtIICYtII*TtII - 60*TrYtIICYtIIYtIICYtII*TtII)/10._dp
+
+ 
+DTtII = oo16pi2*( betaTtII1 + oo16pi2 * betaTtII2 ) 
+
+ 
+Else 
+DTtII = oo16pi2* betaTtII1 
+End If 
+ 
+ 
+!-------------------- 
+! TsII 
+!-------------------- 
+ 
+betaTsII1  = 4._dp*(TdadjYdYsII) + 2._dp*(TsIICYdTpYd) + 12._dp*(TsIICYsIIYsII)       & 
+&  + 2._dp*(TsIICYzIITpYzII) + 4._dp*(TzIIadjYzIIYsII) + 2._dp*(YdadjYdTsII)             & 
+&  + ((8*g1p2*M1)/5._dp + 24*g3p2*M3 + 2._dp*(TrCYsIITsII))*YsII + 4._dp*(YsIICYdTpTd)   & 
+&  + 12._dp*(YsIICYsIITsII) + 4._dp*(YsIICYzIITpTzII) + 2._dp*(YzIIadjYzIITsII)          & 
+&  - (4*g1p2*TsII)/5._dp - 12*g3p2*TsII + TrYsIICYsII*TsII
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betaTsII2 = (-2*(30._dp*(TdadjYdYdadjYdYsII) + 90*AbsL1II*TdadjYdYsII - 6*g1p2*TdadjYdYsII -      & 
+&  90*g2p2*TdadjYdYsII + 30._dp*(TdadjYuYuadjYdYsII) + 90*TdadjYdYsII*TrYdadjYd +        & 
+&  30*TdadjYdYsII*TrYeadjYe + 45*AbsL1II*TsIICYdTpYd - 3*g1p2*TsIICYdTpYd -              & 
+&  45*g2p2*TsIICYdTpYd + 45*TrYdadjYd*TsIICYdTpYd + 15*TrYeadjYe*TsIICYdTpYd +           & 
+&  15._dp*(TsIICYdTpYdCYdTpYd) + 120._dp*(TsIICYdTpYdCYsIIYsII) + 15._dp*(TsIICYdTpYuCYuTpYd) +& 
+&  60._dp*(TsIICYsIIYdadjYdYsII) - 48*g1p2*TsIICYsIIYsII - 600*g3p2*TsIICYsIIYsII +      & 
+&  90*TrYsIICYsII*TsIICYsIIYsII + 360._dp*(TsIICYsIIYsIICYsIIYsII) + 60._dp*(TsIICYsIIYzIIadjYzIIYsII) +& 
+&  15._dp*(TsIICYzIITpYeCYeTpYzII) - 3*g1p2*TsIICYzIITpYzII - 45*g2p2*TsIICYzIITpYzII +  & 
+&  15*TrYzIIadjYzII*TsIICYzIITpYzII + 120._dp*(TsIICYzIITpYzIICYsIIYsII) +               & 
+&  45._dp*(TsIICYzIITpYzIICYzIITpYzII) + 45._dp*(TsIICYzIIYtIICYtIITpYzII) +             & 
+&  30._dp*(TzIIadjYeYeadjYzIIYsII) - 6*g1p2*TzIIadjYzIIYsII - 90*g2p2*TzIIadjYzIIYsII +  & 
+&  30*TrYzIIadjYzII*TzIIadjYzIIYsII + 90._dp*(TzIIadjYzIIYzIIadjYzIIYsII) +              & 
+&  90._dp*(TzIICYtIIYtIIadjYzIIYsII) + 30._dp*(YdadjYdTdadjYdYsII) + 45*AbsL1II*YdadjYdTsII -& 
+&  3*g1p2*YdadjYdTsII - 45*g2p2*YdadjYdTsII + 45*TrYdadjYd*YdadjYdTsII + 15*TrYeadjYe*YdadjYdTsII +& 
+&  15._dp*(YdadjYdYdadjYdTsII) + 30._dp*(YdadjYuTuadjYdYsII) + 15._dp*(YdadjYuYuadjYdTsII) +& 
+&  4*(84*g1p4*M1 + 32*g1p2*g3p2*M1 + 32*g1p2*g3p2*M3 + 800*g3p4*M3 + (g1p2 +             & 
+&  5._dp*(g3p2))*TrCYsIITsII + 15._dp*(TrYdadjYdTsIICYsII) - (g1p2*M1 + 5*g3p2*M3)*TrYsIICYsII +& 
+&  15._dp*(TrYsIICYsIITdadjYd) + 60._dp*(TrYsIICYsIITsIICYsII) + 15._dp*(TrYsIICYsIITzIIadjYzII) +& 
+&  15._dp*(TrYzIIadjYzIITsIICYsII))*YsII + 90*AbsL1II*YsIICYdTpTd - 6*g1p2*YsIICYdTpTd - & 
+&  90*g2p2*YsIICYdTpTd + 90*TrYdadjYd*YsIICYdTpTd + 30*TrYeadjYe*YsIICYdTpTd +           & 
+&  30._dp*(YsIICYdTpTdCYdTpYd) + 120._dp*(YsIICYdTpTdCYsIIYsII) + 30._dp*(YsIICYdTpTuCYuTpYd) +& 
+&  6*g1p2*M1*YsIICYdTpYd + 90*g2p2*M2*YsIICYdTpYd + 90*TradjYdTd*YsIICYdTpYd +           & 
+&  30*TradjYeTe*YsIICYdTpYd + 30._dp*(YsIICYdTpYdCYdTpTd) + 60._dp*(YsIICYdTpYdCYsIITsII) +& 
+&  30._dp*(YsIICYdTpYuCYuTpTd) + 120._dp*(YsIICYsIITdadjYdYsII) - 48*g1p2*YsIICYsIITsII -& 
+&  600*g3p2*YsIICYsIITsII + 90*TrYsIICYsII*YsIICYsIITsII + 480._dp*(YsIICYsIITsIICYsIIYsII) +& 
+&  120._dp*(YsIICYsIITzIIadjYzIIYsII) + 120._dp*(YsIICYsIIYdadjYdTsII) + 64*g1p2*M1*YsIICYsIIYsII +& 
+&  800*g3p2*M3*YsIICYsIIYsII + 120*TrCYsIITsII*YsIICYsIIYsII + 360._dp*(YsIICYsIIYsIICYsIITsII) +& 
+&  120._dp*(YsIICYsIIYzIIadjYzIITsII) + 30._dp*(YsIICYzIITpTeCYeTpYzII) - 6*g1p2*YsIICYzIITpTzII -& 
+&  90*g2p2*YsIICYzIITpTzII + 30*TrYzIIadjYzII*YsIICYzIITpTzII + 120._dp*(YsIICYzIITpTzIICYsIIYsII) +& 
+&  90._dp*(YsIICYzIITpTzIICYzIITpYzII) + 30._dp*(YsIICYzIITpYeCYeTpTzII) +               & 
+&  6*g1p2*M1*YsIICYzIITpYzII + 90*g2p2*M2*YsIICYzIITpYzII + 30*TradjYzIITzII*YsIICYzIITpYzII +& 
+&  60._dp*(YsIICYzIITpYzIICYsIITsII) + 90._dp*(YsIICYzIITpYzIICYzIITpTzII) +             & 
+&  90._dp*(YsIICYzIITtIICYtIITpYzII) + 90._dp*(YsIICYzIIYtIICYtIITpTzII) +               & 
+&  30._dp*(YzIIadjYeTeadjYzIIYsII) + 15._dp*(YzIIadjYeYeadjYzIITsII) - 3*g1p2*YzIIadjYzIITsII -& 
+&  45*g2p2*YzIIadjYzIITsII + 15*TrYzIIadjYzII*YzIIadjYzIITsII + 90._dp*(YzIIadjYzIITzIIadjYzIIYsII) +& 
+&  6*g1p2*M1*YzIIadjYzIIYsII + 90*g2p2*M2*YzIIadjYzIIYsII + 30*TradjYzIITzII*YzIIadjYzIIYsII +& 
+&  45._dp*(YzIIadjYzIIYzIIadjYzIITsII) + 90._dp*(YzIICYtIITtIIadjYzIIYsII) +             & 
+&  45._dp*(YzIICYtIIYtIIadjYzIITsII) + 90*YsIICYdTpYd*Conjg(L1II)*TL1II + 6*YdadjYdYsII*(g1p2*M1 +& 
+&  15*g2p2*M2 + 15._dp*(TradjYdTd) + 5._dp*(TradjYeTe) + 15*Conjg(L1II)*TL1II) -         & 
+&  84*g1p4*TsII - 64*g1p2*g3p2*TsII - 800*g3p4*TsII + 30*TrYdadjYdYsIICYsII*TsII +       & 
+&  2*g1p2*TrYsIICYsII*TsII + 10*g3p2*TrYsIICYsII*TsII + 60*TrYsIICYsIIYsIICYsII*TsII +   & 
+&  30*TrYsIICYsIIYzIIadjYzII*TsII))/15._dp
+
+ 
+DTsII = oo16pi2*( betaTsII1 + oo16pi2 * betaTsII2 ) 
+
+ 
+Else 
+DTsII = oo16pi2* betaTsII1 
+End If 
+ 
+ 
+!-------------------- 
+! TzII 
+!-------------------- 
+ 
+betaTzII1  = 4._dp*(TdadjYdYzII) + 8._dp*(TsIICYsIIYzII) + TzIIadjYeYe +              & 
+&  7._dp*(TzIIadjYzIIYzII) + 3._dp*(TzIICYtIIYtII) + 2._dp*(YdadjYdTzII) +               & 
+&  4._dp*(YsIICYsIITzII) + (2*(7*g1p2*M1 + 80*g3p2*M3 + 45*g2p2*M2 + 15._dp*(TradjYzIITzII))& 
+& *YzII)/15._dp + 2._dp*(YzIIadjYeTe) + 8._dp*(YzIIadjYzIITzII) + 6._dp*(YzIICYtIITtII)  & 
+&  - (7*g1p2*TzII)/15._dp - 3*g2p2*TzII - (16*g3p2*TzII)/3._dp + TrYzIIadjYzII*TzII
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betaTzII2 = -4._dp*(TdadjYdYdadjYdYzII) - 12*AbsL1II*TdadjYdYzII + (4*g1p2*TdadjYdYzII)/5._dp +   & 
+&  12*g2p2*TdadjYdYzII - 4._dp*(TdadjYuYuadjYdYzII) - 12*TdadjYdYzII*TrYdadjYd -         & 
+&  4*TdadjYdYzII*TrYeadjYe - 16._dp*(TsIICYdTpYdCYsIIYzII) - 32._dp*(TsIICYsIIYsIICYsIIYzII) +& 
+&  (64*g1p2*TsIICYsIIYzII)/15._dp + (160*g3p2*TsIICYsIIYzII)/3._dp - 8*TrYsIICYsII*TsIICYsIIYzII -& 
+&  16._dp*(TsIICYzIITpYzIICYsIIYzII) - 3*AbsL1II*TzIIadjYeYe + (6*g1p2*TzIIadjYeYe)/5._dp -& 
+&  3*TrYdadjYd*TzIIadjYeYe - TrYeadjYe*TzIIadjYeYe - 2._dp*(TzIIadjYeYeadjYeYe) -        & 
+&  4._dp*(TzIIadjYeYeadjYzIIYzII) - 6._dp*(TzIIadjYzIIYdadjYdYzII) - 12._dp*(TzIIadjYzIIYsIICYsIIYzII) +& 
+&  (2*g1p2*TzIIadjYzIIYzII)/5._dp + 12*g2p2*TzIIadjYzIIYzII + 16*g3p2*TzIIadjYzIIYzII -  & 
+&  7*TrYzIIadjYzII*TzIIadjYzIIYzII - 18._dp*(TzIIadjYzIIYzIIadjYzIIYzII) -               & 
+&  3._dp*(TzIICYtIITpYeCYeYtII) - 9._dp*(TzIICYtIITpYzIICYzIIYtII) - 3*AbsL1II*TzIICYtIIYtII +& 
+&  (18*g1p2*TzIICYtIIYtII)/5._dp + 12*g2p2*TzIICYtIIYtII - 3*TrYtIICYtII*TzIICYtIIYtII - & 
+&  12._dp*(TzIICYtIIYtIIadjYzIIYzII) - 9._dp*(TzIICYtIIYtIICYtIIYtII) - 4._dp*(YdadjYdTdadjYdYzII) -& 
+&  6*AbsL1II*YdadjYdTzII + (2*g1p2*YdadjYdTzII)/5._dp + 6*g2p2*YdadjYdTzII -             & 
+&  6*TrYdadjYd*YdadjYdTzII - 2*TrYeadjYe*YdadjYdTzII - 2._dp*(YdadjYdYdadjYdTzII) -      & 
+&  4._dp*(YdadjYuTuadjYdYzII) - 2._dp*(YdadjYuYuadjYdTzII) - 12._dp*(YsIICYdTpTdCYsIIYzII) -& 
+&  8._dp*(YsIICYdTpYdCYsIITzII) - 32._dp*(YsIICYsIITsIICYsIIYzII) + (32*g1p2*YsIICYsIITzII)/15._dp +& 
+&  (80*g3p2*YsIICYsIITzII)/3._dp - 4*TrYsIICYsII*YsIICYsIITzII - 16._dp*(YsIICYsIIYsIICYsIITzII) -& 
+&  (64*g1p2*M1*YsIICYsIIYzII)/15._dp - (160*g3p2*M3*YsIICYsIIYzII)/3._dp -               & 
+&  8*TrCYsIITsII*YsIICYsIIYzII - 12._dp*(YsIICYzIITpTzIICYsIIYzII) - 8._dp*(YsIICYzIITpYzIICYsIITzII) -& 
+&  4._dp*(YsIITdadjYdCYsIIYzII) - 4._dp*(YsIITzIIadjYzIICYsIIYzII) - (2*(581*g1p4*M1 +   & 
+&  45*g1p2*g2p2*M1 + 40*g1p2*g3p2*M1 + 40*g1p2*g3p2*M3 + 360*g2p2*g3p2*M3 +              & 
+&  3200*g3p4*M3 + 45*g1p2*g2p2*M2 + 2565*g2p4*M2 + 360*g2p2*g3p2*M2 - 18*g1p2*TradjYzIITzII +& 
+&  90._dp*(TrYdadjYdTzIIadjYzII) + 45._dp*(TrYeadjYzIITzIIadjYe) + 180._dp*(TrYsIICYsIITzIIadjYzII) +& 
+&  135._dp*(TrYtIIadjYzIITzIICYtII) + 45._dp*(TrYzIIadjYeTeadjYzII) + 18*g1p2*M1*TrYzIIadjYzII +& 
+&  90._dp*(TrYzIIadjYzIITdadjYd) + 180._dp*(TrYzIIadjYzIITsIICYsII) + 450._dp*(TrYzIIadjYzIITzIIadjYzII) +& 
+&  135._dp*(TrYzIICYtIITtIIadjYzII))*YzII)/45._dp - 6*AbsL1II*YzIIadjYeTe  
+betaTzII2 =  betaTzII2+ (12*g1p2*YzIIadjYeTe)/5._dp - 6*TrYdadjYd*YzIIadjYeTe - 2*TrYeadjYe*YzIIadjYeTe -     & 
+&  4._dp*(YzIIadjYeTeadjYeYe) - 4._dp*(YzIIadjYeTeadjYzIIYzII) - (12*g1p2*M1*YzIIadjYeYe)/5._dp -& 
+&  6*TradjYdTd*YzIIadjYeYe - 2*TradjYeTe*YzIIadjYeYe - 4._dp*(YzIIadjYeYeadjYeTe) -      & 
+&  2._dp*(YzIIadjYeYeadjYzIITzII) - 12._dp*(YzIIadjYzIITdadjYdYzII) - 24._dp*(YzIIadjYzIITsIICYsIIYzII) -& 
+&  (2*g1p2*YzIIadjYzIITzII)/5._dp + 6*g2p2*YzIIadjYzIITzII + 32*g3p2*YzIIadjYzIITzII -   & 
+&  8*TrYzIIadjYzII*YzIIadjYzIITzII - 24._dp*(YzIIadjYzIITzIIadjYzIIYzII) -               & 
+&  12._dp*(YzIIadjYzIIYdadjYdTzII) - 24._dp*(YzIIadjYzIIYsIICYsIITzII) - 32*g3p2*M3*YzIIadjYzIIYzII -& 
+&  12*g2p2*M2*YzIIadjYzIIYzII - 10*TradjYzIITzII*YzIIadjYzIIYzII - 18._dp*(YzIIadjYzIIYzIIadjYzIITzII) -& 
+&  6._dp*(YzIICYtIITpTeCYeYtII) - 18._dp*(YzIICYtIITpTzIICYzIIYtII) - 6._dp*(YzIICYtIITpYeCYeTtII) -& 
+&  18._dp*(YzIICYtIITpYzIICYzIITtII) - 6*AbsL1II*YzIICYtIITtII + (36*g1p2*YzIICYtIITtII)/5._dp +& 
+&  24*g2p2*YzIICYtIITtII - 6*TrYtIICYtII*YzIICYtIITtII - 12._dp*(YzIICYtIITtIIadjYzIIYzII) -& 
+&  18._dp*(YzIICYtIITtIICYtIIYtII) - (36*g1p2*M1*YzIICYtIIYtII)/5._dp - 24*g2p2*M2*YzIICYtIIYtII -& 
+&  6*TrCYtIITtII*YzIICYtIIYtII - 6._dp*(YzIICYtIIYtIIadjYzIITzII) - 18._dp*(YzIICYtIIYtIICYtIITtII) -& 
+&  6*YzIIadjYeYe*Conjg(L1II)*TL1II - 6*YzIICYtIIYtII*Conjg(L1II)*TL1II - (4*YdadjYdYzII*(g1p2*M1 +& 
+&  15*g2p2*M2 + 15._dp*(TradjYdTd) + 5._dp*(TradjYeTe) + 15*Conjg(L1II)*TL1II))/5._dp +  & 
+&  (581*g1p4*TzII)/90._dp + g1p2*g2p2*TzII + (57*g2p4*TzII)/2._dp + (8*g1p2*g3p2*TzII)/9._dp +& 
+&  8*g2p2*g3p2*TzII + (320*g3p4*TzII)/9._dp - 2*TrYdadjYdYzIIadjYzII*TzII -              & 
+&  TrYeadjYzIIYzIIadjYe*TzII - 4*TrYsIICYsIIYzIIadjYzII*TzII - 3*TrYtIIadjYzIIYzIICYtII*TzII +& 
+&  (2*g1p2*TrYzIIadjYzII*TzII)/5._dp - 5*TrYzIIadjYzIIYzIIadjYzII*TzII
+
+ 
+DTzII = oo16pi2*( betaTzII1 + oo16pi2 * betaTzII2 ) 
+
+ 
+Else 
+DTzII = oo16pi2* betaTzII1 
+End If 
+ 
+ 
+!-------------------- 
+! TL1II 
+!-------------------- 
+ 
+betaTL1II1  = (2*L1II*(9*g1p2*M1 + 35*g2p2*M2 + 30._dp*(TradjYdTd) + 10._dp*(TradjYeTe)& 
+&  + 5._dp*(TrCYtIITtII)))/5._dp + (21._dp*(AbsL1II) - 9._dp*(g1p2)/5._dp -              & 
+&  7._dp*(g2p2) + 6._dp*(TrYdadjYd) + 2._dp*(TrYeadjYe) + TrYtIICYtII)*TL1II
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betaTL1II2 = (-4*L1II*(261*g1p4*M1 + 57*g1p2*g2p2*M1 + 57*g1p2*g2p2*M2 + 765*g2p4*M2 +             & 
+&  4*g1p2*TradjYdTd - 160*g3p2*TradjYdTd - 12*g1p2*TradjYeTe + 3*g1p2*TrCYtIITtII +      & 
+&  5*g2p2*TrCYtIITtII - 4*(g1p2*M1 - 40*g3p2*M3)*TrYdadjYd + 180._dp*(TrYdadjYdTdadjYd) +& 
+&  120._dp*(TrYdadjYdTsIICYsII) + 60._dp*(TrYdadjYdTzIIadjYzII) + 30._dp*(TrYdadjYuTuadjYd) +& 
+&  12*g1p2*M1*TrYeadjYe + 60._dp*(TrYeadjYeTeadjYe) + 30._dp*(TrYeadjYzIITzIIadjYe) +    & 
+&  40._dp*(TrYeCYtIITtIIadjYe) + 120._dp*(TrYsIICYsIITdadjYd) + 40._dp*(TrYtIIadjYeTeCYtII) +& 
+&  30._dp*(TrYtIIadjYzIITzIICYtII) - 3*g1p2*M1*TrYtIICYtII - 5*g2p2*M2*TrYtIICYtII +     & 
+&  60._dp*(TrYtIICYtIITtIICYtII) + 30._dp*(TrYuadjYdTdadjYu) + 30._dp*(TrYzIIadjYeTeadjYzII) +& 
+&  60._dp*(TrYzIIadjYzIITdadjYd) + 30._dp*(TrYzIICYtIITtIIadjYzII)) - 1500*CL1IIp2*L1IIp2*TL1II -& 
+&  (-261._dp*(g1p4) - 114*g1p2*g2p2 - 765._dp*(g2p4) + 8*(g1p2 - 40._dp*(g3p2))*TrYdadjYd +& 
+&  180._dp*(TrYdadjYdYdadjYd) + 240._dp*(TrYdadjYdYsIICYsII) + 120._dp*(TrYdadjYdYzIIadjYzII) +& 
+&  60._dp*(TrYdadjYuYuadjYd) - 24*g1p2*TrYeadjYe + 60._dp*(TrYeadjYeYeadjYe) +           & 
+&  60._dp*(TrYeadjYzIIYzIIadjYe) + 80._dp*(TrYeCYtIIYtIIadjYe) + 60._dp*(TrYtIIadjYzIIYzIICYtII) +& 
+&  6*g1p2*TrYtIICYtII + 10*g2p2*TrYtIICYtII + 60._dp*(TrYtIICYtIIYtIICYtII))*TL1II -     & 
+&  2*AbsL1II*(2*L1II*(33*g1p2*M1 + 115*g2p2*M2 + 120._dp*(TradjYdTd) + 40._dp*(TradjYeTe) +& 
+&  30._dp*(TrCYtIITtII)) + (-99._dp*(g1p2) - 345._dp*(g2p2) + 360._dp*(TrYdadjYd) +      & 
+&  120._dp*(TrYeadjYe) + 90._dp*(TrYtIICYtII))*TL1II))/10._dp
+
+ 
+DTL1II = oo16pi2*( betaTL1II1 + oo16pi2 * betaTL1II2 ) 
+
+ 
+Else 
+DTL1II = oo16pi2* betaTL1II1 
+End If 
+ 
+ 
+!-------------------- 
+! TL2II 
+!-------------------- 
+ 
+betaTL2II1  = (2*L2II*(9*g1p2*M1 + 35*g2p2*M2 + 30._dp*(TradjYuTu)))/5._dp +          & 
+&  (21._dp*(AbsL2II) - 9._dp*(g1p2)/5._dp - 7._dp*(g2p2) + 6._dp*(TrYuadjYu))*TL2II
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betaTL2II2 = (-4*L2II*(-8*(g1p2 + 20._dp*(g3p2))*TradjYuTu + 8*(g1p2*M1 + 20*g3p2*M3)*TrYuadjYu +  & 
+&  3*(87*g1p4*M1 + 19*g1p2*g2p2*M1 + 19*g1p2*g2p2*M2 + 255*g2p4*M2 + 10._dp*(TrYdadjYuTuadjYd) +& 
+&  10._dp*(TrYuadjYdTdadjYu) + 60._dp*(TrYuadjYuTuadjYu))) - 1500*CL2IIp2*L2IIp2*TL2II + & 
+&  (16*(g1p2 + 20._dp*(g3p2))*TrYuadjYu + 3*(87._dp*(g1p4) + 38*g1p2*g2p2 +              & 
+&  255._dp*(g2p4) - 20._dp*(TrYdadjYuYuadjYd) - 60._dp*(TrYuadjYuYuadjYu)))*TL2II -      & 
+&  2*AbsL2II*(2*L2II*(33*g1p2*M1 + 115*g2p2*M2 + 120._dp*(TradjYuTu)) + (-               & 
+& 99._dp*(g1p2) - 345._dp*(g2p2) + 360._dp*(TrYuadjYu))*TL2II))/10._dp
+
+ 
+DTL2II = oo16pi2*( betaTL2II1 + oo16pi2 * betaTL2II2 ) 
+
+ 
+Else 
+DTL2II = oo16pi2* betaTL2II1 
+End If 
+ 
+ 
+!-------------------- 
+! Bmu 
+!-------------------- 
+ 
+betaBmu1  = (6*g1p2*M1*Mu)/5._dp + 6*g2p2*M2*Mu + 6*TradjYdTd*Mu + 2*TradjYeTe*Mu +   & 
+&  6*TradjYuTu*Mu + (3._dp*(AbsL1II) + 3._dp*(AbsL2II) - 3._dp*(g1p2)/5._dp -            & 
+&  3._dp*(g2p2) + 3._dp*(TrYdadjYd) + TrYeadjYe + 3._dp*(TrYuadjYu))*Bmu +               & 
+&  6*Mu*Conjg(L1II)*TL1II + 6*Mu*Conjg(L2II)*TL2II
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betaBmu2 = (417._dp*(g1p4)/50._dp + (9*g1p2*g2p2)/5._dp + 57._dp*(g2p4)/2._dp - 12*CL1IIp2*L1IIp2 -& 
+&  12*CL2IIp2*L2IIp2 - (2*g1p2*TrYdadjYd)/5._dp + 16*g3p2*TrYdadjYd - 9._dp*(TrYdadjYdYdadjYd) -& 
+&  12._dp*(TrYdadjYdYsIICYsII) - 6._dp*(TrYdadjYdYzIIadjYzII) - 6._dp*(TrYdadjYuYuadjYd) +& 
+&  (6*g1p2*TrYeadjYe)/5._dp - 3._dp*(TrYeadjYeYeadjYe) - 3._dp*(TrYeadjYzIIYzIIadjYe) -  & 
+&  3._dp*(TrYeCYtIIYtIIadjYe) + (3*AbsL1II*(6._dp*(g1p2) + 20._dp*(g2p2) -               & 
+&  15._dp*(TrYdadjYd) - 5._dp*(TrYeadjYe) - 5._dp*(TrYtIICYtII)))/5._dp + (3*AbsL2II*(6._dp*(g1p2) +& 
+&  20._dp*(g2p2) - 15._dp*(TrYuadjYu)))/5._dp + (4*g1p2*TrYuadjYu)/5._dp +               & 
+&  16*g3p2*TrYuadjYu - 9._dp*(TrYuadjYuYuadjYu))*Bmu - (2*Mu*(417*g1p4*M1 +              & 
+&  45*g1p2*g2p2*M1 + 45*g1p2*g2p2*M2 + 1425*g2p4*M2 + 10*g1p2*TradjYdTd - 400*g3p2*TradjYdTd -& 
+&  30*g1p2*TradjYeTe - 20*g1p2*TradjYuTu - 400*g3p2*TradjYuTu - 10*g1p2*M1*TrYdadjYd +   & 
+&  400*g3p2*M3*TrYdadjYd + 450._dp*(TrYdadjYdTdadjYd) + 300._dp*(TrYdadjYdTsIICYsII) +   & 
+&  150._dp*(TrYdadjYdTzIIadjYzII) + 150._dp*(TrYdadjYuTuadjYd) + 30*g1p2*M1*TrYeadjYe +  & 
+&  150._dp*(TrYeadjYeTeadjYe) + 75._dp*(TrYeadjYzIITzIIadjYe) + 75._dp*(TrYeCYtIITtIIadjYe) +& 
+&  300._dp*(TrYsIICYsIITdadjYd) + 75._dp*(TrYtIIadjYeTeCYtII) + 150._dp*(TrYuadjYdTdadjYu) +& 
+&  20*g1p2*M1*TrYuadjYu + 400*g3p2*M3*TrYuadjYu + 450._dp*(TrYuadjYuTuadjYu) +           & 
+&  75._dp*(TrYzIIadjYeTeadjYzII) + 150._dp*(TrYzIIadjYzIITdadjYd) + 600*CL1IIp2*L1II*TL1II +& 
+&  15*Conjg(L1II)*(L1II*(6*g1p2*M1 + 20*g2p2*M2 + 15._dp*(TradjYdTd) + 5._dp*(TradjYeTe) +& 
+&  5._dp*(TrCYtIITtII)) + (-6._dp*(g1p2) - 20._dp*(g2p2) + 15._dp*(TrYdadjYd) +          & 
+&  5._dp*(TrYeadjYe) + 5._dp*(TrYtIICYtII))*TL1II) + 600*CL2IIp2*L2II*TL2II +            & 
+&  15*Conjg(L2II)*(L2II*(6*g1p2*M1 + 20*g2p2*M2 + 15._dp*(TradjYuTu)) + (-               & 
+& 6._dp*(g1p2) - 20._dp*(g2p2) + 15._dp*(TrYuadjYu))*TL2II)))/25._dp
+
+ 
+DBmu = oo16pi2*( betaBmu1 + oo16pi2 * betaBmu2 ) 
+
+ 
+Else 
+DBmu = oo16pi2* betaBmu1 
+End If 
+ 
+ 
+!-------------------- 
+! BMTII 
+!-------------------- 
+!goto 123 
+betaBMTII1  = (AbsL1II + AbsL2II - 12._dp*(g1p2)/5._dp - 8._dp*(g2p2) +               & 
+&  TrYtIICYtII)*BMTII + (2*MTII*(12*g1p2*M1 + 40*g2p2*M2 + 5._dp*(TrCYtIITtII)           & 
+&  + 5*Conjg(L1II)*TL1II + 5*Conjg(L2II)*TL2II))/5._dp
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betaBMTII2 = (888._dp*(g1p4)/25._dp + (96*g1p2*g2p2)/5._dp + 96._dp*(g2p4) - 6*CL1IIp2*L1IIp2 -    & 
+&  6*CL2IIp2*L2IIp2 - (AbsL1II*(3._dp*(g1p2) + 5._dp*(g2p2) + 30._dp*(TrYdadjYd) +       & 
+&  10._dp*(TrYeadjYe)))/5._dp - 2._dp*(TrYeCYtIIYtIIadjYe) - 6._dp*(TrYtIIadjYzIIYzIICYtII) -& 
+&  (3*g1p2*TrYtIICYtII)/5._dp - g2p2*TrYtIICYtII - 6._dp*(TrYtIICYtIIYtIICYtII) -        & 
+&  (AbsL2II*(3._dp*(g1p2) + 5._dp*(g2p2) + 30._dp*(TrYuadjYu)))/5._dp)*BMTII -           & 
+&  (2*MTII*(1776*g1p4*M1 + 480*g1p2*g2p2*M1 + 480*g1p2*g2p2*M2 + 4800*g2p4*M2 +          & 
+&  15*g1p2*TrCYtIITtII + 25*g2p2*TrCYtIITtII + 50._dp*(TrYeCYtIITtIIadjYe) +             & 
+&  50._dp*(TrYtIIadjYeTeCYtII) + 150._dp*(TrYtIIadjYzIITzIICYtII) - 15*g1p2*M1*TrYtIICYtII -& 
+&  25*g2p2*M2*TrYtIICYtII + 300._dp*(TrYtIICYtIITtIICYtII) + 150._dp*(TrYzIICYtIITtIIadjYzII) +& 
+&  300*CL1IIp2*L1II*TL1II - 5*Conjg(L1II)*(L1II*(3*g1p2*M1 + 5*g2p2*M2 - 30._dp*(TradjYdTd) -& 
+&  10._dp*(TradjYeTe)) - (3._dp*(g1p2) + 5._dp*(g2p2) + 30._dp*(TrYdadjYd) +             & 
+&  10._dp*(TrYeadjYe))*TL1II) + 300*CL2IIp2*L2II*TL2II + 5*Conjg(L2II)*(L2II*(-          & 
+& 3*g1p2*M1 - 5*g2p2*M2 + 30._dp*(TradjYuTu)) + (3._dp*(g1p2) + 5._dp*(g2p2) +           & 
+&  30._dp*(TrYuadjYu))*TL2II)))/25._dp
+
+ 
+DBMTII = oo16pi2*( betaBMTII1 + oo16pi2 * betaBMTII2 ) 
+
+ 
+Else 
+DBMTII = oo16pi2* betaBMTII1 
+End If 
+
+ 
+!-------------------- 
+! BMZII 
+!-------------------- 
+ 
+betaBMZII1  = (2*MZII*(g1p2*M1 + 80*g3p2*M3 + 45*g2p2*M2 + 15._dp*(TradjYzIITzII))    & 
+&  - (g1p2 + 45._dp*(g2p2) + 80._dp*(g3p2) - 15._dp*(TrYzIIadjYzII))*BMZII)/15._dp
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betaBMZII2 = (-2*MZII*(409*g1p4*M1 + 45*g1p2*g2p2*M1 + 80*g1p2*g3p2*M1 + 80*g1p2*g3p2*M3 +         & 
+&  3600*g2p2*g3p2*M3 + 16000*g3p4*M3 + 45*g1p2*g2p2*M2 + 12825*g2p4*M2 + 3600*g2p2*g3p2*M2 -& 
+&  90*g1p2*TradjYzIITzII + 450._dp*(TrYdadjYdTzIIadjYzII) + 225._dp*(TrYeadjYzIITzIIadjYe) +& 
+&  900._dp*(TrYsIICYsIITzIIadjYzII) + 675._dp*(TrYtIIadjYzIITzIICYtII) + 225._dp*(TrYzIIadjYeTeadjYzII) +& 
+&  90*g1p2*M1*TrYzIIadjYzII + 450._dp*(TrYzIIadjYzIITdadjYd) + 900._dp*(TrYzIIadjYzIITsIICYsII) +& 
+&  2250._dp*(TrYzIIadjYzIITzIIadjYzII) + 675._dp*(TrYzIICYtIITtIIadjYzII)))/225._dp +    & 
+&  (409._dp*(g1p4)/450._dp + (g1p2*g2p2)/5._dp + 57._dp*(g2p4)/2._dp + (16*g1p2*g3p2)/45._dp +& 
+&  16*g2p2*g3p2 + 320._dp*(g3p4)/9._dp - 2._dp*(TrYdadjYdYzIIadjYzII) - TrYeadjYzIIYzIIadjYe -& 
+&  4._dp*(TrYsIICYsIIYzIIadjYzII) - 3._dp*(TrYtIIadjYzIIYzIICYtII) + (2*g1p2*TrYzIIadjYzII)/5._dp -& 
+&  5._dp*(TrYzIIadjYzIIYzIIadjYzII))*BMZII
+
+ 
+DBMZII = oo16pi2*( betaBMZII1 + oo16pi2 * betaBMZII2 ) 
+
+ 
+Else 
+DBMZII = oo16pi2* betaBMZII1 
+End If 
+ 
+!-------------------- 
+! BMSII 
+!-------------------- 
+ 
+betaBMSII1  = (2*MSII*(16*g1p2*M1 + 200*g3p2*M3 + 15._dp*(TrCYsIITsII))               & 
+&  + (-8*(2._dp*(g1p2) + 25._dp*(g3p2)) + 15._dp*(TrYsIICYsII))*BMSII)/15._dp
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betaBMSII2 = (-4*(2*MSII*(1696*g1p4*M1 + 800*g1p2*g3p2*M1 + 800*g1p2*g3p2*M3 + 16000*g3p4*M3 +     & 
+&  15*(g1p2 + 5._dp*(g3p2))*TrCYsIITsII + 225._dp*(TrYdadjYdTsIICYsII) - 15*(g1p2*M1 +   & 
+&  5*g3p2*M3)*TrYsIICYsII + 225._dp*(TrYsIICYsIITdadjYd) + 900._dp*(TrYsIICYsIITsIICYsII) +& 
+&  225._dp*(TrYsIICYsIITzIIadjYzII) + 225._dp*(TrYzIIadjYzIITsIICYsII)) + (-             & 
+& 848._dp*(g1p4) - 800*g1p2*g3p2 - 8000._dp*(g3p4) + 225._dp*(TrYdadjYdYsIICYsII) +      & 
+&  15*(g1p2 + 5._dp*(g3p2))*TrYsIICYsII + 450._dp*(TrYsIICYsIIYsIICYsII) +               & 
+&  225._dp*(TrYsIICYsIIYzIIadjYzII))*BMSII))/225._dp
+
+ 
+DBMSII = oo16pi2*( betaBMSII1 + oo16pi2 * betaBMSII2 ) 
+
+ 
+Else 
+DBMSII = oo16pi2* betaBMSII1 
+End If 
+ 
+!123  DBMTII = 0._dp
+! DBMZII =  0._dp
+! DBMSII = 0._dp
+!-------------------- 
+! mq2 
+!-------------------- 
+ 
+betamq21  = 2._dp*(adjTdTd) + 2._dp*(adjTuTu) + 2._dp*(adjYdmd2Yd) + adjYdYdmq2 +     & 
+&  2._dp*(adjYumu2Yu) + adjYuYumq2 - (2*AbsM1*g1p2*id3R)/15._dp - 6*AbsM2*g2p2*id3R -    & 
+&  (32*AbsM3*g3p2*id3R)/3._dp + 2*adjYdYd*mHd2 + 2*adjYuYu*mHu2 + mq2adjYdYd +           & 
+&  mq2adjYuYu + g1*id3R*ooSqrt15*Tr1(1)
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betamq22 = -6*AbsL1II*adjTdTd - 4._dp*(adjTdTdadjYdYd) - 8._dp*(adjTdTsIICYsIIYd) -              & 
+&  4._dp*(adjTdTzIIadjYzIIYd) - 4._dp*(adjTdYdadjYdTd) - 8._dp*(adjTdYsIICYsIITd) -      & 
+&  4._dp*(adjTdYzIIadjYzIITd) - 6*AbsL2II*adjTuTu - 4._dp*(adjTuTuadjYuYu) -             & 
+&  4._dp*(adjTuYuadjYuTu) - 6*AbsL1II*adjYdmd2Yd - 4._dp*(adjYdmd2YdadjYdYd) -           & 
+&  8._dp*(adjYdmd2YsIICYsIIYd) - 4._dp*(adjYdmd2YzIIadjYzIIYd) - 4._dp*(adjYdTdadjTdYd) -& 
+&  8._dp*(adjYdTsIICTsIIYd) - 4._dp*(adjYdTzIIadjTzIIYd) - 6*AbsTL1II*adjYdYd -          & 
+&  4._dp*(adjYdYdadjTdTd) - 4._dp*(adjYdYdadjYdmd2Yd) - 2._dp*(adjYdYdadjYdYdmq2) -      & 
+&  3*AbsL1II*adjYdYdmq2 - 4._dp*(adjYdYdmq2adjYdYd) - 8._dp*(adjYdYsIICmd2CYsIIYd) -     & 
+&  8._dp*(adjYdYsIICTsIITd) - 8._dp*(adjYdYsIICYsIImd2Yd) - 4._dp*(adjYdYsIICYsIIYdmq2) -& 
+&  4._dp*(adjYdYzIIadjTzIITd) - 4._dp*(adjYdYzIIadjYzIImd2Yd) - 2._dp*(adjYdYzIIadjYzIIYdmq2) -& 
+&  4._dp*(adjYdYzIIml2adjYzIIYd) - 6*AbsL2II*adjYumu2Yu - 4._dp*(adjYumu2YuadjYuYu) -    & 
+&  4._dp*(adjYuTuadjTuYu) - 6*AbsTL2II*adjYuYu - 4._dp*(adjYuYuadjTuTu) - 4._dp*(adjYuYuadjYumu2Yu) -& 
+&  2._dp*(adjYuYuadjYuYumq2) - 3*AbsL2II*adjYuYumq2 - 4._dp*(adjYuYumq2adjYuYu) +        & 
+&  (4*adjTdTd*g1p2)/5._dp + (8*adjTuTu*g1p2)/5._dp + (4*adjYdmd2Yd*g1p2)/5._dp +         & 
+&  (2*adjYdYdmq2*g1p2)/5._dp + (8*adjYumu2Yu*g1p2)/5._dp + (4*adjYuYumq2*g1p2)/5._dp +   & 
+&  (2*AbsM2*g1p2*g2p2*id3R)/5._dp + 159*AbsM2*g2p4*id3R + 32*AbsM2*g2p2*g3p2*id3R -      & 
+&  (4*adjTdYd*g1p2*M1)/5._dp - (8*adjTuYu*g1p2*M1)/5._dp - 18*AbsL1II*adjYdYd*mHd2 -     & 
+&  8*adjYdYdadjYdYd*mHd2 - 8*adjYdYsIICYsIIYd*mHd2 - 4*adjYdYzIIadjYzIIYd*mHd2 +         & 
+&  (4*adjYdYd*g1p2*mHd2)/5._dp - 18*AbsL2II*adjYuYu*mHu2 - 8*adjYuYuadjYuYu*mHu2 +       & 
+&  (8*adjYuYu*g1p2*mHu2)/5._dp - 3*AbsL1II*mq2adjYdYd + (2*g1p2*mq2adjYdYd)/5._dp -      & 
+&  2._dp*(mq2adjYdYdadjYdYd) - 4._dp*(mq2adjYdYsIICYsIIYd) - 2._dp*(mq2adjYdYzIIadjYzIIYd)  
+betamq22 =  betamq22- 3*AbsL2II*mq2adjYuYu + (4*g1p2*mq2adjYuYu)/5._dp - 2._dp*(mq2adjYuYuadjYuYu) -        & 
+&  8*adjYdYsIICYsIIYd*ms2 - 6*AbsL1II*adjYdYd*mt2 - 6*AbsL2II*adjYuYu*mtb2 -             & 
+&  4*adjYdYzIIadjYzIIYd*mzz2 - 6*adjTdYd*TradjYdTd - 2*adjTdYd*TradjYeTe -               & 
+&  6*adjTuYu*TradjYuTu - 6*adjYdYd*TrCTdTpTd - 6*adjYdTd*TrCTdTpYd - 2*adjYdYd*TrCTeTpTe -& 
+&  2*adjYdTd*TrCTeTpYe - 6*adjYuYu*TrCTuTpTu - 6*adjYuTu*TrCTuTpYu - 6*adjYdYd*Trmd2YdadjYd -& 
+&  2*adjYdYd*Trme2YeadjYe - 2*adjYdYd*Trml2adjYeYe - 6*adjYdYd*Trmq2adjYdYd -            & 
+&  6*adjYuYu*Trmq2adjYuYu - 6*adjYuYu*Trmu2YuadjYu - 6*adjTdTd*TrYdadjYd -               & 
+&  6*adjYdmd2Yd*TrYdadjYd - 3*adjYdYdmq2*TrYdadjYd - 12*adjYdYd*mHd2*TrYdadjYd -         & 
+&  3*mq2adjYdYd*TrYdadjYd - 2*adjTdTd*TrYeadjYe - 2*adjYdmd2Yd*TrYeadjYe -               & 
+&  adjYdYdmq2*TrYeadjYe - 4*adjYdYd*mHd2*TrYeadjYe - mq2adjYdYd*TrYeadjYe -              & 
+&  6*adjTuTu*TrYuadjYu - 6*adjYumu2Yu*TrYuadjYu - 3*adjYuYumq2*TrYuadjYu -               & 
+&  12*adjYuYu*mHu2*TrYuadjYu - 3*mq2adjYuYu*TrYuadjYu + (g1p2*(180*(-1._dp*(adjYdTd) -   & 
+&  2._dp*(adjYuTu) + 2*adjYdYd*M1 + 4*adjYuYu*M1) + id3R*(1227*g1p2*M1 + 5*(16*g3p2*(2._dp*(M1) +& 
+&  M3) + 9*g2p2*(2._dp*(M1) + M2))))*Conjg(M1))/225._dp + (16*g3p2*id3R*(g1p2*(M1 +      & 
+&  2._dp*(M3)) + 15*(34*g3p2*M3 + 3*g2p2*(2._dp*(M3) + M2)))*Conjg(M3))/45._dp +         & 
+&  (g1p2*g2p2*id3R*M1*Conjg(M2))/5._dp + 16*g2p2*g3p2*id3R*M3*Conjg(M2) - 6*adjYdTd*L1II*Conjg(TL1II) -& 
+&  6*adjYuTu*L2II*Conjg(TL2II) - 6*adjTdYd*Conjg(L1II)*TL1II - 6*adjTuYu*Conjg(L2II)*TL2II +& 
+&  6*g2p4*id3R*Tr2(2) + (32*g3p4*id3R*Tr2(3))/3._dp + (2*g1p2*id3R*Tr2U1(1,              & 
+& 1))/15._dp + 4*g1*id3R*ooSqrt15*Tr3(1)
+
+ 
+Dmq2 = oo16pi2*( betamq21 + oo16pi2 * betamq22 ) 
+
+ 
+Else 
+Dmq2 = oo16pi2* betamq21 
+End If 
+ 
+ 
+Forall(i1=1:3) Dmq2(i1,i1) =  Real(Dmq2(i1,i1),dp) 
+!-------------------- 
+! ml2 
+!-------------------- 
+ 
+betaml21  = 2._dp*(adjTeTe) + 6._dp*(adjTzIITzII) + 2._dp*(adjYeme2Ye) +              & 
+&  adjYeYeml2 + 6._dp*(adjYzIImd2YzII) + 3._dp*(adjYzIIYzIIml2) + 6._dp*(CTtIITtII)      & 
+&  + 6._dp*(CYtIICml2YtII) + 3._dp*(CYtIIYtIIml2) - (6*AbsM1*g1p2*id3R)/5._dp -          & 
+&  6*AbsM2*g2p2*id3R + 2*adjYeYe*mHd2 + ml2adjYeYe + 3._dp*(ml2adjYzIIYzII)              & 
+&  + 3._dp*(ml2CYtIIYtII) + 6*CYtIIYtII*mt2 + 6*adjYzIIYzII*mzz2 - g1*id3R*sqrt3ov5*Tr1(1)
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betaml22 = -6*AbsL1II*adjTeTe - 4._dp*(adjTeTeadjYeYe) - 4._dp*(adjTeYeadjYeTe) - 12._dp*(adjTzIITdadjYdYzII) -& 
+&  24._dp*(adjTzIITsIICYsIIYzII) - 12._dp*(adjTzIITzIIadjYzIIYzII) - 12._dp*(adjTzIIYdadjYdTzII) -& 
+&  24._dp*(adjTzIIYsIICYsIITzII) - 12._dp*(adjTzIIYzIIadjYzIITzII) - 6*AbsL1II*adjYeme2Ye -& 
+&  4._dp*(adjYeme2YeadjYeYe) - 4._dp*(adjYeTeadjTeYe) - 6*AbsTL1II*adjYeYe -             & 
+&  4._dp*(adjYeYeadjTeTe) - 4._dp*(adjYeYeadjYeme2Ye) - 2._dp*(adjYeYeadjYeYeml2) -      & 
+&  3*AbsL1II*adjYeYeml2 - 4._dp*(adjYeYeml2adjYeYe) - 12._dp*(adjYzIImd2YdadjYdYzII) -   & 
+&  24._dp*(adjYzIImd2YsIICYsIIYzII) - 12._dp*(adjYzIImd2YzIIadjYzIIYzII) -               & 
+&  12._dp*(adjYzIITdadjTdYzII) - 24._dp*(adjYzIITsIICTsIIYzII) - 12._dp*(adjYzIITzIIadjTzIIYzII) -& 
+&  12._dp*(adjYzIIYdadjTdTzII) - 12._dp*(adjYzIIYdadjYdmd2YzII) - 6._dp*(adjYzIIYdadjYdYzIIml2) -& 
+&  12._dp*(adjYzIIYdmq2adjYdYzII) - 24._dp*(adjYzIIYsIICmd2CYsIIYzII) - 24._dp*(adjYzIIYsIICTsIITzII) -& 
+&  24._dp*(adjYzIIYsIICYsIImd2YzII) - 12._dp*(adjYzIIYsIICYsIIYzIIml2) - 12._dp*(adjYzIIYzIIadjTzIITzII) -& 
+&  12._dp*(adjYzIIYzIIadjYzIImd2YzII) - 6._dp*(adjYzIIYzIIadjYzIIYzIIml2) -              & 
+&  12._dp*(adjYzIIYzIIml2adjYzIIYzII) - 6._dp*(CTtIITpTeCYeYtII) - 18._dp*(CTtIITpTzIICYzIIYtII) -& 
+&  6._dp*(CTtIITpYeCYeTtII) - 18._dp*(CTtIITpYzIICYzIITtII) - 6*AbsL1II*CTtIITtII -      & 
+&  18._dp*(CTtIITtIICYtIIYtII) - 18._dp*(CTtIIYtIICYtIITtII) - 6._dp*(CYtIICml2TpYeCYeYtII) -& 
+&  18._dp*(CYtIICml2TpYzIICYzIIYtII) - 6*AbsL1II*CYtIICml2YtII - 18._dp*(CYtIICml2YtIICYtIIYtII) -& 
+&  6._dp*(CYtIITpTeCTeYtII) - 18._dp*(CYtIITpTzIICTzIIYtII) - 6._dp*(CYtIITpYeCme2CYeYtII) -& 
+&  6._dp*(CYtIITpYeCTeTtII) - 6._dp*(CYtIITpYeCYeCml2YtII) - 3._dp*(CYtIITpYeCYeYtIIml2) -& 
+&  18._dp*(CYtIITpYzIICmd2CYzIIYtII) - 18._dp*(CYtIITpYzIICTzIITtII) - 18._dp*(CYtIITpYzIICYzIICml2YtII) -& 
+&  9._dp*(CYtIITpYzIICYzIIYtIIml2) - 18._dp*(CYtIITtIICTtIIYtII) - 6*AbsTL1II*CYtIIYtII -& 
+&  18._dp*(CYtIIYtIICTtIITtII) - 18._dp*(CYtIIYtIICYtIICml2YtII) - 9._dp*(CYtIIYtIICYtIIYtIIml2)  
+betaml22 =  betaml22- 3*AbsL1II*CYtIIYtIIml2 - 18._dp*(CYtIIYtIIml2CYtIIYtII) + (12*adjTeTe*g1p2)/5._dp -   & 
+&  (4*adjTzIITzII*g1p2)/5._dp + (12*adjYeme2Ye*g1p2)/5._dp + (6*adjYeYeml2*g1p2)/5._dp - & 
+&  (4*adjYzIImd2YzII*g1p2)/5._dp - (2*adjYzIIYzIIml2*g1p2)/5._dp + (36*CTtIITtII*g1p2)/5._dp +& 
+&  (36*CYtIICml2YtII*g1p2)/5._dp + (18*CYtIIYtIIml2*g1p2)/5._dp + 24*CTtIITtII*g2p2 +    & 
+&  24*CYtIICml2YtII*g2p2 + 12*CYtIIYtIIml2*g2p2 + 32*adjTzIITzII*g3p2 + 32*adjYzIImd2YzII*g3p2 +& 
+&  64*AbsM3*adjYzIIYzII*g3p2 + 16*adjYzIIYzIIml2*g3p2 - (12*adjTeYe*g1p2*M1)/5._dp +     & 
+&  (4*adjTzIIYzII*g1p2*M1)/5._dp - (36*CTtIIYtII*g1p2*M1)/5._dp - 32*adjTzIIYzII*g3p2*M3 -& 
+&  24*CTtIIYtII*g2p2*M2 - 18*AbsL1II*adjYeYe*mHd2 - 8*adjYeYeadjYeYe*mHd2 -              & 
+&  12*adjYzIIYdadjYdYzII*mHd2 - 6*CYtIITpYeCYeYtII*mHd2 - 12*AbsL1II*CYtIIYtII*mHd2 +    & 
+&  (12*adjYeYe*g1p2*mHd2)/5._dp - 3*AbsL1II*ml2adjYeYe + (6*g1p2*ml2adjYeYe)/5._dp -     & 
+&  2._dp*(ml2adjYeYeadjYeYe) - 6._dp*(ml2adjYzIIYdadjYdYzII) - 12._dp*(ml2adjYzIIYsIICYsIIYzII) -& 
+&  (2*g1p2*ml2adjYzIIYzII)/5._dp + 16*g3p2*ml2adjYzIIYzII - 6._dp*(ml2adjYzIIYzIIadjYzIIYzII) -& 
+&  3._dp*(ml2CYtIITpYeCYeYtII) - 9._dp*(ml2CYtIITpYzIICYzIIYtII) - 3*AbsL1II*ml2CYtIIYtII +& 
+&  (18*g1p2*ml2CYtIIYtII)/5._dp + 12*g2p2*ml2CYtIIYtII - 9._dp*(ml2CYtIIYtIICYtIIYtII) - & 
+&  24*adjYzIIYsIICYsIIYzII*ms2 - 6*AbsL1II*adjYeYe*mt2 - 6*CYtIITpYeCYeYtII*mt2 -        & 
+&  18*CYtIITpYzIICYzIIYtII*mt2 - 12*AbsL1II*CYtIIYtII*mt2 - 36*CYtIIYtIICYtIIYtII*mt2 +  & 
+&  (36*CYtIIYtII*g1p2*mt2)/5._dp + 24*CYtIIYtII*g2p2*mt2 - 12*adjYzIIYdadjYdYzII*mzz2 -  & 
+&  24*adjYzIIYsIICYsIIYzII*mzz2 - 24*adjYzIIYzIIadjYzIIYzII*mzz2 - 18*CYtIITpYzIICYzIIYtII*mzz2 -& 
+&  (4*adjYzIIYzII*g1p2*mzz2)/5._dp + 32*adjYzIIYzII*g3p2*mzz2 - 6*adjTeYe*TradjYdTd -    & 
+&  2*adjTeYe*TradjYeTe - 6*adjTzIIYzII*TradjYzIITzII - 6*adjYeYe*TrCTdTpTd -             & 
+&  6*adjYeTe*TrCTdTpYd - 2*adjYeYe*TrCTeTpTe - 2*adjYeTe*TrCTeTpYe - 6*CYtIIYtII*TrCTtIITtII  
+betaml22 =  betaml22- 6*adjYzIIYzII*TrCTzIITpTzII - 6*adjYzIITzII*TrCTzIITpYzII - 6*CTtIIYtII*TrCYtIITtII - & 
+&  6*adjYeYe*Trmd2YdadjYd - 6*adjYzIIYzII*Trmd2YzIIadjYzII - 2*adjYeYe*Trme2YeadjYe -    & 
+&  2*adjYeYe*Trml2adjYeYe - 6*adjYzIIYzII*Trml2adjYzIIYzII - 12*CYtIIYtII*Trml2CYtIIYtII -& 
+&  6*adjYeYe*Trmq2adjYdYd - 6*adjTeTe*TrYdadjYd - 6*adjYeme2Ye*TrYdadjYd -               & 
+&  3*adjYeYeml2*TrYdadjYd - 12*adjYeYe*mHd2*TrYdadjYd - 3*ml2adjYeYe*TrYdadjYd -         & 
+&  2*adjTeTe*TrYeadjYe - 2*adjYeme2Ye*TrYeadjYe - adjYeYeml2*TrYeadjYe - 4*adjYeYe*mHd2*TrYeadjYe -& 
+&  ml2adjYeYe*TrYeadjYe - 6*CYtIITtII*TrYtIICTtII - 6*CTtIITtII*TrYtIICYtII -            & 
+&  6*CYtIICml2YtII*TrYtIICYtII - 3*CYtIIYtIIml2*TrYtIICYtII - 3*ml2CYtIIYtII*TrYtIICYtII -& 
+&  12*CYtIIYtII*mt2*TrYtIICYtII - 6*adjTzIITzII*TrYzIIadjYzII - 6*adjYzIImd2YzII*TrYzIIadjYzII -& 
+&  3*adjYzIIYzIIml2*TrYzIIadjYzII - 3*ml2adjYzIIYzII*TrYzIIadjYzII - 12*adjYzIIYzII*mzz2*TrYzIIadjYzII +& 
+&  (g1p2*(20*(-3._dp*(adjYeTe) + adjYzIITzII - 9._dp*(CYtIITtII) + 6*adjYeYe*M1 -        & 
+&  2*adjYzIIYzII*M1 + 18*CYtIIYtII*M1) + 9*id3R*(139*g1p2*M1 + 5*g2p2*(2._dp*(M1) +      & 
+&  M2)))*Conjg(M1))/25._dp - 32*adjYzIITzII*g3p2*Conjg(M3) + (3*g2p2*(-40._dp*(CYtIITtII) +& 
+&  80*CYtIIYtII*M2 + id3R*(265*g2p2*M2 + 3*g1p2*(M1 + 2._dp*(M2))))*Conjg(M2))/5._dp -   & 
+&  6*adjYeTe*L1II*Conjg(TL1II) - 6*CYtIITtII*L1II*Conjg(TL1II) - 6*adjTeYe*Conjg(L1II)*TL1II -& 
+&  6*CTtIIYtII*Conjg(L1II)*TL1II + 6*g2p4*id3R*Tr2(2) + (6*g1p2*id3R*Tr2U1(1,            & 
+& 1))/5._dp - 4*g1*id3R*sqrt3ov5*Tr3(1)
+
+ 
+Dml2 = oo16pi2*( betaml21 + oo16pi2 * betaml22 ) 
+
+ 
+Else 
+Dml2 = oo16pi2* betaml21 
+End If 
+ 
+ 
+Forall(i1=1:3) Dml2(i1,i1) =  Real(Dml2(i1,i1),dp) 
+!-------------------- 
+! mHd2 
+!-------------------- 
+ 
+betamHd21  = 6._dp*(AbsTL1II) - (6*AbsM1*g1p2)/5._dp - 6*AbsM2*g2p2 + 6*AbsL1II*(2._dp*(mHd2)& 
+&  + mt2) + 6._dp*(TrCTdTpTd) + 2._dp*(TrCTeTpTe) + 6._dp*(Trmd2YdadjYd) +               & 
+&  2._dp*(Trme2YeadjYe) + 2._dp*(Trml2adjYeYe) + 6._dp*(Trmq2adjYdYd) + 6*mHd2*TrYdadjYd +& 
+&  2*mHd2*TrYeadjYe - g1*sqrt3ov5*Tr1(1)
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betamHd22 = (36*AbsTL1II*g1p2)/5._dp + 24*AbsTL1II*g2p2 + (18*AbsM2*g1p2*g2p2)/5._dp +            & 
+&  159*AbsM2*g2p4 - 48*CL1IIp2*L1IIp2*(2._dp*(mHd2) + mt2) - (4*g1p2*TrCTdTpTd)/5._dp +  & 
+&  32*g3p2*TrCTdTpTd + (4*g1p2*M1*TrCTdTpYd)/5._dp - 32*g3p2*M3*TrCTdTpYd +              & 
+&  (12*g1p2*TrCTeTpTe)/5._dp - (12*g1p2*M1*TrCTeTpYe)/5._dp - 12._dp*(TrCYsIITsIICTdTpYd) -& 
+&  3._dp*(TrCYtIITpYeCTeTtII) - (4*g1p2*Trmd2YdadjYd)/5._dp + 32*g3p2*Trmd2YdadjYd -     & 
+&  36._dp*(Trmd2YdadjYdYdadjYd) - 24._dp*(Trmd2YdadjYdYsIICYsII) - 12._dp*(Trmd2YdadjYdYzIIadjYzII) -& 
+&  6._dp*(Trmd2YdadjYuYuadjYd) - 24._dp*(Trmd2YsIICYsIIYdadjYd) - 6._dp*(Trmd2YzIIadjYeYeadjYzII) -& 
+&  12._dp*(Trmd2YzIIadjYzIIYdadjYd) + (12*g1p2*Trme2YeadjYe)/5._dp - 12._dp*(Trme2YeadjYeYeadjYe) -& 
+&  6._dp*(Trme2YeadjYzIIYzIIadjYe) - 6._dp*(Trme2YeCYtIIYtIIadjYe) + (12*g1p2*Trml2adjYeYe)/5._dp -& 
+&  12._dp*(Trml2adjYeYeadjYeYe) - 6._dp*(Trml2adjYeYeadjYzIIYzII) - 6._dp*(Trml2adjYeYeCYtIIYtII) -& 
+&  12._dp*(Trml2adjYzIIYdadjYdYzII) - 6._dp*(Trml2adjYzIIYzIIadjYeYe) - 6._dp*(Trml2CYtIIYtIIadjYeYe) -& 
+&  (4*g1p2*Trmq2adjYdYd)/5._dp + 32*g3p2*Trmq2adjYdYd - 36._dp*(Trmq2adjYdYdadjYdYd) -   & 
+&  6._dp*(Trmq2adjYdYdadjYuYu) - 24._dp*(Trmq2adjYdYsIICYsIIYd) - 12._dp*(Trmq2adjYdYzIIadjYzIIYd) -& 
+&  6._dp*(Trmq2adjYuYuadjYdYd) - 6._dp*(Trmu2YuadjYdYdadjYu) - 36._dp*(TrYdadjTdTdadjYd) -& 
+&  12._dp*(TrYdadjTdTsIICYsII) - 12._dp*(TrYdadjTdTzIIadjYzII) - 6._dp*(TrYdadjTuTuadjYd) -& 
+&  18*AbsTL1II*TrYdadjYd + 64*AbsM3*g3p2*TrYdadjYd - (4*g1p2*mHd2*TrYdadjYd)/5._dp +     & 
+&  32*g3p2*mHd2*TrYdadjYd - 36._dp*(TrYdadjYdTdadjTd) - 24._dp*(TrYdadjYdTsIICTsII) -    & 
+&  12._dp*(TrYdadjYdTzIIadjTzII) - 36*mHd2*TrYdadjYdYdadjYd - 24._dp*(TrYdadjYdYsIICmd2CYsII) -& 
+&  24*mHd2*TrYdadjYdYsIICYsII - 24*ms2*TrYdadjYdYsIICYsII - 12*mHd2*TrYdadjYdYzIIadjYzII -& 
+&  12*mzz2*TrYdadjYdYzIIadjYzII - 6._dp*(TrYdadjYuTuadjTd) - 6*mHd2*TrYdadjYuYuadjYd -   & 
+&  6*mHu2*TrYdadjYuYuadjYd - 12._dp*(TrYeadjTeTeadjYe) - 6._dp*(TrYeadjTzIITzIIadjYe)  
+betamHd22 =  betamHd22- 6*AbsTL1II*TrYeadjYe + (12*g1p2*mHd2*TrYeadjYe)/5._dp - 12._dp*(TrYeadjYeTeadjTe) -   & 
+&  12*mHd2*TrYeadjYeYeadjYe - 6._dp*(TrYeadjYzIITzIIadjTe) - 6*mHd2*TrYeadjYzIIYzIIadjYe -& 
+&  6*mzz2*TrYeadjYzIIYzIIadjYe - 6._dp*(TrYeCTtIITtIIadjYe) - 6._dp*(TrYeCYtIICml2YtIIadjYe) -& 
+&  3._dp*(TrYeCYtIITtIIadjTe) - 6*mHd2*TrYeCYtIIYtIIadjYe - 6*mt2*TrYeCYtIIYtIIadjYe -   & 
+&  6._dp*(TrYsIICTdTpTdCYsII) - 24._dp*(TrYsIICTsIITdadjYd) - 18._dp*(TrYsIICYsIITdadjTd) -& 
+&  3._dp*(TrYtIIadjTeTeCYtII) - 6._dp*(TrYtIIadjYeTeCTtII) - 6*AbsTL1II*TrYtIICYtII -    & 
+&  3._dp*(TrYtIICYtIITpTeCTe) - 6._dp*(TrYuadjTdTdadjYu) - 6._dp*(TrYuadjYdTdadjTu) -    & 
+&  6._dp*(TrYzIIadjTeTeadjYzII) - 12._dp*(TrYzIIadjTzIITdadjYd) - 6._dp*(TrYzIIadjYeTeadjTzII) -& 
+&  12._dp*(TrYzIIadjYzIITdadjTd) + (g1p2*(1251*g1p2*M1 + 90*g2p2*M1 + 45*g2p2*M2 +       & 
+&  20._dp*(TradjYdTd) - 60._dp*(TradjYeTe) - 40*M1*TrYdadjYd + 120*M1*TrYeadjYe)*Conjg(M1))/25._dp -& 
+&  32*g3p2*TradjYdTd*Conjg(M3) + (9*g1p2*g2p2*M1*Conjg(M2))/5._dp - (36*g1p2*L1II*M1*Conjg(TL1II))/5._dp -& 
+&  24*g2p2*L1II*M2*Conjg(TL1II) - 18*L1II*TradjYdTd*Conjg(TL1II) - 6*L1II*TradjYeTe*Conjg(TL1II) -& 
+&  6*L1II*TrCYtIITtII*Conjg(TL1II) + (6*Conjg(L1II)*(-80*AbsTL1II*L1II + 12*g1p2*L1II*mHd2 +& 
+&  40*g2p2*L1II*mHd2 + 6*g1p2*L1II*mt2 + 20*g2p2*L1II*mt2 - 15*L1II*TrCTdTpTd -          & 
+&  5*L1II*TrCTeTpTe - 5*L1II*TrCTtIITtII - 15*L1II*Trmd2YdadjYd - 5*L1II*Trme2YeadjYe -  & 
+&  5*L1II*Trml2adjYeYe - 10*L1II*Trml2CYtIIYtII - 15*L1II*Trmq2adjYdYd - 45*L1II*mHd2*TrYdadjYd -& 
+&  15*L1II*mt2*TrYdadjYd - 15*L1II*mHd2*TrYeadjYe - 5*L1II*mt2*TrYeadjYe -               & 
+&  10*L1II*mHd2*TrYtIICYtII - 10*L1II*mt2*TrYtIICYtII + 6*g1p2*Conjg(M1)*(2*L1II*M1 -    & 
+&  TL1II) + 20*g2p2*Conjg(M2)*(2*L1II*M2 - TL1II) - 15*TrCTdTpYd*TL1II - 5*TrCTeTpYe*TL1II -& 
+&  5*TrYtIICTtII*TL1II))/5._dp + 6*g2p4*Tr2(2) + (6*g1p2*Tr2U1(1,1))/5._dp -             & 
+&  4*g1*sqrt3ov5*Tr3(1)
+
+ 
+DmHd2 = oo16pi2*( betamHd21 + oo16pi2 * betamHd22 ) 
+
+ 
+Else 
+DmHd2 = oo16pi2* betamHd21 
+End If 
+ 
+ 
+!-------------------- 
+! mHu2 
+!-------------------- 
+ 
+betamHu21  = 6._dp*(AbsTL2II) - (6*AbsM1*g1p2)/5._dp - 6*AbsM2*g2p2 + 6*AbsL2II*(2._dp*(mHu2)& 
+&  + mtb2) + 6._dp*(TrCTuTpTu) + 6._dp*(Trmq2adjYuYu) + 6._dp*(Trmu2YuadjYu)             & 
+&  + 6*mHu2*TrYuadjYu + g1*sqrt3ov5*Tr1(1)
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betamHu22 = (36*AbsTL2II*g1p2)/5._dp + 24*AbsTL2II*g2p2 + (18*AbsM2*g1p2*g2p2)/5._dp +            & 
+&  159*AbsM2*g2p4 - 48*CL2IIp2*L2IIp2*(2._dp*(mHu2) + mtb2) + (8*g1p2*TrCTuTpTu)/5._dp + & 
+&  32*g3p2*TrCTuTpTu - (8*g1p2*M1*TrCTuTpYu)/5._dp - 32*g3p2*M3*TrCTuTpYu -              & 
+&  6._dp*(Trmd2YdadjYuYuadjYd) - 6._dp*(Trmq2adjYdYdadjYuYu) + (8*g1p2*Trmq2adjYuYu)/5._dp +& 
+&  32*g3p2*Trmq2adjYuYu - 6._dp*(Trmq2adjYuYuadjYdYd) - 36._dp*(Trmq2adjYuYuadjYuYu) -   & 
+&  6._dp*(Trmu2YuadjYdYdadjYu) + (8*g1p2*Trmu2YuadjYu)/5._dp + 32*g3p2*Trmu2YuadjYu -    & 
+&  36._dp*(Trmu2YuadjYuYuadjYu) - 6._dp*(TrYdadjTuTuadjYd) - 6._dp*(TrYdadjYuTuadjTd) -  & 
+&  6*mHd2*TrYdadjYuYuadjYd - 6*mHu2*TrYdadjYuYuadjYd - 6._dp*(TrYuadjTdTdadjYu) -        & 
+&  36._dp*(TrYuadjTuTuadjYu) - 6._dp*(TrYuadjYdTdadjTu) - 18*AbsTL2II*TrYuadjYu +        & 
+&  64*AbsM3*g3p2*TrYuadjYu + (8*g1p2*mHu2*TrYuadjYu)/5._dp + 32*g3p2*mHu2*TrYuadjYu -    & 
+&  36._dp*(TrYuadjYuTuadjTu) - 36*mHu2*TrYuadjYuYuadjYu + (g1p2*(1251*g1p2*M1 +          & 
+&  90*g2p2*M1 + 45*g2p2*M2 - 40._dp*(TradjYuTu) + 80*M1*TrYuadjYu)*Conjg(M1))/25._dp -   & 
+&  32*g3p2*TradjYuTu*Conjg(M3) + (9*g1p2*g2p2*M1*Conjg(M2))/5._dp - (36*g1p2*L2II*M1*Conjg(TL2II))/5._dp -& 
+&  24*g2p2*L2II*M2*Conjg(TL2II) - 18*L2II*TradjYuTu*Conjg(TL2II) + (6*Conjg(L2II)*(-     & 
+& 80*AbsTL2II*L2II + 12*g1p2*L2II*mHu2 + 40*g2p2*L2II*mHu2 + 6*g1p2*L2II*mtb2 +          & 
+&  20*g2p2*L2II*mtb2 - 15*L2II*TrCTuTpTu - 15*L2II*Trmq2adjYuYu - 15*L2II*Trmu2YuadjYu - & 
+&  45*L2II*mHu2*TrYuadjYu - 15*L2II*mtb2*TrYuadjYu + 6*g1p2*Conjg(M1)*(2*L2II*M1 -       & 
+&  TL2II) + 20*g2p2*Conjg(M2)*(2*L2II*M2 - TL2II) - 15*TrCTuTpYu*TL2II))/5._dp +         & 
+&  6*g2p4*Tr2(2) + (6*g1p2*Tr2U1(1,1))/5._dp + 4*g1*sqrt3ov5*Tr3(1)
+
+ 
+DmHu2 = oo16pi2*( betamHu21 + oo16pi2 * betamHu22 ) 
+
+ 
+Else 
+DmHu2 = oo16pi2* betamHu21 
+End If 
+ 
+ 
+!-------------------- 
+! md2 
+!-------------------- 
+ 
+betamd21  = (-8*AbsM1*g1p2*id3R)/15._dp - (32*AbsM3*g3p2*id3R)/3._dp + 2._dp*(md2YdadjYd)& 
+&  + 4._dp*(md2YsIICYsII) + 2._dp*(md2YzIIadjYzII) + 4._dp*(TdadjTd) + 8._dp*(TsIICTsII) & 
+&  + 4._dp*(TzIIadjTzII) + 4*mHd2*YdadjYd + 2._dp*(YdadjYdmd2) + 4._dp*(Ydmq2adjYd)      & 
+&  + 8._dp*(YsIICmd2CYsII) + 8*ms2*YsIICYsII + 4._dp*(YsIICYsIImd2) + 4*mzz2*YzIIadjYzII +& 
+&  2._dp*(YzIIadjYzIImd2) + 4._dp*(YzIIml2adjYzII) + 2*g1*id3R*ooSqrt15*Tr1(1)
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betamd22 = -6*AbsL1II*md2YdadjYd + (2*g1p2*md2YdadjYd)/5._dp + 6*g2p2*md2YdadjYd -               & 
+&  2._dp*(md2YdadjYdYdadjYd) - 2._dp*(md2YdadjYuYuadjYd) - 8._dp*(md2YsIICYdTpYdCYsII) + & 
+&  (32*g1p2*md2YsIICYsII)/15._dp + (80*g3p2*md2YsIICYsII)/3._dp - 16._dp*(md2YsIICYsIIYsIICYsII) -& 
+&  8._dp*(md2YsIICYzIITpYzIICYsII) - 2._dp*(md2YzIIadjYeYeadjYzII) + (2*g1p2*md2YzIIadjYzII)/5._dp +& 
+&  6*g2p2*md2YzIIadjYzII - 6._dp*(md2YzIIadjYzIIYzIIadjYzII) - 6._dp*(md2YzIICYtIIYtIIadjYzII) -& 
+&  12*AbsL1II*TdadjTd + (4*g1p2*TdadjTd)/5._dp + 12*g2p2*TdadjTd - 4._dp*(TdadjTdYdadjYd) -& 
+&  4._dp*(TdadjTuYuadjYd) - 4._dp*(TdadjYdYdadjTd) - 4._dp*(TdadjYdYsIICTsII) -          & 
+&  4._dp*(TdadjYuYuadjTd) - 12*TdadjYd*TrCTdTpYd - 4*TdadjYd*TrCTeTpYe - 6*md2YdadjYd*TrYdadjYd -& 
+&  12*TdadjTd*TrYdadjYd - 2*md2YdadjYd*TrYeadjYe - 4*TdadjTd*TrYeadjYe - 4*md2YsIICYsII*TrYsIICYsII -& 
+&  2*md2YzIIadjYzII*TrYzIIadjYzII - 12._dp*(TsIICTdTpYdCYsII) + (64*g1p2*TsIICTsII)/15._dp +& 
+&  (160*g3p2*TsIICTsII)/3._dp - 8*TrYsIICYsII*TsIICTsII - 32._dp*(TsIICTsIIYsIICYsII) -  & 
+&  12._dp*(TsIICTzIITpYzIICYsII) - 16._dp*(TsIICYdTpYdCTsII) - 8*TrYsIICTsII*TsIICYsII - & 
+&  32._dp*(TsIICYsIIYsIICTsII) - 16._dp*(TsIICYzIITpYzIICTsII) - 4._dp*(TsIIYdadjTdCYsII) -& 
+&  4._dp*(TsIIYzIIadjTzIICYsII) - 4._dp*(TzIIadjTeYeadjYzII) + (4*g1p2*TzIIadjTzII)/5._dp +& 
+&  12*g2p2*TzIIadjTzII - 4*TrYzIIadjYzII*TzIIadjTzII - 12._dp*(TzIIadjTzIIYzIIadjYzII) - & 
+&  4._dp*(TzIIadjYeYeadjTzII) - 4*TrCTzIITpYzII*TzIIadjYzII - 4._dp*(TzIIadjYzIIYsIICTsII) -& 
+&  12._dp*(TzIIadjYzIIYzIIadjTzII) - 12._dp*(TzIICTtIIYtIIadjYzII) - 12._dp*(TzIICYtIIYtIIadjTzII) -& 
+&  (4*g1p2*M1*YdadjTd)/5._dp - 12*g2p2*M2*YdadjTd - 12*TradjYdTd*YdadjTd -               & 
+&  4*TradjYeTe*YdadjTd - 4._dp*(YdadjTdTdadjYd) - 4._dp*(YdadjTuTuadjYd) -               & 
+&  12*AbsTL1II*YdadjYd + 24*AbsM2*g2p2*YdadjYd - 36*AbsL1II*mHd2*YdadjYd +               & 
+&  (4*g1p2*mHd2*YdadjYd)/5._dp + 12*g2p2*mHd2*YdadjYd - 12*AbsL1II*mt2*YdadjYd  
+betamd22 =  betamd22- 12*TrCTdTpTd*YdadjYd - 4*TrCTeTpTe*YdadjYd - 12*Trmd2YdadjYd*YdadjYd - 4*Trme2YeadjYe*YdadjYd -& 
+&  4*Trml2adjYeYe*YdadjYd - 12*Trmq2adjYdYd*YdadjYd - 24*mHd2*TrYdadjYd*YdadjYd -        & 
+&  8*mHd2*TrYeadjYe*YdadjYd - 6*AbsL1II*YdadjYdmd2 + (2*g1p2*YdadjYdmd2)/5._dp +         & 
+&  6*g2p2*YdadjYdmd2 - 6*TrYdadjYd*YdadjYdmd2 - 2*TrYeadjYe*YdadjYdmd2 - 4._dp*(YdadjYdmd2YdadjYd) -& 
+&  4._dp*(YdadjYdTdadjTd) - 8*mHd2*YdadjYdYdadjYd - 2._dp*(YdadjYdYdadjYdmd2) -          & 
+&  4._dp*(YdadjYdYdmq2adjYd) - 4._dp*(YdadjYumu2YuadjYd) - 4._dp*(YdadjYuTuadjTd) -      & 
+&  4*mHd2*YdadjYuYuadjYd - 4*mHu2*YdadjYuYuadjYd - 2._dp*(YdadjYuYuadjYdmd2) -           & 
+&  4._dp*(YdadjYuYumq2adjYd) - 12*AbsL1II*Ydmq2adjYd + (4*g1p2*Ydmq2adjYd)/5._dp +       & 
+&  12*g2p2*Ydmq2adjYd - 12*TrYdadjYd*Ydmq2adjYd - 4*TrYeadjYe*Ydmq2adjYd -               & 
+&  4._dp*(Ydmq2adjYdYdadjYd) - 4._dp*(Ydmq2adjYuYuadjYd) - 16._dp*(YsIICmd2CYdTpYdCYsII) +& 
+&  (64*g1p2*YsIICmd2CYsII)/15._dp + (160*g3p2*YsIICmd2CYsII)/3._dp - 8*TrYsIICYsII*YsIICmd2CYsII -& 
+&  32._dp*(YsIICmd2CYsIIYsIICYsII) - 16._dp*(YsIICmd2CYzIITpYzIICYsII) - 16._dp*(YsIICTdTpTdCYsII) -& 
+&  (64*g1p2*M1*YsIICTsII)/15._dp - (160*g3p2*M3*YsIICTsII)/3._dp - 8*TrCYsIITsII*YsIICTsII -& 
+&  32._dp*(YsIICTsIITsIICYsII) - 16._dp*(YsIICTzIITpTzIICYsII) - 16._dp*(YsIICYdCmq2TpYdCYsII) -& 
+&  8._dp*(YsIICYdTpTdCTsII) - 16._dp*(YsIICYdTpYdCmd2CYsII) - 16*mHd2*YsIICYdTpYdCYsII - & 
+&  16*ms2*YsIICYdTpYdCYsII - 8._dp*(YsIICYdTpYdCYsIImd2) + (64*g1p2*ms2*YsIICYsII)/15._dp +& 
+&  (160*g3p2*ms2*YsIICYsII)/3._dp - 8*TrCTsIITsII*YsIICYsII - 16*Trmd2YsIICYsII*YsIICYsII -& 
+&  16*ms2*TrYsIICYsII*YsIICYsII + (32*g1p2*YsIICYsIImd2)/15._dp + (80*g3p2*YsIICYsIImd2)/3._dp -& 
+&  4*TrYsIICYsII*YsIICYsIImd2 - 32._dp*(YsIICYsIImd2YsIICYsII) - 32._dp*(YsIICYsIITsIICTsII) -& 
+&  32._dp*(YsIICYsIIYsIICmd2CYsII) - 64*ms2*YsIICYsIIYsIICYsII - 16._dp*(YsIICYsIIYsIICYsIImd2) -& 
+&  16._dp*(YsIICYzIICml2TpYzIICYsII) - 8._dp*(YsIICYzIITpTzIICTsII) - 16._dp*(YsIICYzIITpYzIICmd2CYsII)  
+betamd22 =  betamd22- 16*ms2*YsIICYzIITpYzIICYsII - 16*mzz2*YsIICYzIITpYzIICYsII - 8._dp*(YsIICYzIITpYzIICYsIImd2) -& 
+&  4._dp*(YsIITdadjYdCTsII) - 4._dp*(YsIITzIIadjYzIICTsII) - 4._dp*(YzIIadjTeTeadjYzII) -& 
+&  (4*g1p2*M1*YzIIadjTzII)/5._dp - 12*g2p2*M2*YzIIadjTzII - 4*TradjYzIITzII*YzIIadjTzII -& 
+&  12._dp*(YzIIadjTzIITzIIadjYzII) - 4._dp*(YzIIadjYeme2YeadjYzII) - 4._dp*(YzIIadjYeTeadjTzII) -& 
+&  4*mHd2*YzIIadjYeYeadjYzII - 4*mzz2*YzIIadjYeYeadjYzII - 2._dp*(YzIIadjYeYeadjYzIImd2) -& 
+&  4._dp*(YzIIadjYeYeml2adjYzII) + 24*AbsM2*g2p2*YzIIadjYzII + (4*g1p2*mzz2*YzIIadjYzII)/5._dp +& 
+&  12*g2p2*mzz2*YzIIadjYzII - 4*TrCTzIITpTzII*YzIIadjYzII - 4*Trmd2YzIIadjYzII*YzIIadjYzII -& 
+&  4*Trml2adjYzIIYzII*YzIIadjYzII - 8*mzz2*TrYzIIadjYzII*YzIIadjYzII + (2*g1p2*YzIIadjYzIImd2)/5._dp +& 
+&  6*g2p2*YzIIadjYzIImd2 - 2*TrYzIIadjYzII*YzIIadjYzIImd2 - 12._dp*(YzIIadjYzIImd2YzIIadjYzII) -& 
+&  12._dp*(YzIIadjYzIITzIIadjTzII) - 24*mzz2*YzIIadjYzIIYzIIadjYzII - 6._dp*(YzIIadjYzIIYzIIadjYzIImd2) -& 
+&  12._dp*(YzIIadjYzIIYzIIml2adjYzII) - 12._dp*(YzIICTtIITtIIadjYzII) - 12._dp*(YzIICYtIICml2YtIIadjYzII) -& 
+&  12._dp*(YzIICYtIITtIIadjTzII) - 12*mt2*YzIICYtIIYtIIadjYzII - 12*mzz2*YzIICYtIIYtIIadjYzII -& 
+&  6._dp*(YzIICYtIIYtIIadjYzIImd2) - 12._dp*(YzIICYtIIYtIIml2adjYzII) - 4._dp*(YzIIml2adjYeYeadjYzII) +& 
+&  (4*g1p2*YzIIml2adjYzII)/5._dp + 12*g2p2*YzIIml2adjYzII - 4*TrYzIIadjYzII*YzIIml2adjYzII -& 
+&  12._dp*(YzIIml2adjYzIIYzIIadjYzII) - 12._dp*(YzIIml2CYtIIYtIIadjYzII) +               & 
+&  (4*g1p2*(4*id3R*(309*g1p2*M1 + 20*g3p2*(2._dp*(M1) + M3)) + 15*(-3._dp*(TdadjYd) -    & 
+&  16._dp*(TsIICYsII) - 3._dp*(TzIIadjYzII) + 6*M1*YdadjYd + 32*M1*YsIICYsII +           & 
+&  6*M1*YzIIadjYzII))*Conjg(M1))/225._dp + (32*g3p2*(id3R*(255*g3p2*M3 + 2*g1p2*(M1 +    & 
+&  2._dp*(M3))) + 75*(-1._dp*(TsIICYsII) + 2*M3*YsIICYsII))*Conjg(M3))/45._dp -          & 
+&  12*g2p2*TdadjYd*Conjg(M2) - 12*g2p2*TzIIadjYzII*Conjg(M2) - 12*L1II*TdadjYd*Conjg(TL1II) -& 
+&  12*YdadjTd*Conjg(L1II)*TL1II + (32*g3p4*id3R*Tr2(3))/3._dp + (8*g1p2*id3R*Tr2U1(1,    & 
+& 1))/15._dp + 8*g1*id3R*ooSqrt15*Tr3(1)
+
+ 
+Dmd2 = oo16pi2*( betamd21 + oo16pi2 * betamd22 ) 
+
+ 
+Else 
+Dmd2 = oo16pi2* betamd21 
+End If 
+ 
+ 
+Forall(i1=1:3) Dmd2(i1,i1) =  Real(Dmd2(i1,i1),dp) 
+!-------------------- 
+! mu2 
+!-------------------- 
+ 
+betamu21  = (-32*AbsM1*g1p2*id3R)/15._dp - (32*AbsM3*g3p2*id3R)/3._dp +               & 
+&  2._dp*(mu2YuadjYu) + 4._dp*(TuadjTu) + 4*mHu2*YuadjYu + 2._dp*(YuadjYumu2)            & 
+&  + 4._dp*(Yumq2adjYu) - 4*g1*id3R*ooSqrt15*Tr1(1)
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betamu22 = -2._dp*(mu2YuadjYdYdadjYu) - 6*AbsL2II*mu2YuadjYu - (2*g1p2*mu2YuadjYu)/5._dp +       & 
+&  6*g2p2*mu2YuadjYu - 2._dp*(mu2YuadjYuYuadjYu) - 6*mu2YuadjYu*TrYuadjYu -              & 
+&  4._dp*(TuadjTdYdadjYu) - 12*AbsL2II*TuadjTu - (4*g1p2*TuadjTu)/5._dp + 12*g2p2*TuadjTu -& 
+&  12*TrYuadjYu*TuadjTu - 4._dp*(TuadjTuYuadjYu) - 4._dp*(TuadjYdYdadjTu) -              & 
+&  12*TrCTuTpYu*TuadjYu - 4._dp*(TuadjYuYuadjTu) - 4._dp*(YuadjTdTdadjYu) +              & 
+&  (4*g1p2*M1*YuadjTu)/5._dp - 12*g2p2*M2*YuadjTu - 12*TradjYuTu*YuadjTu -               & 
+&  4._dp*(YuadjTuTuadjYu) - 4._dp*(YuadjYdmd2YdadjYu) - 4._dp*(YuadjYdTdadjTu) -         & 
+&  4*mHd2*YuadjYdYdadjYu - 4*mHu2*YuadjYdYdadjYu - 2._dp*(YuadjYdYdadjYumu2) -           & 
+&  4._dp*(YuadjYdYdmq2adjYu) - 12*AbsTL2II*YuadjYu + 24*AbsM2*g2p2*YuadjYu -             & 
+&  36*AbsL2II*mHu2*YuadjYu - (4*g1p2*mHu2*YuadjYu)/5._dp + 12*g2p2*mHu2*YuadjYu -        & 
+&  12*AbsL2II*mtb2*YuadjYu - 12*TrCTuTpTu*YuadjYu - 12*Trmq2adjYuYu*YuadjYu -            & 
+&  12*Trmu2YuadjYu*YuadjYu - 24*mHu2*TrYuadjYu*YuadjYu - 6*AbsL2II*YuadjYumu2 -          & 
+&  (2*g1p2*YuadjYumu2)/5._dp + 6*g2p2*YuadjYumu2 - 6*TrYuadjYu*YuadjYumu2 -              & 
+&  4._dp*(YuadjYumu2YuadjYu) - 4._dp*(YuadjYuTuadjTu) - 8*mHu2*YuadjYuYuadjYu -          & 
+&  2._dp*(YuadjYuYuadjYumu2) - 4._dp*(YuadjYuYumq2adjYu) - 4._dp*(Yumq2adjYdYdadjYu) -   & 
+&  12*AbsL2II*Yumq2adjYu - (4*g1p2*Yumq2adjYu)/5._dp + 12*g2p2*Yumq2adjYu -              & 
+&  12*TrYuadjYu*Yumq2adjYu - 4._dp*(Yumq2adjYuYuadjYu) + (4*g1p2*(32*id3R*(159*g1p2*M1 + & 
+&  10*g3p2*(2._dp*(M1) + M3)) + 45*(TuadjYu - 2*M1*YuadjYu))*Conjg(M1))/225._dp +        & 
+&  (32*g3p2*id3R*(255*g3p2*M3 + 8*g1p2*(M1 + 2._dp*(M3)))*Conjg(M3))/45._dp -            & 
+&  12*g2p2*TuadjYu*Conjg(M2) - 12*L2II*TuadjYu*Conjg(TL2II) - 12*YuadjTu*Conjg(L2II)*TL2II +& 
+&  (32*g3p4*id3R*Tr2(3))/3._dp + (32*g1p2*id3R*Tr2U1(1,1))/15._dp - 16*g1*id3R*ooSqrt15*Tr3(1)
+
+ 
+Dmu2 = oo16pi2*( betamu21 + oo16pi2 * betamu22 ) 
+
+ 
+Else 
+Dmu2 = oo16pi2* betamu21 
+End If 
+ 
+ 
+Forall(i1=1:3) Dmu2(i1,i1) =  Real(Dmu2(i1,i1),dp) 
+!-------------------- 
+! me2 
+!-------------------- 
+ 
+betame21  = (-24*AbsM1*g1p2*id3R)/5._dp + 2*(me2YeadjYe + 2._dp*(TeadjTe)             & 
+&  + 2*mHd2*YeadjYe + YeadjYeme2 + 2._dp*(Yeml2adjYe)) + 2*g1*id3R*sqrt3ov5*Tr1(1)
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betame22 = (2*(6*g1p2*(444*g1p2*id3R*M1 + 5*(TeadjYe - 2*M1*YeadjYe))*Conjg(M1) - 5*(15*AbsL1II*me2YeadjYe +& 
+&  3*g1p2*me2YeadjYe - 15*g2p2*me2YeadjYe + 5._dp*(me2YeadjYeYeadjYe) + 15._dp*(me2YeadjYzIIYzIIadjYe) +& 
+&  15._dp*(me2YeCYtIIYtIIadjYe) + 30*AbsL1II*TeadjTe + 6*g1p2*TeadjTe - 30*g2p2*TeadjTe +& 
+&  10._dp*(TeadjTeYeadjYe) + 30._dp*(TeadjTzIIYzIIadjYe) + 10._dp*(TeadjYeYeadjTe) +     & 
+&  30._dp*(TeadjYzIIYzIIadjTe) + 30._dp*(TeCTtIIYtIIadjYe) + 30._dp*(TeCYtIIYtIIadjTe) + & 
+&  30*TeadjYe*TrCTdTpYd + 10*TeadjYe*TrCTeTpYe + 15*me2YeadjYe*TrYdadjYd +               & 
+&  30*TeadjTe*TrYdadjYd + 5*me2YeadjYe*TrYeadjYe + 10*TeadjTe*TrYeadjYe + 10._dp*(YeadjTeTeadjYe) +& 
+&  30._dp*(YeadjTzIITzIIadjYe) + 2*(15._dp*(AbsTL1II) - 30*AbsM2*g2p2 + 3*g1p2*mHd2 -    & 
+&  15*g2p2*mHd2 + 15*AbsL1II*(3._dp*(mHd2) + mt2) + 15._dp*(TrCTdTpTd) + 5._dp*(TrCTeTpTe) +& 
+&  15._dp*(Trmd2YdadjYd) + 5._dp*(Trme2YeadjYe) + 5._dp*(Trml2adjYeYe) + 15._dp*(Trmq2adjYdYd) +& 
+&  30*mHd2*TrYdadjYd + 10*mHd2*TrYeadjYe)*YeadjYe + 15*AbsL1II*YeadjYeme2 +              & 
+&  3*g1p2*YeadjYeme2 - 15*g2p2*YeadjYeme2 + 15*TrYdadjYd*YeadjYeme2 + 5*TrYeadjYe*YeadjYeme2 +& 
+&  10._dp*(YeadjYeme2YeadjYe) + 10._dp*(YeadjYeTeadjTe) + 20*mHd2*YeadjYeYeadjYe +       & 
+&  5._dp*(YeadjYeYeadjYeme2) + 10._dp*(YeadjYeYeml2adjYe) + 30._dp*(YeadjYzIImd2YzIIadjYe) +& 
+&  30._dp*(YeadjYzIITzIIadjTe) + 30*mHd2*YeadjYzIIYzIIadjYe + 30*mzz2*YeadjYzIIYzIIadjYe +& 
+&  15._dp*(YeadjYzIIYzIIadjYeme2) + 30._dp*(YeadjYzIIYzIIml2adjYe) + 30._dp*(YeCTtIITtIIadjYe) +& 
+&  30._dp*(YeCYtIICml2YtIIadjYe) + 30._dp*(YeCYtIITtIIadjTe) + 30*mHd2*YeCYtIIYtIIadjYe +& 
+&  30*mt2*YeCYtIIYtIIadjYe + 15._dp*(YeCYtIIYtIIadjYeme2) + 30._dp*(YeCYtIIYtIIml2adjYe) +& 
+&  30*AbsL1II*Yeml2adjYe + 6*g1p2*Yeml2adjYe - 30*g2p2*Yeml2adjYe + 30*TrYdadjYd*Yeml2adjYe +& 
+&  10*TrYeadjYe*Yeml2adjYe + 10._dp*(Yeml2adjYeYeadjYe) + 30._dp*(Yeml2adjYzIIYzIIadjYe) +& 
+&  30._dp*(Yeml2CYtIIYtIIadjYe) + 30*g2p2*TeadjYe*Conjg(M2) + 30*L1II*TeadjYe*Conjg(TL1II) +& 
+&  YeadjTe*(-6*g1p2*M1 + 30*g2p2*M2 + 30._dp*(TradjYdTd) + 10._dp*(TradjYeTe) +          & 
+&  30*Conjg(L1II)*TL1II)) + 20*g1*id3R*(3*g1*Tr2U1(1,1) + sqrt15*Tr3(1))))/25._dp
+
+ 
+Dme2 = oo16pi2*( betame21 + oo16pi2 * betame22 ) 
+
+ 
+Else 
+Dme2 = oo16pi2* betame21 
+End If 
+ 
+ 
+Forall(i1=1:3) Dme2(i1,i1) =  Real(Dme2(i1,i1),dp) 
+!-------------------- 
+! mt2 
+!-------------------- 
+ 
+betamt21  = 2._dp*(AbsTL1II) - (24*AbsM1*g1p2)/5._dp - 16*AbsM2*g2p2 + 2*AbsL1II*(2._dp*(mHd2)& 
+&  + mt2) + 2._dp*(TrCTtIITtII) + 4._dp*(Trml2CYtIIYtII) + 2*mt2*TrYtIICYtII +           & 
+&  2*g1*sqrt3ov5*Tr1(1)
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betamt22 = (-6*AbsTL1II*g1p2)/5._dp - 2*AbsTL1II*g2p2 + (192*AbsM2*g1p2*g2p2)/5._dp +            & 
+&  544*AbsM2*g2p4 - 24*CL1IIp2*L1IIp2*(2._dp*(mHd2) + mt2) - (6*g1p2*TrCTtIITtII)/5._dp -& 
+&  2*g2p2*TrCTtIITtII - 2._dp*(TrCYtIITpYeCTeTtII) - 6._dp*(TrCYtIITpYzIICTzIITtII) -    & 
+&  12._dp*(Trmd2YzIICYtIIYtIIadjYzII) - 4._dp*(Trme2YeCYtIIYtIIadjYe) - 4._dp*(Trml2adjYeYeCYtIIYtII) -& 
+&  12._dp*(Trml2adjYzIIYzIICYtIIYtII) - (12*g1p2*Trml2CYtIIYtII)/5._dp - 4*g2p2*Trml2CYtIIYtII -& 
+&  4._dp*(Trml2CYtIIYtIIadjYeYe) - 12._dp*(Trml2CYtIIYtIIadjYzIIYzII) - 48._dp*(Trml2CYtIIYtIICYtIIYtII) -& 
+&  12*AbsTL1II*TrYdadjYd - 4*AbsTL1II*TrYeadjYe - 4._dp*(TrYeCTtIITtIIadjYe) -           & 
+&  4._dp*(TrYeCYtIICml2YtIIadjYe) - 2._dp*(TrYeCYtIITtIIadjTe) - 4*mHd2*TrYeCYtIIYtIIadjYe -& 
+&  4*mt2*TrYeCYtIIYtIIadjYe - 2._dp*(TrYtIIadjTeTeCYtII) - 6._dp*(TrYtIIadjTzIITzIICYtII) -& 
+&  4._dp*(TrYtIIadjYeTeCTtII) - 12._dp*(TrYtIIadjYzIITzIICTtII) - 12*mt2*TrYtIIadjYzIIYzIICYtII -& 
+&  12*mzz2*TrYtIIadjYzIIYzIICYtII - 12._dp*(TrYtIIadjYzIIYzIICYtIICml2) + (6*g1p2*M1*TrYtIICTtII)/5._dp +& 
+&  2*g2p2*M2*TrYtIICTtII - 21._dp*(TrYtIICTtIITtIICYtII) - 4*AbsM2*g2p2*TrYtIICYtII -    & 
+&  (6*g1p2*mt2*TrYtIICYtII)/5._dp - 2*g2p2*mt2*TrYtIICYtII - 2._dp*(TrYtIICYtIITpTeCTe) -& 
+&  6._dp*(TrYtIICYtIITpTzIICTzII) - 27._dp*(TrYtIICYtIITtIICTtII) - 24*mt2*TrYtIICYtIIYtIICYtII -& 
+&  12._dp*(TrYzIICTtIITtIIadjYzII) - 6._dp*(TrYzIICYtIITtIIadjTzII) + (6*g1p2*(888*g1p2*M1 +& 
+&  160*g2p2*M1 + 80*g2p2*M2 + 5._dp*(TrCYtIITtII) - 10*M1*TrYtIICYtII)*Conjg(M1))/25._dp +& 
+&  (96*g1p2*g2p2*M1*Conjg(M2))/5._dp + 2*g2p2*TrCYtIITtII*Conjg(M2) + (6*g1p2*L1II*M1*Conjg(TL1II))/5._dp +& 
+&  2*g2p2*L1II*M2*Conjg(TL1II) - 12*L1II*TradjYdTd*Conjg(TL1II) - 4*L1II*TradjYeTe*Conjg(TL1II) -& 
+&  (2*Conjg(L1II)*(120*AbsTL1II*L1II + 6*g1p2*L1II*mHd2 + 10*g2p2*L1II*mHd2 +            & 
+&  3*g1p2*L1II*mt2 + 5*g2p2*L1II*mt2 + 30*L1II*TrCTdTpTd + 10*L1II*TrCTeTpTe +           & 
+&  30*L1II*Trmd2YdadjYd + 10*L1II*Trme2YeadjYe + 10*L1II*Trml2adjYeYe + 30*L1II*Trmq2adjYdYd +& 
+&  90*L1II*mHd2*TrYdadjYd + 30*L1II*mt2*TrYdadjYd + 30*L1II*mHd2*TrYeadjYe +             & 
+&  10*L1II*mt2*TrYeadjYe + 3*g1p2*Conjg(M1)*(2*L1II*M1 - TL1II) + 5*g2p2*Conjg(M2)*(2*L1II*M2 -& 
+&  TL1II) + 30*TrCTdTpYd*TL1II + 10*TrCTeTpYe*TL1II))/5._dp + 16*g2p4*Tr2(2)  
+betamt22 =  betamt22+ (24*g1p2*Tr2U1(1,1))/5._dp + 8*g1*sqrt3ov5*Tr3(1)
+
+ 
+Dmt2 = oo16pi2*( betamt21 + oo16pi2 * betamt22 ) 
+
+ 
+Else 
+Dmt2 = oo16pi2* betamt21 
+End If 
+ 
+ 
+!-------------------- 
+! mtb2 
+!-------------------- 
+ 
+betamtb21  = 2*AbsL2II*(2._dp*(mHu2) + mtb2) - (2*(-5._dp*(AbsTL2II) + 12*AbsM1*g1p2 +& 
+&  40*AbsM2*g2p2 + g1*sqrt15*Tr1(1)))/5._dp
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betamtb22 = (-2*(300*CL2IIp2*L2IIp2*(2._dp*(mHu2) + mtb2) - 24*g1p2*(111*g1p2*M1 + 10*g2p2*(2._dp*(M1) +& 
+&  M2))*Conjg(M1) + 5*Conjg(L2II)*(120*AbsTL2II*L2II + 6*g1p2*L2II*mHu2 + 10*g2p2*L2II*mHu2 +& 
+&  3*g1p2*L2II*mtb2 + 5*g2p2*L2II*mtb2 + 30*L2II*TrCTuTpTu + 30*L2II*Trmq2adjYuYu +      & 
+&  30*L2II*Trmu2YuadjYu + 90*L2II*mHu2*TrYuadjYu + 30*L2II*mtb2*TrYuadjYu +              & 
+&  3*g1p2*Conjg(M1)*(2*L2II*M1 - TL2II) + 5*g2p2*Conjg(M2)*(2*L2II*M2 - TL2II) +         & 
+&  30*TrCTuTpYu*TL2II) - 5*(16*g2p2*(85*g2p2*M2 + 3*g1p2*(M1 + 2._dp*(M2)))*Conjg(M2) +  & 
+&  Conjg(TL2II)*(L2II*(3*g1p2*M1 + 5*g2p2*M2 - 30._dp*(TradjYuTu)) - (3._dp*(g1p2) +     & 
+&  5._dp*(g2p2) + 30._dp*(TrYuadjYu))*TL2II) + 40*g2p4*Tr2(2) + 12*g1p2*Tr2U1(1,         & 
+& 1) - 4*g1*sqrt15*Tr3(1))))/25._dp
+
+ 
+Dmtb2 = oo16pi2*( betamtb21 + oo16pi2 * betamtb22 ) 
+
+ 
+Else 
+Dmtb2 = oo16pi2* betamtb21 
+End If 
+ 
+ 
+!-------------------- 
+! ms2 
+!-------------------- 
+ 
+betams21  = (-32*AbsM1*g1p2)/15._dp - (80*AbsM3*g3p2)/3._dp + 2._dp*(TrCTsIITsII)     & 
+&  + 4._dp*(Trmd2YsIICYsII) + 2*ms2*TrYsIICYsII - 4*g1*ooSqrt15*Tr1(1)
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betams22 = (-8*g1p2*TrCTsIITsII)/15._dp - (8*g3p2*TrCTsIITsII)/3._dp - 4._dp*(TrCYsIITsIICTdTpYd) -& 
+&  4._dp*(TrCYsIITsIICTzIITpYzII) - 8._dp*(Trmd2YdadjYdYsIICYsII) - (16*g1p2*Trmd2YsIICYsII)/15._dp -& 
+&  (16*g3p2*Trmd2YsIICYsII)/3._dp - 8._dp*(Trmd2YsIICYsIIYdadjYd) - 64._dp*(Trmd2YsIICYsIIYsIICYsII) -& 
+&  8._dp*(Trmd2YsIICYsIIYzIIadjYzII) - 8._dp*(Trmd2YzIIadjYzIIYsIICYsII) -               & 
+&  8._dp*(Trml2adjYzIIYsIICYsIIYzII) - 8._dp*(Trmq2adjYdYsIICYsIIYd) - 4._dp*(TrYdadjTdTsIICYsII) -& 
+&  8._dp*(TrYdadjYdTsIICTsII) - 8._dp*(TrYdadjYdYsIICmd2CYsII) - 8*mHd2*TrYdadjYdYsIICYsII -& 
+&  8*ms2*TrYdadjYdYsIICYsII - 8._dp*(TrYsIICmd2CYsIIYzIIadjYzII) - 2._dp*(TrYsIICTdTpTdCYsII) +& 
+&  (8*g1p2*M1*TrYsIICTsII)/15._dp + (8*g3p2*M3*TrYsIICTsII)/3._dp - 8._dp*(TrYsIICTsIITdadjYd) -& 
+&  28._dp*(TrYsIICTsIITsIICYsII) - 8._dp*(TrYsIICTsIITzIIadjYzII) - 2._dp*(TrYsIICTzIITpTzIICYsII) -& 
+&  (8*g1p2*ms2*TrYsIICYsII)/15._dp - (8*g3p2*ms2*TrYsIICYsII)/3._dp - 6._dp*(TrYsIICYsIITdadjTd) -& 
+&  36._dp*(TrYsIICYsIITsIICTsII) - 6._dp*(TrYsIICYsIITzIIadjTzII) - 32*ms2*TrYsIICYsIIYsIICYsII -& 
+&  8*ms2*TrYsIICYsIIYzIIadjYzII - 8*mzz2*TrYsIICYsIIYzIIadjYzII - 4._dp*(TrYzIIadjTzIITsIICYsII) -& 
+&  8._dp*(TrYzIIadjYzIITsIICTsII) + (8*g1p2*(2544*g1p2*M1 + 800*g3p2*M1 + 400*g3p2*M3 +  & 
+&  15._dp*(TrCYsIITsII) - 30*M1*TrYsIICYsII)*Conjg(M1))/225._dp + (8*g3p2*(16*g1p2*M1 +  & 
+&  32*g1p2*M3 + 870*g3p2*M3 + 3._dp*(TrCYsIITsII) - 6*M3*TrYsIICYsII)*Conjg(M3))/9._dp + & 
+&  (80*g3p4*Tr2(3))/3._dp + (32*g1p2*Tr2U1(1,1))/15._dp - 16*g1*ooSqrt15*Tr3(1)
+
+ 
+Dms2 = oo16pi2*( betams21 + oo16pi2 * betams22 ) 
+
+ 
+Else 
+Dms2 = oo16pi2* betams21 
+End If 
+ 
+ 
+!-------------------- 
+! msb2 
+!-------------------- 
+ 
+betamsb21  = (-4*(8*AbsM1*g1p2 + 100*AbsM3*g3p2 - g1*sqrt15*Tr1(1)))/15._dp
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betamsb22 = (16*(8*g1p2*(159*g1p2*M1 + 25*g3p2*(2._dp*(M1) + M3))*Conjg(M1) + 5*(5*g3p2*(435*g3p2*M3 +& 
+&  8*g1p2*(M1 + 2._dp*(M3)))*Conjg(M3) + 75*g3p4*Tr2(3) + 6*g1p2*Tr2U1(1,1) +            & 
+&  3*g1*sqrt15*Tr3(1))))/225._dp
+
+ 
+Dmsb2 = oo16pi2*( betamsb21 + oo16pi2 * betamsb22 ) 
+
+ 
+Else 
+Dmsb2 = oo16pi2* betamsb21 
+End If 
+ 
+ 
+!-------------------- 
+! mzz2 
+!-------------------- 
+ 
+betamzz21  = (-2*AbsM1*g1p2)/15._dp - 6*AbsM2*g2p2 - (32*AbsM3*g3p2)/3._dp +          & 
+&  2._dp*(TrCTzIITpTzII) + 2._dp*(Trmd2YzIIadjYzII) + 2._dp*(Trml2adjYzIIYzII)           & 
+&  + 2*mzz2*TrYzIIadjYzII + g1*ooSqrt15*Tr1(1)
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betamzz22 = (2*AbsM2*g1p2*g2p2)/5._dp + 159*AbsM2*g2p4 + 32*AbsM2*g2p2*g3p2 + (4*g1p2*TrCTzIITpTzII)/5._dp -& 
+&  (4*g1p2*M1*TrCTzIITpYzII)/5._dp - 4._dp*(TrCYsIITsIICTzIITpYzII) - 3._dp*(TrCYtIITpYzIICTzIITtII) -& 
+&  4._dp*(Trmd2YdadjYdYzIIadjYzII) - 8._dp*(Trmd2YsIICYsIIYzIIadjYzII) - 2._dp*(Trmd2YzIIadjYeYeadjYzII) +& 
+&  (4*g1p2*Trmd2YzIIadjYzII)/5._dp - 4._dp*(Trmd2YzIIadjYzIIYdadjYd) - 8._dp*(Trmd2YzIIadjYzIIYsIICYsII) -& 
+&  20._dp*(Trmd2YzIIadjYzIIYzIIadjYzII) - 6._dp*(Trmd2YzIICYtIIYtIIadjYzII) -            & 
+&  2._dp*(Trme2YeadjYzIIYzIIadjYe) - 2._dp*(Trml2adjYeYeadjYzIIYzII) - 4._dp*(Trml2adjYzIIYdadjYdYzII) -& 
+&  8._dp*(Trml2adjYzIIYsIICYsIIYzII) + (4*g1p2*Trml2adjYzIIYzII)/5._dp - 2._dp*(Trml2adjYzIIYzIIadjYeYe) -& 
+&  20._dp*(Trml2adjYzIIYzIIadjYzIIYzII) - 6._dp*(Trml2adjYzIIYzIICYtIIYtII) -            & 
+&  6._dp*(Trml2CYtIIYtIIadjYzIIYzII) - 4._dp*(Trmq2adjYdYzIIadjYzIIYd) - 4._dp*(TrYdadjTdTzIIadjYzII) -& 
+&  4._dp*(TrYdadjYdTzIIadjTzII) - 4*mHd2*TrYdadjYdYzIIadjYzII - 4*mzz2*TrYdadjYdYzIIadjYzII -& 
+&  2._dp*(TrYeadjTzIITzIIadjYe) - 2._dp*(TrYeadjYzIITzIIadjTe) - 2*mHd2*TrYeadjYzIIYzIIadjYe -& 
+&  2*mzz2*TrYeadjYzIIYzIIadjYe - 8._dp*(TrYsIICmd2CYsIIYzIIadjYzII) - 8._dp*(TrYsIICTsIITzIIadjYzII) -& 
+&  2._dp*(TrYsIICTzIITpTzIICYsII) - 6._dp*(TrYsIICYsIITzIIadjTzII) - 8*ms2*TrYsIICYsIIYzIIadjYzII -& 
+&  8*mzz2*TrYsIICYsIIYzIIadjYzII - 3._dp*(TrYtIIadjTzIITzIICYtII) - 6._dp*(TrYtIIadjYzIITzIICTtII) -& 
+&  6*mt2*TrYtIIadjYzIIYzIICYtII - 6*mzz2*TrYtIIadjYzIIYzIICYtII - 6._dp*(TrYtIIadjYzIIYzIICYtIICml2) -& 
+&  3._dp*(TrYtIICYtIITpTzIICTzII) - 2._dp*(TrYzIIadjTeTeadjYzII) - 4._dp*(TrYzIIadjTzIITdadjYd) -& 
+&  4._dp*(TrYzIIadjTzIITsIICYsII) - 20._dp*(TrYzIIadjTzIITzIIadjYzII) - 2._dp*(TrYzIIadjYeTeadjTzII) +& 
+&  (4*g1p2*mzz2*TrYzIIadjYzII)/5._dp - 4._dp*(TrYzIIadjYzIITdadjTd) - 8._dp*(TrYzIIadjYzIITsIICTsII) -& 
+&  20._dp*(TrYzIIadjYzIITzIIadjTzII) - 20*mzz2*TrYzIIadjYzIIYzIIadjYzII - 6._dp*(TrYzIICTtIITtIIadjYzII) -& 
+&  3._dp*(TrYzIICYtIITtIIadjTzII) + (g1p2*(1227*g1p2*M1 + 90*g2p2*M1 + 160*g3p2*M1 +     & 
+&  80*g3p2*M3 + 45*g2p2*M2 - 180._dp*(TradjYzIITzII) + 360*M1*TrYzIIadjYzII)*Conjg(M1))/225._dp  
+betamzz22 =  betamzz22+ (16*g3p2*(g1p2*(M1 + 2._dp*(M3)) + 15*(34*g3p2*M3 + 3*g2p2*(2._dp*(M3) +              & 
+&  M2)))*Conjg(M3))/45._dp + (g1p2*g2p2*M1*Conjg(M2))/5._dp + 16*g2p2*g3p2*M3*Conjg(M2) +& 
+&  6*g2p4*Tr2(2) + (32*g3p4*Tr2(3))/3._dp + (2*g1p2*Tr2U1(1,1))/15._dp + 4*g1*ooSqrt15*Tr3(1)
+
+ 
+Dmzz2 = oo16pi2*( betamzz21 + oo16pi2 * betamzz22 ) 
+
+ 
+Else 
+Dmzz2 = oo16pi2* betamzz21 
+End If 
+ 
+ 
+!-------------------- 
+! mzb2 
+!-------------------- 
+ 
+betamzb21  = (-2*AbsM1*g1p2)/15._dp - 6*AbsM2*g2p2 - (32*AbsM3*g3p2)/3._dp -          & 
+&  g1*ooSqrt15*Tr1(1)
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betamzb22 = (g1p2*(1227*g1p2*M1 + 5*(16*g3p2*(2._dp*(M1) + M3) + 9*g2p2*(2._dp*(M1) +             & 
+&  M2)))*Conjg(M1) + 5*(16*g3p2*(g1p2*(M1 + 2._dp*(M3)) + 15*(34*g3p2*M3 +               & 
+&  3*g2p2*(2._dp*(M3) + M2)))*Conjg(M3) + 3*(3*g2p2*(795*g2p2*M2 + g1p2*(M1 +            & 
+&  2._dp*(M2)) + 80*g3p2*(M3 + 2._dp*(M2)))*Conjg(M2) + 2*(45*g2p4*Tr2(2) +              & 
+&  80*g3p4*Tr2(3) + g1*(g1*Tr2U1(1,1) - 2*sqrt15*Tr3(1))))))/225._dp
+
+ 
+Dmzb2 = oo16pi2*( betamzb21 + oo16pi2 * betamzb22 ) 
+
+ 
+Else 
+Dmzb2 = oo16pi2* betamzb21 
+End If 
+ 
+ 
+!-------------------- 
+! M1 
+!-------------------- 
+ 
+betaM11  = (136*g1p2*M1)/5._dp
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betaM12 = (2*g1p2*(3004*g1p2*M1 + 2610*g2p2*M1 + 4600*g3p2*M1 + 4600*g3p2*M3 + 2610*g2p2*M2 +   & 
+&  210._dp*(TradjYdTd) + 270._dp*(TradjYeTe) + 390._dp*(TradjYuTu) + 210._dp*(TradjYzIITzII) +& 
+&  360._dp*(TrCYsIITsII) + 405._dp*(TrCYtIITtII) - 210*M1*TrYdadjYd - 270*M1*TrYeadjYe - & 
+&  360*M1*TrYsIICYsII - 405*M1*TrYtIICYtII - 390*M1*TrYuadjYu - 210*M1*TrYzIIadjYzII -   & 
+&  405*Conjg(L1II)*(L1II*M1 - TL1II) - 405*Conjg(L2II)*(L2II*M1 - TL2II)))/75._dp
+
+ 
+DM1 = oo16pi2*( betaM11 + oo16pi2 * betaM12 ) 
+
+ 
+Else 
+DM1 = oo16pi2* betaM11 
+End If 
+ 
+ 
+!-------------------- 
+! M2 
+!-------------------- 
+ 
+betaM21  = 16*g2p2*M2
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betaM22 = (2*g2p2*(58*g1p2*M1 + 200*g3p2*M3 + 58*g1p2*M2 + 940*g2p2*M2 + 200*g3p2*M2 +          & 
+&  30._dp*(TradjYdTd) + 10._dp*(TradjYeTe) + 30._dp*(TradjYuTu) + 30._dp*(TradjYzIITzII) +& 
+&  35._dp*(TrCYtIITtII) - 30*M2*TrYdadjYd - 10*M2*TrYeadjYe - 35*M2*TrYtIICYtII -        & 
+&  30*M2*TrYuadjYu - 30*M2*TrYzIIadjYzII - 35*Conjg(L1II)*(L1II*M2 - TL1II) -            & 
+&  35*Conjg(L2II)*(L2II*M2 - TL2II)))/5._dp
+
+ 
+DM2 = oo16pi2*( betaM21 + oo16pi2 * betaM22 ) 
+
+ 
+Else 
+DM2 = oo16pi2* betaM21 
+End If 
+ 
+ 
+!-------------------- 
+! M3 
+!-------------------- 
+ 
+betaM31  = 8*g3p2*M3
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betaM32 = (2*g3p2*(23*g1p2*M1 + 23*g1p2*M3 + 45*g2p2*M3 + 800*g3p2*M3 + 45*g2p2*M2 +            & 
+&  12._dp*(TradjYdTd) + 12._dp*(TradjYuTu) + 12._dp*(TradjYzIITzII) + 27._dp*(TrCYsIITsII) -& 
+&  12*M3*TrYdadjYd - 27*M3*TrYsIICYsII - 12*M3*TrYuadjYu - 12*M3*TrYzIIadjYzII))/3._dp
+
+ 
+DM3 = oo16pi2*( betaM31 + oo16pi2 * betaM32 ) 
+
+ 
+Else 
+DM3 = oo16pi2* betaM31 
+End If 
+ 
+ 
+!-------------------- 
+! WOp 
+!-------------------- 
+ 
+betaWOp1  = TpYeCYeWOp + 3._dp*(TpYzIICYzIIWOp) - (6*(-5._dp*(AbsL2II) +              & 
+&  g1p2 + 5._dp*(g2p2) - 5._dp*(TrYuadjYu))*WOp)/5._dp + WOpadjYeYe + 3._dp*(WOpadjYzIIYzII)& 
+&  + 3._dp*(WOpCYtIIYtII) + 3._dp*(YtIICYtIIWOp)
+
+ 
+ 
+If (TwoLoopRGE) Then 
+betaWOp2 = (417._dp*(g1p4)/25._dp + (18*g1p2*g2p2)/5._dp + 57._dp*(g2p4) - 24*CL2IIp2*L2IIp2 -   & 
+&  6._dp*(TrYdadjYuYuadjYd) + (6*AbsL2II*(6._dp*(g1p2) + 20._dp*(g2p2) - 15._dp*(TrYuadjYu)))/5._dp +& 
+&  (8*(g1p2 + 20._dp*(g3p2))*TrYuadjYu)/5._dp - 18._dp*(TrYuadjYuYuadjYu))*WOp +         & 
+&  (-3._dp*(AbsL1II) + 6._dp*(g1p2)/5._dp - 3._dp*(TrYdadjYd) - TrYeadjYe)*WOpadjYeYe +  & 
+&  (-10._dp*(TpYeCYeTpYeCYeWOp) - 15*AbsL1II*TpYeCYeWOp + 6*g1p2*TpYeCYeWOp -            & 
+&  30._dp*(TpYzIICYdTpYdCYzIIWOp) - 60._dp*(TpYzIICYsIIYsIICYzIIWOp) - 30._dp*(TpYzIICYzIITpYzIICYzIIWOp) -& 
+&  2*g1p2*TpYzIICYzIIWOp + 80*g3p2*TpYzIICYzIIWOp - 15*TpYeCYeWOp*TrYdadjYd -            & 
+&  5*TpYeCYeWOp*TrYeadjYe - 15*TpYzIICYzIIWOp*TrYzIIadjYzII - 10._dp*(WOpadjYeYeadjYeYe) -& 
+&  30._dp*(WOpadjYzIIYdadjYdYzII) - 60._dp*(WOpadjYzIIYsIICYsIIYzII) + (-2._dp*(g1p2) +  & 
+&  80._dp*(g3p2) - 15._dp*(TrYzIIadjYzII))*WOpadjYzIIYzII - 30._dp*(WOpadjYzIIYzIIadjYzIIYzII) -& 
+&  15._dp*(WOpCYtIITpYeCYeYtII) - 45._dp*(WOpCYtIITpYzIICYzIIYtII) + 3*(-5._dp*(AbsL1II) +& 
+&  6._dp*(g1p2) + 20._dp*(g2p2) - 5._dp*(TrYtIICYtII))*WOpCYtIIYtII - 45._dp*(WOpCYtIIYtIICYtIIYtII) -& 
+&  15._dp*(YtIIadjYeYeCYtIIWOp) - 45._dp*(YtIIadjYzIIYzIICYtIIWOp) - 15*AbsL1II*YtIICYtIIWOp +& 
+&  18*g1p2*YtIICYtIIWOp + 60*g2p2*YtIICYtIIWOp - 15*TrYtIICYtII*YtIICYtIIWOp -           & 
+&  45._dp*(YtIICYtIIYtIICYtIIWOp))/5._dp
+
+ 
+DWOp = oo16pi2*( betaWOp1 + oo16pi2 * betaWOp2 ) 
+
+ 
+Else 
+DWOp = oo16pi2* betaWOp1 
+End If 
+ 
+!-------------------------------------------------------------------------------
+! these matrices are hermitian but numerical effects induce non-hermiatian parts
+! which need to be corrected
+!-------------------------------------------------------------------------------
+Dmd2 = 0.5_dp * ( Dmd2 + Transpose(Conjg(Dmd2)) )
+Dme2 = 0.5_dp * ( Dme2 + Transpose(Conjg(Dme2)) )
+Dml2 = 0.5_dp * ( Dml2 + Transpose(Conjg(Dml2)) )
+Dmq2 = 0.5_dp * ( Dmq2 + Transpose(Conjg(Dmq2)) )
+Dmu2 = 0.5_dp * ( Dmu2 + Transpose(Conjg(Dmu2)) )
+
+   Call Chop(Dmu)
+   Call Chop(DBmu)
+   Call Chop(DMTII)
+   Call Chop(DBMTII)
+   Call Chop(DMSII)
+   Call Chop(DBMSII)
+   Call Chop(DMZII)
+   Call Chop(DBMZII)
+
+Call ParametersToG365(Dg1,Dg2,Dg3,DYu,DYd,DYe,DYtII,DYsII,DYzII,DL1II,DL2II,          & 
+& DMu,DMTII,DMZII,DMSII,DTu,DTd,DTe,DTtII,DTsII,DTzII,DTL1II,DTL2II,DBmu,DBMTII,         & 
+& DBMZII,DBMSII,Dmq2,Dml2,DmHd2,DmHu2,Dmd2,Dmu2,Dme2,Dmt2,Dmtb2,Dms2,Dmsb2,              & 
+& Dmzz2,Dmzb2,DM1,DM2,DM3,DWOp,f)
+
+Iname = Iname - 1 
+ 
+End Subroutine rge365  
 
 #endif SEESAWIII
 

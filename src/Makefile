@@ -41,18 +41,17 @@ endif
  
 # NAG f95/2003
 ifeq (${F90},nagfor)
- comp = -c -O  -DONLYDOUBLE -mdir ${MDir} -I${InDir}   
+ comp = -c -O  -DONLYDOUBLE -mdir ${Mdir} -I${InDir}   
  LFlagsB = -O
 endif
  
 .SUFFIXES : .o .ps .f90 .F90 .a
-bin/SPheno: ${name} SPheno3.o
-	${F90} -o SPheno ${LFlagsB} SPheno3.o ../lib/${name}
+bin/SPheno: ${name} SPheno4.o
+	${F90} -o SPheno ${LFlagsB} SPheno4.o ../lib/${name}
 	mv SPheno ../bin
 ${name}: ${name}(Control.o)  ${name}(Mathematics.o)  ${name}(RGEs.o)       \
-    ${name}(MathematicsQP.o) ${name}(StandardModel.o) ${name}(Model_Data.o) \
-  ${name}(Couplings.o)                      \
-   ${name}(SusyMasses.o) ${name}(LoopFunctions.o)    \
+    ${name}(MathematicsQP.o)  ${name}(LoopFunctions.o) ${name}(StandardModel.o) \
+  ${name}(Model_Data.o) ${name}(Couplings.o)  ${name}(SusyMasses.o) \
    ${name}(LoopCouplings.o)  ${name}(DecayFunctions.o)  \
   ${name}(SusyDecays.o) ${name}(ThreeBodyPhaseSpace.o)               \
   ${name}(ThreeBodyPhaseSpaceS.o) ${name}(Chargino3.o)               \
@@ -65,7 +64,7 @@ ${name}: ${name}(Control.o)  ${name}(Mathematics.o)  ${name}(RGEs.o)       \
 clean:
 	rm -f *.o *~ */*.o */*~
 cleanall:
-	rm -f bin/SPheno3 lib/*.a *~ */*.o */*~ include/*
+	rm -f bin/SPheno4 lib/*.a *~ */*.o */*~ include/*
 #
 # Suffix rules
 #

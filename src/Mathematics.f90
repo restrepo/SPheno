@@ -23,14 +23,6 @@ Use Control
   Module Procedure ComplexEigenSystem, RealEigenSystem
  End Interface
 
- Interface LuBkSb
-  Module Procedure LuBkSb_r, LuBkSb_c
- End Interface
-
- Interface LuDcmp
-  Module Procedure LuDcmp_r, LuDcmp_c
- End Interface 
-
  Interface MatMul2
   Module Procedure MatMul2R3, MatMul2C3, MatVec2R3, MatVec2C3, VecVec2R3     &
        , VecMat2R3, VecMat2C3, VecRMatC2, VecCMatR2, MatCVecR23  & ! , MatVec2CR3
@@ -53,22 +45,16 @@ Use Control
   Module Procedure pythag_sp, pythag_dp
  End Interface
 
- Interface SolveLinearEquations
-  Module Procedure SolveLinearEquations_r, SolveLinearEquations_c
- End Interface
-
  Interface Trace
   Module Procedure cTrace, dTrace
  End Interface
 
- Interface UnitMatrix
-  Module Procedure UnitMatrix_R, UnitMatrix_C
- End Interface
 ! interfaces
 
 ! global variables
  Integer :: nok,nbad,kount
  Logical, Save :: save_steps=.False.
+ Real(dp), Dimension(:), Pointer :: fmin_fvecp
 ! global variables
 
 ! private variables
@@ -100,8 +86,10 @@ Contains
  Subroutine Adjungate1(M)
  Implicit None
   Complex(Dp), Intent(inout) :: M(:,:)
+  Complex(Dp) :: M1(Size(M,dim=1),Size(M,dim=2))
 
-  M = Conjg( Transpose(M) )
+  M1 = Transpose(M)
+  M = Conjg( M1 )
  End Subroutine Adjungate1
 
 
@@ -133,10 +121,368 @@ Contains
  End Function Arg
 
 
+ Subroutine broydn(x,check,funcv)
+ !-----------------------------------------------------------------
+ ! To Solve Tadpoles numerically
+ ! provided by Florian Staub
+ ! 14.09.2013: adapting to error control structure used in SPheno
+ !-----------------------------------------------------------------
+ Implicit None
+  Real(dp), Dimension(:), Intent(inout) :: x
+  Logical, Intent(out) :: check
+  Integer, Parameter :: MAXITS = 200
+  Real(dp), Parameter :: EPS = Epsilon(x), TOLF = 1.0e-4_dp, TOLMIN = 1.0e-6_dp &
+                     &  , TOLX = EPS,STPMX = 100.0, eps4 = TOLF
+  Integer :: i, its, k, n, i1
+  Real(dp) :: f,fold,stpmax, scale,sigma
+  Real(dp), Dimension(Size(x)), Target :: fvec
+  Real(dp), Dimension(Size(x)) :: c,d,fvcold,g,p,s,t,w,xold,xsav4,xph4,h4
+  Real(dp), Dimension(Size(x),Size(x)) :: qt,r
+
+  Real(dp) :: a,alam,alam2,alamin,b,disc,f2,pabs,rhs1,rhs2,slope,tmplam
+
+  Logical :: restrt,sing
+
+  Interface
+   Function funcv(x)
+   Use Control
+   Implicit None
+   Real(dp), Dimension(:), Intent(in) :: x
+   Real(dp), Dimension(Size(x)) :: funcv
+   End Function funcv
+  End Interface
+
+  Iname = Iname + 1
+  NameOfUnit(Iname) = "broydn"
+
+  fmin_fvecp => fvec
+  n = Size(x)
+  f = fmin(x,funcv)
+  If (Maxval(Abs(fvec)) < 0.01_dp*TOLF) Then
+   check = .False.
+   Iname = Iname - 1
+   Return
+  End If
+
+  stpmax = STPMX*Max(vabs(x),Real(n,dp))
+  restrt = .True.
+  Do its = 1,MAXITS
+   If (restrt) Then
+    xsav4 = x
+    h4 = EPS4*Abs(xsav4)
+    Where (h4.Eq.0.0_dp) h4 = EPS4
+    xph4 = xsav4+h4
+    h4 = xph4-xsav4
+        
+    Do i1 = 1,n
+     x(i1) = xph4(i1)
+     r(:,i1) = (funcv(x)-fvec)/h4(i1)
+     x(i1) = xsav4(i1)
+    End Do
+
+!   Call fdjac(x,fvec,r,funcv) ! kann ersetzt werden
+    sing = .False.
+    Do i1 = 1,n-1
+     scale = Maxval(Abs(r(i1:n,i1)))
+     If (scale .Eq. 0.0) Then
+      sing = .True.
+      c(i1) = 0.0
+      d(i1) = 0.0
+     Else
+      r(i1:n,i1) = r(i1:n,i1)/scale
+      sigma = Sign(vabs(r(i1:n,i1)),r(i1,i1))
+      r(i1,i1) = r(i1,i1)+sigma
+      c(i1) = sigma*r(i1,i1)
+      d(i1) = -scale*sigma
+      r(i1:n,i1+1:n) = r(i1:n,i1+1:n)-outerprod(r(i1:n,i1),&
+      Matmul(r(i1:n,i1),r(i1:n,i1+1:n)))/c(i1)
+     End If
+    End Do
+    d(n) = r(n,n)
+    If (d(n).Eq.0.0_dp) sing = .True.
+
+    If (sing) Then
+     Write(ErrCan,*) "Error in "//Trim(NameOfUnit(Iname))
+     Write(ErrCan,*) "Singular Jacobian"
+     Call TerminateProgram
+    End If
+
+    qt = 0._dp
+    do i1=1,n
+     qt(i1,i1) = 1._dp
+    End do
+
+    Do k = 1,n-1
+     If (c(k).Ne.0.0_dp) & 
+      & qt(k:n,:) = qt(k:n,:)-outerprod(r(k:n,k),Matmul(r(k:n,k),qt(k:n,:)))/c(k)
+    End Do
+
+    Where (lower_triangle(n,n)) r = 0.0_dp
+
+    Do i1 = 1,n
+     r(i1,i1) = d(i1)
+    End Do
+
+   Else ! .not.restrt 
+    s = x - xold
+    Do i = 1,n
+     t(i) = Dot_product(r(i,i:n),s(i:n))
+    End Do
+    w = fvec - fvcold - Matmul(t,qt)
+    Where (Abs(w).Lt.EPS*(Abs(fvec)+Abs(fvcold))) w = 0.0_dp
+
+    If (Any(w.Ne.0.0_dp)) Then
+     t = Matmul(qt,w)
+     s = s /Dot_product(s,s)
+
+     k = n + 1 - ifirstloc(t(n:1:-1).Ne.0.0_dp)
+     If (k < 1) k = 1
+     Do i = k-1,1,-1
+      Call rotate(r,qt,i,t(i),-t(i+1))
+      t(i) = pythag(t(i),t(i+1))
+     End Do
+     r(1,:) = r(1,:)+t(1)*s
+     Do i = 1,k-1
+      Call rotate(r,qt,i,r(i,i),-r(i+1,i))
+     End Do
+
+     Do i1=1,n
+      d(i1) = r(i1,i1)
+     End Do
+
+     If (Any(d.Eq.0.0_dp)) Then
+      Write(ErrCan,*) "Error in "//Trim(NameOfUnit(Iname))
+      Write(ErrCan,*) "r is singular"
+      Call TerminateProgram
+     End If
+    End If
+   End If
+
+   p = -Matmul(qt,fvec)
+
+   Do i = 1,n
+    g(i) = -Dot_product(r(1:i,i),p(1:i))
+   End Do
+   xold = x
+   fvcold = fvec
+   fold = f
+
+   p(n) = p(n)/d(n)
+   Do i = n-1,1,-1
+    p(i) = (p(i)-Dot_product(r(i,i+1:n),p(i+1:n)))/d(i)
+   End Do
+
+   check = .False.
+   pabs = vabs(p)
+   If (pabs > stpmax) p = p*stpmax/pabs
+   slope = Dot_product(g,p)
+   If (slope >=  0.0_dp) Then
+    Write(ErrCan,*) "Error in "//Trim(NameOfUnit(Iname))
+    Write(ErrCan,*) "roundoff problem"
+    Call TerminateProgram
+   End If
+
+   alamin = TOLX/Maxval(Abs(p)/Max(Abs(xold),1.0_dp))
+   alam = 1.0_dp
+   Do
+    x = xold + alam * p
+    f = fmin(x,funcv)
+    If (alam < alamin) Then
+     x = xold
+     check = .True.
+     Exit
+    Else If (f <=  fold+EPS4*alam*slope) Then
+     Exit
+    Else
+     If (alam .Eq. 1.0_dp) Then
+      tmplam = -slope/(2.0_dp*(f-fold-slope))
+     Else
+      rhs1 = f-fold-alam*slope
+      rhs2 = f2-fold-alam2*slope
+      a = (rhs1/alam**2-rhs2/alam2**2)/(alam-alam2)
+      b = (-alam2*rhs1/alam**2+alam*rhs2/alam2**2) / (alam-alam2)
+      If (a .Eq. 0.0_dp) Then
+       tmplam = -slope/(2.0_dp*b)
+      Else
+       disc = b*b-3.0_dp*a*slope
+       If (disc < 0.0_dp) Then
+        tmplam = 0.5_dp*alam
+       Else If (b <=  0.0_dp) Then
+        tmplam = (-b+Sqrt(disc))/(3.0_dp*a)
+       Else
+        tmplam = -slope/(b+Sqrt(disc))
+       End If
+      End If
+      If (tmplam > 0.5_dp*alam) tmplam = 0.5_dp*alam
+     End If
+    End If
+    alam2 = alam
+    f2 = f
+    alam = Max(tmplam,0.1_dp*alam)
+   End Do
+
+   If (Maxval(Abs(fvec(:))) < TOLF) Then
+    check = .False.
+    Iname = Iname - 1
+    Return
+   End If
+
+   If (check) Then
+    If (restrt .Or. Maxval(Abs(g)*Max(Abs(x),1.0_dp)/Max(f,0.5_dp*n)) < TOLMIN) Then
+     Iname = Iname - 1
+     Return
+    End If
+    restrt = .True.
+   Else
+    restrt = .False.
+    If (Maxval((Abs(x-xold))/Max(Abs(x),1.0_dp)) < TOLX) Then
+     Iname = Iname - 1
+     Return
+    End If
+   End If
+  End Do
+
+  Write(ErrCan,*) "Error in "//Trim(NameOfUnit(Iname))
+  Write(ErrCan,*) "MAXITS exceeded in broydn"
+  Call TerminateProgram
+
+ End Subroutine broydn
+
+
+ Integer Function ifirstloc(mask)
+ Implicit None
+  Logical, Dimension(:), Intent(in) :: mask
+  Integer, Dimension(1) :: loc
+  loc = Maxloc(Merge(1,0,mask))
+  ifirstloc = loc(1)
+  If (.Not. mask(ifirstloc)) ifirstloc = Size(mask)+1
+ End Function ifirstloc
+
+
+ Function arth_i(first,increment,n)
+  Integer, Intent(in) :: first,increment,n
+  Integer, Dimension(n) :: arth_i
+  Integer :: k,k2,temp
+  Integer, Parameter :: NPAR_ARTH=16,NPAR2_ARTH=8
+
+  If (n > 0) arth_i(1) = first
+  If (n <=  NPAR_ARTH) Then
+   Do k = 2,n
+    arth_i(k) = arth_i(k-1)+increment
+   End Do
+  Else
+   Do k = 2,NPAR2_ARTH
+    arth_i(k) = arth_i(k-1)+increment
+   End Do
+   temp = increment*NPAR2_ARTH
+   k = NPAR2_ARTH
+   Do
+    If (k >=  n) Exit
+    k2 = k+k
+    arth_i(k+1:Min(k2,n)) = temp+arth_i(1:Min(k,n-k))
+    temp = temp+temp
+    k = k2
+   End Do
+  End If
+ End Function arth_i
+
+
+ Function outerdiff_i(a,b)
+ Implicit None
+  Integer, Dimension(:), Intent(in) :: a,b
+  Integer, Dimension(Size(a),Size(b)) :: outerdiff_i
+  outerdiff_i  =  Spread(a,dim = 2,ncopies = Size(b)) - &
+  Spread(b,dim = 1,ncopies = Size(a))
+ End Function outerdiff_i
+
+
+
+ Function lower_triangle(j,k,extra)
+ Implicit None
+  Integer, Intent(in) :: j,k
+  Integer, Optional, Intent(in) :: extra
+  Logical, Dimension(j,k) :: lower_triangle
+  Integer :: n
+  n = 0
+  If (Present(extra)) n = extra
+  lower_triangle = (outerdiff_i(arth_i(1,1,j),arth_i(1,1,k)) > -n)
+ End Function lower_triangle
+
+
+ Real(dp) Function vabs(v)
+ Implicit None
+ Real(dp), Dimension(:), Intent(in) :: v
+  vabs = Sqrt(Dot_product(v,v))
+ End Function vabs
+
+
+ Real(dp) Function fmin(x,funcv)
+ Implicit None
+  Real(dp), Dimension(:), Intent(in) :: x
+
+  Interface
+   Function funcv(x)
+   Use Control
+   Implicit None
+   Real(dp), Dimension(:), Intent(in) :: x
+   Real(dp), Dimension(Size(x)) :: funcv
+   End Function funcv
+  End Interface
+
+  If (.Not. Associated(fmin_fvecp)) Then
+   Write(ErrCan,*) "fmin: problem with pointer for returned values"
+   Call TerminateProgram
+  End If
+  fmin_fvecp = funcv(x)
+  fmin = 0.5_dp*Dot_product(fmin_fvecp,fmin_fvecp)
+
+ End Function fmin
+
+
+ Subroutine rotate(r,qt,i,a,b)
+  Implicit None
+  Real(dp), Dimension(:,:), Target, Intent(inout) :: r,qt
+  Integer, Intent(in) :: i
+  Real(dp), Intent(in) :: a,b
+  Real(dp), Dimension(Size(r,1)) :: temp
+  Integer :: n
+  Real(dp) :: c,fact,s
+
+  If ( (Size(r,1).Eq.Size(r,2)) .And. (Size(qt,1).Eq.Size(qt,2)) &
+     & .And. (Size(r,2).Eq.Size(qt,1)) ) Then
+   n = Size(r,1)
+  Else
+   Write(ErrCan,*) "Error in Rotate",Size(r,1),Size(r,2),Size(qt,1),Size(qt,2)
+   Call TerminateProgram
+  End If
+
+  If (a .Eq. 0.0_dp) Then
+   c = 0.0_dp
+   s = Sign(1.0_dp,b)
+  Else If (Abs(a) > Abs(b)) Then
+   fact = b/a
+   c = Sign(1.0_dp/Sqrt(1.0_dp+fact**2),a)
+   s = fact*c
+  Else
+   fact = a/b
+   s = Sign(1.0_dp/Sqrt(1.0_dp+fact**2),b)
+   c = fact*s
+  End If
+
+  temp(i:n) = r(i,i:n)
+  r(i,i:n) = c*temp(i:n)-s*r(i+1,i:n)
+  r(i+1,i:n) = s*temp(i:n)+c*r(i+1,i:n)
+  temp = qt(i,:)
+  qt(i,:) = c*temp-s*qt(i+1,:)
+  qt(i+1,:) = s*temp+c*qt(i+1,:)
+
+ End Subroutine rotate
+
+
  Subroutine bsstep(y, dydx,x,htry,eps,yscal,hdid,hnext,derivs, kont)
-! Use nrtype; Use nrutil, Only : arth,assert_eq,cumsum,iminloc,nrerror,&
-!  outerdiff,outerprod,upper_triangle
-! Use nr, Only : mmid,pzextr
+ !----------------------------------------------------------------
+ ! alternative diff.eq. solver
+ !----------------------------------------------------------------
  Implicit None
   External derivs
 
@@ -382,7 +728,8 @@ Contains
   ! special cases
   !------------------
   If (iz.Eq.0._dp) Then
-   CLi2 = Cmplx( Li2(rz), 0._dp,dp)
+   If (rz.le.1) CLi2 = Cmplx( Li2(rz), 0._dp,dp)
+   If (rz.Gt.1) CLi2 = Cmplx( Li2(rz), -Pi*Log(rz),dp)
    Return
   Else If (az.Lt.Epsilon(1._dp)) Then
    CLi2 = z
@@ -486,15 +833,16 @@ Contains
  Implicit None
   Complex(dp), Intent(inout) :: mat(:,:)
   
-  Integer :: len, i1 ,i2
+  Integer :: len1, len2, i1 ,i2
   Real(dp) :: re, im, max1
   Real(dp), Parameter :: eps = 100._dp * Epsilon(1._dp)
   
   max1 = eps * Maxval( Abs(mat) )
 
-  len = Size(mat,dim=1)
-  Do i1=1,len
-   Do i2=1,len
+  len1 = Size(mat,dim=1)
+  len2 = Size(mat,dim=2)
+  Do i1=1,len1
+   Do i2=1,len2
      re = Real(mat(i1,i2),dp)
      im = Aimag( mat(i1,i2) )
      If (Abs(re).Lt.max1) re = 0._dp
@@ -646,9 +994,6 @@ Contains
  !  EigenValues ..... n sorted EigenValues: |m_1| < |m_2| < .. < |m_n|
  !  EigenVectors .... n times n matrix with the eigenvectors
  ! written by Werner Porod, 10.11.2000
- ! 08.03.02: changing the algorithm accoring to 
- !               "Numerical Recipies in Fortran" by W.H.Press et al.
- !           page 475
  !---------------------------------------------------------------------
  Implicit None
   !-------
@@ -668,7 +1013,7 @@ Contains
   Integer :: N1,N2,N3 !,i1 , i2
   Real(Dp), Allocatable :: AR(:,:),AI(:,:), WR(:), ZR(:,:),  WORK(:)  &
     & , work2(:,:), ZI(:,:)
-  Complex(dp), Allocatable :: Ctest(:,:)
+  Complex(dp), Allocatable :: Ctest(:,:), Ctest2(:,:)
   Logical :: l_complex = .False.
 
   Iname = Iname + 1
@@ -678,8 +1023,8 @@ Contains
   N2 = Size(EigenValues)
   N3 = Size(EigenVectors, Dim=1)
   If ((N1.Ne.N2).Or.(N1.Ne.N3)) Then
-   Write (ErrCan,*) 'Error in Subroutine '//NameOfUnit(Iname)
-   Write (ErrCan,*) 'Dimensions to not match: ',N1,N2,N3
+   Write(ErrCan,*) 'Error in Subroutine '//NameOfUnit(Iname)
+   Write(ErrCan,*) 'Dimensions to not match: ',N1,N2,N3
    If (ErrorLevel.Ge.-1) Call TerminateProgram
    kont = -13
    Call AddError(13)
@@ -687,13 +1032,27 @@ Contains
    Return
   End If
 
+  If (Is_NaN(Real(Matrix,dp)).or.Is_NaN(Aimag(Matrix))) Then !  
+   Write(ErrCan,*) 'Error in Subroutine '//NameOfUnit(Iname)
+   Write(ErrCan,*) 'matrix contains NaN'
+   If (ErrorLevel.Ge.-1) Call TerminateProgram
+   kont = -31
+   Call AddError(31)
+   Iname = Iname - 1
+   Return 
+  End If
+
   Allocate(AR(N1,N1)) 
   Allocate(AI(N1,N1))
   Allocate(Ctest(N1,N1))
+  Allocate(Ctest2(N1,N1))
 
   AR = Real( Matrix,dp )
   AI = Aimag( Matrix )
 
+  Eigenvectors = ZeroC
+  Eigenvalues = 0._dp
+  test = 0._dp
   !--------------------------------------------------------------------------
   ! check first whether the matrix is really complex
   ! if not, I use the only real diagonalization because it is more accurate
@@ -776,7 +1135,9 @@ Contains
   !----------------------------------
   ! test of diagonalisation
   !----------------------------------
-  Ctest = Matmul(Eigenvectors, Matmul(Matrix, Ctest) )
+  Ctest2 = Matmul(Matrix, Ctest )
+  Ctest = Matmul(Eigenvectors, Ctest2 )
+
   test = 0._dp
   Do n2=1,n1
    Do n3=1,n1
@@ -801,7 +1162,7 @@ Contains
    End If
   End If
 
-  Deallocate(AR,AI,WR,Work,Ctest)
+  Deallocate(AR,AI,WR,Work,Ctest,Ctest2)
 
   Iname = Iname - 1
 
@@ -1078,10 +1439,11 @@ Contains
       Return
     Endif
    End Do ! while ( 1._dp+Abs(CONST*C2) .NE. 1._dp) 
-    
+   
    erg = erg + S16
   End Do ! while (BB.NE.B)
 
+ 
   Deallocate(work,s8,s16)
 
  End Subroutine DgaussInt
@@ -1266,7 +1628,7 @@ Contains
               icol=k
             Endif
           Else If (ipiv(k)>1) Then
-!            pause 'singular matrix in gaussj'
+          ! singular matrix 
             kont = -24
             Call AddError(24)
             Return
@@ -1292,7 +1654,7 @@ Contains
     indxr(i)=irow
     indxc(i)=icol
     If (a(icol,icol)==0._dp) Then
-!        pause 'singular matrix in gaussj'
+        ! singular matrix 
         kont = -24
         Call AddError(24)
         Return
@@ -1302,11 +1664,11 @@ Contains
     Do l=1,n
       a(icol,l)=a(icol,l)*pivinv
     Enddo
-If (Present(b)) Then
-    Do l=1,m
+    If (Present(b)) Then
+     Do l=1,m
       b(icol,l)=b(icol,l)*pivinv
-    Enddo
-End If
+     Enddo
+    End If
     Do ll=1,n
       If(ll/=icol)Then
         dum=a(ll,icol)
@@ -1314,11 +1676,11 @@ End If
         Do l=1,n
           a(ll,l)=a(ll,l)-a(icol,l)*dum
         Enddo
-If (Present(b)) Then
-        Do l=1,m
-          b(ll,l)=b(ll,l)-b(icol,l)*dum
-        Enddo
-End If
+        If (Present(b)) Then
+         Do l=1,m
+           b(ll,l)=b(ll,l)-b(icol,l)*dum
+         Enddo
+        End If
       Endif
     Enddo
   Enddo
@@ -1331,17 +1693,16 @@ End If
       Enddo
     Endif
   Enddo
-  Return
+
   End Subroutine gaussj
   
   Subroutine HTRIBK(AR, AI, TAU, ZR, ZI)
   Implicit None
    Real(dp) :: AR(:,:), AI(:,:), TAU(:,:), ZR(:,:), ZI(:,:)
 
-   Integer :: mn, n, m, k, j, i, l
+   Integer :: n, m, k, j, i, l
    Real(dp) :: s, si, h
 
-   mn = Size(ar,1)
    n = Size(ar,2)
    m = Size(zr,2)
 
@@ -1378,12 +1739,9 @@ End If
   Implicit None
    Real(dp) :: AR(:,:), AI(:,:), D(:), E(:), TAU(:,:)
 
-   Real(dp) :: E2( Size(E) )
-
-   Integer :: mn, n, i, ii, l, k, j, jp1
+   Integer :: n, i, ii, l, k, j, jp1
    Real(dp) :: scalei, h, g, f, si, hh, fi, gi
 
-   mn = Size(ar,1)
    n = Size(ar,2)
 
    TAU(1,N) = 1._dp
@@ -1405,14 +1763,12 @@ End If
     TAU(1,L) = 1._dp
     TAU(2,L) = 0._dp
   130 E(I) = 0._dp
-    E2(I) = 0._dp
     GO TO 290
   140 Do K = 1, L
       AR(I,K) = AR(I,K) / SCALEI
       AI(I,K) = AI(I,K) / SCALEI
       H = H + AR(I,K) * AR(I,K) + AI(I,K) * AI(I,K)
     Enddo
-    E2(I) = SCALEI * SCALEI * H
     G = Sqrt(H)
     E(I) = SCALEI * G
     F = Abs(Cmplx(AR(I,L),AI(I,L),dp))
@@ -1482,68 +1838,6 @@ End If
   imin=Minloc(arr(:))
   iminloc=imin(1)
  End Function iminloc
-
- Function IntRomb(func,a,b,eps)
-
- Implicit None
- Real(DP), Intent(IN) :: a,b,eps
- Real(DP) :: IntRomb
-
- Interface
-  Function func(x)
-  Use Control
-  Real(DP), Intent(IN) :: x
-  Real(DP) :: func
-  End Function func
- End Interface
-
- Integer, Parameter :: JMAX=26,JMAXP=JMAX+1,K=5,KM=K-1
- Real(DP), Dimension(JMAXP) :: h,s
- Real(DP) :: dIntRomb, del, tnm, sum1, x
- Integer :: j, i1, it
-
- h(1)=1.0_dp
- Do j=1,JMAX
-  !------------------------------------------
-  ! trapez rule, Numerical Recipies, page 131
-  !------------------------------------------
-  If (j.Eq.1) Then
-    s(j) = 0.5_dp * (b-a) * (func(a) + func(b))
-  Else
-    it = 2**(j-2)
-    tnm = Real(it,dp)
-    del = (b-a)/tnm
-    sum1 = 0._dp
-    x = a + del
-    If (x.Eq.a) Then ! stepsize to small
-     Write (ErrCan,*) &
-       & "IntRomb: step size to small, called by ",NameOfUnit(Iname)
-     Call AddError(22)
-     IntRomb = s(j)
-     Return
-    End If
-    x = a + 0.5_dp * del
-
-    Do i1=1,it
-     sum1 = sum1 + func(x)
-     x = x + del
-    End Do
-    s(j) = 0.5_dp * (s(j) + (b-a) * sum1 / tnm)
-  End If
-
-  If (j >= K) Then
-   Call polint(h(j-KM:j),s(j-KM:j),0.0_dp,IntRomb,dIntRomb)
-   If (Abs(dIntRomb) <= EPS*Abs(IntRomb)) Return
-  End If
-  s(j+1)=s(j)
-  h(j+1)=0.25_dp*h(j)
- End Do
- Write (ErrCan,*) "IntRomb: too many steps, called by ",NameOfUnit(Iname) 
- Write (ErrCan,503) eps,IntRomb,Abs(dIntRomb)
- Call AddError(23)
-503 Format(3e16.7)
-
- End Function IntRomb
 
  Real(Dp) Function Kappa(x,y,z)
  !-----------------------------------------------------------------------
@@ -1737,204 +2031,6 @@ End If
   LI2=H
 
  End Function Li2
- 
- Subroutine LuBkSb_c(a,indx,b)
- !------------------------------------------
- ! taking Numerical recipies as example
- ! written by Werner Porod, 13.03.03
- !------------------------------------------
- Implicit None
-  Complex(dp), Dimension(:,:), Intent(IN) :: a
-  Integer, Dimension(:), Intent(IN) :: indx
-  Complex(dp), Dimension(:), Intent(INOUT) :: b
-
-  Integer :: i,n,ii,ll
-  Complex(dP) :: summ
-
-  Iname = Iname + 1
-  NameOfUnit(Iname) = "LuBkSb_c"
-
-  n = Size(a,1)
-  If ((n.Ne.Size(a,2)).Or.(n.Ne.Size(indx))) Then
-   Write(Errcan,*) "Error in routine "//NameOfUnit(Iname)
-   Write(ErrCan,*) "sizes of matrix and vector are not consisten: a_1,a_2,b" &
-     & ,n,Size(a,2),Size(indx)
-   Call TerminateProgram
-  End If
-
-  ii=0
-  Do i=1,n
-    ll=indx(i)
-    summ=b(ll)
-    b(ll)=b(i)
-    If (ii /= 0) Then
-      summ=summ-Dot_product(a(i,ii:i-1),b(ii:i-1))
-    Else If (summ /= 0.0_dp) Then
-      ii=i
-    End If
-    b(i)=summ
-  End Do
-  Do i=n,1,-1
-    b(i) = (b(i)-Dot_product(a(i,i+1:n),b(i+1:n)))/a(i,i)
-  End Do
-
-  Iname = Iname - 1
-
- End Subroutine LuBkSb_c
-  
- Subroutine lubksb_r(a,indx,b)
- !------------------------------------------
- ! taking Numerical recipies as example
- ! written by Werner Porod, 13.03.03
- !------------------------------------------
- Implicit None
-  Real(dp), Dimension(:,:), Intent(IN) :: a
-  Integer, Dimension(:), Intent(IN) :: indx
-  Real(dp), Dimension(:), Intent(INOUT) :: b
-
-  Integer :: i,n,ii,ll
-  Real(dP) :: summ
-
-  Iname = Iname + 1
-  NameOfUnit(Iname) = "LuBkSb_r"
-
-  n = Size(a,1)
-  If ((n.Ne.Size(a,2)).Or.(n.Ne.Size(indx))) Then
-   Write(Errcan,*) "Error in routine "//NameOfUnit(Iname)
-   Write(ErrCan,*) "sizes of matrix and vector are not consisten: a_1,a_2,b" &
-     & ,n,Size(a,2),Size(indx)
-   Call TerminateProgram
-  End If
-
-  ii=0
-  Do i=1,n
-    ll=indx(i)
-    summ=b(ll)
-    b(ll)=b(i)
-    If (ii /= 0) Then
-      summ=summ-Dot_product(a(i,ii:i-1),b(ii:i-1))
-    Else If (summ /= 0.0_dp) Then
-      ii=i
-    End If
-    b(i)=summ
-  End Do
-  Do i=n,1,-1
-    b(i) = (b(i)-Dot_product(a(i,i+1:n),b(i+1:n)))/a(i,i)
-  End Do
-
-  Iname = Iname - 1
-
- End Subroutine LuBkSb_r
-  
- Subroutine LuDcmp_c(a,indx,d)
- !------------------------------------------
- ! taking Numerical recipies as example
- ! written by Werner Porod, 13.03.03
- !------------------------------------------
-  Implicit None
-  Complex(DP), Dimension(:,:), Intent(INOUT) :: a
-  Integer, Dimension(:), Intent(OUT) :: indx
-  Real(DP), Intent(OUT) :: d
-
-  Complex(DP), Dimension(Size(a,1)) :: vv, dum
-  Real(DP), Parameter :: TINY=1.0e-20_dp
-  Integer :: j,n,imax, imaxvec(1)
-
-  Iname = Iname + 1
-  NameOfUnit(Iname) = "LuDcmp_c"
-
-  n = Size(a,1)
-  If ((n.Ne.Size(a,2)).Or.(n.Ne.Size(indx))) Then
-   Write(Errcan,*) "Error in routine "//NameOfUnit(Iname)
-   Write(ErrCan,*) "sizes of matrix and vector are not consisten: a_1,a_2,b" &
-     & ,n,Size(a,2),Size(indx)
-   Call TerminateProgram
-  End If
-
-  d=1.0_dp
-
-  vv=Maxval(Abs(a),dim=2)
-  If (Any(vv == 0.0_dp)) Then
-    Write(Errcan,*) "Singular matrix in "//NameOfUnit(Iname)
-    Call TerminateProgram
-  End If
-
-  vv=1.0_dp/vv
-
-  Do j=1,n
-    imaxvec = Maxloc(Abs(vv(j:n))*Abs(a(j:n,j)))
-    imax=(j-1)+imaxvec(1)
-    If (j /= imax) Then
-      dum = a(imax,:)
-      a(imax,:) = a(j,:)
-      a(j,:) = dum
-      d=-d
-      vv(imax)=vv(j)
-    End If
-    indx(j)=imax
-    If (a(j,j) == 0.0_dp) a(j,j)=TINY
-    a(j+1:n,j)=a(j+1:n,j)/a(j,j)
-    a(j+1:n,j+1:n)=a(j+1:n,j+1:n)-outerprod(a(j+1:n,j),a(j,j+1:n))
-  End Do
-
-  Iname = Iname - 1
-
- End Subroutine LuDcmp_c
-
- Subroutine LuDcmp_r(a,indx,d)
- !------------------------------------------
- ! taking Numerical recipies as example
- ! written by Werner Porod, 13.03.03
- !------------------------------------------
- Implicit None
-  Real(DP), Dimension(:,:), Intent(INOUT) :: a
-  Integer, Dimension(:), Intent(OUT) :: indx
-  Real(DP), Intent(OUT) :: d
-
-  Real(DP), Dimension(Size(a,1)) :: vv, dum
-  Real(DP), Parameter :: TINY=1.0e-20_dp
-  Integer :: j,n,imax, imaxvec(1)
-
-  Iname = Iname + 1
-  NameOfUnit(Iname) = "LuDcmp_r"
-
-  n = Size(a,1)
-  If ((n.Ne.Size(a,2)).Or.(n.Ne.Size(indx))) Then
-   Write(Errcan,*) "Error in routine "//NameOfUnit(Iname)
-   Write(ErrCan,*) "sizes of matrix and vector are not consisten: a_1,a_2,b" &
-     & ,n,Size(a,2),Size(indx)
-   Call TerminateProgram
-  End If
-
-  d=1.0_dp
-
-  vv=Maxval(Abs(a),dim=2)
-  If (Any(vv == 0.0_dp)) Then
-    Write(Errcan,*) "Singular matrix in "//NameOfUnit(Iname)
-    Call TerminateProgram
-  End If
-
-  vv=1.0_dp/vv
-
-  Do j=1,n
-    imaxvec = Maxloc(vv(j:n)*Abs(a(j:n,j)))
-    imax=(j-1)+imaxvec(1)
-    If (j /= imax) Then
-      dum = a(imax,:)
-      a(imax,:) = a(j,:)
-      a(j,:) = dum
-      d=-d
-      vv(imax)=vv(j)
-    End If
-    indx(j)=imax
-    If (a(j,j) == 0.0_dp) a(j,j)=TINY
-    a(j+1:n,j)=a(j+1:n,j)/a(j,j)
-    a(j+1:n,j+1:n)=a(j+1:n,j+1:n)-outerprod(a(j+1:n,j),a(j,j+1:n))
-  End Do
-
-  Iname = Iname - 1
-
- End Subroutine LuDcmp_r
 
 
  Function MatMul2C3(A, B, OnlyDiagonal) Result(D)
@@ -2081,6 +2177,53 @@ End If
   End If
  End Function MatVec2R3
 
+ Subroutine mmid(y,dydx,xs,htot,nstep,yout,derivs)
+ !-------------------------------------------------
+ ! written by Werner Porod, 16.03.10
+ !-------------------------------------------------
+ Implicit None
+  External derivs
+
+  Integer, Intent(IN) :: nstep
+  Real(dp), Intent(IN) :: xs,htot
+  Real(dp), Dimension(:), Intent(IN) :: y,dydx
+  Real(dp), Dimension(:), Intent(OUT) :: yout
+
+  Integer :: n, len1
+  Real(dp) :: h,h2,x
+  Real(dp), Dimension(Size(y)) :: ym, yn, swap
+
+  Iname = Iname + 1
+  NameOfUnit(Iname) = "mmid"
+
+  len1 = Size(y) 
+  If ((len1.Ne.Size(dydx)).Or.(len1.Ne.Size(yout))) Then
+   Write(ErrCan,*) "Problem in routine mmid, size of vectors"
+   Write(ErrCan,*) "does not conincide:",len1,Size(dydx),Size(yout)
+   Call TerminateProgram
+  End If
+
+  h=htot/nstep
+  ym=y
+  yn=y+h*dydx
+  x=xs+h
+  Call derivs(len1, x, yn, yout)
+  h2=2.0_dp * h
+  Do n=2,nstep
+   swap = ym
+   ym = yn
+   yn = swap
+
+   yn=yn+h2*yout
+   x=x+h
+   Call derivs(len1, x, yn, yout)
+  End Do
+  yout=0.5_dp*(ym+yn+h*yout)
+
+  Iname = Iname - 1
+
+ End Subroutine mmid
+
  Function VecMat2R3(A, B, OnlyDiagonal) Result(D)
  Implicit None
   Logical, Intent(in) :: OnlyDiagonal
@@ -2138,7 +2281,6 @@ End If
   Complex(dp), Intent(in) :: a(3)
   Real(dp), Intent(in) :: b(3)
   Complex(dp) :: d
-  Integer :: i1
 
   d = Dot_Product(a, b)
 
@@ -2271,55 +2413,6 @@ End If
    d = Matmul(a, a )
   End If
  End Function MatSquare
-
- Subroutine mmid(y,dydx,xs,htot,nstep,yout,derivs)
- !-------------------------------------------------
- ! modified mmid routine for solving DGLs, taken
- ! from numerical recipies
- ! written by Werner Porod, 16.03.10
- !-------------------------------------------------
- Implicit None
-  External derivs
-
-  Integer, Intent(IN) :: nstep
-  Real(dp), Intent(IN) :: xs,htot
-  Real(dp), Dimension(:), Intent(IN) :: y,dydx
-  Real(dp), Dimension(:), Intent(OUT) :: yout
-
-  Integer :: n, len1
-  Real(dp) :: h,h2,x
-  Real(dp), Dimension(Size(y)) :: ym, yn, swap
-
-  Iname = Iname + 1
-  NameOfUnit(Iname) = "mmid"
-
-  len1 = Size(y) 
-  If ((len1.Ne.Size(dydx)).Or.(len1.Ne.Size(yout))) Then
-   Write(ErrCan,*) "Problem in routine mmid, size of vectors"
-   Write(ErrCan,*) "does not conincide:",len1,Size(dydx),Size(yout)
-   Call TerminateProgram
-  End If
-
-  h=htot/nstep
-  ym=y
-  yn=y+h*dydx
-  x=xs+h
-  Call derivs(len1, x, yn, yout)
-  h2=2.0_dp * h
-  Do n=2,nstep
-   swap = ym
-   ym = yn
-   yn = swap
-
-   yn=yn+h2*yout
-   x=x+h
-   Call derivs(len1, x, yn, yout)
-  End Do
-  yout=0.5_dp*(ym+yn+h*yout)
-
-  Iname = Iname - 1
-
- End Subroutine mmid
 
  Subroutine odeint(ystart, len, x1, x2, eps, h1, hmin, derivs, kont)
  Implicit None
@@ -2518,6 +2611,240 @@ End If
 
  End Subroutine odeintB
 
+Subroutine odeintB2(ystart, len, x1, x2, eps, h1, hmin, derivs,checks, xout, kont)
+ Implicit None
+  External derivs, checks
+
+  Integer, Intent(in) :: len
+  Real(dp), Dimension(len), Intent(INOUT) :: ystart
+  Real(dp), Intent(out) :: xout
+  Real(dp), Intent(IN) :: x1, x2, eps, h1, hmin
+  Integer, Intent(inout) :: kont
+
+  Real(dp), Parameter :: TINY=Epsilon(1._dp)
+  Integer :: nstp
+  Real(dp) :: h,hdid,hnext,x,x_old, h_old
+  Real(dp), Dimension(len) :: dydx, y, yscal, y_old
+
+  Logical :: unified, greater
+
+  Iname = Iname + 1
+  NameOfUnit(Iname) = "odeintB"
+
+  x=x1
+  h=Sign(h1,x2-x1)
+  nok=0
+  nbad=0
+  kount=0
+
+  y(:)=ystart(:)
+  kont = 0
+
+  xout = 0._dp
+
+  ! initialisation
+  h_old = h
+  x_old = x
+  y_old = y
+
+  Do nstp=1,MAXSTP
+
+   Call derivs(len,x,y,dydx)
+
+   yscal(:)=Abs(y(:))+Abs(h*dydx(:))+TINY
+
+   If ((x+h-x2)*(x+h-x1) > 0.0_dp) h=x2-x
+
+   If (Use_bsstep_instead_of_rkqs) then
+    Call bsstep(y,dydx,x,h,eps,yscal,hdid,hnext,derivs,kont)
+   Else
+    Call rkqs(y,dydx,x,h,eps,yscal,hdid,hnext,derivs,kont)
+   End If
+
+   If (kont.Ne.0) Then
+    Iname = Iname - 1
+    Return
+   End If
+
+   Call checks(y,eps,unified, greater)
+
+   !If (((y(1)-y(2)).Gt.0._dp).And.((y(1)-y(2)).Lt.eps)) Then
+   If (unified) Then
+    ystart(:)=y(:)
+    xout = x
+    Iname = Iname - 1
+    Return
+   !Else If (y(1).Gt.y(2)) Then 
+   Else If (greater) Then
+    y = y_old
+    x = x_old
+    hnext = 0.5_dp * h_old
+   End If
+
+   y_old = y
+   x_old = x
+   h_old = hnext
+
+   If (hdid == h) Then
+    nok=nok+1
+   Else
+    nbad=nbad+1
+   End If
+
+   If ((x-x2)*(x2-x1) >= 0.0_dp) Then
+    Write(ErrCan,*) "Problem in OdeIntB, boundary condition not fullfilled"
+    kont = -4
+    Call AddError(4)
+    ystart(:)=y(:)
+    Iname = Iname - 1
+    Return
+   End If
+
+   If (Abs(hnext) < hmin) Then
+    kont = -5
+    Call AddError(5)
+    Write(ErrCan,*) "Problem in OdeIntB, stepsize smaller than minimum."
+    If (ErrorLevel.Ge.1) Call TerminateProgram
+    Iname = Iname - 1
+    Return
+   End If
+
+   If (Maxval(Abs(y)).Gt.1.e36_dp) Then
+    kont = -6
+    Call AddError(6)
+    Write(ErrCan,*) "Problem in OdeIntB, max val > 10^36.",Maxval(Abs(y))
+    If (ErrorLevel.Ge.1) Call TerminateProgram
+    Iname = Iname - 1
+    Return
+   End If
+   h=hnext
+  End Do
+
+  kont = -7
+  Write(ErrCan,*) "Problem in OdeIntB, too many steps."
+  If (ErrorLevel.Ge.1) Call TerminateProgram
+  Call AddError(7)
+  Iname = Iname - 1
+
+ End Subroutine odeintB2
+
+ Subroutine odeintC2(ystart, len, x1, x2, eps, h1, hmin, derivs,checks, xout, kont)
+ Implicit None
+  External derivs, checks
+
+  Integer, Intent(in) :: len
+  Real(dp), Dimension(len), Intent(INOUT) :: ystart
+  Real(dp), Intent(out) :: xout
+  Real(dp), Intent(IN) :: x1, x2, eps, h1, hmin
+  Integer, Intent(inout) :: kont
+
+  Real(dp), Parameter :: TINY=Epsilon(1._dp)
+  Integer :: nstp
+  Real(dp) :: h,hdid,hnext,x,x_old, h_old
+  Real(dp), Dimension(len) :: dydx, y, yscal, y_old
+
+  Logical :: unified, greater
+
+  Iname = Iname + 1
+  NameOfUnit(Iname) = "odeintC"
+
+  x=x1
+  h=Sign(h1,x2-x1)
+  nok=0
+  nbad=0
+  kount=0
+
+  y(:)=ystart(:)
+  kont = 0
+
+  xout = 0._dp
+
+  ! initialisation
+  h_old = h
+  x_old = x
+  y_old = y
+
+  Do nstp=1,MAXSTP
+
+   Call derivs(len,x,y,dydx)
+
+   yscal(:)=Abs(y(:))+Abs(h*dydx(:))+TINY
+
+   If ((x+h-x2)*(x+h-x1) > 0.0_dp) h=x2-x
+
+   If (Use_bsstep_instead_of_rkqs) then
+    Call bsstep(y,dydx,x,h,eps,yscal,hdid,hnext,derivs,kont)
+   Else
+    Call rkqs(y,dydx,x,h,eps,yscal,hdid,hnext,derivs,kont)
+   End If
+
+   If (kont.Ne.0) Then
+    Iname = Iname - 1
+    Return
+   End If
+
+
+   Call checks(y,eps,unified, greater)
+
+   !If (((y(1)-y(2)).Gt.0._dp).And.(Abs(y(1)-y(2)).Lt.eps)) Then
+   If (unified) Then
+    ystart(:)=y(:)
+    xout = x
+    Iname = Iname - 1
+    Return
+   !Else If (y(1).Lt.y(2)) Then
+   Else If (.not.greater) Then
+    y = y_old
+    x = x_old
+    hnext = 0.5_dp * h_old
+   End If
+
+   y_old = y
+   x_old = x
+   h_old = hnext
+
+   If (hdid == h) Then
+    nok=nok+1
+   Else
+    nbad=nbad+1
+   End If
+
+   If ((x-x2)*(x2-x1) >= 0.0_dp) Then
+    Write(ErrCan,*) "Problem in OdeIntC, boundary condition not fullfilled"
+    kont = -8
+    Call AddError(8)
+    Iname = Iname - 1
+    ystart(:)=y(:)
+    Return
+   End If
+
+   If (Abs(hnext) < hmin) Then
+    kont = -9
+    Call AddError(9)
+    Iname = Iname - 1
+    Write(ErrCan,*) "Problem in OdeIntC, stepsize smaller than minimum."
+    If (ErrorLevel.Ge.1) Call TerminateProgram
+    Return
+   End If
+
+   If (Maxval(Abs(y)).Gt.1.e36_dp) Then
+    kont = -10
+    Call AddError(10)
+    Iname = Iname - 1
+    Write(ErrCan,*) "Problem in OdeIntC, max val > 10^36.",Maxval(Abs(y))
+    If (ErrorLevel.Ge.1) Call TerminateProgram
+    Return
+   End If
+   h=hnext
+  End Do
+
+  kont = -11
+  Write(ErrCan,*) "Problem in OdeIntC, too many steps."
+  If (ErrorLevel.Ge.1) Call TerminateProgram
+  Call AddError(11)
+  Iname = Iname - 1
+
+ End Subroutine odeintC2
 
  Subroutine odeintC(ystart, len, x1, x2, eps, h1, hmin, derivs, xout, kont)
  Implicit None
@@ -2691,10 +3018,10 @@ End If
 
  Subroutine polint(xa,ya,x,y,dy)
  !---------------------------------------------------------------------------
- ! polynomial interpolation, based on Numerical Recipes in Fortran, page 103
+ ! polynomial interpolation
  ! written by Werner Porod, 23.05.2001
  !---------------------------------------------------------------------------
- Use Control !nrtype; USE nrutil, ONLY : assert_eq,iminloc,nrerror
+ Use Control 
  Implicit None
   Real(dp), Dimension(:), Intent(IN) :: xa, ya
   Real(dp), Intent(IN) :: x
@@ -2824,7 +3151,7 @@ End If
   Integer, Intent(inout) :: kont
 
   Integer :: N1,N2,N3
-  Real(Dp), Allocatable :: AR(:,:), WR(:), WORK(:)
+  Real(Dp), Allocatable :: AR(:,:), WR(:), WORK(:), AR2(:,:)
 
   Iname = Iname + 1
   NameOfUnit(Iname) = 'RealEigenSystem'
@@ -2833,16 +3160,27 @@ End If
   N2 = Size(EigenValues)
   N3 = Size(EigenVectors, Dim=1)
   If ((N1.Ne.N2).Or.(N1.Ne.N3)) Then
-   Write (ErrCan,*) 'Error in Subroutine '//NameOfUnit(Iname)
-   Write (ErrCan,*) 'Dimensions to not match: ',N1,N2,N3
+   Write(ErrCan,*) 'Error in Subroutine '//NameOfUnit(Iname)
+   Write(ErrCan,*) 'Dimensions to not match: ',N1,N2,N3
    If (ErrorLevel.Ge.-1) Call TerminateProgram
    kont = -15
    Call AddError(15)
    Iname = Iname - 1
    Return 
   End If
+  
+  If (Is_NaN(Matrix)) then !  
+   Write(ErrCan,*) 'Error in Subroutine '//NameOfUnit(Iname)
+   Write(ErrCan,*) 'matrix contains NaN'
+   If (ErrorLevel.Ge.-1) Call TerminateProgram
+   kont = -30
+   Call AddError(30)
+   Iname = Iname - 1
+   Return 
+  End If
 
   Allocate(AR(N1,N1))
+  Allocate(AR2(N1,N1))
   Allocate(WR(N1))
   Allocate(Work(N1))
 
@@ -2870,7 +3208,8 @@ End If
   !-------------------------
   ! test of diagonalisation
   !-------------------------
-  Ar = Matmul(Eigenvectors, Matmul(Matrix, Ar) )
+  AR2 = Matmul(Matrix, AR) 
+  Ar = Matmul(Eigenvectors, AR2 )
 
   test = 0._dp
   Do n2=1,n1
@@ -2889,7 +3228,7 @@ End If
    End If
   End If
 
-  Deallocate(AR,WR,Work)
+  Deallocate(AR,AR2,WR,Work)
 
   Iname = Iname - 1
 
@@ -3137,127 +3476,13 @@ End If
 
  End Function Set_Use_bsstep_instead_of_rkqs
 
- Subroutine SolveLinearEquations_c(A, b, x)
- !----------------------------------------------------------
- ! solves the linear system of equations: A.x = b for a given
- ! matrix A and vector b and the unknown vector x
- ! written by Werner Porod, 13.03.03
- !----------------------------------------------------------
- Implicit None
-  Complex(dp), Intent(in) :: a(:,:), b(:)
-  Complex(dp), Intent(out) :: x(:)
-
-  Integer :: indx(2*Size(x)), n, i1, i2
-  Real(dp) :: d
-  Real(dp) :: a_reg(2*Size(x),2*Size(x)), b_in(2*Size(x)), test
-
-  Iname = Iname + 1
-  NameOfUnit(Iname) = "SolveLinearEquations_c"
-
-  !----------------------------------------------------------------
-  ! first sorting out a singular case appearing inside the program
-  ! however, the solution is known in this case
-  !----------------------------------------------------------------
-  n = Size(x)
-  test = 0._dp
-  Do i1=1,n
-   Do i2=1,n
-    If (i1.Ne.i2) test = test + Abs( a(i1,i2) )
-   End Do
-  End Do
-
-  If (test.Eq.0._dp) Then ! at most the diagonal entries are non-zero
-   Do i1=1,n
-    x(i1) = 0._dp
-    If ( (a(i1,i1).Ne.0._dp) .And. (b(i1).Ne.0._dp ) ) Then
-     x(i1) = b(i1) / a(i1,i1)
-    Else If (b(i1).Ne.0._dp) Then
-     Write(ErrCan,*) "Error in routine "//NameOfUnit(Iname)
-     Write(ErrCan,*) "Singular Matrix!"
-     If (ErrorLevel.Gt.-2) Call TerminateProgram
-    End If
-   End Do
-  !-----------------------------
-  ! now the other cases
-  !-----------------------------
-  Else
-   n=Size(b)
-   a_reg(1:n,1:n) = Real(a,dp)
-   a_reg(n+1:2*n,n+1:2*n) = a_reg(1:n,1:n)
-   a_reg(1:n,n+1:2*n) = -Aimag(a)
-   a_reg(n+1:2*n,1:n) = Aimag(a)
-   b_in(1:n) = Real(b,dp)
-   b_in(n+1:2*n) = Aimag(b)
-   Call LuDcmp(a_reg, indx, d)
-   Call lubksb(a_reg, indx, b_in)
-   x = b_in(1:n) + (0._dp,1._dp) * b_in(n+1:2*n)
-  End If
-
-  Iname = Iname - 1
-
- End Subroutine SolveLinearEquations_c
-
- Subroutine SolveLinearEquations_r(A, b, x)
- !----------------------------------------------------------
- ! solves the linear system of equations: A.x = b for a given
- ! matrix A and vector b and the unknown vector x
- ! written by Werner Porod, 13.03.03
- ! 19.03.03: adding a singular case that appears for the Yukaws
- !----------------------------------------------------------
- Implicit None
-  Real(dp), Intent(in) :: a(:,:), b(:)
-  Real(dp), Intent(out) :: x(:)
-
-  Integer :: indx(Size(x)), n, i1, i2
-  Real(dp) :: d, a_reg(Size(x),Size(x)), test
-
-  Iname = Iname + 1
-  NameOfUnit(Iname) = "SolveLinearEquations_r"
-
-  !----------------------------------------------------------------
-  ! first sorting out a singular case appearing inside the program
-  ! however, the solution is known in this case
-  !----------------------------------------------------------------
-  n = Size(x)
-  test = 0._dp
-  Do i1=1,n
-   Do i2=1,n
-    If (i1.Ne.i2) test = test + Abs( a(i1,i2) )
-   End Do
-  End Do
-
-  If (test.Eq.0._dp) Then ! at most the diagonal entries are non-zero
-   Do i1=1,n
-    x(i1) = 0._dp
-    If ( (a(i1,i1).Ne.0._dp) .And. (b(i1).Ne.0._dp ) ) Then
-     x(i1) = b(i1) / a(i1,i1)
-    Else If (b(i1).Ne.0._dp) Then
-     Write(ErrCan,*) "Error in routine "//NameOfUnit(Iname)
-     Write(ErrCan,*) "Singular Matrix!"
-     If (ErrorLevel.Gt.-2) Call TerminateProgram
-    End If
-   End Do
-  !-----------------------------
-  ! now the other cases
-  !-----------------------------
-  Else
-   a_reg = a
-   Call LuDcmp(a_reg, indx, d)
-   x = b
-   Call lubksb(a_reg, indx, x)
-  End If
-
-  Iname = Iname - 1
-
- End Subroutine SolveLinearEquations_r
-
  Subroutine tqli(kont,d,e,z)
 
  Implicit None
   Integer, Intent(inout) :: kont
   Real(dp), Dimension(:), Intent(INOUT) :: d,e
   Real(dp), Dimension(:,:), Optional, Intent(INOUT) :: z
-  Integer :: i,iter,l,m,n,ndum
+  Integer :: i,iter,l,m,n
   Real(dp) :: b,c,dd,f,g,p,r,s
   Real(dp), Dimension(Size(e)) :: ff
 
@@ -3271,7 +3496,6 @@ End If
   End If
 
   If (Present(z)) Then
-   ndum = n
    If ((n.Ne.Size(z,dim=1)).Or.(n.Ne.Size(z,dim=2)) ) Then
     Write(ErrCan,*) "Error in tqli",n,Size(z,dim=1),Size(z,dim=2)
     If (ErrorLevel.Gt.-2) Call TerminateProgram
@@ -3410,37 +3634,10 @@ End If
 
  End Subroutine tred2A
 
- Subroutine UnitMatrix_C(n, mat)
- Implicit None
-  Integer, Intent(in) :: n
-  Complex(dp), Intent(out) :: mat(n,n)
-
-  Integer :: i1
-  
-  mat = 0._dp
-  Do i1=1,n
-   mat(i1,i1) = 1._dp
-  End Do
- End Subroutine UnitMatrix_C
-
- Subroutine UnitMatrix_R(n, mat)
- Implicit None
-  Integer, Intent(in) :: n
-  Real(dp), Intent(out) :: mat(n,n)
-
-  Integer :: i1
-  
-  mat = 0._dp
-  Do i1=1,n
-   mat(i1,i1) = 1._dp
-  End Do
- End Subroutine UnitMatrix_R
-
  Subroutine Vegas1(region,func,init,ncall,itmx,nprn,acc,tgral,sd,chi2a)
  !--------------------------------------------------------------------
- ! Monte Carlo Integration, source code as given in Numerical Recipies
- ! for F90, page 1161
- ! this version has been written by Werner Porod, 16.1.01
+ ! Monte Carlo Integration
+ ! written by Werner Porod, 16.1.01
  ! 12.08.01: changing it according to the version I have got from
  !           Claus Bloechinger (f77-file seleklib.f)
  !--------------------------------------------------------------------
@@ -3647,7 +3844,7 @@ End If
    If (Abs(acc).Lt.Abs(sd/tgral)) Exit
   End Do
 
- 200 Format(/' input parameters for vegas:  ndim = ',i3,'  ncall = ',f8.0&
+ 200 Format(/' input parameters for Vegas1: ndim = ',i3,'  ncall = ',f8.0&
    /28x,'  it = ',i5,'  itmx = ',i5&
    /28x,'  nprn = ',i3,'  alph = ',f5.2/28x,'  mds = ',i3,'   nd = ',i4&
    /(30x,'xl(',i2,') =  ',g11.4,' xu(',i2,') =  ',g11.4))
@@ -3691,242 +3888,6 @@ End If
   End Subroutine rebin
 
  End Subroutine Vegas1
-
- Subroutine Vegas(region,func,init,ncall,itmx,nprn,tgral,sd,chi2a)
- !--------------------------------------------------------------------
- ! Monte Carlo Integration, source code as given in Numerical Recipies
- ! for F90, page 1161
- ! this version has been written by Werner Porod, 16.1.01
- !--------------------------------------------------------------------
- Implicit None
-  Real(dp), Dimension(:), Intent(IN) :: region
-  Integer, Intent(IN) :: init, ncall, itmx, nprn
-  Real(dp), Intent(OUT) :: tgral, sd, chi2a
-
-  Interface
-   Function func(pt,wgt)
-   Use Control
-   Implicit None
-   Real(dp) :: func
-   Real(dp), Dimension(:), Intent(IN) :: pt
-   Real(dp), Intent(IN) :: wgt
-   End Function func
-  End Interface
-
-  Real(dp), Parameter :: ALPH = 1.5_dp, TINY = 1.0e-30_dp
-  Integer, Parameter :: MXDIM = 10, NDMX = 50
-  Integer, Save :: i, it, j, k, mds, nd, ndim, ndo, ng, npg
-  Integer, Dimension(MXDIM), Save :: ia, kg
-  Real(dp), Save :: calls, dv2g, dxg, f, f2, f2b, fb, rc, ti, tsi, wgt, &
-                  & xjac, xn, xnd, xo, harvest
-  Real(dp), Dimension(NDMX,MXDIM), Save :: d, di, xi
-  Real(dp), Dimension(MXDIM), Save :: dt, dx, x
-  Real(dp), Dimension(NDMX), Save :: r, xin
-  Real(dp), Save :: schi, si, swgt 
-
-  ndim = Size(region)/2
-  !-------------------------------------------------------------------
-  ! Normal entry, enter here on a cold start. Change mds00 to disable
-  ! stratisfied sampling, i.e., use importance sampling only
-  !-------------------------------------------------------------------
-  If (init <=  0) Then
-   mds = 1
-   ndo = 1
-   xi(1,:) = 1.0
-  End If
-  !----------------------------------------------------------------
-  ! Enter here to inherit the previous grids, but not its answers
-  !----------------------------------------------------------------
-  If (init <=  1) Then
-   si = 0.0
-   swgt = 0.0
-   schi = 0.0
-  End If
-  !-----------------------------------------------------------
-  ! Enter here to inherit the previous grids and its answers
-  !-----------------------------------------------------------
-  If (init <=  2) Then
-   nd = NDMX
-   ng = 1
-   If (mds /=  0) Then
-    ng = (ncall/2.0_dp+0.25_dp)**(1.0_dp/ndim)
-    mds = 1
-    If ((2*ng-NDMX) >=  0) Then
-     mds = -1
-     npg = ng/NDMX+1
-     nd = ng/npg
-     ng = npg*nd
-    End If
-   End If
-   k = ng**ndim
-   npg = Max(ncall/k,2)
-   calls = Real(npg,dp)*Real(k,dp)
-   dxg = 1.0_dp/ng
-   dv2g = (calls*dxg**ndim)**2/npg/npg/(npg-1.0_dp)
-   xnd = nd
-   dxg = dxg*xnd
-   dx(1:ndim) = region(1+ndim:2*ndim)-region(1:ndim)
-   xjac = 1.0_dp/calls*Product(dx(1:ndim))
-
-   If (nd /=  ndo) Then         ! do binning if necessary
-    r(1:Max(nd,ndo)) = 1.0
-    Do j = 1,ndim
-     Call rebin(ndo/xnd,nd,r,xin,xi(:,j))
-    End Do
-    ndo = nd
-   End If
-
-   If (nprn >=  0) Write(*,200) ndim,calls,it,itmx,nprn,ALPH,mds,nd,   &
-                            & (j,region(j),j,region(j+ndim),j = 1,ndim)
-  End If
-  !----------------------------------
-  ! Main iteration loop, can enter here (init>= 3) to do an additional
-  ! itmx iteration with all other parameters unchanged
-  !----------------------------------
-  Do it = 1,itmx
-   ti = 0.0
-   tsi = 0.0
-   kg(:) = 1
-   d(1:nd,:) = 0.0
-   di(1:nd,:) = 0.0
-   iterate: Do
-    fb = 0.0
-    f2b = 0.0
-    Do k = 1,npg
-     wgt = xjac
-     Do j = 1,ndim
-      Call Random_number(harvest)
-      xn = (kg(j)-harvest)*dxg+1.0_dp
-      ia(j) = Max(Min(Int(xn),NDMX),1)
-      If (ia(j) > 1) Then
-       xo = xi(ia(j),j)-xi(ia(j)-1,j)
-       rc = xi(ia(j)-1,j)+(xn-ia(j))*xo
-      Else
-       xo = xi(ia(j),j)
-       rc = (xn-ia(j))*xo
-      End If
-      x(j) = region(j)+rc*dx(j)
-      wgt = wgt*xo*xnd
-     End Do
-     f = wgt*func(x(1:ndim),wgt)
-     f2 = f*f
-     fb = fb+f
-     f2b = f2b+f2
-     Do j = 1,ndim
-      di(ia(j),j) = di(ia(j),j)+f
-      If (mds >=  0) d(ia(j),j) = d(ia(j),j)+f2
-     End Do
-    End Do
-    f2b = Sqrt(f2b*npg)
-    f2b = (f2b-fb)*(f2b+fb)
-    If (f2b <=  0.0_dp) f2b = TINY
-    ti = ti+fb
-    tsi = tsi+f2b
-
-    If (mds < 0) Then           ! use stratified sampling
-     Do j = 1,ndim
-      d(ia(j),j) = d(ia(j),j)+f2b
-     End Do
-    End If
-    Do k = ndim,1,-1
-     kg(k) = Mod(kg(k),ng)+1
-     If (kg(k) /=  1) Cycle iterate
-    End Do
-    Exit iterate
-   End Do iterate
-   !------------------------------------------
-   ! Compute final result for this iteration
-   !------------------------------------------
-   tsi = tsi*dv2g
-   wgt = 1.0_dp/tsi
-   si = si+Real(wgt,dp)*Real(ti,dp)
-   schi = schi+Real(wgt,dp)*Real(ti,dp)**2
-   swgt = swgt+Real(wgt,dp)
-   tgral = si/swgt
-   chi2a = Max((schi-si*tgral)/(it-0.99_dp),0.0_dp)
-   sd = Sqrt(1.0_dp/swgt)
-   tsi = Sqrt(tsi)
-   If (nprn >=  0) Then
-    Write(*,201) it,ti,tsi,tgral,sd,chi2a
-    If (nprn /=  0) Then
-     Do j = 1,ndim
-      Write(*,202) j,(xi(i,j),di(i,j),&
-       i = 1+nprn/2,nd,nprn)
-     End Do
-    End If
-   End If
-   !-------------------------------------------------------------
-   ! refinde the grid, the refinement is damped, to avoid rapid,
-   ! destabilizing changes, and also compressed in range by the
-   ! exponent ALPH
-   !-------------------------------------------------------------
-   Do j = 1,ndim
-    xo = d(1,j)
-    xn = d(2,j)
-    d(1,j) = (xo+xn)/2.0_dp
-    dt(j) = d(1,j)
-    Do i = 2,nd-1
-     rc = xo+xn
-     xo = xn
-     xn = d(i+1,j)
-     d(i,j) = (rc+xn)/3.0_dp
-     dt(j) = dt(j)+d(i,j)
-    End Do
-    d(nd,j) = (xo+xn)/2.0_dp
-    dt(j) = dt(j)+d(nd,j)
-   End Do
-   Where (d(1:nd,:) < TINY) d(1:nd,:) = TINY
-   Do j = 1,ndim
-    r(1:nd) = ((1.0_dp-d(1:nd,j)/dt(j))/(Log(dt(j))-Log(d(1:nd,j))))**ALPH
-    rc = Sum(r(1:nd))
-    Call rebin(rc/xnd,nd,r,xin,xi(:,j))
-   End Do
-  End Do
-
- 200 Format(/' input parameters for vegas:  ndim = ',i3,'  ncall = ',f8.0&
-   /28x,'  it = ',i5,'  itmx = ',i5&
-   /28x,'  nprn = ',i3,'  alph = ',f5.2/28x,'  mds = ',i3,'   nd = ',i4&
-   /(30x,'xl(',i2,') =  ',g11.4,' xu(',i2,') =  ',g11.4))
- 201 Format(/' iteration no.',I3,': ','integral  = ',g14.7,' +/- ',g9.2,&
-   /' all iterations:   integral  = ',g14.7,' +/- ',g9.2,&
-   ' chi**2/it''n  = ',g9.2)
- 202 Format(/' data for axis ',I2/'    X       delta i       ',&
-   '   x       delta i       ','    x       delta i       ',&
-   /(1x,f7.5,1x,g11.4,5x,f7.5,1x,g11.4,5x,f7.5,1x,g11.4))
-
-  Contains
-
-   Subroutine Rebin(rc,nd,r,xin,xi)
-   Implicit None
-    Real(dp), Intent(IN) :: rc
-    Integer, Intent(IN) :: nd
-    Real(dp), Dimension(:), Intent(IN) :: r
-    Real(dp), Dimension(:), Intent(OUT) :: xin
-    Real(dp), Dimension(:), Intent(INOUT) :: xi
-
-    Integer :: i,k
-    Real(dp) :: dr,xn,xo   
-
-    k = 0
-    xo = 0.0
-    dr = 0.0
-    Do i = 1,nd-1
-     Do
-      If (rc <=  dr) Exit
-      k = k+1
-      dr = dr+r(k)
-     End Do
-     If (k > 1) xo = xi(k-1)
-     xn = xi(k)
-     dr = dr-rc
-     xin(i) = xn-(xn-xo)*dr/r(k)
-    End Do
-    xi(1:nd-1) = xin(1:nd-1)
-    xi(nd) = 1.0
-
-  End Subroutine rebin
-
- End Subroutine Vegas
 
 End Module Mathematics
 

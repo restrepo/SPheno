@@ -4,9 +4,9 @@ Module TwoLoopHiggsMass
 ! as well as the 2-loop contributions to the tad-poles.
 ! The orginal routines have been provided by Pietro Slavich
 !---------------------------------------------------------------------------
-use Control
-Use Loopfunctions
+Use Control
 Use Mathematics
+Use Loopfunctions
 Use SusyMasses
 
 Contains
@@ -2624,13 +2624,6 @@ Contains
   Real(dp), intent(in) :: t,b,T1,T2,B1,B2,s2t,c2t,s2b,c2b,q,mu,vv,tanb
   Real(dp), intent(out) :: F1t,F2t,F3t,F4t,F1b,F2b,F3b,F4b,F5,F6,Ft,Fb,Gt,Gb,FAp
   
-  Real(dp) :: pippob, pippot, ht, hb
-
-  pippob = B1*(Log(B1/q)-1._dp) - B2*(Log(B2/q)-1._dp)
-  pippot = T1*(Log(T1/q)-1._dp) - T2*(Log(T2/q)-1._dp)
-  ht = Sqrt(2._dp*t/vv)/Cos(Atan(tanb))
-  hb = Sqrt(2._dp*b/vv)/Cos(Atan(tanb))
-
   F1t = tauF1q(t,b,T1,T2,B1,B2,s2t,s2b,q,vv,tanb)
   F2t = tauF2q(t,b,T1,T2,B1,B2,s2t,c2t,s2b,q,vv,tanb)
   F3t = tauF3q(t,b,T1,T2,B1,B2,s2t,c2t,s2b,q,vv,tanb)
@@ -2858,9 +2851,9 @@ Contains
   Complex(dp), Intent(in) :: A_b, A_t, Y_t, Y_b, mu, A_tau, Y_tau
   Real(dp), Intent(out) :: PiA02
 
-  Real(dp) :: FA, FA_A, s2t, c2t, s2b, c2b, Q, mt, tanb, mb           &
-       & , sb, cb, ht2, mStop(2), mStop2(2), mt2, mb2, mtau, mtau2    &
-       & , muR, mSbottom(2), mSbottom2(2), At, Ab, hb2, vv, Atau      &
+  Real(dp) :: FA, FA_A, s2t, c2t, s2b, c2b, Q, tanb              &
+       & , sb, cb, ht2, mStop(2), mStop2(2), mt2, mb2, mtau2     &
+       & , muR, mSbottom(2), mSbottom2(2), At, Ab, hb2, vv, Atau &
        & , mStau(2), mStau2(2), s2tau, c2tau, htau2, mSneu2
   Real(dp) :: F1t,F2t,F3t,F4t,F1b,F2b,F3b,F4b,F5,F6,Ft,Fb,Gt,Gb,FAp, DMA,FB_A, DMB
   Complex(dp) :: Rstop(2,2), RSbottom(2,2), Rstau(2,2)
@@ -2916,7 +2909,6 @@ Contains
   End If 
 
   mtau2 = 0.5_dp * Abs(Y_tau*vevs(1))**2
-  mtau = Sqrt(mtau2)
   s2tau = - 2._dp * Real( Rstau(1,1) * Rstau(1,2), dp)
   c2tau = Abs(Rstau(1,2))**2 -  Abs(Rstau(1,1))**2
   htau2 = Abs(Y_tau)**2
@@ -2932,8 +2924,6 @@ Contains
 
   Q = GetRenormalizationScale() ! from LoopFunctions
 
-  mt = Sqrt(mt2)
-  mb = Sqrt(mb2)
   ht2 = Abs(Y_t)**2
   hb2 = Abs(Y_b)**2
 
@@ -3000,11 +2990,11 @@ Contains
                  & , sb, cb, Q, muR, FB, FB_A)
 
   If(Atau/=0d0) Then
-    DMB = htau2*muR*Atau/(mStau2(2) - mStau2(1))/(sb*cb) * FA
+    DMB = htau2*muR*Atau/(mStau2(2) - mStau2(1))/(sb*cb) * FB
   Else
   !     the function FA has poles in A=0. 
   !     when necessary we consider the residues:
-    DMB = htau2*muR/(mStau2(2) - mStau2(1))/(sb*cb) * FA_A
+    DMB = htau2*muR/(mStau2(2) - mStau2(1))/(sb*cb) * FB_A
   Endif
   DMB = htau2 * DMB
 
@@ -4248,16 +4238,14 @@ Contains
 
   Subroutine tauresfuncs(t,A0,BL,T1,T2,s2t,c2t,cb,sb,q,mu,F2_s)
   Implicit None
-  Real(dp) :: t,mu2,A0,BL,T1,T2,s2t,c2t,cb,sb,q,mu
-  Real(dp) :: ct2,st2,Xt,Yt,At, mt
+  Real(dp) :: t,A0,BL,T1,T2,s2t,c2t,cb,sb,q,mu
+  Real(dp) :: Xt,Yt,At, mt
   Real(dp) :: F2_s
-  mu2 = mu**2
+
   mt = Sqrt(t)
   Xt = s2t*(T1-T2)/2._dp/mt
   Yt = Xt - mu/cb/sb
   At = sb**2*Xt+cb**2*Yt
-  ct2 = (1._dp+c2t)/2._dp
-  st2 = (1._dp-c2t)/2._dp
   
   F2_s = 2*c2t**2*sb**2*mt*Xt/(T1-T2)*Li2(1-BL/T1) &
       & - 2*c2t**2*sb**2*mt*Xt/(T1-T2)*Li2(1-BL/T2) &
@@ -4458,7 +4446,7 @@ Contains
   Real(dp), Intent(out) :: tadpole(2)
   
   Real(dp) :: parts(2,5), s2t, c2t, s2b, c2b, F2l, G2l, Q, mt, tanb, mb          &
-       & , sb, cb, ht2, mStop(2), mStop2(2), mt2, mb2, muR                       &
+       & , sb, cb, mStop(2), mStop2(2), mt2, mb2, muR                            &
        & , mSbottom(2), mSbottom2(2), At, Ab, gs2, vv, Atau, mStau(2), mStau2(2) &
        & , s2tau, c2tau, mtau, mtau2, mSneu2
   Real(dp) :: F1t,F2t,F3t,F4t,F1b,F2b,F3b,F4b,F5,F6,Ft,Fb,Gt,Gb,FAp
@@ -4532,8 +4520,6 @@ Contains
   !------------------------------------------------------------
 
   Q = GetRenormalizationScale() ! from LoopFunctions
-
-  ht2 = Abs(Y_t)**2
 
   tanb = vevs(2) / vevs(1)
   cb = 1._dp / Sqrt(1._dp + tanb**2)

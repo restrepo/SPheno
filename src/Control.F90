@@ -27,7 +27,7 @@ Module Control
 !-------------------------------------------------------------------
 
  Interface Is_NaN
-  Module Procedure IsNaN_r, IsNaN_v
+  Module Procedure IsNaN_r, IsNaN_v, IsNaN_m
  End Interface
 
  Interface FindPosition
@@ -49,6 +49,10 @@ Integer, Parameter :: qp = Selected_real_kind(25,450)
 #endif
 
  !------------------------------------
+ ! version number
+ !------------------------------------
+ Character(len=8), Save :: version="v4.0.3"
+ !------------------------------------
  ! variables for spectrum calculation
  !------------------------------------
  Real(dp) :: delta_mass = 1.e-5_dp    ! precision of mass calculation
@@ -61,6 +65,7 @@ Integer, Parameter :: qp = Selected_real_kind(25,450)
  ! variables for process calculations
  !--------------------------------------
  Logical :: L_CS = .False. ! if cross sections should be calculated at all
+ Logical :: L_CSrp = .False. ! if cross sections should be calculated in case of RP violation
  Logical :: L_BR=.True.    ! if branching ratios should be calculated at all
  !---------------------------------------------------
  ! for debugging, to get information on the screen
@@ -79,16 +84,35 @@ Integer, Parameter :: qp = Selected_real_kind(25,450)
  !------------------------------------------
  Logical :: l_fit_RP_parameters = .False. ! if true fit bilinear R-parity parameters
                                           ! such that neutrino data are fullfilled
+ !-------------------------------------------------------------
+ ! variables for super PMNS basis if only mixing is given
+ !-------------------------------------------------------------
+ Logical, save :: fake_m_nu = .True.
+ !-------------------------------------------------------------------
+ ! in case one still wants to check results using the old BoundaryEW
+ ! use entry 9 in SPhenoInput to set value to 1 to use old version
+ !-------------------------------------------------------------------
+ Logical, save :: UseNewBoundaryEW = .True.
+ !-------------------------------------------------------------------
+ ! in case one still wants to check results using the on-shell stop
+ ! masses to get the renormalisation scale, 
+ ! use entry 10 in SPhenoInput to set value to 1 
+ !-------------------------------------------------------------------
+ Logical, save :: UseNewScale = .True.
  !------------------------------------------
  ! warning and error system
  !------------------------------------------
  Integer, Save :: Iname, ErrorLevel=0, NumberOfOpenFiles=1, ErrCan=10
  Character (Len=40), Save :: NameOfUnit(40)
- Logical :: Non_Zero_Exit = .False.
+ Logical, Save :: Non_Zero_Exit = .False.
+ Logical, Save :: Write_warning_to_screen = .False.
+ ! if one should switch to 1-loop calculation in case of large logs/huge corrections 
+ ! for m_h
+ Logical, Save ::  Switch_to_1_loop_mh = .False.  
  !-------------------------
  ! for the error system 
  !-------------------------
- Character(len=60) :: Math_Error(29) =                                &
+ Character(len=60) :: Math_Error(31) =                                &
   & (/ "Routine OdeInt, stepsize smaller than minimum:              " &
   &  , "Routine OdeInt, maximal value > 10^36:                      " &
   &  , "Routine OdeInt, too many steps:                             " &
@@ -118,6 +142,8 @@ Integer, Parameter :: qp = Selected_real_kind(25,450)
   &  , "Routine bsstep, stepsize underflow:                         " &
   &  , "Routine pzextr: probable misuse, too much extrapolation     " &
   &  , "Routine rzextr: probable misuse, too much extrapolation     " &
+  &  , "Routine RealEigenSystem, matrix contains NaN                " &
+  &  , "Routine ComplexEigenSystem, matrix contains NaN             " &
   & /)
  Character(len=60) :: MathQP_Error(10) =                              &
   & (/ "Routine ComplexEigenSystemDP, array dimensions do not match:" &
@@ -170,7 +196,7 @@ Integer, Parameter :: qp = Selected_real_kind(25,450)
   & ,  "Routine TreeMassesMSSM3: negative sneutrino mass squared    "    &
   & ,  "Routine TreeMassesNMSSM: negative sneutrino mass squared    "    &
   & /)
- Character(len=60) :: InOut_Error(13) =                                  &
+ Character(len=60) :: InOut_Error(15) =                                  &
   & (/ "Routine LesHouches_Input: unknown error occured:            "    &
   & ,  "Routine LesHouches_Input: Unknown entry for Block MODSEL    "    &
   & ,  "LesHouches_Input: model must be specified before parameters "    &
@@ -183,16 +209,19 @@ Integer, Parameter :: qp = Selected_real_kind(25,450)
   & ,  "ReadVectorC: index exceeds the given boundaries             "    &
   & ,  "ReadVectorR: index exceeds the given boundaries             "    &
   & ,  "ReadTensorC: indices exceed the given boundaries            "    &
-  & ,  "Routine LesHouches_Input, GMSB: Lambda < M_M                "    &
+  & ,  "LesHouches_Input, GMSB: Lambda < M_M                        "    &
+  & ,  "LesHouches_Input: non-perturbative Yukawa coupling as input "    &
+  & ,  "LesHouches_Input: non-diagonl entries in a diagonal matrix  "    &
   & /)
- Character(len=60) :: Sugra_Error(14) =                                  &
+
+ Character(len=60) :: Sugra_Error(22) =                                  &
   & (/ "Routine BoundaryEW: negative scalar mass as input           "    &
   & ,  "Routine BoundaryEW: mZ^2(mZ) < 0                            "    &
   & ,  "Routine BoundaryEW: sin^2(theta_DR) < 0                     "    &
   & ,  "Routine BoundaryEW: mW^2 < 0                                "    &
   & ,  "Routine BoundaryEW: m_l_DR/m_l < 0.1 or m_l_DR/m_l > 10     "    &
-  & ,  "Routine BoundaryEW: m_d_DR/m_d < 0.1 or m_d_DR/m_d > 10     "    &
-  & ,  "Routine BoundaryEW: m_u_DR/m_u < 0.1 or m_u_DR/m_u > 10     "    &
+  & ,  "Routine BoundaryEW: m_b_DR/m_b < 0.1 or m_b_DR/m_b > 10     "    &
+  & ,  "Routine BoundaryEW: m_t_DR/m_t < 0.1 or m_t_DR/m_t > 10     "    &
   & ,  "Routine RunRGE: entering non-perturbative regime            "    &
   & ,  "Routine RunRGE: g1 and g2 do not meet at the high scale     "    &
   & ,  "Routine RunRGE: entering non-perturbative regime at M_GUT   "    &
@@ -200,8 +229,16 @@ Integer, Parameter :: qp = Selected_real_kind(25,450)
   & ,  "Routine Sugra: run did not converge                         "    &
   & ,  "Routine Calculate_Gi_Yi: mZ^2(mZ) < 0                       "    &
   & ,  "Routine Calculate_Gi_Yi: too many iterations of mb(mb)      "    &
+  & ,  "Routine Sugra:  |mu|^2 < 0 at m_Z                           "    &
+  & ,  "Routine RunRGE_2: entering non-perturbative regime          "    &
+  & ,  "Routine RunRGE_2: g1 and g2 do not meet at the high scale   "    &
+  & ,  "Routine RunRGE_2: entering non-perturbative regime at M_GUT "    &
+  & ,  "Routine RunRGE_2: entering non-perturbative regime at M_H3  "    &
+  & ,  "Routine Boundary_SUSY: more then 100% corrections to Y_l_i  "    &
+  & ,  "Routine Boundary_SUSY: more then 100% corrections to Y_d_i  "    &
+  & ,  "Routine Boundary_SUSY: more then 100% corrections to Y_u_i  "    &
   & /)
- Character(len=60) :: LoopMass_Error(24) =                               &
+ Character(len=60) :: LoopMass_Error(25) =                               &
   & (/ "SleptonMass_1L: encountered a negative mass squared         "    &
   & ,  "SleptonMass_1L: p^2 iteration did not converge              "    &
   & ,  "SneutrinoMass_1L: encountered a negative mass squared       "    &
@@ -226,6 +263,7 @@ Integer, Parameter :: qp = Selected_real_kind(25,450)
   & ,  "LoopMassesMSSM3: |mu|^2 > 10^20 in the 1-loop calculation   "    &
   & ,  "LoopMassesMSSM3: |mu|^2 < 0 in the 1-loop calculation       "    &
   & ,  "LoopMassesMSSM3: mZ^2(mZ) < 0                               "    &
+  & ,  "Sigma_SM_chirally_enhanced: negative mass squared           "    &
   & /)
  Character(len=60) :: TwoLoopHiggs_Error(9) =                            &
   & (/ "PiPseudoScalar2: encountered negative stop mass squared     "    &
@@ -253,9 +291,10 @@ Real(dp), Parameter :: Pi = 3.1415926535897932384626433832795029_dp           &
    & , oo8Pi = 0.5_dp * oo4Pi, oo16Pi = 0.5_dp * oo8Pi                        &
    & , oo32Pi = 0.5_dp * oo16Pi, oo64Pi = 0.5_dp * oo32Pi                     &
    & , oo48Pi = oo4Pi / 12._dp, fo3Pi = 4._dp / (3._dp * Pi)                  &
+   & , oo4pi2 = 1._dp / (4._dp * Pi2), oo3pi2 = 1._dp / (3._dp * Pi2)         &
    & , oo6pi2 = 1._dp / (6._dp * Pi2), oo8pi2 = 1._dp / (8._dp * Pi2)         &
    & , oo16pi2 = 0.5_dp * oo8pi2, oo64pi2 = 0.25_dp * oo16pi2                 &
-   & , oo32pi2 = 0.5_dp * oo16pi2                                             &
+   & , oo32pi2 = 0.5_dp * oo16pi2, oo48pi2 = oo16pi2 / 3._dp                  &
    & , oo36pi3 = 1._dp / (36._dp * Pi3)                                       &
    & , oo128pi3 = 1._dp / (128._dp * Pi3)                                     &
    & , oo256pi3 = 1._dp / (256._dp * Pi3), oo512pi3 = 0.5_dp * oo256pi3    
@@ -498,7 +537,7 @@ Contains
  !---------------------------------------------------------------------
  ! tests if x is NaN. Comparison of NaN with any number gives FALSE
  !---------------------------------------------------------------------
- implicit none
+ Implicit None
   Real(dp), Intent(in) :: x
 
   IsNaN_r = .Not. ((x.Gt.0._dp).Or.(x.Lt.0._dp).Or.(x.Eq.0._dp))
@@ -521,10 +560,33 @@ Contains
  
  Do i1=1,l1
   IsNaN_v = .Not. ((x(i1).Gt.0._dp).Or.(x(i1).Lt.0._dp).Or.(x(i1).Eq.0._dp))
-  if (IsNaN_v) exit
- end do
+  If (IsNaN_v) Exit
+ End Do
 
  End Function IsNaN_v
+
+ Logical Function IsNaN_m(x)
+ !---------------------------------------------------------------------
+ ! tests if at least one element of x is NaN. 
+ ! Comparison of NaN with any number gives FALSE
+ !---------------------------------------------------------------------
+ Real(dp), Intent(in) :: x(:,:)
+
+ Integer :: l1, i1, i2, l2
+
+ l1 = Size(x,dim=1)
+ l2 = Size(x,dim=2)
+
+ IsNaN_m = .False.
+ 
+ Do i1=1,l1
+  Do i2=1,l2
+   IsNaN_m = .Not. ((x(i1,i2).Gt.0._dp).Or.(x(i1,i2).Lt.0._dp).Or.(x(i1,i2).Eq.0._dp))
+   If (IsNaN_m) Exit
+  End Do
+ End Do
+
+ End Function IsNaN_m
 
  Subroutine ModelNotIncluded(i1,i2,i3,i4)
  !-------------------------------------------------------------------
@@ -585,7 +647,7 @@ Contains
   End Do
 ! module MathematicsQP
   Do i1=1,100
-   If (i_errors(1000+i1).Gt.0) Write(io,*) Trim(Math_Error(i1)),i_errors(i1)
+   If (i_errors(1000+i1).Gt.0) Write(io,*) Trim(MathQP_Error(i1)),i_errors(i1)
   End Do
 ! module StandardModel
   Do i1=1,100

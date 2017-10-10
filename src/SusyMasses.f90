@@ -4,7 +4,7 @@ Module SusyMasses
 Use Control
 Use Mathematics
 Use StandardModel, Only: mW, mW2, mZ, mZ2, mf_l, mf_l2, mf_u, mf_u2, mf_d &
-    & , mf_d2, AlphaS_mB, alphaS_mZ, G_F, FermionMass
+    & , mf_d2, AlphaS_mB, alphaS_mZ, G_F, FermionMass, QuarkMasses_and_PhaseShifts
 ! load modules
 
 
@@ -618,7 +618,6 @@ Contains
       Write (ErrCan,*) '  '
      End If
      mSpm(i1) = 0._dp
-     mSpm2(i1) = 0._dp
      If (ErrorLevel.Eq.2) Call TerminateProgram
      kont = -202
     Call AddError(202)
@@ -2061,7 +2060,10 @@ Contains
     phaseM =   Sqrt( mat72(i1,i1)   / Abs( mat72(i1,i1) ) )
     N(i1,:) = phaseM * N(i1,:)
    End Do
-   mN = Sqrt( Eig )
+   !---------------------------------------------------------------
+   ! use abs to avoid problems mit numerical zeros
+   !---------------------------------------------------------------
+   mN = Sqrt( Abs(Eig) )
 
   End If
 
@@ -2096,7 +2098,7 @@ Contains
  ! written by Werner Porod
  !  - 24.10.01: including squark/quark contributions
  !-----------------------------------------------------
- Use couplings
+ Use Couplings
  Implicit None
 
   Complex(dp), Intent(in) :: Y_d(3,3), Y_u(3,3), RUsquark(6,6), RDsquark(6,6) &
@@ -3212,6 +3214,10 @@ Contains
    End If
   End If
 
+  !----------------------------------
+  ! phase convention
+  !----------------------------------
+  If (RS0(1,2).Lt.0._dp) RS0 = - RS0
   Iname = Iname - 1
 
  Contains
@@ -3451,7 +3457,7 @@ Contains
 
   
   Integer :: I
-  Real(dp) :: k, mT2, mB2, L, tanb, tanbq, Zht, Zhb, QSTSB, cb, sb, s2, t, g
+  Real(dp) :: k, mT2, L, tanb, tanbq, Zht, Zhb, QSTSB, cb, sb, s2, t, g
   Real(dp) :: nu, B, c2tw, s2tw, h1q, h2q, htq, hbq, Al, h1, h2
   Real(dp) :: rt, rb, ALSMT, MA2, MS2, MP2, M12, ALSQ, mtopq, mbotq, s2t, s2b
   Real(dp) :: emt, fmt, gmt, Xt, ht
@@ -3468,7 +3474,6 @@ Contains
   k = 0.5_dp * lam ! Cyrill Hugonie et al. use a different convention
 
   mT2 = mT**2
-  mB2 = mB**2
   tanb = vevSM(2) / vevSM(1)
   mu = mu_in + oosqrt2 * h0 * vP
  !-----------------------------------------------------------
@@ -4308,7 +4313,8 @@ Contains
   Complex(Dp), Intent(in) :: Af, Yuk, mu
   Complex(Dp), Intent(out) :: Rsf(2, 2)
   Integer, Intent(inout) :: kont
- 
+
+  integer :: i1 
   Real(Dp) :: vev2, diag(2), abs_offdiag, trace, det2, det,     &
     &  nen2, nen, cost, sint
   Complex(Dp) :: offdiag, phase
@@ -4347,13 +4353,18 @@ Contains
   msf2(1) = 0.5_dp * (trace-det)
   msf2(2) = 0.5_dp * (trace+det)
   If (msf2(1) .Le.0.) Then
-   Write(ErrCan, * ) 'Warning from routine SfermionMass1mssm!'
+   Write(ErrCan, * ) 'Warning from routine SfermionMass1MSSM!'
    Write(ErrCan, * ) 'in the calculation of the masses'
    Write(ErrCan, * ) 'occurred a negative mass squared!!!'
    Write(ErrCan, * ) 'msf2 ', msf2
    Write(ErrCan, * ) 'M_L2, M_R2, Af, mu, vevs, Yuk, T3, Yl, Yr, g, gp'
    Write(ErrCan, * ) M_L2, M_R2, Af, mu, vevs, Yuk, T3, Yl, Yr, g, gp
 
+   Write(ErrCan,*) "The error occured in the following chain of routines"
+   Do i1=1,Iname
+    Write(ErrCan,*) Trim(NameOfUnit(i1))
+   end Do
+   Write(ErrCan,*) " "
    kont = - 222
    Call AddError(222)
    msf = Sqrt( Abs(msf2) )
@@ -4433,7 +4444,7 @@ Contains
   Integer :: i1, i2, ierr
   Real(Dp) :: vev2, test(2), Rsfa(6,6), m2(2), m22(2), Ml, Mr
   Complex(Dp) :: mat6(6,6), off(3,3), Rsf2(2,2), A, Y &
-     & , vec(6), YukT(3,3), YukC(3,3), AfC(3,3)
+     & , vec(6), YukT(3,3), YukC(3,3)
 
   Iname = Iname + 1
 
@@ -4509,21 +4520,22 @@ Contains
 
    YukT = Transpose(Yuk)
    YukC = Conjg(Yuk)
-   AfC = Conjg(Af)
 
    If (T3.Gt.0) Then
     mat6(1:3,1:3) = M_L2 + 0.5_dp * vevs(2)**2 * Matmul(YukC,YukT) &
         &         + (T3 * g**2 - 0.5_dp * Yl * gp**2) * vev2 * id3C
     mat6(4:6,4:6) = M_R2 + 0.5_dp * vevs(2)**2 * Matmul(YukT,YukC) &
        &         - 0.5_dp * Yr * gp**2 * vev2 * id3C
-    off = (vevs(2) * AfC - Conjg(mu) * vevs(1) * YukC ) * oosqrt2
+    off = (vevs(2) * Af - Conjg(mu) * vevs(1) * Yuk ) * oosqrt2
    Else
     mat6(1:3,1:3) = M_L2 + 0.5_dp * vevs(1)**2 * Matmul(YukC,YukT) &
         &         + (T3 * g**2 - 0.5_dp * Yl * gp**2) * vev2 * id3C
     mat6(4:6,4:6) = M_R2 + 0.5_dp * vevs(1)**2 * Matmul(YukT,YukC) &
        &         - 0.5_dp * Yr * gp**2 * vev2 * id3C
-    off = (vevs(1) * AfC - mu * vevs(2) * YukC ) * oosqrt2
+    off = (vevs(1) * Af - Conjg(mu) * vevs(2) * Yuk ) * oosqrt2
    End If
+
+   off = Conjg(off)
    mat6(1:3,4:6) = off
    Call Adjungate(off)
    mat6(4:6,1:3) = off      
@@ -4775,7 +4787,7 @@ Contains
 
   Integer :: i1
   Real(dp) :: D_sneut, T3, Yl, Yr, Ml, Mr, msf(2), msf2(2)
-  Real(dp) :: mStop2(2), mSbottom2(2), mT, Yukl
+  Real(dp) :: mStop2(2), mT, Yukl
   Complex(dp) :: A, Y, Rsf(2,2)
 
   Iname = Iname + 1
@@ -5079,12 +5091,12 @@ Contains
 
  End Subroutine TreeMassesEps3
 
- Subroutine TreeMassesLam3(gp, g, vevSM, vevL, M1, M2, M3, mu, B              &
-                         &, M2_E, M2_L, A_l, Y_l, lam, A_lam                  &
-                         &, M2_D, M2_U, M2_Q, A_d, A_u, Y_d, Y_u, lamp, A_lamp&
-                         &, mGlu, PhaseGlu, mC, mC2, U, V                     &
-                         &, mSdown, mSdown2, RSdown, mSup, mSup2, RSup        &
-                         &, mP0, mP02, RP0, mS0, mS02, RS0, mSpm, mSpm2, RSpm &
+ Subroutine TreeMassesLam3(gp, g, vevSM, vevL, M1, M2, M3, mu, B               &
+                         &, M2_E, M2_L, A_l, Y_l, lam, A_lam                   &
+                         &, M2_D, M2_U, M2_Q, A_d, A_u, Y_d, Y_u, lamp, A_lamp &
+                         &, mGlu, PhaseGlu, mC, mC2, U, V, mN, mN2, N          &
+                         &, mSdown, mSdown2, RSdown, mSup, mSup2, RSup         &
+                         &, mP0, mP02, RP0, mS0, mS02, RS0, mSpm, mSpm2, RSpm  &
                          &, GenerationMixing, kont)
  !-----------------------------------------------------------------
  ! calculates all SusyMasses in the 3-generation epsilon model
@@ -5103,11 +5115,11 @@ Contains
   Real(dp), Intent(in) :: g, gp, vevSM(2), vevL(3)
   Logical, Intent(in) :: GenerationMixing
   Integer, Intent(inout) :: kont
-  Real(dp), Intent(out) :: mGlu, mC(5), mC2(5)                              &
+  Real(dp), Intent(out) :: mGlu, mC(5), mC2(5), mN(7), mN2(7)               &
                       &  , mSdown(6), mSdown2(6), mSup(6), mSup2(6), mP0(5) &
                       &  , mP02(5), RP0(5,5), mS0(5), mS02(5), RS0(5,5)     &
                       &  , mSpm(8), mSpm2(8)
-  Complex(dp), Intent(out) :: PhaseGlu, U(5,5), V(5,5), RSdown(6,6)         &
+  Complex(dp), Intent(out) :: PhaseGlu, U(5,5), V(5,5), N(7,7), RSdown(6,6) &
                       &  , RSup(6,6), RSpm(8,8)
 
   Integer :: i1
@@ -5129,6 +5141,8 @@ Contains
   !-------------------------------
   Call CharginoMass(M2, mu, vevSM, vevL, g, y_L, lam, mf_l, mC, U, V, kont)
   mC2 = mC**2
+  Call NeutralinoMass7(M1, M2, mu, vevSM, vevL, g, gp, mN, N, kont)
+  mN2 = mN**2
   !-----------
   ! sfermions
   !-----------
@@ -5628,11 +5642,11 @@ Contains
   Complex(dp), Intent(out) :: PhaseGlu, U(2,2), V(2,2), N(4,4), Rsneut(3,3) &
        &  , RSlepton(6,6), RSdown(6,6), RSup(6,6), RSpm(2,2)                &
        &  , uU_L(3,3), uU_R(3,3) ,uD_L(3,3), uD_R(3,3), uL_L(3,3), uL_R(3,3)
-  Real(dp), Intent(out), optional :: mf_u_Q(3)
+  Real(dp), Intent(out), Optional :: mf_u_Q(3)
 
   Integer :: i1, ierr
   Real(dp) :: D_sneut, T3, Yl, Yr, Ml, Mr, msf(2), msf2(2), cosb, sinb
-  Real(dp) :: mStop2(2), mSbottom2(2), mT, mB, mf_t(3), test(2)
+  Real(dp) :: mStop2(2), mSbottom2(2), mT, mB, mf_t(3), test(2), mf_ta(3)
   Complex(dp) :: A, Y, Rsf(2,2), Ap, mat3(3,3)
 
   Iname = Iname + 1
@@ -5644,9 +5658,9 @@ Contains
   !-------------------------------
   If (GenerationMixing) Then
    Call FermionMass(Y_l,vevSM(1),mf_t,uL_L,uL_R,kont)
-   Call FermionMass(Y_d,vevSM(1),mf_t,uD_L,uD_R,kont)
-   Call FermionMass(Y_u,vevSM(2),mf_t,uU_L,uU_R,kont)
-   If (Present(mf_u_Q)) mf_u_Q = mf_t
+   Call QuarkMasses_and_PhaseShifts(Y_d, Y_u, vevSM, mf_t, uD_L, uD_R &
+                                     & , mf_ta, uU_L, uU_R)
+   If (Present(mf_u_Q)) mf_u_Q = mf_ta
   Else
    uL_L = id3C
    uL_R = id3C
@@ -5654,6 +5668,11 @@ Contains
    uD_R = id3C
    uU_L = id3C
    uU_R = id3C
+   If (Present(mf_u_Q)) Then
+    Do i1=1,3
+     mf_u_Q(i1) = oosqrt2 * vevSM(2) * Abs(Y_u(i1,i1))
+    End Do
+   End If
   End If
   !-------------------------------
   ! gluino
@@ -5958,8 +5977,8 @@ Contains
    mStop2 = mSup2(5:6) 
    mSbottom2 = mSdown2(5:6) 
   End If
-  mB = Y_d(3,3) * vevSM(1) * oosqrt2
-  mT = Y_u(3,3) * vevSM(2) * oosqrt2
+  mB = Abs(Y_d(3,3)) * vevSM(1) * oosqrt2
+  mT = Abs(Y_u(3,3)) * vevSM(2) * oosqrt2
   A = A_u(3,3) / Y_u(3,3)
   Ap = A_d(3,3) / Y_d(3,3)
   If (Present(LoopHiggs)) Then
@@ -5976,327 +5995,19 @@ Contains
 
  End Subroutine TreeMassesMSSM2
 
- Subroutine TreeMassesMSSM3(gp, g, vevSM, M1, M2, M3, mu, tanb             &
-                         &, M2_E, M2_L, A_l, Y_l                              &
-                         &, M2_D, M2_U, M2_Q, A_d, A_u, Y_d, Y_u              &
-                         &, mGlu, PhaseGlu, mC, mC2, U, V, mN, mN2, N         &
-                         &, mSneut, mSneut2, Rsneut, mSlepton, mSlepton2      &
-                         &, RSlepton, mSdown, mSdown2, RSdown, mSup, mSup2    &
-                         &, RSup, mP0, mP02, RP0, mS0, mS02, RS0, mSpm, mSpm2 &
-                         &, RSpm                                              &
-                         &, GenerationMixing, kont, Slopy)
- !-----------------------------------------------------------------
- ! calculates all SusyMasses in the MSSM
- ! written by Werner Porod, 24.03.2001 
- ! 10.10.01: including diagonalization of SM fermions
- ! 27.03.02: adding the logical variable slopy, which is useful in the
- !           context of Sugra models, because there the tree-level
- !           results for scalar particles can lead to to tachonic
- !           states whereas the 1-loop calculation leads to correct
- !           results
- !           Slopy = .True. -> take the modules of the scalar masses squared
- ! 25.10.03: takes m_A as input instead as output
- !-----------------------------------------------------------------
- Implicit None
-  Complex(dp), Intent(in) :: M1, M2, M3, mu
-  Complex(dp), Intent(in) :: A_l(3,3), A_d(3,3), A_u(3,3)
-  Complex(dp), Intent(in) :: Y_l(3,3), Y_d(3,3), Y_u(3,3)
-  Complex(dp), Intent(in) :: M2_E(3,3), M2_L(3,3), M2_D(3,3), M2_U(3,3)& 
-                        &  , M2_Q(3,3)
-  Real(dp), Intent(in) :: g, gp, vevSM(2), tanb, mP0(2), mP02(2)
-  Logical, Intent(in) :: GenerationMixing, Slopy
-  Integer, Intent(inout) :: kont
-  Real(dp), Intent(out) :: mGlu, mC(2), mC2(2), mN(4), mN2(4)     &
-                      &  , mSneut(3), mSneut2(3), mSlepton(6), mSlepton2(6) &
-                      &  , mSdown(6), mSdown2(6), mSup(6), mSup2(6) &
-                      &  , RP0(2,2), mS0(2), mS02(2), RS0(2,2)     &
-                      &  , mSpm(2), mSpm2(2)
-  Complex(dp), Intent(out) :: PhaseGlu, U(2,2), V(2,2), N(4,4), Rsneut(3,3) &
-       &  , RSlepton(6,6), RSdown(6,6), RSup(6,6), RSpm(2,2)  
-
-  Integer :: i1, ierr
-  Real(dp) :: D_sneut, T3, Yl, Yr, Ml, Mr, msf(2), msf2(2), cosb, sinb
-  Real(dp) :: mStop2(2), mSbottom2(2), mT, mB, mf_t(3), test(2)
-  Complex(dp) :: A, Y, Rsf(2,2), Ap, mat3(3,3)
-  Complex(dp), Dimension(3,3) :: uL_L, uL_R, uD_L, uD_R, uU_L, uU_R
-
-  Iname = Iname + 1
-  NameOfUnit(Iname) = 'TreeMassesMSSM3'
-
-  kont = 0
-  !-------------------------------
-  ! SM-fermions
-  !-------------------------------
-  If (GenerationMixing) Then
-   Call FermionMass(Y_l,vevSM(1),mf_t,uL_L,uL_R,kont)
-   Call FermionMass(Y_d,vevSM(1),mf_t,uD_L,uD_R,kont)
-   Call FermionMass(Y_u,vevSM(2),mf_t,uU_L,uU_R,kont)
-  Else
-   uL_L = id3C
-   uL_R = id3C
-   uD_L = id3C
-   uD_R = id3C
-   uU_L = id3C
-   uU_R = id3C
-  End If
-  !-------------------------------
-  ! gluino
-  !-------------------------------
-  mGlu = Abs( M3 )
-  PhaseGlu = Exp( (0.d0,1.d0) * Arg(M3) )
-  !-------------------------------
-  ! charginos + neutralinos
-  !-------------------------------
-  Call CharginoMass(M2, mu, vevSM, g, mC, U, V, kont)
-  mC2 = mC**2
-  Call NeutralinoMass(M1, M2, mu, vevSM, gp, g, mN, N, kont)
-  mN2 = mN**2
-  !-----------
-  ! sfermions
-  !-----------
-  If (GenerationMixing) Then
-   !-----------
-   ! Sneutrino
-   !-----------
-    D_sneut = 0.125_dp * (g**2 + gp**2) * (vevSM(1)**2 - vevSM(2)**2)
-    mat3 = M2_L + D_sneut * id3C
-    Call ComplexEigenSystem(mat3,mSneut2,Rsneut,ierr, test)
-
-    If (ierr.Eq.-14) Then
-      Write(ErrCan,*) "Possible numerical problem in "//NameOfUnit(Iname)
-      Write(ErrCan,*) "test =",test
-      Write(ErrCan,*) " "
-      If (ErrorLevel.Eq.2) Call TerminateProgram
-      ierr = 0
-    End If
-  
-    If (ierr.Ne.0) Then
-     Write(ErrCan,*) 'Problems with the diagonalization of sneutrinos'
-     Write(ErrCan,*) 'in routine ',NameOfUnit(Iname),'. ierr = ',ierr
-     kont = ierr
-    Else
-     Do i1=1,3
-      If (mSneut2(i1).Ge.0._dp) Then
-       mSneut(i1) = Sqrt( mSneut2(i1) )
-      Else
-       kont = -232
-      Call AddError(232)
-       If (ErrorLevel.Ge.0) Then
-        Write(ErrCan,*) 'Warning from ',NameOfUnit(Iname),' mSneut2 ',i1
-        Write(ErrCan,*) '< 0, : ',mSneut2(i1),'is set to 0 '
-       End If
-       mSneut2(i1) = 0
-       mSneut(i1) = 0
-       If (ErrorLevel.Eq.2) Call TerminateProgram
-      End If
-     Enddo
-    End If
-   !--------------
-   ! Sleptons
-   !--------------
-    T3 = -0.5_dp
-    Yl = -1._dp 
-    Yr = 2._dp
-    Call SfermionMass(M2_L, M2_E, A_l, mu, vevSM, Y_l, T3, Yl, Yr, g,gp, kont &
-                    &, mSlepton, mSlepton2, Rslepton) 
-   If ((kont.Ne.0).And.(Slopy)) Then
-    mSlepton2 = Abs(mSlepton2) + 1._dp
-    mSlepton = Sqrt( mSlepton2 )
-   End If
-   !--------------
-   ! D-squarks
-   !--------------
-    T3 = -0.5_dp
-    Yl = 1._dp / 3._dp
-    Yr = 2._dp / 3._dp
-    Call SfermionMass(M2_Q, M2_D, A_d, mu, vevSM, Y_d, T3, Yl, Yr, g,gp, kont &
-                    &, mSdown, mSdown2, Rsdown) 
-   If ((kont.Ne.0).And.(Slopy)) Then
-    mSdown2 = Abs(mSdown2) + 1._dp
-    mSdown = Sqrt( mSdown2 )
-   End If
-   !--------------
-   ! U-squarks
-   !--------------
-    T3 = 0.5_dp
-    Yl = 1._dp / 3._dp
-    Yr = -4._dp / 3._dp
-    Call SfermionMass(M2_Q, M2_U, A_u, mu, vevSM, Y_u, T3, Yl, Yr, g,gp, kont &
-                    &, mSup, mSup2, Rsup) 
-   If ((kont.Ne.0).And.(Slopy)) Then
-    mSup2 = Abs(mSup2) + 1._dp
-    mSup = Sqrt( mSup2 )
-   End If
-  Else
-   !-----------
-   ! Sneutrino
-   !-----------
-    D_sneut = 0.125_dp * (g**2 + gp**2) * (vevSM(1)**2 - vevSM(2)**2)
-    Do i1=1,3
-     mSneut2(i1) = Real(M2_L(i1,i1),dp)  + D_sneut
-     If (mSneut2(i1).Lt.0._dp) Then
-      kont = -232
-      Call AddError(232)
-      If (ErrorLevel.Ge.0) Then
-        Write(ErrCan,*) 'Error in Subroutine ',NameOfUnit(Iname)
-        Write(ErrCan,*) 'mSneutrino^2 ',i1,' <= 0 :',mSneut2(i1)
-        Write(ErrCan,*) 'setting it to 10.'
-        mSneut2(i1) = 10._dp
-      End If
-      If (ErrorLevel.Eq.2) Call TerminateProgram
-     End If
-     mSneut(i1) = Sqrt(mSneut2(i1))
-    End Do
-    RSneut = id3C
-   !----------------
-   ! sleptons
-   !---------------
-   RSlepton = 0
-   T3 = -0.5_dp
-   Yl = -1._dp 
-   Yr = 2._dp
-   Do i1 = 1,3
-    Ml = M2_L(i1,i1)
-    Mr = M2_E(i1,i1)
-    A = A_l(i1,i1)
-    Y = Y_l(i1,i1)
-    Call SfermionMass(Ml, Mr, A, mu, vevSM, Y, T3, Yl, Yr, g, gp, kont &
-                    &, msf, msf2, Rsf)
-    mSlepton(2*(i1-1)+1:2*i1) = msf
-    mSlepton2(2*(i1-1)+1:2*i1) = msf2
-    RSlepton(2*(i1-1)+1:2*i1,2*(i1-1)+1:2*i1) = Rsf
-    If ((kont.Ne.0).And.(Slopy)) Then
-     mSlepton2(2*(i1-1)+1:2*i1) = Abs(mSlepton2(2*(i1-1)+1:2*i1)) + 1._dp
-     mSlepton(2*(i1-1)+1:2*i1) = Sqrt( mSlepton2(2*(i1-1)+1:2*i1) )
-    End If
-   End Do
-   !---------------
-   ! down-squarks
-   !---------------
-   RSdown = 0
-   T3 = -0.5_dp
-   Yl = 1._dp / 3._dp
-   Yr = 2._dp / 3._dp
-   Do i1 = 1,3
-    Ml = M2_Q(i1,i1)
-    Mr = M2_D(i1,i1)
-    A = A_d(i1,i1)
-    Y = Y_d(i1,i1)
-    Call SfermionMass(Ml, Mr, A, mu, vevSM, Y, T3, Yl, Yr, g, gp, kont &
-                    &, msf, msf2, Rsf)
-    mSdown(2*(i1-1)+1:2*i1) = msf
-    mSdown2(2*(i1-1)+1:2*i1) = msf2
-    RSdown(2*(i1-1)+1:2*i1,2*(i1-1)+1:2*i1) = Rsf
-    If ((kont.Ne.0).And.(Slopy)) Then
-     mSdown2(2*(i1-1)+1:2*i1) = Abs(mSdown2(2*(i1-1)+1:2*i1)) + 1._dp
-     mSdown(2*(i1-1)+1:2*i1) = Sqrt( mSdown2(2*(i1-1)+1:2*i1) )
-    End If
-   End Do
-   !---------------
-   ! up-squarks
-   !---------------
-   RSup = 0
-   T3 = 0.5_dp
-   Yl = 1._dp / 3._dp
-   Yr = -4._dp / 3._dp
-   Do i1 = 1,3
-    Ml = M2_Q(i1,i1)
-    Mr = M2_U(i1,i1)
-    A = A_u(i1,i1)
-    Y = Y_u(i1,i1)
-    Call SfermionMass(Ml, Mr, A, mu, vevSM, Y, T3, Yl, Yr, g, gp, kont &
-                    &, msf, msf2, Rsf)
-    mSup(2*(i1-1)+1:2*i1) = msf
-    mSup2(2*(i1-1)+1:2*i1) = msf2
-    RSup(2*(i1-1)+1:2*i1,2*(i1-1)+1:2*i1) = Rsf
-    If ((kont.Ne.0).And.(Slopy)) Then
-     mSup2(2*(i1-1)+1:2*i1) = Abs(mSup2(2*(i1-1)+1:2*i1)) + 1._dp
-     mSup(2*(i1-1)+1:2*i1) = Sqrt( mSup2(2*(i1-1)+1:2*i1) )
-    End If
-   End Do
-  End If
-  !---------------
-  ! Higgs bosons
-  !---------------
-  ! pseudoscalar
-  !---------------
-   cosb = Sqrt(1._dp / (1._dp + tanb**2))
-   sinb = cosb * tanb
-   RP0(1,1) = - cosb
-   RP0(1,2) = sinb 
-   RP0(2,1) = sinb 
-   RP0(2,2) = cosb
-  !---------------
-  ! charged
-  !---------------
-   mSpm(1) = mW
-   mSpm2(1) = mW**2
-   mSpm2(2) = mSpm2(1) + mP02(2)
-   mSpm(2) = Sqrt(mSpm2(2))
-   RSpm = RP0
-  !---------------
-  ! scalar
-  !---------------
-  If (GenerationMixing) Then
-   !----------------------------------------------------------------------
-   ! I need the stops and sbottoms for the 1-loop calculation for neutral
-   ! Higgs bosons
-   !----------------------------------------------------------------------
-   T3 = 0.5_dp
-   Yl = 1._dp / 3._dp
-   Yr = -4._dp / 3._dp
-   Ml = M2_Q(3,3)
-   Mr = M2_U(3,3)
-   A = A_u(3,3)
-   Y = Y_u(3,3)
-   Call SfermionMass(Ml, Mr, A, mu, vevSM, Y, T3, Yl, Yr, g, gp, kont &
-                     &, msf, msf2, Rsf)
- ! tree level results are not always reliable in mSugra
-   If (kont.Ne.0) msf2 = Abs(msf2) + 1._dp
-   mStop2 = msf2
-   T3 = -0.5_dp
-   Yl = 1._dp / 3._dp
-   Yr = 2._dp / 3._dp
-   Ml = M2_Q(3,3)
-   Mr = M2_D(3,3)
-   A = A_d(3,3)
-   Y = Y_d(3,3)
-   Call SfermionMass(Ml, Mr, A, mu, vevSM, Y, T3, Yl, Yr, g, gp, kont &
-                     &, msf, msf2, Rsf)
- ! tree level results are not always reliable in mSugra
-   If (kont.Ne.0) msf2 = Abs(msf2) + 1._dp
-   mSbottom2 = msf2
-  Else
-   mStop2 = mSup2(5:6) 
-   mSbottom2 = mSdown2(5:6) 
-  End If
-  mB = Y_d(3,3) * vevSM(1) * oosqrt2
-  mT = Y_u(3,3) * vevSM(2) * oosqrt2
-  A = A_u(3,3) / Y_u(3,3)
-  Ap = A_d(3,3) / Y_d(3,3)
-  Call ScalarMassMSSMeff(mP02(2), mZ2, tanb, vevSM               &
-                       &, mT, mStop2, A, mu, mB, mSbottom2, Ap   &
-                       &, mS0, mS02, RS0, kont)
-
-  Iname = Iname - 1
-
- End Subroutine TreeMassesMSSM3
-
-
- Subroutine TreeMassesNMSSM(gp, g, vevSM, vP, M1, M2, M3, mu_in, B, h0, lam   &
+ Subroutine TreeMassesNMSSM(gp, g, vevSM, vP, M1, M2, M3, mu_in, h0, lam      &
              & , Ah0, Alam, M2_E, M2_L, A_l, Y_l, M2_D, M2_U, M2_Q, A_d, A_u  &
              & , Y_d, Y_u, mGlu, PhaseGlu, mC, mC2, U, V, mN, mN2, N          &
              & , mSneut, mSneut2, Rsneut, mSlepton, mSlepton2, RSlepton       &
              & , mSdown, mSdown2, RSdown, mSup, mSup2, RSup, mP0, mP02, RP0   &
-             & , mS0, mS02, RS0, mSpm, mSpm2, RSpm, GenerationMixing, kont    &
-             & , higgs_loop)
+             & , mS0, mS02, RS0, mSpm, mSpm2, RSpm, GenerationMixing, kont)
  !-----------------------------------------------------------------
  ! calculates all SusyMasses in the NMSSM at tree level except for
  ! neutral Higgs bosons where the 1-loop effective potential is used
  ! written by Werner Porod, 04.03.05 
  !-----------------------------------------------------------------
  Implicit None
-  Complex(dp), Intent(in) :: M1, M2, M3, mu_in, B
+  Complex(dp), Intent(in) :: M1, M2, M3, mu_in
   Complex(dp), Intent(in) :: h0, lam, Ah0, Alam
   Complex(dp), Intent(in) :: A_l(3,3), A_d(3,3), A_u(3,3)
   Complex(dp), Intent(in) :: Y_l(3,3), Y_d(3,3), Y_u(3,3)
@@ -6304,7 +6015,7 @@ Contains
                         &  , M2_Q(3,3)
 !  real(dp), intent(in) :: M2_H(2)
   Real(dp), Intent(in) :: g, gp, vevSM(2), vP
-  Logical, Intent(in) :: GenerationMixing, higgs_loop
+  Logical, Intent(in) :: GenerationMixing
   Integer, Intent(inout) :: kont
   Real(dp), Intent(out) :: mGlu, mC(2), mC2(2), mN(5), mN2(5)     &
                       &  , mSneut(3), mSneut2(3), mSlepton(6), mSlepton2(6) &
@@ -6518,8 +6229,8 @@ Contains
    mSbottom2 = mSdown2(5:6) 
    RSbot = RSdown(5:6,5:6)
   End If
-  mB = Y_d(3,3) * vevSM(1) * oosqrt2
-  mT = Y_u(3,3) * vevSM(2) * oosqrt2
+  mB = Abs(Y_d(3,3)) * vevSM(1) * oosqrt2
+  mT = Abs(Y_u(3,3)) * vevSM(2) * oosqrt2
   A = A_u(3,3) / Y_u(3,3)
   Ap = A_d(3,3) / Y_d(3,3)
 
